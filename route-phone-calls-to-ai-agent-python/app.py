@@ -121,11 +121,11 @@ def handle_call_webhook():
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded"}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": str(e), "status_code": e.status_code}), e.status_code
+        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
     except Exception as e:
-        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+        return jsonify({"error": "Internal server error"}), 500
 
 
 if __name__ == "__main__":

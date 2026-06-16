@@ -118,11 +118,11 @@ def handle_sms_webhook():
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded"}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": str(e)}), e.status_code
+        return jsonify({"error": "API request failed"}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/health", methods=["GET"])

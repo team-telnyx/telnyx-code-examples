@@ -195,9 +195,36 @@ def extract_complete_code(sections: dict, language: str) -> str:
 def sanitize_code(code: str, language: str) -> str:
     """Apply security post-processing to extracted code."""
     if language == "python":
+        # Fix debug=True
         code = code.replace(
             "app.run(debug=True, port=5000)",
             'app.run(debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", port=5000)',
+        )
+        # Fix exception info exposure — don't leak str(e) in HTTP responses.
+        # Pattern: jsonify({"error": str(e), "status_code": e.status_code}), e.status_code
+        code = code.replace(
+            'return jsonify({"error": str(e), "status_code": e.status_code}), e.status_code',
+            'return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code',
+        )
+        # Pattern: jsonify({"error": str(e)}), e.status_code
+        code = code.replace(
+            'return jsonify({"error": str(e)}), e.status_code',
+            'return jsonify({"error": "API request failed"}), e.status_code',
+        )
+        # Pattern: jsonify({"error": str(e)}), 400
+        code = code.replace(
+            'return jsonify({"error": str(e)}), 400',
+            'return jsonify({"error": "Invalid request"}), 400',
+        )
+        # Pattern: jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+        code = code.replace(
+            'return jsonify({"error": f"Unexpected error: {str(e)}"}), 500',
+            'return jsonify({"error": "Internal server error"}), 500',
+        )
+        # Pattern: jsonify({"error": str(e)}), 500
+        code = code.replace(
+            'return jsonify({"error": str(e)}), 500',
+            'return jsonify({"error": "Internal server error"}), 500',
         )
     return code
 

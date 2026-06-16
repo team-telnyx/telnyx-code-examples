@@ -44,7 +44,7 @@ def list_assistants():
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": str(e), "status_code": e.status_code}), e.status_code
+        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
 

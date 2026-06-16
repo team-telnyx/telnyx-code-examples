@@ -72,7 +72,7 @@ def list_sims():
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": str(e), "status_code": e.status_code}), e.status_code
+        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
 
@@ -89,7 +89,7 @@ def get_sim(sim_card_id):
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": str(e), "status_code": e.status_code}), e.status_code
+        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
 
@@ -106,11 +106,11 @@ def activate_sim(sim_card_id):
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": str(e), "status_code": e.status_code}), e.status_code
+        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
     except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": "Invalid request"}), 400
 
 
 if __name__ == "__main__":
