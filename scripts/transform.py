@@ -192,6 +192,16 @@ def extract_complete_code(sections: dict, language: str) -> str:
     return all_blocks[0].strip() if all_blocks else ""
 
 
+def sanitize_code(code: str, language: str) -> str:
+    """Apply security post-processing to extracted code."""
+    if language == "python":
+        code = code.replace(
+            "app.run(debug=True, port=5000)",
+            'app.run(debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", port=5000)',
+        )
+    return code
+
+
 def extract_env_vars(code: str, language: str) -> list[str]:
     """Extract environment variable names from code."""
     env_vars = set()
@@ -341,6 +351,9 @@ RUN pip install --no-cache-dir -r {dep_file}
 
 COPY . .
 
+RUN useradd -r appuser && chown -R appuser /app
+USER appuser
+
 EXPOSE {port}
 
 CMD ["python", "{code_file}"]
@@ -354,6 +367,8 @@ COPY package.json .
 RUN npm install --production
 
 COPY . .
+
+USER node
 
 EXPOSE {port}
 
@@ -374,6 +389,9 @@ FROM alpine:3.19
 WORKDIR /app
 COPY --from=builder /app/server .
 
+RUN adduser -D appuser
+USER appuser
+
 EXPOSE {port}
 
 CMD ["./server"]
@@ -388,6 +406,9 @@ RUN bundle install
 
 COPY . .
 
+RUN useradd -r appuser && chown -R appuser /app
+USER appuser
+
 EXPOSE {port}
 
 CMD ["ruby", "{code_file}"]
@@ -396,6 +417,8 @@ CMD ["ruby", "{code_file}"]
         return f"""FROM python:3.12-slim
 WORKDIR /app
 COPY . .
+RUN useradd -r appuser && chown -R appuser /app
+USER appuser
 EXPOSE {port}
 CMD ["python", "{code_file}"]
 """
@@ -686,6 +709,7 @@ def transform(
 
     # 1. Extract and write code file
     code = extract_complete_code(sections, language)
+    code = sanitize_code(code, language)
     if code:
         (folder_path / code_file).write_text(code + "\n")
     else:

@@ -7,6 +7,9 @@ RUN bundle install
 
 COPY . .
 
+RUN useradd -r appuser && chown -R appuser /app
+USER appuser
+
 EXPOSE 3000
 
 CMD ["ruby", "app.rb"]
