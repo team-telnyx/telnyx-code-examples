@@ -1,0 +1,16 @@
+{
+  "name": "telnyx-example",
+  "version": "1.0.0",
+  "description": "Telnyx API example",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --check server.js"
+  },
+  "dependencies": {
+    "telnyx": "latest",
+    "express": "latest",
+    "dotenv": "latest",
+    "body-parser": "latest"
+  }
+}

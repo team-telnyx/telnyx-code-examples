@@ -1,0 +1,5 @@
+flask
+openai
+python-dotenv
+requests
+telnyx
