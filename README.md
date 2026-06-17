@@ -18,13 +18,15 @@ cp .env.example .env
 make setup && make run
 ```
 
+> Full API reference at [developers.telnyx.com](https://developers.telnyx.com)
+
 Every example supports three deployment options: **Local** (`make setup && make run`), **Docker** (`make docker-build && make docker-run`), and **Manual** (step-by-step instructions in each README).
 
 ---
 
 ## Voice AI
 
-Build voice applications with Telnyx Call Control — IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
+Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) — IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
 | Example | Language | Description |
 |---------|----------|-------------|
@@ -47,7 +49,7 @@ Build voice applications with Telnyx Call Control — IVR menus, call recording,
 
 ## SMS & MMS
 
-Send and receive text messages, build autoresponders, implement 2FA, and manage bulk messaging campaigns.
+Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/products/sms-api) — build autoresponders, implement 2FA, and manage bulk messaging campaigns.
 
 | Example | Language | Description |
 |---------|----------|-------------|
@@ -66,7 +68,7 @@ Send and receive text messages, build autoresponders, implement 2FA, and manage 
 
 ## AI Assistants
 
-Create, manage, and chat with Telnyx AI Assistants — LLM-powered agents for voice and messaging automation.
+Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) — LLM-powered agents for voice and messaging automation.
 
 | Example | Language | Description |
 |---------|----------|-------------|
@@ -81,7 +83,7 @@ Create, manage, and chat with Telnyx AI Assistants — LLM-powered agents for vo
 
 ## SIP Trunking
 
-Connect your PBX or SBC to Telnyx SIP infrastructure — trunk setup, inbound routing, failover, and codec configuration.
+Connect your PBX or SBC to [Telnyx SIP Trunking](https://telnyx.com/products/sip-trunks) — trunk setup, inbound routing, failover, and codec configuration.
 
 | Example | Language | Description |
 |---------|----------|-------------|
@@ -95,7 +97,7 @@ Connect your PBX or SBC to Telnyx SIP infrastructure — trunk setup, inbound ro
 
 ## IoT & SIM Management
 
-Activate SIM cards, monitor data usage, provision eSIMs, and track device locations with the Telnyx IoT platform.
+Activate SIM cards, monitor data usage, provision eSIMs, and track device locations with the [Telnyx IoT platform](https://telnyx.com/products/iot-sim-card).
 
 | Example | Language | Description |
 |---------|----------|-------------|
@@ -113,11 +115,11 @@ Activate SIM cards, monitor data usage, provision eSIMs, and track device locati
 
 Telnyx is an **AI Communications Infrastructure** platform that provides a single, integrated API for:
 
-- **Voice AI** — Programmable voice with Call Control, IVR, recording, conferencing, and WebRTC.
-- **SMS & MMS** — Send and receive messages globally with delivery receipts and webhook events.
-- **SIP Trunking** — Connect your existing PBX with elastic SIP trunks, failover routing, and codec control.
-- **AI Assistants** — Deploy LLM-powered voice and messaging agents with built-in telephony.
-- **IoT & SIM** — Global IoT connectivity with SIM management, eSIM provisioning, and data monitoring.
+- **[Voice AI](https://telnyx.com/products/voice-ai-agents)** — Programmable voice with Call Control, IVR, recording, conferencing, and WebRTC.
+- **[SMS & MMS](https://telnyx.com/products/sms-api)** — Send and receive messages globally with delivery receipts and webhook events.
+- **[SIP Trunking](https://telnyx.com/products/sip-trunks)** — Connect your existing PBX with elastic SIP trunks, failover routing, and codec control.
+- **[AI Assistants](https://telnyx.com/ai-assistants)** — Deploy LLM-powered voice and messaging agents with built-in telephony.
+- **[IoT & SIM](https://telnyx.com/products/iot-sim-card)** — Global IoT connectivity with SIM management, eSIM provisioning, and data monitoring.
 
 Unlike stitching together multiple vendors into a Frankenstack, Telnyx gives you one platform, one API key, and one bill. Calls and messages traverse the Telnyx-owned private IP network for lower latency and higher reliability.
 

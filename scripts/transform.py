@@ -80,6 +80,69 @@ PRODUCT_LABELS = {
     "iot": "IoT",
 }
 
+PRODUCT_LINKS = {
+    "sms": {
+        "docs": [
+            ("Messaging Overview", "https://developers.telnyx.com/docs/messaging"),
+            ("Send an SMS — Quickstart", "https://developers.telnyx.com/docs/messaging/messages/send-message"),
+            ("Messaging API Reference", "https://developers.telnyx.com/api-reference/messages/send-a-message"),
+        ],
+        "dotcom": [
+            ("Telnyx SMS API", "https://telnyx.com/products/sms-api"),
+            ("Messaging Pricing", "https://telnyx.com/pricing/messaging"),
+        ],
+    },
+    "voice": {
+        "docs": [
+            ("Voice API Overview", "https://developers.telnyx.com/docs/voice"),
+            ("Voice API Commands", "https://developers.telnyx.com/docs/voice/programmable-voice/voice-api-commands-and-resources"),
+            ("AI Assistant Start", "https://developers.telnyx.com/docs/voice/programmable-voice/ai-assistant-start"),
+            ("Call Control API Reference", "https://developers.telnyx.com/api-reference/call-commands/dial"),
+        ],
+        "dotcom": [
+            ("Telnyx Voice API", "https://telnyx.com/products/voice-api"),
+            ("Voice AI Agents", "https://telnyx.com/products/voice-ai-agents"),
+        ],
+    },
+    "ai": {
+        "docs": [
+            ("AI Assistants Guide", "https://developers.telnyx.com/docs/inference/ai-assistants/no-code-voice-assistant"),
+            ("Assistants API Reference", "https://developers.telnyx.com/api-reference/assistants/create-an-assistant"),
+        ],
+        "dotcom": [
+            ("Telnyx AI Assistants", "https://telnyx.com/ai-assistants"),
+            ("Voice AI Agents", "https://telnyx.com/products/voice-ai-agents"),
+        ],
+    },
+    "sip": {
+        "docs": [
+            ("SIP Trunking Get Started", "https://developers.telnyx.com/docs/voice/sip-trunking/get-started"),
+            ("SIP Configuration Guides", "https://developers.telnyx.com/docs/voice/sip-trunking/configuration-guides"),
+        ],
+        "dotcom": [
+            ("Telnyx SIP Trunks", "https://telnyx.com/products/sip-trunks"),
+            ("SIP Trunking Pricing", "https://telnyx.com/pricing/elastic-sip"),
+        ],
+    },
+    "iot": {
+        "docs": [
+            ("IoT SIM Get Started", "https://developers.telnyx.com/docs/iot-sim/get-started"),
+            ("SIM Card API Reference", "https://developers.telnyx.com/api-reference/sim-cards/get-all-sim-cards"),
+        ],
+        "dotcom": [
+            ("Telnyx IoT SIM Cards", "https://telnyx.com/products/iot-sim-card"),
+            ("IoT Data Plans Pricing", "https://telnyx.com/pricing/iot-data-plans"),
+        ],
+    },
+}
+
+LANG_SDK_URL = {
+    "python": ("Python SDK", "https://developers.telnyx.com/development/sdk/python"),
+    "nodejs": ("Node.js SDK", "https://developers.telnyx.com/development/sdk/node"),
+    "ruby":   ("Ruby SDK", "https://developers.telnyx.com/development/sdk/ruby"),
+    "go":     ("Go SDK", "https://developers.telnyx.com/development/sdk/go"),
+}
+
 # Code block language tags for extraction
 LANG_CODE_TAGS = {
     "python": ["python"],
@@ -190,6 +253,43 @@ def extract_complete_code(sections: dict, language: str) -> str:
     # Fallback: grab any code block
     all_blocks = re.findall(r"```\w+\n(.*?)```", complete, re.DOTALL)
     return all_blocks[0].strip() if all_blocks else ""
+
+
+def sanitize_code(code: str, language: str) -> str:
+    """Apply security post-processing to extracted code."""
+    if language == "python":
+        # Fix debug=True
+        code = code.replace(
+            "app.run(debug=True, port=5000)",
+            'app.run(debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", port=5000)',
+        )
+        # Fix exception info exposure — don't leak str(e) in HTTP responses.
+        # Pattern: jsonify({"error": str(e), "status_code": e.status_code}), e.status_code
+        code = code.replace(
+            'return jsonify({"error": str(e), "status_code": e.status_code}), e.status_code',
+            'return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code',
+        )
+        # Pattern: jsonify({"error": str(e)}), e.status_code
+        code = code.replace(
+            'return jsonify({"error": str(e)}), e.status_code',
+            'return jsonify({"error": "API request failed"}), e.status_code',
+        )
+        # Pattern: jsonify({"error": str(e)}), 400
+        code = code.replace(
+            'return jsonify({"error": str(e)}), 400',
+            'return jsonify({"error": "Invalid request"}), 400',
+        )
+        # Pattern: jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+        code = code.replace(
+            'return jsonify({"error": f"Unexpected error: {str(e)}"}), 500',
+            'return jsonify({"error": "Internal server error"}), 500',
+        )
+        # Pattern: jsonify({"error": str(e)}), 500
+        code = code.replace(
+            'return jsonify({"error": str(e)}), 500',
+            'return jsonify({"error": "Internal server error"}), 500',
+        )
+    return code
 
 
 def extract_env_vars(code: str, language: str) -> list[str]:
@@ -341,6 +441,9 @@ RUN pip install --no-cache-dir -r {dep_file}
 
 COPY . .
 
+RUN useradd -r appuser && chown -R appuser /app
+USER appuser
+
 EXPOSE {port}
 
 CMD ["python", "{code_file}"]
@@ -354,6 +457,8 @@ COPY package.json .
 RUN npm install --production
 
 COPY . .
+
+USER node
 
 EXPOSE {port}
 
@@ -374,6 +479,9 @@ FROM alpine:3.19
 WORKDIR /app
 COPY --from=builder /app/server .
 
+RUN adduser -D appuser
+USER appuser
+
 EXPOSE {port}
 
 CMD ["./server"]
@@ -388,6 +496,9 @@ RUN bundle install
 
 COPY . .
 
+RUN useradd -r appuser && chown -R appuser /app
+USER appuser
+
 EXPOSE {port}
 
 CMD ["ruby", "{code_file}"]
@@ -396,6 +507,8 @@ CMD ["ruby", "{code_file}"]
         return f"""FROM python:3.12-slim
 WORKDIR /app
 COPY . .
+RUN useradd -r appuser && chown -R appuser /app
+USER appuser
 EXPOSE {port}
 CMD ["python", "{code_file}"]
 """
@@ -489,9 +602,9 @@ def build_why_telnyx() -> str:
     """Generate the standard 'Why Telnyx?' section."""
     return """## Why Telnyx?
 
-Telnyx is an **AI Communications Infrastructure** platform that gives developers a single API for voice, messaging, SIP, AI, and IoT — no Frankenstack required.
+Telnyx is an **AI Communications Infrastructure** platform that gives developers a single API for [voice](https://telnyx.com/products/voice-ai-agents), [messaging](https://telnyx.com/products/sms-api), [SIP](https://telnyx.com/products/sip-trunks), [AI](https://telnyx.com/ai-assistants), and [IoT](https://telnyx.com/products/iot-sim-card) — no Frankenstack required.
 
-- **Integrated platform** — Voice, SMS, SIP trunking, AI assistants, and IoT SIM management under one roof. No stitching together multiple vendors.
+- **Integrated platform** — [Voice](https://telnyx.com/products/voice-ai-agents), [SMS](https://telnyx.com/products/sms-api), [SIP trunking](https://telnyx.com/products/sip-trunks), [AI assistants](https://telnyx.com/ai-assistants), and [IoT SIM management](https://telnyx.com/products/iot-sim-card) under one roof. No stitching together multiple vendors.
 - **Global private network** — Calls and messages traverse the Telnyx-owned IP network for lower latency and higher reliability than the public internet.
 - **Developer-first** — SDKs for Python, Node.js, Go, Ruby, Java, and PHP. Comprehensive webhook event model. Sandbox environment for testing.
 - **Competitive pricing** — Pay-as-you-go with no minimums, contracts, or per-seat fees.
@@ -582,6 +695,23 @@ def _get_version_answer(language: str) -> str:
     return versions.get(language, "See the Prerequisites section.")
 
 
+def build_resources(product: str, language: str) -> str:
+    """Generate a Resources section with links to Dev Docs, SDK, and product pages."""
+    links = PRODUCT_LINKS.get(product, {})
+    sdk = LANG_SDK_URL.get(language)
+    items = []
+    for label, url in links.get("docs", []):
+        items.append(f"- [{label}]({url})")
+    if sdk:
+        items.append(f"- [{sdk[0]}]({sdk[1]})")
+    for label, url in links.get("dotcom", []):
+        items.append(f"- [{label}]({url})")
+    lines = ["## Resources", ""]
+    lines.extend(items)
+    lines.append("")
+    return "\n".join(lines)
+
+
 def build_related_examples(sections: dict, product: str, language: str) -> str:
     """Build the Related Examples section from TF Next Steps."""
     next_steps = sections.get("next steps", "")
@@ -607,6 +737,7 @@ def restructure_readme(
     overview = sections.get("overview", "")
     prerequisites = sections.get("prerequisites", "")
     implementation = sections.get("step 3: implementation", sections.get("step 3", ""))
+    implementation = sanitize_code(implementation, language)
     troubleshooting = sections.get("troubleshooting", "")
 
     parts = [
@@ -636,6 +767,7 @@ def restructure_readme(
         troubleshooting,
         "",
         build_faq(title, product, language, framework),
+        build_resources(product, language),
         build_related_examples(sections, product, language),
     ]
 
@@ -686,6 +818,7 @@ def transform(
 
     # 1. Extract and write code file
     code = extract_complete_code(sections, language)
+    code = sanitize_code(code, language)
     if code:
         (folder_path / code_file).write_text(code + "\n")
     else:
