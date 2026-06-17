@@ -114,6 +114,21 @@ function verifyOTP(phoneNumber, otp) {
   return { success: true, message: "OTP verified successfully" };
 }
 
+// Simple in-memory rate limiter for OTP requests
+const otpRateLimiter = new Map();
+const OTP_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const OTP_RATE_LIMIT_MAX = 5;
+
+function checkOTPRateLimit(phoneNumber) {
+  const now = Date.now();
+  const attempts = otpRateLimiter.get(phoneNumber) || [];
+  const recent = attempts.filter((t) => now - t < OTP_RATE_LIMIT_WINDOW_MS);
+  if (recent.length >= OTP_RATE_LIMIT_MAX) return false;
+  recent.push(now);
+  otpRateLimiter.set(phoneNumber, recent);
+  return true;
+}
+
 /**
  * POST /auth/request-otp
  * Request an OTP to be sent to the provided phone number.
@@ -123,6 +138,10 @@ app.post("/auth/request-otp", async (req, res) => {
 
   if (!phone_number) {
     return res.status(400).json({ error: "Missing required field: 'phone_number'" });
+  }
+
+  if (!checkOTPRateLimit(phone_number)) {
+    return res.status(429).json({ error: "Too many OTP requests. Try again later." });
   }
 
   try {

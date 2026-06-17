@@ -91,7 +91,7 @@ def check_endpoint_health(endpoint_name: str) -> bool:
         # Attempt to reach the SIP endpoint with a simple HTTP health check
         # In production, use SIP OPTIONS ping instead
         response = requests.get(
-            f"http://{endpoint['ip']}:{endpoint['port']}/health",
+            f"https://{endpoint['ip']}:{endpoint['port']}/health",
             timeout=5,
         )
         is_healthy = response.status_code == 200
@@ -135,6 +135,7 @@ def assign_phone_number_to_connection(phone_number: str, connection_id: str) -> 
         f"https://api.telnyx.com/v2/phone_numbers/{phone_number}",
         json=payload,
         headers=headers,
+        timeout=10,
     )
     
     if response.status_code not in [200, 201]:

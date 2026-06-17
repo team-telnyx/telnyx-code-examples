@@ -59,7 +59,7 @@ def get_data_usage(sim_card_id: str) -> dict:
         "Accept": "application/json",
     }
     
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=10)
     response.raise_for_status()
     
     data = response.json()

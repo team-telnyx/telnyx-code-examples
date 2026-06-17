@@ -67,7 +67,7 @@ def receive_sms_webhook():
         message_info = process_inbound_sms(event_data)
         
         # Log or store the message (example: print to console)
-        print(f"Received SMS from {message_info['from']}: {message_info['text']}")
+        print(f"Received SMS: message_id={message_info['message_id']}")
         
         # Return 200 OK to acknowledge receipt to Telnyx
         return jsonify({
@@ -78,7 +78,7 @@ def receive_sms_webhook():
     except Exception as e:
         # Log the error but still return 200 to prevent Telnyx retries
         print(f"Error processing webhook: {str(e)}")
-        return jsonify({"status": "error", "details": str(e)}), 200
+        return jsonify({"status": "error"}), 200
 
 
 if __name__ == "__main__":

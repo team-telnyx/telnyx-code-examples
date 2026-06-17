@@ -150,7 +150,7 @@ def get_device_location(sim_card_id: str):
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
     except ValueError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"error": "Resource not found"}), 404
 
 
 @app.route("/devices/<sim_card_id>/location", methods=["GET"])
@@ -181,7 +181,7 @@ def get_location_only(sim_card_id: str):
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
     except ValueError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"error": "Resource not found"}), 404
 
 
 @app.route("/health", methods=["GET"])

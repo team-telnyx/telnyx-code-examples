@@ -250,7 +250,7 @@ def get_conference_status_endpoint(conference_name):
         return jsonify(result), 200
         
     except ValueError as e:
-        return jsonify({"error": str(e)}), 404
+        return jsonify({"error": "Resource not found"}), 404
 
 
 @app.route("/webhooks/call-events", methods=["POST"])
