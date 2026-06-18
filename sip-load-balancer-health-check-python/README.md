@@ -18,12 +18,18 @@ SIP Load Balancer Health Check — monitor SIP trunk health across multiple endp
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Email notification
 ```
 
 ## Environment Variables

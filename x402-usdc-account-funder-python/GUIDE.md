@@ -5,11 +5,17 @@ X402 USDC Account Funder — fund your Telnyx account with USDC cryptocurrency o
 ## How It Works
 
 ```
-API Request ──► Your App ──► Telnyx API
-                   │
-              Process Result
-                   │
-              Return Response
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Payment processing
 ```
 
 ## Telnyx Products Used

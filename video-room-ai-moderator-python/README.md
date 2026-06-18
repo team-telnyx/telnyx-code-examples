@@ -17,12 +17,20 @@ Video Room AI Moderator — create video rooms with AI-powered content moderatio
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx AI Inference (LLM)
+           ├──► Telnyx Call Recording
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     JSON API response
 ```
 
 ## Environment Variables

@@ -11,6 +11,26 @@ telnyx_products: [AI Inference, Media Streaming]
 
 Upload audio with existing voice-over. STT extracts the script, AI rewrites/improves it (5 modes: polish, professional, simplify, energize, shorten), TTS re-records with studio quality.
 
+## Architecture
+
+```
+  Input (script/text)
+        │
+        ▼
+  ┌─────────────────┐
+  │  AI Inference    │ ── process / direct / rewrite
+  └────────┬────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │  TTS Generation  │ ── render audio (multiple takes/voices)
+  └────────┬────────┘
+           │
+           ▼
+     JSON API response
+     Cloud Storage upload
+```
+
 ## Telnyx API Endpoints Used
 
 - **STT Transcribe**: `POST /v2/ai/transcribe` -- [ref](https://developers.telnyx.com/api/inference/transcribe)

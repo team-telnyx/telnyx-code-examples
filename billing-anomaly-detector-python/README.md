@@ -18,12 +18,21 @@ Billing Anomaly Detector — monitor usage and billing for anomalies, alert on c
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Webhook callback
+     Report / export
+
+  State: In-memory state
 ```
 
 ## Environment Variables

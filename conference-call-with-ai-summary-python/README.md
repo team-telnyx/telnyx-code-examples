@@ -29,15 +29,24 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 
 ## Architecture
 
-```text
-Participant A ──►┐
-Participant B ──►├──► Telnyx Conference ──► Webhooks ──► Your App
-Participant C ──►┘                                        │
-                                                    AI Inference
-                                                    (analysis)
-                                                         │
-                                                    TTS / SMS back
-                                                    to participants
+```
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Summarization)  │
+  └───────────┬────────────┘
+              │
+              ├──► JSON API response
+              ▼
+         Session Log
 ```
 
 ## Environment Variables

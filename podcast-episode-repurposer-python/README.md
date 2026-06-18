@@ -22,9 +22,21 @@ Upload a recorded episode, STT transcribes, AI Inference extracts key quotes and
 
 ## Architecture
 
-```text
-See app.py for full architecture -- this example connects:
-AI Inference, SMS/MMS, Media Streaming
+```
+  Input (script/text)
+        │
+        ▼
+  ┌─────────────────┐
+  │  AI Inference    │ ── process / direct / rewrite
+  └────────┬────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │  TTS Generation  │ ── render audio (multiple takes/voices)
+  └────────┬────────┘
+           │
+           ▼
+     SMS to customer
 ```
 
 ## Environment Variables

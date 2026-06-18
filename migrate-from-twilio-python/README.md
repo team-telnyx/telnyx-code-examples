@@ -23,12 +23,27 @@ Migrate from Twilio — complete Twilio-to-Telnyx migration tool: numbers, messa
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌────────────────────────┐
-│   SMS/MMS    │────►│   Telnyx   │────►│ POST /webhooks/messaging│
-└─────────────┘     │   Cloud    │     └──────────┬─────────────┘
-                    └────────────┘                │
-                                           SMS reply back
+```
+  Twilio API (source)
+        │
+        ▼
+  ┌─────────────┐
+  │ Audit       │ ── inventory numbers, configs, profiles
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │ Map & Plan  │ ── match source features to Telnyx equivalents
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌─────────────────┐
+  │ Provision   │────►│ Telnyx Platform  │
+  │ on Telnyx   │     │ (numbers, SIP,   │
+  └──────┬──────┘     │  messaging)      │
+         │            └─────────────────┘
+         ▼
+  Migration Report
 ```
 
 ## Telnyx Webhook Events

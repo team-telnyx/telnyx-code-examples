@@ -18,12 +18,18 @@ Application. Built with Telnyx AI Assistants, Migration, Number Porting.
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     JSON API response
 ```
 
 ## Environment Variables

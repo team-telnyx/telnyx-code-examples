@@ -5,14 +5,21 @@ Upload a script, select voice/style/pacing, AI adds professional direction cues 
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  Input (script/text)
+        │
+        ▼
+  ┌─────────────────┐
+  │  AI Inference    │ ── process / direct / rewrite
+  └────────┬────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │  TTS Generation  │ ── render audio (multiple takes/voices)
+  └────────┬────────┘
+           │
+           ▼
+     Email notification
+     Cloud Storage upload
 ```
 
 ## Telnyx Products Used

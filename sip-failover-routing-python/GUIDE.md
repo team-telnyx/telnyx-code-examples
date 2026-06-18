@@ -5,12 +5,17 @@ Voice application. Built with Telnyx Migration, Number Porting.
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Webhook callback
 ```
 
 ## Telnyx Products Used

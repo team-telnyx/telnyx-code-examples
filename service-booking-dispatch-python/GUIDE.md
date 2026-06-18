@@ -5,21 +5,34 @@ Customer calls HVAC/plumber/electrician, AI checks tech availability, books slot
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound Phone Call
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Prompt  │────►│ Gather Speech     │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Scheduling       │
+                    │ • Verification     │
+                    └────────┬─────────┘
+                             │
+                    ┌────────┴────────┐
+                    ├──► SMS to customer
+                    ├──► Slack notification
+                    └──► Email notification
+
+  External: Stripe
+
+  State: In-memory state
 ```
 
 ## Telnyx Products Used

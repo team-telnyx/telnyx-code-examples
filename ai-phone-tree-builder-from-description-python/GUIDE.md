@@ -5,14 +5,19 @@ AI Phone Tree Builder — describe your business in English, AI creates a workin
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx AI Inference (LLM)
+           ├──► Telnyx Call Transfer
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     JSON API response
 ```
 
 ## Telnyx Products Used

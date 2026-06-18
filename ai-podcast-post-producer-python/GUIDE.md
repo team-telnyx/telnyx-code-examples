@@ -5,21 +5,23 @@ AI Podcast Post-Producer — record a podcast over a conference call, then AI ge
 ## How It Works
 
 ```
-Inbound/Outbound Call
-        │
-        ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Routing)  │
+  └───────────┬────────────┘
+              │
+              ├──► JSON API response
+              ▼
+         Session Log
 ```
 
 ## Telnyx Products Used

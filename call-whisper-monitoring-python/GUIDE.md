@@ -5,21 +5,21 @@ Voice application. Built with Telnyx AI Assistants, Migration, Number Porting, S
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound Phone Call
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► STT (Speech Recognition)
+         ├──► Call Recording
+         │
+         ▼
+    Report / export
+
+  State: Redis cache
 ```
 
 ## Telnyx Products Used

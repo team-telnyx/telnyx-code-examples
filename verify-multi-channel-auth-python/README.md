@@ -18,12 +18,20 @@ Verify Multi-Channel Auth — multi-channel verification: SMS first, fallback to
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Verify API
+           ├──► Telnyx Number Porting
+           ├──► Telnyx WhatsApp
+           │
+           ▼
+     JSON API response
 ```
 
 ## Environment Variables

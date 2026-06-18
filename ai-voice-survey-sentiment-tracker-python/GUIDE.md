@@ -5,21 +5,28 @@ AI Voice Survey Sentiment Tracker — real-time CSAT scoring from voice tone and
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound Phone Call
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Greeting│────►│ Listen for Input  │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Scoring          │
+                    │ • Routing          │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    Email notification
 ```
 
 ## Telnyx Products Used

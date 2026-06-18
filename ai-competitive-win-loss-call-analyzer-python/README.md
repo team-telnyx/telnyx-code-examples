@@ -17,12 +17,28 @@ AI Competitive Win/Loss Call Analyzer — analyze recorded sales calls for compe
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Prompt  │────►│ Gather Speech     │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Routing          │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    Email notification
 ```
 
 ## Environment Variables

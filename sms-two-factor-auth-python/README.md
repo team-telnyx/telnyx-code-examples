@@ -17,12 +17,22 @@ SMS application. Built with Telnyx Cloud Storage, Migration, Number Porting, SMS
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► Verify API
+         ├──► Number Porting
+         ├──► DTMF Input
+         │
+         ▼
+    Email notification
+
+  State: Database + Redis cache
 ```
 
 ## Environment Variables

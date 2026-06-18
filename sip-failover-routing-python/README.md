@@ -17,13 +17,18 @@ Voice application. Built with Telnyx Migration, Number Porting.
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│   Telnyx   │────►│ POST /webhooks/voice │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           TTS response
-                                           back to caller
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Webhook callback
 ```
 
 ## Telnyx Webhook Events

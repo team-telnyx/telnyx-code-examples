@@ -5,21 +5,29 @@ AI Debt Collection Compliance Agent — FDCPA-compliant outbound collection with
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound Phone Call
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Greeting│────►│ Listen for Input  │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Conversation memory│
+                    │ • Routing          │
+                    └────────┬─────────┘
+                             │
+                    ┌────────┴────────┐
+                    ├──► Email notification
+                    └──► Payment processing
 ```
 
 ## Telnyx Products Used

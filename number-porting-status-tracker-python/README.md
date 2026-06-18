@@ -18,12 +18,27 @@ Number Porting Status Tracker — track porting orders with status webhooks and 
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  Source Platform
+        │
+        ▼
+  ┌─────────────┐
+  │ Audit       │ ── inventory numbers, configs, profiles
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │ Map & Plan  │ ── match source features to Telnyx equivalents
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌─────────────────┐
+  │ Provision   │────►│ Telnyx Platform  │
+  │ on Telnyx   │     │ (numbers, SIP,   │
+  └──────┬──────┘     │  messaging)      │
+         │            └─────────────────┘
+         ▼
+  Migration Report
 ```
 
 ## Telnyx Webhook Events

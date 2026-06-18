@@ -5,11 +5,18 @@ Programmatically place an outbound phone call using Telnyx Call Control and hand
 ## How It Works
 
 ```
-API Request ──► Your App ──► Telnyx API
-                   │
-              Process Result
-                   │
-              Return Response
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Call Control
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     JSON API response
 ```
 
 ## Telnyx Products Used

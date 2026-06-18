@@ -33,9 +33,26 @@ Record a multi-host podcast via conference call, transcribe each speaker with ST
 
 ## Architecture
 
-```text
-See app.py for full architecture -- this example connects:
-Voice, AI Inference, Conferencing, Media Streaming
+```
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Summarization)  │
+  └───────────┬────────────┘
+              │
+              ├──► Slack notification
+              ├──► Email notification
+              ├──► Webhook callback
+              ▼
+         Session Log
 ```
 
 ## Environment Variables

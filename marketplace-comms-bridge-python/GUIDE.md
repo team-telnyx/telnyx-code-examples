@@ -5,14 +5,22 @@ Buyer texts about a listing, AI responds with details, facilitates anonymous buy
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Scheduling      │
+  │  • Conversation memory │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
+           ├──► Slack notification
 ```
 
 ## Telnyx Products Used

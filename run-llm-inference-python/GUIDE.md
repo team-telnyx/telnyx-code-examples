@@ -5,14 +5,18 @@ Application powered by Telnyx AI Inference. Built with Telnyx AI Inference, Migr
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx AI Inference (LLM)
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     JSON API response
 ```
 
 ## Telnyx Products Used

@@ -5,11 +5,17 @@ WhatsApp-SMS Bridge — receive messages on WhatsApp and forward them via SMS, a
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  Inbound SMS
+        │
+        ▼
+  ┌──────────────────┐
+  │  Messaging API    │
+  └────────┬─────────┘
+           │
+           ├──► Routing
+           │
+           ▼
+     SMS to customer
 ```
 
 ## Telnyx Products Used

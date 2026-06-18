@@ -5,14 +5,18 @@ AI Assistant Multi-Tool — AI Assistant with custom function-calling tools for 
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx AI Inference (LLM)
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     CRM update
 ```
 
 ## Telnyx Products Used

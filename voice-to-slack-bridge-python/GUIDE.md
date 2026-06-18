@@ -5,21 +5,30 @@ Voice-to-Slack Bridge — call a phone number, speak a message, AI transcribes a
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound Phone Call
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Prompt  │────►│ Gather Speech     │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Classification   │
+                    │ • Summarization    │
+                    └────────┬─────────┘
+                             │
+                    ┌────────┴────────┐
+                    ├──► Voice response (TTS)
+                    ├──► Slack notification
+                    └──► Webhook callback
 ```
 
 ## Telnyx Products Used

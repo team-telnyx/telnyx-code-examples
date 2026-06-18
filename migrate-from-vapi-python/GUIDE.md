@@ -5,11 +5,26 @@ Migrate from Vapi — import Vapi voice agents to Telnyx AI Assistants with voic
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  ElevenLabs (source)
+        │
+        ▼
+  ┌─────────────┐
+  │ Audit       │ ── inventory numbers, configs, profiles
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │ Map & Plan  │ ── match source features to Telnyx equivalents
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌─────────────────┐
+  │ Provision   │────►│ Telnyx Platform  │
+  │ on Telnyx   │     │ (numbers, SIP,   │
+  └──────┬──────┘     │  messaging)      │
+         │            └─────────────────┘
+         ▼
+  Migration Report
 ```
 
 ## Telnyx Products Used

@@ -5,11 +5,18 @@ Toll-Free SMS Campaign Manager — manage toll-free verification and send compli
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  Inbound SMS
+        │
+        ▼
+  ┌──────────────────┐
+  │  Messaging API    │
+  └────────┬─────────┘
+           │
+           ├──► Escalation
+           ├──► Campaign logic
+           │
+           ▼
+     JSON API response
 ```
 
 ## Telnyx Products Used

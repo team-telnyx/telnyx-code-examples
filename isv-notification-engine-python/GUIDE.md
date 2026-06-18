@@ -5,11 +5,19 @@ SaaS platform sends alerts via SMS/voice/WhatsApp based on customer preference a
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► Messaging API
+         ├──► Number Porting
+         │
+         ▼
+    SMS to customer
 ```
 
 ## Telnyx Products Used

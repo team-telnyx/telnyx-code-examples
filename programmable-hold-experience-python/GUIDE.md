@@ -5,12 +5,26 @@ Programmable Hold Experience — custom hold experiences: tips, trivia, estimate
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  Source Platform
+        │
+        ▼
+  ┌─────────────┐
+  │ Audit       │ ── inventory numbers, configs, profiles
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │ Map & Plan  │ ── match source features to Telnyx equivalents
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌─────────────────┐
+  │ Provision   │────►│ Telnyx Platform  │
+  │ on Telnyx   │     │ (numbers, SIP,   │
+  └──────┬──────┘     │  messaging)      │
+         │            └─────────────────┘
+         ▼
+  Migration Report
 ```
 
 ## Telnyx Products Used

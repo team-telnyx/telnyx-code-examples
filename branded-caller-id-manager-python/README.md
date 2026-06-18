@@ -19,13 +19,20 @@ Branded Caller ID Manager — register, manage, and verify branded calling profi
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│   Telnyx   │────►│ POST /webhooks/voice │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           TTS response
-                                           back to caller
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Verify API
+           ├──► Telnyx Number Lookup
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     JSON API response
 ```
 
 ## Environment Variables

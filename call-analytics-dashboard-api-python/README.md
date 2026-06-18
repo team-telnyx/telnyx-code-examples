@@ -25,14 +25,18 @@ This app handles these webhook events ([Messaging docs](https://developers.telny
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│            │────►│ POST /webhooks/voice │
-│   or SMS     │     │   Telnyx   │     │ POST /webhooks/sms   │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           Response back
-                                           (TTS / SMS)
+```
+  Inbound SMS
+        │
+        ▼
+  ┌──────────────────┐
+  │  Messaging API    │
+  └────────┬─────────┘
+           │
+           ├──► Routing
+           │
+           ▼
+     Report / export
 ```
 
 ## Environment Variables

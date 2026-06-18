@@ -5,14 +5,20 @@ Upload any audio (podcast, meeting, lecture), STT transcribes in source language
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  Input (script/text)
+        │
+        ▼
+  ┌─────────────────┐
+  │  AI Inference    │ ── process / direct / rewrite
+  └────────┬────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │  TTS Generation  │ ── render audio (multiple takes/voices)
+  └────────┬────────┘
+           │
+           ▼
+     JSON API response
 ```
 
 ## Telnyx Products Used

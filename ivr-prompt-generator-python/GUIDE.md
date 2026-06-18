@@ -5,21 +5,21 @@ Generate professional IVR/phone system prompts. AI writes caller-friendly script
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Input (script/text)
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────────┐
+  │  AI Inference    │ ── process / direct / rewrite
+  └────────┬────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │  TTS Generation  │ ── render audio (multiple takes/voices)
+  └────────┬────────┘
+           │
+           ▼
+     Email notification
+     Cloud Storage upload
 ```
 
 ## Telnyx Products Used

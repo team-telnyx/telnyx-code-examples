@@ -21,9 +21,21 @@ Upload any audio (podcast, meeting, lecture), STT transcribes in source language
 
 ## Architecture
 
-```text
-See app.py for full architecture -- this example connects:
-AI Inference, Media Streaming
+```
+  Input (script/text)
+        │
+        ▼
+  ┌─────────────────┐
+  │  AI Inference    │ ── process / direct / rewrite
+  └────────┬────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │  TTS Generation  │ ── render audio (multiple takes/voices)
+  └────────┬────────┘
+           │
+           ▼
+     JSON API response
 ```
 
 ## Environment Variables

@@ -5,11 +5,20 @@ Production-ready Flask application for monitoring SIM card data usage via Telnyx
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  ┌──────────────┐
+  │ IoT Device Event │
+  │ (SIM/sensor)  │
+  └──────┬───────┘
+         │
+         ▼
+  ┌──────────────┐
+  │ Process      │ ── threshold check
+  └──────┬───────┘
+         │
+         ▼
+    JSON API response
+
+  State: Database
 ```
 
 ## Telnyx Products Used

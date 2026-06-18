@@ -36,21 +36,29 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│            │────►│ POST /webhooks/voice │
-│   or SMS     │     │   Telnyx   │     │ POST /webhooks/sms   │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           AI Inference
-                                           (Telnyx LLM)
-                                                │
-                                           ┌────┴────┐
-                                           │  Slack  │
-                                           └────┬────┘
-                                                │
-                                           Response back
-                                           (TTS / SMS)
+```
+  Source Platform
+        │
+        ▼
+  ┌─────────────┐
+  │ Audit       │ ── inventory numbers, configs, profiles
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐
+  │ Map & Plan  │ ── match source features to Telnyx equivalents
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌─────────────────┐
+  │ Provision   │────►│ Telnyx Platform  │
+  │ on Telnyx   │     │ (numbers, SIP,   │
+  └──────┬──────┘     │  messaging)      │
+         │            └─────────────────┘
+         ▼
+  Migration Report
+
+  State: In-memory state
 ```
 
 ## Environment Variables

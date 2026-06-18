@@ -5,11 +5,17 @@ Update an existing Telnyx AI Assistant's configuration, model, system prompt, an
 ## How It Works
 
 ```
-API Request ──► Your App ──► Telnyx API
-                   │
-              Process Result
-                   │
-              Return Response
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     JSON API response
 ```
 
 ## Telnyx Products Used

@@ -35,9 +35,25 @@ Hosts on a conference call, listeners call in. AI screens callers via STT, queue
 
 ## Architecture
 
-```text
-See app.py for full architecture -- this example connects:
-Voice, AI Inference, Conferencing, Media Streaming
+```
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Queue management)  │
+  └───────────┬────────────┘
+              │
+              ├──► Slack notification
+              ├──► Webhook callback
+              ▼
+         Session Log
 ```
 
 ## Environment Variables

@@ -19,12 +19,21 @@ Application. Built with Telnyx IoT/SIM, Migration, Number Porting.
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  ┌──────────────┐
+  │ IoT Device Event │
+  │ (SIM/sensor)  │
+  └──────┬───────┘
+         │
+         ▼
+  ┌──────────────┐
+  │ Process      │ ── threshold check
+  └──────┬───────┘
+         │
+         ▼
+    JSON API response
+
+  State: Database
 ```
 
 ## Telnyx Webhook Events

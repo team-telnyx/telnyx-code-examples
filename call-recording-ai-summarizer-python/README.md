@@ -24,16 +24,29 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│   Telnyx   │────►│ POST /webhooks/voice │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           AI Inference
-                                           (Telnyx LLM)
-                                                │
-                                           TTS response
-                                           back to caller
+```
+  API Request
+        │
+        ▼
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Prompt  │────►│ Gather Speech     │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Summarization    │
+                    │ • Data extraction  │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    JSON API response
 ```
 
 ## Environment Variables

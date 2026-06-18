@@ -5,14 +5,27 @@ AI Competitive Win/Loss Call Analyzer — analyze recorded sales calls for compe
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Prompt  │────►│ Gather Speech     │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Routing          │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    Email notification
 ```
 
 ## Telnyx Products Used

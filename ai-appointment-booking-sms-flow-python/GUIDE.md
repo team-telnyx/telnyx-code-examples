@@ -5,14 +5,24 @@ AI Appointment Booking SMS Flow — guided SMS booking with available slot selec
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  Inbound SMS
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Scheduling      │
+  │  • Verification    │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
+           ├──► Email notification
+
+  State: In-memory state
 ```
 
 ## Telnyx Products Used

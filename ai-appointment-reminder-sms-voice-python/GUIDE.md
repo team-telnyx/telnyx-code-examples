@@ -5,21 +5,30 @@ AI Appointment Reminder — SMS first, voice call for non-responders, AI handles
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound Phone Call
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Greeting│────►│ Listen for Input  │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Scheduling       │
+                    │ • Verification     │
+                    └────────┬─────────┘
+                             │
+                    ┌────────┴────────┐
+                    ├──► SMS to customer
+                    ├──► Voice response (TTS)
+                    └──► Email notification
 ```
 
 ## Telnyx Products Used

@@ -19,12 +19,21 @@ SIP Trunking Failover Monitor — health-check SIP connections, auto-failover, S
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Routing         │
+  └────────┬─────────┘
+           │
+           ├──► JSON API response
 ```
 
 ## Environment Variables

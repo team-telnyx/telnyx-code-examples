@@ -18,12 +18,19 @@ Send an SMS message using the Telnyx Messaging API. Supports delivery status web
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌────────────────────────┐
-│   SMS/MMS    │────►│   Telnyx   │────►│ POST /webhooks/messaging│
-└─────────────┘     │   Cloud    │     └──────────┬─────────────┘
-                    └────────────┘                │
-                                           SMS reply back
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Messaging API    │
+  └────────┬─────────┘
+           │
+           ├──► Data extraction
+           ├──► Verification
+           │
+           ▼
+     SMS to customer
 ```
 
 ## Environment Variables

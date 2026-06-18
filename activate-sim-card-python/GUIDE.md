@@ -5,11 +5,18 @@ Application. Built with Telnyx IoT/SIM, Migration, Number Porting.
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  ┌──────────────┐
+  │ API Request  │
+  │ (SIM/sensor)  │
+  └──────┬───────┘
+         │
+         ▼
+  ┌──────────────┐
+  │ Process      │ ── threshold check
+  └──────┬───────┘
+         │
+         ▼
+    JSON API response
 ```
 
 ## Telnyx Products Used

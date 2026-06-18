@@ -5,11 +5,19 @@ Verify Multi-Channel Auth — multi-channel verification: SMS first, fallback to
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Verify API
+           ├──► Telnyx Number Porting
+           ├──► Telnyx WhatsApp
+           │
+           ▼
+     JSON API response
 ```
 
 ## Telnyx Products Used

@@ -5,11 +5,18 @@ WireGuard Private Voice Network — create WireGuard mesh network for private SI
 ## How It Works
 
 ```
-API Request ──► Your App ──► Telnyx API
-                   │
-              Process Result
-                   │
-              Return Response
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           ├──► Telnyx Global IP / WireGuard
+           │
+           ▼
+     JSON API response
 ```
 
 ## Telnyx Products Used

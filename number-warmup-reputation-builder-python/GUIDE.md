@@ -5,11 +5,18 @@ Number Warmup & Reputation Builder — gradually ramp SMS volume on new numbers 
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Messaging API    │
+  └────────┬─────────┘
+           │
+           ├──► Scheduling
+           ├──► Routing
+           │
+           ▼
+     JSON API response
 ```
 
 ## Telnyx Products Used

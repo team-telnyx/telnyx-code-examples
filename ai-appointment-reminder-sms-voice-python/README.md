@@ -30,17 +30,31 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│            │────►│ POST /webhooks/voice │
-│   or SMS     │     │   Telnyx   │     │ POST /webhooks/sms   │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           AI Inference
-                                           (Telnyx LLM)
-                                                │
-                                           Response back
-                                           (TTS / SMS)
+```
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Greeting│────►│ Listen for Input  │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Scheduling       │
+                    │ • Verification     │
+                    └────────┬─────────┘
+                             │
+                    ┌────────┴────────┐
+                    ├──► SMS to customer
+                    ├──► Voice response (TTS)
+                    └──► Email notification
 ```
 
 ## Environment Variables

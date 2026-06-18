@@ -5,21 +5,31 @@ SMS 1h after abandon with incentive, AI voice call 24h later if no purchase. Int
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound Phone Call
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Prompt  │────►│ Gather Speech     │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Queue management │
+                    │ • Routing          │
+                    └────────┬─────────┘
+                             │
+                    ┌────────┴────────┐
+                    ├──► SMS to customer
+                    └──► Payment processing
+
+  External: Shopify + Stripe
 ```
 
 ## Telnyx Products Used

@@ -5,14 +5,19 @@ AI Customer Churn Predictor — analyze call/message patterns via Telnyx APIs, A
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx AI Inference (LLM)
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Email notification
+     Ticket creation
 ```
 
 ## Telnyx Products Used

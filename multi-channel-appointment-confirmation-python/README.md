@@ -29,14 +29,21 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│            │────►│ POST /webhooks/voice │
-│   or SMS     │     │   Telnyx   │     │ POST /webhooks/sms   │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           Response back
-                                           (TTS / SMS)
+```
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► Messaging API
+         ├──► Number Porting
+         │
+         ▼
+    SMS to customer
+    Voice response (TTS)
 ```
 
 ## Environment Variables

@@ -5,11 +5,18 @@ Number Lookup Fraud Screener — screen inbound calls/messages for fraud indicat
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► Number Lookup
+         ├──► Number Porting
+         │
+         ▼
+    JSON API response
 ```
 
 ## Telnyx Products Used

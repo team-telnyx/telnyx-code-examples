@@ -5,21 +5,33 @@ Build a complete voice AI agent with Telnyx — inbound call handling, AI conver
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound Phone Call
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Greeting│────►│ Listen for Input  │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Escalation       │
+                    │ • Verification     │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    Email notification
+                             │
+                             ▼
+                    Transfer to Human Agent
+
+  State: Database + Redis cache
 ```
 
 ## Telnyx Products Used

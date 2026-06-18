@@ -5,14 +5,19 @@ Pull Call Detail Records, build usage analytics with cost breakdowns, peak-hour 
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx AI Inference (LLM)
+           ├──► Telnyx Call Recording
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Report / export
 ```
 
 ## Telnyx Products Used

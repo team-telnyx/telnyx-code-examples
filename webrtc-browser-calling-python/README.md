@@ -26,13 +26,22 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│   Telnyx   │────►│ POST /webhooks/voice │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           TTS response
-                                           back to caller
+```
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► Call Transfer
+         ├──► Number Porting
+         ├──► DTMF Input
+         │
+         ▼
+    Email notification
+
+  State: Redis cache
 ```
 
 ## Environment Variables

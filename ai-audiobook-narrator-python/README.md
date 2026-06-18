@@ -21,9 +21,22 @@ Submit text, AI Inference chunks into chapters with pacing/emotion markup, TTS n
 
 ## Architecture
 
-```text
-See app.py for full architecture -- this example connects:
-AI Inference, Cloud Storage
+```
+  Input (script/text)
+        │
+        ▼
+  ┌─────────────────┐
+  │  AI Inference    │ ── process / direct / rewrite
+  └────────┬────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │  TTS Generation  │ ── render audio (multiple takes/voices)
+  └────────┬────────┘
+           │
+           ▼
+     Email notification
+     Cloud Storage upload
 ```
 
 ## Environment Variables

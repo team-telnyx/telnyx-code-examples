@@ -5,11 +5,20 @@ Cloud Storage Media CDN — use Telnyx Cloud Storage as a CDN for IVR prompts, h
 ## How It Works
 
 ```
-API Request ──► Your App ──► Telnyx API
-                   │
-              Process Result
-                   │
-              Return Response
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Cloud Storage
+           ├──► Telnyx Number Porting
+           ├──► Telnyx TeXML
+           │
+           ▼
+     Email notification
+     Cloud Storage upload
 ```
 
 ## Telnyx Products Used

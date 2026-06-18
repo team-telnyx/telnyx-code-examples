@@ -5,11 +5,20 @@ Voice application. Built with Telnyx Migration, Number Porting, Voice.
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► Number Porting
+         │
+         ▼
+    JSON API response
+
+  State: Database
 ```
 
 ## Telnyx Products Used

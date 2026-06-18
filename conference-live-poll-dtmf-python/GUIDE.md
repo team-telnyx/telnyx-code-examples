@@ -5,11 +5,23 @@ Conference Live Poll via DTMF — host asks a question, all conference participa
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Routing)  │
+  └───────────┬────────────┘
+              │
+              ├──► JSON API response
+              ▼
+         Session Log
 ```
 
 ## Telnyx Products Used

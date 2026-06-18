@@ -5,11 +5,18 @@ Production-ready Flask application for device location tracking via Telnyx IoT A
 ## How It Works
 
 ```
-API Request ──► Your App ──► Telnyx API
-                   │
-              Process Result
-                   │
-              Return Response
+  ┌──────────────┐
+  │ IoT Device Event │
+  │ (SIM/sensor)  │
+  └──────┬───────┘
+         │
+         ▼
+  ┌──────────────┐
+  │ Process      │ ── threshold check
+  └──────┬───────┘
+         │
+         ▼
+    JSON API response
 ```
 
 ## Telnyx Products Used

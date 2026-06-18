@@ -5,12 +5,20 @@ Cloud Storage Call Archive — archive call recordings to Telnyx Cloud Storage w
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Call Control
+           ├──► Telnyx Cloud Storage
+           ├──► Telnyx Call Recording
+           │
+           ▼
+     Report / export
+     Cloud Storage upload
 ```
 
 ## Telnyx Products Used

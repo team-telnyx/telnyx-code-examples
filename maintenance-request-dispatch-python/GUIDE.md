@@ -5,21 +5,22 @@ Tenant texts issue, AI categorizes and estimates cost, auto-dispatches vendor fo
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  API Request
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Classification  │
+  │  • Scheduling      │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
+           ├──► Slack notification
 ```
 
 ## Telnyx Products Used

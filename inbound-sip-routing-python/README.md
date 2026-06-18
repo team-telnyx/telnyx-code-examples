@@ -19,12 +19,19 @@ Application. Built with Telnyx Migration, Number Porting.
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► Number Porting
+         ├──► DTMF Input
+         │
+         ▼
+    Webhook callback
 ```
 
 ## Environment Variables

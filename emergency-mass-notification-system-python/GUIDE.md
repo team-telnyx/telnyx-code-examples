@@ -5,11 +5,19 @@ Emergency Mass Notification System — SMS + voice calls with delivery tracking 
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► Messaging API
+         ├──► Number Porting
+         │
+         ▼
+    JSON API response
 ```
 
 ## Telnyx Products Used

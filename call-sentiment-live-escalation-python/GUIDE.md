@@ -5,14 +5,28 @@ Call Sentiment Live Escalation — monitor call transcripts in real-time. When n
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Prompt  │────►│ Gather Speech     │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Escalation       │
+                    │ • Scoring          │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    SMS to customer
 ```
 
 ## Telnyx Products Used

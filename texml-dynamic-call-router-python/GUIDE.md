@@ -5,11 +5,20 @@ TeXML Dynamic Call Router — time-of-day and caller-based routing with TeXML re
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Call Recording
+           ├──► Telnyx Number Porting
+           ├──► Telnyx TeXML
+           │
+           ▼
+     Voice response (TTS)
+     Email notification
 ```
 
 ## Telnyx Products Used

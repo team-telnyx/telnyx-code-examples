@@ -5,21 +5,21 @@ Messaging Campaign A/B Test Optimizer — test SMS copy variants, AI picks winne
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound SMS
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Routing         │
+  │  • Campaign logic  │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
 ```
 
 ## Telnyx Products Used

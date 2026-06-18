@@ -5,21 +5,18 @@ Voice-Activated IoT Command — call a number, speak commands to control IoT dev
 ## How It Works
 
 ```
-Inbound/Outbound Call
-        │
-        ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌──────────────┐
+  │ Inbound Phone Call │
+  │ (SIM/sensor)  │
+  └──────┬───────┘
+         │
+         ▼
+  ┌──────────────┐
+  │ AI Classify  │ ── severity / category
+  └──────┬───────┘
+         │
+         ▼
+    JSON API response
 ```
 
 ## Telnyx Products Used

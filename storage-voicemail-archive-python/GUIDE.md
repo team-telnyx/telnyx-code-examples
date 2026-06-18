@@ -5,11 +5,20 @@ Storage Voicemail Archive — record voicemails to Telnyx Cloud Storage with sea
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► Cloud Storage
+         ├──► Call Recording
+         │
+         ▼
+    Email notification
+    Cloud Storage upload
 ```
 
 ## Telnyx Products Used

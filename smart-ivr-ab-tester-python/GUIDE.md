@@ -5,12 +5,19 @@ Smart IVR A/B Tester — run two IVR flows simultaneously and track which conver
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► Call Transfer
+         ├──► Number Porting
+         │
+         ▼
+    JSON API response
 ```
 
 ## Telnyx Products Used

@@ -19,12 +19,19 @@ Global IP Failover Monitor — monitor Global IP endpoints across regions, auto-
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           ├──► Telnyx Global IP / WireGuard
+           │
+           ▼
+     JSON API response
 ```
 
 ## Environment Variables

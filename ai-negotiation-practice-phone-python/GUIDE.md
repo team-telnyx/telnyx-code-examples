@@ -5,21 +5,26 @@ AI Negotiation Practice Phone — practice salary negotiations, sales deals, or 
 ## How It Works
 
 ```
-Inbound/Outbound Call
-        │
-        ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Escalation)  │
+  └───────────┬────────────┘
+              │
+              ├──► Email notification
+              ├──► Payment processing
+              ▼
+         Session Log
+
+  State: In-memory state
 ```
 
 ## Telnyx Products Used

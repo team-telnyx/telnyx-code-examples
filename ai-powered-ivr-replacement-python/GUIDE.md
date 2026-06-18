@@ -5,12 +5,19 @@ AI-Powered IVR Replacement — natural language routing with A/B testing and str
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► Call Transfer
+         ├──► Call Recording
+         ├──► Number Porting
+         │
+         ▼
+    Email notification
 ```
 
 ## Telnyx Products Used

@@ -5,11 +5,17 @@ Voice application. Built with Telnyx Migration, Number Porting, SIP Trunking.
 ## How It Works
 
 ```
-API Request ──► Your App ──► Telnyx API
-                   │
-              Process Result
-                   │
-              Return Response
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Email notification
 ```
 
 ## Telnyx Products Used

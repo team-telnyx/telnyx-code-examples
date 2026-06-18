@@ -23,13 +23,17 @@ Receive Telnyx voice and SMS webhooks at the edge with sub-10ms cold starts. Val
 
 ## Architecture
 
-```text
-Phone Call/SMS ──► Telnyx Cloud ──► Edge Function (this app)
-                                          │
-                                    Validate → Enrich → HMAC Sign
-                                          │
-                                          ▼
-                                    Your Backend
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
 ```
 
 ## Prerequisites

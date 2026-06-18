@@ -5,14 +5,23 @@ Customer texts photo of defective item via MMS, AI evaluates damage, auto-approv
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  Shopify Webhook
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Escalation      │
+  │  • Scoring         │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
+           ├──► Slack notification
+           ├──► Payment processing
 ```
 
 ## Telnyx Products Used

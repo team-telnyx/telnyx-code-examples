@@ -5,21 +5,20 @@ IoT Smart Building Voice Control — call a number to control building systems v
 ## How It Works
 
 ```
-Inbound/Outbound Call
-        │
-        ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌──────────────┐
+  │ Inbound Phone Call │
+  │ (SIM/sensor)  │
+  └──────┬───────┘
+         │
+         ▼
+  ┌──────────────┐
+  │ AI Classify  │ ── severity / category
+  └──────┬───────┘
+         │
+    ┌────┴────┐
+    │         ├──► Email notification
+    │         ├──► Report / export
+    └─────────┘
 ```
 
 ## Telnyx Products Used

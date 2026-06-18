@@ -24,14 +24,24 @@ Customer texts photo of defective item via MMS, AI evaluates damage, auto-approv
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌────────────────────────┐
-│   SMS/MMS    │────►│   Telnyx   │────►│ POST /webhooks/messaging│
-└─────────────┘     │   Cloud    │     └──────────┬─────────────┘
-                    └────────────┘                │
-                                           AI Inference
-                                                │
-                                           SMS reply back
+```
+  Shopify Webhook
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Escalation      │
+  │  • Scoring         │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
+           ├──► Slack notification
+           ├──► Payment processing
 ```
 
 ## Telnyx Webhook Events

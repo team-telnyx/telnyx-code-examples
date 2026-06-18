@@ -5,11 +5,22 @@ Automated multi-channel rent reminders. Day 1: SMS + Stripe payment link. Day 3:
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► Messaging API
+         ├──► Number Porting
+         │
+         ▼
+    SMS to customer
+    Slack notification
+
+  External: Stripe
 ```
 
 ## Telnyx Products Used

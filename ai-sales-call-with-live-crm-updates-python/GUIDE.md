@@ -5,21 +5,23 @@ AI Sales Call with Live CRM Updates — multi-participant call with real-time de
 ## How It Works
 
 ```
-Inbound/Outbound Call
-        │
-        ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Scoring)  │
+  └───────────┬────────────┘
+              │
+              ├──► CRM update
+              ▼
+         Session Log
 ```
 
 ## Telnyx Products Used

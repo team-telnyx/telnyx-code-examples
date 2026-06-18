@@ -5,11 +5,18 @@ Send an SMS message using the Telnyx Messaging API. Supports delivery status web
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Messaging API    │
+  └────────┬─────────┘
+           │
+           ├──► Data extraction
+           ├──► Verification
+           │
+           ▼
+     SMS to customer
 ```
 
 ## Telnyx Products Used

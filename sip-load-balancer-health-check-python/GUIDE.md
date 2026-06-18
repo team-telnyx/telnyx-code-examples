@@ -5,11 +5,17 @@ SIP Load Balancer Health Check — monitor SIP trunk health across multiple endp
 ## How It Works
 
 ```
-API Request ──► Your App ──► Telnyx API
-                   │
-              Process Result
-                   │
-              Return Response
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Email notification
 ```
 
 ## Telnyx Products Used

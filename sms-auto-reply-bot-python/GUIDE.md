@@ -5,11 +5,18 @@ Voice and SMS application. Built with Telnyx Migration, Number Porting, SMS/MMS,
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  Inbound SMS
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► Number Porting
+         │
+         ▼
+    Email notification
 ```
 
 ## Telnyx Products Used

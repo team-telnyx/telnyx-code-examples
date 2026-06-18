@@ -5,21 +5,28 @@ Two humans speak different languages on the same call. AI translates in real-tim
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Caller A (Translation)
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌───────────────────────────────────────┐
+  │          Telnyx Conference Bridge      │
+  │                                        │
+  │  Leg A ◄──► Media Stream ◄──► Leg B   │
+  └────────────────┬───────────────────────┘
+                   │
+                   ▼
+        ┌──────────────────┐
+        │   AI Inference    │
+        │   (translate +    │
+        │    speak back)    │
+        └──────────────────┘
+                   │
+          ┌────────┴────────┐
+          ▼                  ▼
+    TTS → Leg A        TTS → Leg B
+    (translated)       (translated)
+
+  State: In-memory state
 ```
 
 ## Telnyx Products Used

@@ -5,21 +5,22 @@ SMS Chatbot with Conversation Memory — persistent AI conversations over text w
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound SMS
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Summarization   │
+  │  • Conversation memory │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
+           ├──► Email notification
 ```
 
 ## Telnyx Products Used

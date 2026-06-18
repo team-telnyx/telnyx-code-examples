@@ -23,14 +23,23 @@ Buyer texts about a listing, AI responds with details, facilitates anonymous buy
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌────────────────────────┐
-│   SMS/MMS    │────►│   Telnyx   │────►│ POST /webhooks/messaging│
-└─────────────┘     │   Cloud    │     └──────────┬─────────────┘
-                    └────────────┘                │
-                                           AI Inference
-                                                │
-                                           SMS reply back
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Scheduling      │
+  │  • Conversation memory │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
+           ├──► Slack notification
 ```
 
 ## Telnyx Webhook Events

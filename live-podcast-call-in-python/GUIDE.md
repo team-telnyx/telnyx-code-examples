@@ -5,21 +5,24 @@ Hosts on a conference call, listeners call in. AI screens callers via STT, queue
 ## How It Works
 
 ```
-Inbound/Outbound Call
-        │
-        ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Queue management)  │
+  └───────────┬────────────┘
+              │
+              ├──► Slack notification
+              ├──► Webhook callback
+              ▼
+         Session Log
 ```
 
 ## Telnyx Products Used

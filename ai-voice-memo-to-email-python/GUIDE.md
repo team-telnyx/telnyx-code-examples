@@ -5,21 +5,29 @@ AI Voice Memo to Email — call a number, dictate a memo, AI cleans it up and se
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound Phone Call
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌─────────────┐
+  │ Call         │
+  │ Answered     │
+  └──────┬──────┘
+         │
+         ▼
+  ┌─────────────┐     ┌──────────────────┐
+  │ TTS Greeting│────►│ Listen for Input  │
+  └─────────────┘     └────────┬─────────┘
+                               │
+                               ▼
+                    ┌──────────────────┐
+                    │ AI Inference      │
+                    │ • Summarization    │
+                    │ • Data extraction  │
+                    └────────┬─────────┘
+                             │
+                    ┌────────┴────────┐
+                    ├──► Voice response (TTS)
+                    └──► Email notification
 ```
 
 ## Telnyx Products Used

@@ -5,12 +5,18 @@ Media Stream Voice Cloak — real-time voice modification via media streaming AP
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► Media Streaming
+         ├──► Number Porting
+         │
+         ▼
+    JSON API response
 ```
 
 ## Telnyx Products Used

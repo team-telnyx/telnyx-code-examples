@@ -5,14 +5,21 @@ Missions AI Task Runner — AI-driven task execution within the Telnyx Missions 
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Conversation memory │
+  │  • Routing         │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
 ```
 
 ## Telnyx Products Used

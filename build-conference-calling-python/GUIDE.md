@@ -5,12 +5,25 @@ Application. Built with Telnyx Migration, Number Porting, Voice.
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Verification)  │
+  └───────────┬────────────┘
+              │
+              ├──► JSON API response
+              ▼
+         Session Log
+
+  State: Database
 ```
 
 ## Telnyx Products Used

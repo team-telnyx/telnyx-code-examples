@@ -34,20 +34,25 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│   Telnyx   │────►│ POST /webhooks/voice │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           AI Inference
-                                           (Telnyx LLM)
-                                                │
-                                           ┌────┴────┐
-                                           │  Slack  │
-                                           └────┬────┘
-                                                │
-                                           TTS response
-                                           back to caller
+```
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Summarization)  │
+  └───────────┬────────────┘
+              │
+              ├──► Slack notification
+              ├──► Webhook callback
+              ▼
+         Session Log
 ```
 
 ## Environment Variables

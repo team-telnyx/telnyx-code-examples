@@ -20,13 +20,21 @@ TeXML Dynamic Call Router — time-of-day and caller-based routing with TeXML re
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌──────────────────────┐
-│ Phone Call   │────►│   Telnyx   │────►│ POST /webhooks/voice │
-└─────────────┘     │   Cloud    │     └──────────┬───────────┘
-                    └────────────┘                │
-                                           TTS response
-                                           back to caller
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Call Recording
+           ├──► Telnyx Number Porting
+           ├──► Telnyx TeXML
+           │
+           ▼
+     Voice response (TTS)
+     Email notification
 ```
 
 ## Environment Variables

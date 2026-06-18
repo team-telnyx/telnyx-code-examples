@@ -31,14 +31,21 @@ Deploy a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server 
 
 ## Architecture
 
-```text
-AI Agent (Claude, GPT, Cursor, etc.)
-    │
-    ├── GET  /mcp/tools/list    → tool definitions
-    ├── POST /mcp/tools/call    → execute a tool
-    │
-    ▼
-Edge Function (this MCP server) ──► Telnyx API
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Business logic  │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
 ```
 
 ## Quick Start

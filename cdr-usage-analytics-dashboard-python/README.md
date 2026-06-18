@@ -17,12 +17,20 @@ Pull Call Detail Records, build usage analytics with cost breakdowns, peak-hour 
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx AI Inference (LLM)
+           ├──► Telnyx Call Recording
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Report / export
 ```
 
 ## Environment Variables

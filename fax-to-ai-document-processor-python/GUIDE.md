@@ -5,21 +5,22 @@ Fax to AI Document Processor — receive fax, AI extracts data, forwards structu
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  API Request
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Classification  │
+  │  • Summarization   │
+  └────────┬─────────┘
+           │
+           ├──► Email notification
+           ├──► Payment processing
 ```
 
 ## Telnyx Products Used

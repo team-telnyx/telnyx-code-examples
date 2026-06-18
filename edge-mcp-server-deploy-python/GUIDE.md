@@ -5,14 +5,20 @@ Deploy an MCP server to Telnyx Edge Compute exposing Telnyx APIs as tools for AI
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Business logic  │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
 ```
 
 ## Telnyx Products Used

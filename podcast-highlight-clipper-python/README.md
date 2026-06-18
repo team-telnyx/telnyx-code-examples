@@ -26,9 +26,22 @@ Upload audio, STT + AI Inference identifies viral moments with virality scoring,
 
 ## Architecture
 
-```text
-See app.py for full architecture -- this example connects:
-AI Inference, SMS/MMS, Media Streaming
+```
+  Input (script/text)
+        │
+        ▼
+  ┌─────────────────┐
+  │  AI Inference    │ ── process / direct / rewrite
+  └────────┬────────┘
+           │
+           ▼
+  ┌─────────────────┐
+  │  TTS Generation  │ ── render audio (multiple takes/voices)
+  └────────┬────────┘
+           │
+           ▼
+     SMS to customer
+     Slack notification
 ```
 
 ## Environment Variables

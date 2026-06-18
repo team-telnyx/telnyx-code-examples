@@ -5,11 +5,20 @@ Billing Anomaly Detector — monitor usage and billing for anomalies, alert on c
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Webhook callback
+     Report / export
+
+  State: In-memory state
 ```
 
 ## Telnyx Products Used

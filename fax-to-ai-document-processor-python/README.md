@@ -24,12 +24,23 @@ This app handles these webhook events:
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Classification  │
+  │  • Summarization   │
+  └────────┬─────────┘
+           │
+           ├──► Email notification
+           ├──► Payment processing
 ```
 
 ## Environment Variables

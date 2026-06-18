@@ -5,12 +5,19 @@ Call Queue with Hold Music — queue callers with position announcements and hol
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► Call Transfer
+         ├──► Number Porting
+         │
+         ▼
+    JSON API response
 ```
 
 ## Telnyx Products Used

@@ -5,21 +5,19 @@ Fax-to-Structured-Data Pipeline — receive faxes, AI extracts structured data (
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  API Request
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx AI Inference (LLM)
+           ├──► Telnyx Number Porting
+           ├──► Telnyx Fax API
+           │
+           ▼
+     Payment processing
 ```
 
 ## Telnyx Products Used

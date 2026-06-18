@@ -5,11 +5,20 @@ IoT Panic Button Voice Alert — IoT device triggers SIM-based alert, system cal
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  ┌──────────────┐
+  │ Inbound Phone Call │
+  │ (SIM/sensor)  │
+  └──────┬───────┘
+         │
+         ▼
+  ┌──────────────┐
+  │ Process      │ ── threshold check
+  └──────┬───────┘
+         │
+         ▼
+    JSON API response
+
+  State: In-memory state
 ```
 
 ## Telnyx Products Used

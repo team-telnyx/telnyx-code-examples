@@ -5,12 +5,19 @@ Media Stream Live Transcription — fork call audio to WebSocket for real-time t
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► STT (Speech Recognition)
+         ├──► Media Streaming
+         │
+         ▼
+    JSON API response
 ```
 
 ## Telnyx Products Used

@@ -5,12 +5,18 @@ Application. Built with Telnyx Migration, Number Porting.
 ## How It Works
 
 ```
-Inbound Call ──► Webhook ──► Your App
-                                │
-                           Process Call
-                           (TTS/DTMF/Transfer)
-                                │
-                           Call Ends ──► Log
+  API Request
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► Number Porting
+         ├──► DTMF Input
+         │
+         ▼
+    Webhook callback
 ```
 
 ## Telnyx Products Used

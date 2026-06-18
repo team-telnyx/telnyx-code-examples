@@ -5,21 +5,24 @@ AI Price Quote Phone Agent — caller describes what they need, AI generates a c
 ## How It Works
 
 ```
-Inbound/Outbound Call
-        │
-        ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Summarization)  │
+  └───────────┬────────────┘
+              │
+              ├──► Email notification
+              ├──► Cloud Storage upload
+              ▼
+         Session Log
 ```
 
 ## Telnyx Products Used

@@ -17,12 +17,22 @@ Missions AI Task Runner — AI-driven task execution within the Telnyx Missions 
 
 ## Architecture
 
-```text
-┌──────────┐     ┌────────────┐     ┌─────────────────┐
-│ API Call  │────►│   Telnyx   │────►│   Your App      │
-└──────────┘     │   Cloud    │     └────────┬────────┘
-                └────────────┘               │
-                                        Processing
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Conversation memory │
+  │  • Routing         │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
 ```
 
 ## Environment Variables

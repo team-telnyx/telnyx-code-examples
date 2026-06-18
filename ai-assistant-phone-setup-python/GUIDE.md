@@ -5,21 +5,18 @@ AI Assistant Phone Setup — create and configure a managed Telnyx AI Assistant 
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  API Request
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx AI Inference (LLM)
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     Webhook callback
 ```
 
 ## Telnyx Products Used

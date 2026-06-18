@@ -5,21 +5,29 @@ AI plays customer roles for sales/support practice. Multiple trainees join, AI r
 ## How It Works
 
 ```
-Inbound/Outbound Call
-        │
-        ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  Participants (N)
+    │   │   │
+    ▼   ▼   ▼
+  ┌───────────────────────┐
+  │  Telnyx Conference     │
+  │  Bridge                │
+  └───────────┬────────────┘
+              │
+              ▼
+  ┌───────────────────────┐
+  │  AI Inference          │
+  │  (Escalation)  │
+  └───────────┬────────────┘
+              │
+              ├──► SMS to customer
+              ├──► Slack notification
+              ├──► Email notification
+              ▼
+         Session Log
+
+  External: Twilio API (source)
+
+  State: In-memory state
 ```
 
 ## Telnyx Products Used

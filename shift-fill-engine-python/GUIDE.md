@@ -5,11 +5,20 @@ Open shift triggers calls down the availability list. First to confirm gets it, 
 ## How It Works
 
 ```
-Trigger Event
-      │
-      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
-      │
-      └──► SMS Fallback ──► Customer Reply ──► Action
+  Inbound Phone Call
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► TTS (Text-to-Speech)
+         ├──► STT (Speech Recognition)
+         ├──► Messaging API
+         │
+         ▼
+    SMS to customer
+    Slack notification
 ```
 
 ## Telnyx Products Used

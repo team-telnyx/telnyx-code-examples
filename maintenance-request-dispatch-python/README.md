@@ -23,14 +23,23 @@ Tenant texts issue, AI categorizes and estimates cost, auto-dispatches vendor fo
 
 ## Architecture
 
-```text
-┌─────────────┐     ┌────────────┐     ┌────────────────────────┐
-│   SMS/MMS    │────►│   Telnyx   │────►│ POST /webhooks/messaging│
-└─────────────┘     │   Cloud    │     └──────────┬─────────────┘
-                    └────────────┘                │
-                                           AI Inference
-                                                │
-                                           SMS reply back
+```
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Classification  │
+  │  • Scheduling      │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
+           ├──► Slack notification
 ```
 
 ## Telnyx Webhook Events

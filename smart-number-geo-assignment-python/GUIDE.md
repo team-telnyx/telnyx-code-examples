@@ -5,11 +5,19 @@ Smart Number Geo-Assignment — automatically purchase and assign local numbers 
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
+     JSON API response
+
+  State: Redis cache
 ```
 
 ## Telnyx Products Used

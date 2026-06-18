@@ -5,21 +5,24 @@ SMS Escape Room Game — text-based adventure game over SMS. Solve puzzles, find
 ## How It Works
 
 ```
-Inbound/Outbound Call
+  Inbound SMS
         │
         ▼
-  Call Answered ──► TTS Greeting
-        │
-        ▼
-  Gather Input ──► AI Inference
-  (speech/DTMF)    (process + decide)
-        │
-        ▼
-  Take Action ──► SMS Notification
-  (speak/transfer)
-        │
-        ▼
-  Call Ends ──► Log & Notify
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Conversation memory │
+  │  • Routing         │
+  └────────┬─────────┘
+           │
+           ├──► SMS to customer
+           ├──► Email notification
+
+  State: In-memory state
 ```
 
 ## Telnyx Products Used

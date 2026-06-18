@@ -5,14 +5,20 @@ SIP Trunking Failover Monitor — health-check SIP connections, auto-failover, S
 ## How It Works
 
 ```
-Inbound SMS
-      │
-      ▼
-Parse Message ──► AI Inference
-                  (understand intent)
-      │
-      ▼
-Take Action ──► Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Parse Message    │
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │  AI Inference     │
+  │  • Routing         │
+  └────────┬─────────┘
+           │
+           ├──► JSON API response
 ```
 
 ## Telnyx Products Used

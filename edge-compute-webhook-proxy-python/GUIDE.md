@@ -5,11 +5,16 @@ Receive Telnyx voice and SMS webhooks at the edge with minimal latency. Validate
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  API Request
+        │
+        ▼
+  ┌──────────────────┐
+  │  Your App         │
+  └────────┬─────────┘
+           │
+           ├──► Telnyx Number Porting
+           │
+           ▼
 ```
 
 ## Telnyx Products Used

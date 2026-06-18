@@ -5,11 +5,21 @@ SMS application. Built with Telnyx Cloud Storage, Migration, Number Porting, SMS
 ## How It Works
 
 ```
-Inbound SMS ──► Webhook ──► Your App
-                                │
-                           Process Message
-                                │
-                           Reply SMS
+  API Request
+        │
+        ▼
+  ┌─────────────┐
+  │ Call Control │
+  └──────┬──────┘
+         │
+         ├──► Verify API
+         ├──► Number Porting
+         ├──► DTMF Input
+         │
+         ▼
+    Email notification
+
+  State: Database + Redis cache
 ```
 
 ## Telnyx Products Used
