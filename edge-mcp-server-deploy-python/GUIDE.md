@@ -1,98 +1,116 @@
-# Edge MCP Server Deploy
+# Build a MCP Server on Edge Compute
 
-> Deploy an MCP (Model Context Protocol) server to Telnyx Edge, giving AI agents tool access to Telnyx APIs.
+Deploy an MCP server to Telnyx Edge Compute exposing Telnyx APIs as tools for AI agents. Send SMS, search numbers, run inference.
 
-## What You'll Build
+## How It Works
 
-A serverless MCP tool server running on Telnyx Edge Compute that exposes Telnyx capabilities (search numbers, send SMS, create calls) as tools any MCP-compatible AI agent can discover and use.
+```
+Inbound SMS
+      │
+      ▼
+Parse Message ──► AI Inference
+                  (understand intent)
+      │
+      ▼
+Take Action ──► Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | ~80 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | Edge Compute, Voice, SMS, Numbers |
+## Telnyx Products Used
+
+- **Edge Compute** — serverless functions at the network edge
+- **Messaging** — send and receive messages with delivery receipts
+- **Numbers** — phone number search, purchase, and configuration
+- **AI Inference** — LLM inference with OpenAI-compatible API, runs on Telnyx infrastructure
+
+## API Endpoints
+
+- **Messages**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
+- **Available Phone Numbers**: `GET /v2/available_phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-available-phone-numbers)
+- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
+- **Phone Numbers**: `GET /v2/phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-phone-numbers)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [Telnyx Edge CLI](https://developers.telnyx.com/docs/edge-compute) (`telnyx-edge`) installed
+- [Phone number](https://portal.telnyx.com/numbers/my-numbers) with messaging enabled
+- [Messaging Profile](https://portal.telnyx.com/messaging/profiles) with webhook URL
+- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
 
-## Telnyx APIs Used
-
-- **Search Numbers**: `GET /v2/available_phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-available-phone-numbers)
-- **Send Message**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
-- **Create Call**: `POST /v2/calls` — [API reference](https://developers.telnyx.com/api/call-control/create-call)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/edge-mcp-server-deploy-python
+cp .env.example .env
+pip install -r requirements.txt
 ```
 
-Set your API key:
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
+
+## Step 2: Understand the Code
+
+Everything lives in `app.py` (164 lines). Here's what each piece does.
+
+### Business Logic
+
+- **`new()`** — Handles the new logic.
+
+## Step 3: Run It
 
 ```bash
-telnyx-edge secrets add TELNYX_API_KEY <your-api-key>
+python app.py
 ```
 
-## Step 2: Code Walkthrough
+Server starts on `http://localhost:5000`.
 
-`function/func.py` implements the MCP protocol:
-
-- **`tools/list`** — returns available tools (search_numbers, send_sms, create_call)
-- **`tools/call`** — executes a tool with provided arguments
-- Each tool maps directly to a Telnyx API endpoint
-
-## Step 3: Deploy to Edge
+In a separate terminal, expose your server for webhooks:
 
 ```bash
-telnyx-edge deploy
+ngrok http 5000
 ```
 
-## Step 4: Test
+Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
+
+- **Messaging Profile** → Inbound Webhook → `https://<id>.ngrok.io/webhooks/sms`
+
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# List available tools
-curl https://<your-edge-url> \
-  -H "Content-Type: application/json" \
-  -d '{"method": "tools/list"}'
+curl http://localhost:5000/health
 ```
 
-```json
-{"tools": [{"name": "search_numbers", "description": "Search available phone numbers"}, {"name": "send_sms", "description": "Send an SMS message"}, {"name": "create_call", "description": "Create an outbound call"}]}
+Or text your Telnyx number to trigger the SMS workflow.
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Prompt engineering** — tune the AI prompts for your specific domain and tone
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
+docker build -t edge-mcp-server-deploy-python .
+docker run --env-file .env -p 5000:5000 edge-mcp-server-deploy-python
+
+# Or Makefile
+make setup && make run
 ```
-
-## Step 5: Connect to an AI Agent
-
-Point any MCP-compatible agent (Claude, GPT, custom) at your edge URL:
-
-```json
-{
-  "mcpServers": {
-    "telnyx": {
-      "url": "https://<your-edge-url>"
-    }
-  }
-}
-```
-
-The agent can now search for phone numbers, send SMS, and initiate calls autonomously.
-
-## Customize & Extend
-
-- Add more Telnyx tools (fax, verify, SIP, IoT)
-- Add authentication to restrict agent access
-- Chain with other MCP servers for multi-provider workflows
-- Add rate limiting and usage tracking
 
 ## Resources
 
-- [Full source code and README](./README.md)
-- [MCP Protocol Specification](https://modelcontextprotocol.io)
-- [Telnyx Edge Compute Docs](https://developers.telnyx.com/docs/edge-compute)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
+- [Messaging quickstart](https://developers.telnyx.com/docs/messaging)
+- [AI Inference docs](https://developers.telnyx.com/docs/inference)
 - [Telnyx Portal](https://portal.telnyx.com)

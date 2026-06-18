@@ -1,18 +1,31 @@
-# SMS Emergency Check-In
+# Build a SMS Emergency Check-In
 
-> SMS Emergency Check-In — periodic wellness checks via SMS with escalation to emergency contacts.
+SMS Emergency Check-In — periodic wellness checks via SMS with escalation to emergency contacts.
 
-## What You'll Build
+## How It Works
 
-A production-ready **sms emergency check-in** built with Python, Flask, and SMS/MMS.
+```
+Inbound SMS ──► Webhook ──► Your App
+                                │
+                           Process Message
+                                │
+                           Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | 83 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | SMS/MMS |
-| **Channels** | sms |
+## Telnyx Products Used
+
+- **SMS/MMS** — send and receive messages with delivery receipts
+
+## API Endpoints
+
+- **Send Message**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
+
+## Webhook Events
+
+Telnyx delivers inbound messages and status updates via webhooks to your server.
+
+This app handles these webhook events ([Messaging docs](https://developers.telnyx.com/docs/api/v2/messaging)):
+- `message.received` — Inbound SMS/MMS received
 
 ## Prerequisites
 
@@ -21,18 +34,9 @@ A production-ready **sms emergency check-in** built with Python, Flask, and SMS/
 - [API key](https://portal.telnyx.com/api-keys)
 - [Phone number](https://portal.telnyx.com/numbers/my-numbers) with messaging enabled
 - [Messaging Profile](https://portal.telnyx.com/messaging/profiles) with webhook URL
-- [ngrok](https://ngrok.com) for local webhook testing
+- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
 
-## Telnyx APIs Used
-
-- **Send Message**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
-
-## Webhook Events Handled
-
-This app handles these webhook events ([Messaging docs](https://developers.telnyx.com/docs/api/v2/messaging)):
-- `message.received` — Inbound SMS/MMS received
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -41,34 +45,34 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (83 lines). Here's how it's structured:
+Everything lives in `app.py` (83 lines). Here's what each piece does.
 
-### Endpoints
+### Helper Functions
+
+- **`send_sms()`** — Sends an SMS via the Telnyx Messaging API. Wraps the `POST /v2/messages` call with error handling.
+
+### Business Logic
+
+- **`add_monitored()`** — Handles the add monitored logic.
+- **`send_check_ins()`** — Handles the send check ins logic.
+- **`handle_reply()`** — Handles the handle reply logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/monitor` | Monitor |
-| `POST` | `/check-in/send` | Send |
+| `POST` | `/monitor` | Add Monitored |
+| `POST` | `/check-in/send` | Send Check Ins |
 | `POST` | `/webhooks/messaging` | Telnyx webhook handler |
-| `POST` | `/check-in/escalate` | Escalate |
-| `GET` | `/status` | Status |
+| `POST` | `/check-in/escalate` | Escalate Missed |
+| `GET` | `/status` | Get Status |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`send_sms()`** — send sms
-- **`add_monitored()`** — add monitored
-- **`send_check_ins()`** — send check ins
-- **`handle_reply()`** — handle reply
-- **`escalate_missed()`** — escalate missed
-- **`get_status()`** — get status
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -76,60 +80,68 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-Expose your local server for Telnyx webhooks:
+In a separate terminal, expose your server for webhooks:
 
 ```bash
 ngrok http 5000
 ```
 
-Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
+Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 
 - **Messaging Profile** → Inbound Webhook → `https://<id>.ngrok.io/webhooks/sms`
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/monitor \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999",
+    "message": "Urgent: action required",
+    "priority": "high"
+  }'
 ```
 
-Or send an SMS to your Telnyx number to trigger the messaging workflow.
+Or text your Telnyx number to trigger the SMS workflow.
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/status | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t sms-emergency-check-in-python .
 docker run --env-file .env -p 5000:5000 sms-emergency-check-in-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [Messaging Guide](https://developers.telnyx.com/docs/messaging)
+- [Messaging quickstart](https://developers.telnyx.com/docs/messaging)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

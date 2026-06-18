@@ -1,36 +1,42 @@
-# Production-ready Flask application for monitoring SIM card
+# Build a Production-ready Flask application for monitoring SIM card
 
-> Production-ready Flask application for monitoring SIM card data usage via Telnyx IoT API.
+Production-ready Flask application for monitoring SIM card data usage via Telnyx IoT API.
 
-## What You'll Build
+## How It Works
 
-A production-ready **production-ready flask application for monitoring sim card** built with Python, Flask, and IoT/SIM, Migration, Number Porting.
+```
+Inbound SMS ──► Webhook ──► Your App
+                                │
+                           Process Message
+                                │
+                           Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | 234 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | IoT/SIM, Migration, Number Porting |
+## Telnyx Products Used
+
+- **IoT/SIM** — cellular connectivity and device management
+- **Migration**
+- **Number Porting** — phone number search, purchase, and configuration
+
+## API Endpoints
+
+- **SIM Cards**: `GET /v2/sim_cards` — [API reference](https://developers.telnyx.com/api/sim-cards/list-sim-cards)
+
+## Webhook Events
+
+Your app receives webhook events from Telnyx as things happen.
+
+This app handles these webhook events:
+- `sim_card.data_limit.reached` — SIM card data usage limit reached
+- `sim_card.status.changed` — SIM card status changed (active, suspended, etc.)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **SIM Cards**: `GET /v2/sim_cards` — [API reference](https://developers.telnyx.com/api/sim-cards/list-sim-cards)
-
-## Webhook Events Handled
-
-This app handles these webhook events:
-- `sim_card.data_limit.reached` — SIM card data usage limit reached
-- `sim_card.status.changed` — SIM card status changed (active, suspended, etc.)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -39,38 +45,37 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (234 lines). Here's how it's structured:
+Everything lives in `app.py` (234 lines). Here's what each piece does.
 
-### Endpoints
+### Handling Webhooks
+
+Webhook handlers process events from Telnyx:
+
+**`handle_sim_webhook()`** — Handles Telnyx webhook events. Routes each event type to the appropriate handler.
+
+### Business Logic
+
+- **`health_check()`** — Health check endpoint for monitoring and load balancer probes.
+- **`list_sims()`** — Handles the list sims logic.
+- **`get_sim()`** — Handles the get sim logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/health` | Health check |
-| `GET` | `/sim-cards` | Sim Cards |
-| `GET` | `/sim-cards/<sim_card_id>` | <Sim Card Id> |
-| `GET` | `/sim-cards/<sim_card_id>/usage` | Usage |
+| `GET` | `/sim-cards` | List Sims |
+| `GET` | `/sim-cards/<sim_card_id>` | Get Sim |
+| `GET` | `/sim-cards/<sim_card_id>/usage` | Get Usage |
 | `GET` | `/sim-cards/<sim_card_id>/health` | Health check |
-| `POST` | `/sim-cards/<sim_card_id>/activate` | Activate |
+| `POST` | `/sim-cards/<sim_card_id>/activate` | Activate Sim |
 | `POST` | `/webhooks/sim-events` | Telnyx webhook handler |
 
-### Key Functions
-
-- **`get_sim_card_details()`** — get sim card details
-- **`list_all_sim_cards()`** — list all sim cards
-- **`get_data_usage()`** — get data usage
-- **`check_sim_data_health()`** — check sim data health
-- **`health_check()`** — health check
-- **`list_sims()`** — list sims
-- **`get_sim()`** — get sim
-- **`get_usage()`** — get usage
-- **`check_health()`** — check health
-- **`activate_sim()`** — activate sim
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -78,56 +83,55 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-Expose your local server for Telnyx webhooks:
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-ngrok http 5000
-```
-
-Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
-
-
-## Step 4: Test
-
-```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
-curl -X GET http://localhost:5000/sim-cards \
+curl -X POST http://localhost:5000/sim-cards/<sim_card_id>/activate \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "device_id": "DEV-001",
+    "event": "threshold_exceeded",
+    "value": 95.2
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/sim-cards | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t monitor-iot-data-usage-python .
 docker run --env-file .env -p 5000:5000 monitor-iot-data-usage-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

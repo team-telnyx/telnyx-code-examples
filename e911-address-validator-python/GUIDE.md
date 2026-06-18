@@ -1,30 +1,34 @@
-# E911 Address Validator — validate and provision E911 addresses via API.
+# Build an E911 Address Validator — validate and provision E911 addresses via API
 
-> Application. Built with Telnyx E911, Migration, Number Porting.
+Application. Built with Telnyx E911, Migration, Number Porting.
 
-## What You'll Build
+## How It Works
 
-A production-ready **e911 address validator — validate and provision e911 addresses via api** built with Python, Flask, and E911, Migration, Number Porting.
+```
+API Request ──► Your App ──► Telnyx API
+                   │
+              Process Result
+                   │
+              Return Response
+```
 
-| | |
-|---|---|
-| **Lines of code** | 50 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | E911, Migration, Number Porting |
+## Telnyx Products Used
+
+- **E911**
+- **Migration**
+- **Number Porting** — phone number search, purchase, and configuration
+
+## API Endpoints
+
+- **List Phone Numbers**: `GET /v2/phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-phone-numbers)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **List Phone Numbers**: `GET /v2/phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-phone-numbers)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -33,29 +37,27 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (50 lines). Here's how it's structured:
+Everything lives in `app.py` (50 lines). Here's what each piece does.
 
-### Endpoints
+### Business Logic
+
+- **`validate_address()`** — Makes an API call and processes the response.
+- **`assign_e911()`** — Handles the assign e911 logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/e911/validate` | Validate |
-| `POST` | `/e911/assign` | Assign |
-| `GET` | `/e911/addresses` | Addresses |
+| `POST` | `/e911/validate` | Validate Address |
+| `POST` | `/e911/assign` | Assign E911 |
+| `GET` | `/e911/addresses` | List Addresses |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`validate_address()`** — validate address
-- **`assign_e911()`** — assign e911
-- **`list_addresses()`** — list addresses
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -63,47 +65,53 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/e911/validate \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999"
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/e911/addresses | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t e911-address-validator-python .
 docker run --env-file .env -p 5000:5000 e911-address-validator-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

@@ -1,32 +1,36 @@
-# Global IP Failover Monitor
+# Build a Global IP Failover Monitor
 
-> Global IP Failover Monitor — monitor Global IP endpoints across regions, auto-failover between healthy endpoints.
+Global IP Failover Monitor — monitor Global IP endpoints across regions, auto-failover between healthy endpoints.
 
-## What You'll Build
+## How It Works
 
-A production-ready **global ip failover monitor** built with Python, Flask, and Migration, Networking, Number Porting.
+```
+API Request ──► Your App ──► Telnyx API
+                   │
+              Process Result
+                   │
+              Return Response
+```
 
-| | |
-|---|---|
-| **Lines of code** | 93 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | Migration, Networking, Number Porting |
+## Telnyx Products Used
+
+- **Migration**
+- **Networking**
+- **Number Porting** — phone number search, purchase, and configuration
+
+## API Endpoints
+
+- **List Global IPs**: `GET /v2/global_ips` — [API reference](https://developers.telnyx.com/api/global-ips/list-global-ips)
+- **Get IP Health**: `GET /v2/global_ips/{id}` — [API reference](https://developers.telnyx.com/api/global-ips/get-global-ip)
+- **Send Alert SMS**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **List Global IPs**: `GET /v2/global_ips` — [API reference](https://developers.telnyx.com/api/global-ips/list-global-ips)
-- **Get IP Health**: `GET /v2/global_ips/{id}` — [API reference](https://developers.telnyx.com/api/global-ips/get-global-ip)
-- **Send Alert SMS**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -35,33 +39,30 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (93 lines). Here's how it's structured:
+Everything lives in `app.py` (93 lines). Here's what each piece does.
 
-### Endpoints
+### Business Logic
+
+- **`list_endpoints()`** — Makes an API call and processes the response.
+- **`add_endpoint()`** — Handles the add endpoint logic.
+- **`run_health_check()`** — Health check endpoint for monitoring and load balancer probes.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/endpoints` | Endpoints |
-| `POST` | `/endpoints` | Endpoints |
-| `POST` | `/check` | Check |
-| `GET` | `/failover-log` | Failover Log |
+| `GET` | `/endpoints` | List Endpoints |
+| `GET` | `/endpoints` | Add Endpoint |
+| `POST` | `/check` | Run Health Check |
+| `GET` | `/failover-log` | Get Failover Log |
 | `GET` | `/regions` | Regions |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`list_endpoints()`** — list endpoints
-- **`add_endpoint()`** — add endpoint
-- **`run_health_check()`** — run health check
-- **`get_failover_log()`** — get failover log
-- **`regions()`** — regions
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -69,47 +70,53 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
-curl -X GET http://localhost:5000/endpoints \
+curl -X POST http://localhost:5000/check \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999"
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/endpoints | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t global-ip-failover-monitor-python .
 docker run --env-file .env -p 5000:5000 global-ip-failover-monitor-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

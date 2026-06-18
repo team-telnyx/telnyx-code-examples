@@ -1,89 +1,116 @@
-# Edge Compute Webhook Proxy
+# Build an Edge Compute Webhook Proxy
 
-> Deploy a webhook handler to Telnyx Edge for low-latency event processing close to your users.
+Receive Telnyx voice and SMS webhooks at the edge with minimal latency. Validates, enriches with timestamps, HMAC-signs, and forwards to your backend.
 
-## What You'll Build
+## How It Works
 
-A serverless webhook proxy that runs on Telnyx Edge Compute, processing Telnyx events (calls, messages, SIM status) at the edge with sub-10ms routing.
+```
+Inbound SMS ──► Webhook ──► Your App
+                                │
+                           Process Message
+                                │
+                           Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | ~50 |
-| **Time to build** | ~10 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | Edge Compute, Voice, SMS |
+## Telnyx Products Used
+
+- **Edge Compute** — serverless functions at the network edge
+- **Voice** — programmatic call control with webhooks for every call state change
+- **Messaging** — send and receive messages with delivery receipts
+
+## API Endpoints
+
+- **Edge Compute**: `telnyx-edge ship` — [Docs](https://developers.telnyx.com/docs/edge-compute)
+- **Call Control Webhooks**: Events from Call Control Application — [API reference](https://developers.telnyx.com/api/call-control)
+- **Messaging Webhooks**: Events from Messaging Profile — [API reference](https://developers.telnyx.com/api/messaging)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [Telnyx Edge CLI](https://developers.telnyx.com/docs/edge-compute) (`telnyx-edge`) installed
-- [ngrok](https://ngrok.com) for local testing
+- [Phone number](https://portal.telnyx.com/numbers/my-numbers) with voice enabled
+- [Call Control Application](https://portal.telnyx.com/call-control/applications) configured with your webhook URL
+- [Phone number](https://portal.telnyx.com/numbers/my-numbers) with messaging enabled
+- [Messaging Profile](https://portal.telnyx.com/messaging/profiles) with webhook URL
+- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
 
-## Telnyx APIs Used
-
-- **Edge Compute Deploy**: `telnyx-edge deploy` — [Edge Compute docs](https://developers.telnyx.com/docs/edge-compute)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/edge-compute-webhook-proxy-python
+cp .env.example .env
+pip install -r requirements.txt
 ```
 
-Set your API key as an edge secret:
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
+
+## Step 2: Understand the Code
+
+Everything lives in `app.py` (91 lines). Here's what each piece does.
+
+### Business Logic
+
+- **`new()`** — Handles the new logic.
+
+## Step 3: Run It
 
 ```bash
-telnyx-edge secrets add TELNYX_API_KEY <your-api-key>
+python app.py
 ```
 
-## Step 2: Code Walkthrough
+Server starts on `http://localhost:5000`.
 
-The function lives in `function/func.py`. It receives Telnyx webhook events and routes them based on event type:
-
-- **Voice events** → logged and optionally forwarded
-- **SMS events** → parsed and routed
-- **Unknown events** → returned with metadata for debugging
-
-## Step 3: Test Locally
+In a separate terminal, expose your server for webhooks:
 
 ```bash
-cd function
-python -c "from func import handler; print(handler({'body': '{\"data\":{\"event_type\":\"call.initiated\"}}'}, None))"
+ngrok http 5000
 ```
 
-## Step 4: Deploy to Edge
+Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
+
+- **Call Control Application** → Webhook URL → `https://<id>.ngrok.io/webhooks/voice`
+- **Messaging Profile** → Inbound Webhook → `https://<id>.ngrok.io/webhooks/sms`
+
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-telnyx-edge deploy
+curl http://localhost:5000/health
 ```
 
-Your function is now running globally on Telnyx Edge. Use the returned URL as your webhook endpoint in the [Telnyx Portal](https://portal.telnyx.com).
+Or call your Telnyx number from any phone to trigger the full voice workflow.
 
-## Step 5: Test
+Or text your Telnyx number to trigger the SMS workflow.
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Error recovery** — handle call failures gracefully with retry or SMS fallback
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
 
 ```bash
-curl -X POST https://<your-edge-url> \
-  -H "Content-Type: application/json" \
-  -d '{"data": {"event_type": "call.initiated"}}'
+# Docker
+docker build -t edge-compute-webhook-proxy-python .
+docker run --env-file .env -p 5000:5000 edge-compute-webhook-proxy-python
+
+# Or Makefile
+make setup && make run
 ```
-
-```json
-{"status": "processed", "event_type": "call.initiated"}
-```
-
-## Customize & Extend
-
-- Add event filtering and routing rules
-- Forward events to multiple downstream services
-- Add authentication and signature verification
-- Chain with other edge functions for complex workflows
 
 ## Resources
 
-- [Full source code and README](./README.md)
-- [Telnyx Edge Compute Docs](https://developers.telnyx.com/docs/edge-compute)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
+- [Call Control quickstart](https://developers.telnyx.com/docs/voice/call-control)
+- [Messaging quickstart](https://developers.telnyx.com/docs/messaging)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

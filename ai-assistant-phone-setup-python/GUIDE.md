@@ -1,30 +1,42 @@
-# AI Assistant Phone Setup
+# Build an AI Assistant Phone Setup
 
-> AI Assistant Phone Setup — create and configure a managed Telnyx AI Assistant and wire it to a phone number.
+AI Assistant Phone Setup — create and configure a managed Telnyx AI Assistant and wire it to a phone number.
 
-## What You'll Build
+## How It Works
 
-A production-ready **ai assistant phone setup** built with Python, Flask, and AI Inference.
+```
+Inbound/Outbound Call
+        │
+        ▼
+  Call Answered ──► TTS Greeting
+        │
+        ▼
+  Gather Input ──► AI Inference
+  (speech/DTMF)    (process + decide)
+        │
+        ▼
+  Take Action ──► SMS Notification
+  (speak/transfer)
+        │
+        ▼
+  Call Ends ──► Log & Notify
+```
 
-| | |
-|---|---|
-| **Lines of code** | 95 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | AI Inference |
+## Telnyx Products Used
+
+- **AI Inference** — LLM inference with OpenAI-compatible API, runs on Telnyx infrastructure
+
+## API Endpoints
+
+- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -33,37 +45,47 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (95 lines). Here's how it's structured:
+Everything lives in `app.py` (95 lines). Here's what each piece does.
 
-### Endpoints
+### Starting the Workflow
+
+**`create_assistant()`** — Kicks off the main workflow. Validates the request, creates the record, and initiates the Telnyx API calls.
+
+```python
+data = request.get_json()
+    try:
+        resp = requests.post(f"{API}/ai/assistants", headers=headers,
+            json={"name": data.get("name", "My Assistant"),
+                "instructions": data.get("instructions", "You are a helpful assistant. Be friendly and concise."),
+                "model": data.get("model", "meta-llama/Llama-3.3-70B-Instruct"),
+                "voice": {"provider": data.get("voice_provider", "telnyx"),
+                    "settings": {"voice_id": data.get("voice_id", "en-US-Neural2-F"),
+```
+
+### Business Logic
+
+- **`list_assistants()`** — Makes an API call and processes the response.
+- **`get_assistant()`** — Makes an API call and processes the response.
+- **`update_assistant()`** — Handles the update assistant logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/assistants` | Assistants |
-| `GET` | `/assistants` | Assistants |
-| `GET` | `/assistants/<assistant_id>` | <Assistant Id> |
-| `PATCH` | `/assistants/<assistant_id>` | <Assistant Id> |
-| `POST` | `/assistants/<assistant_id>/wire` | Wire |
-| `POST` | `/assistants/<assistant_id>/test` | Test |
-| `GET` | `/models` | Models |
+| `POST` | `/assistants` | Create Assistant |
+| `POST` | `/assistants` | List Assistants |
+| `GET` | `/assistants/<assistant_id>` | Get Assistant |
+| `GET` | `/assistants/<assistant_id>` | Update Assistant |
+| `POST` | `/assistants/<assistant_id>/wire` | Wire To Number |
+| `POST` | `/assistants/<assistant_id>/test` | Test Assistant |
+| `GET` | `/models` | List Models |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`create_assistant()`** — create assistant
-- **`list_assistants()`** — list assistants
-- **`get_assistant()`** — get assistant
-- **`update_assistant()`** — update assistant
-- **`wire_to_number()`** — wire to number
-- **`test_assistant()`** — test assistant
-- **`list_models()`** — list models
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -71,48 +93,55 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/assistants \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999"
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/assistants/<assistant_id> | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Prompt engineering** — tune the AI prompts for your specific domain and tone
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t ai-assistant-phone-setup-python .
 docker run --env-file .env -p 5000:5000 ai-assistant-phone-setup-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [AI Inference Guide](https://developers.telnyx.com/docs/inference)
+- [AI Inference docs](https://developers.telnyx.com/docs/inference)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

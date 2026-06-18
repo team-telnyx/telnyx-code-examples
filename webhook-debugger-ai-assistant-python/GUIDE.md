@@ -1,30 +1,42 @@
-# Webhook Debugger AI Assistant
+# Build a Webhook Debugger AI Assistant
 
-> Webhook Debugger AI Assistant — catch, inspect, and debug Telnyx webhooks with AI explanations.
+Webhook Debugger AI Assistant — catch, inspect, and debug Telnyx webhooks with AI explanations.
 
-## What You'll Build
+## How It Works
 
-A production-ready **webhook debugger ai assistant** built with Python, Flask, and AI Inference.
+```
+Inbound/Outbound Call
+        │
+        ▼
+  Call Answered ──► TTS Greeting
+        │
+        ▼
+  Gather Input ──► AI Inference
+  (speech/DTMF)    (process + decide)
+        │
+        ▼
+  Take Action ──► SMS Notification
+  (speak/transfer)
+        │
+        ▼
+  Call Ends ──► Log & Notify
+```
 
-| | |
-|---|---|
-| **Lines of code** | 58 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | AI Inference |
+## Telnyx Products Used
+
+- **AI Inference** — LLM inference with OpenAI-compatible API, runs on Telnyx infrastructure
+
+## API Endpoints
+
+- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -33,32 +45,40 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (58 lines). Here's how it's structured:
+Everything lives in `app.py` (58 lines). Here's what each piece does.
 
-### Endpoints
+### Handling Webhooks
+
+Webhook handlers process events from Telnyx:
+
+**`catch_webhook()`** — Handles Telnyx webhook events. Routes each event type to the appropriate handler.
+
+**`analyze_webhook()`** — Sends conversation context to Telnyx AI Inference and returns the model's response. Uses the OpenAI-compatible chat completions endpoint.
+
+### Helper Functions
+
+- **`call_inference()`** — Sends conversation context to Telnyx AI Inference and returns the model's response. Uses the OpenAI-compatible chat completions endpoint.
+
+### Business Logic
+
+- **`analyze_recent()`** — Sends conversation context to Telnyx AI Inference and returns the model's response. Uses the OpenAI-compatible chat completions endpoint.
+- **`view_log()`** — Handles the view log logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/catch/<path:subpath>` | <Path:Subpath> |
-| `GET` | `/analyze/<int:index>` | <Int:Index> |
-| `GET` | `/analyze/recent` | Recent |
-| `GET` | `/log` | Log |
+| `GET` | `/catch/<path:subpath>` | Catch Webhook |
+| `GET` | `/analyze/<int:index>` | Analyze Webhook |
+| `GET` | `/analyze/recent` | Analyze Recent |
+| `GET` | `/log` | View Log |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`call_inference()`** — call inference
-- **`catch_webhook()`** — catch webhook
-- **`analyze_webhook()`** — analyze webhook
-- **`analyze_recent()`** — analyze recent
-- **`view_log()`** — view log
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -66,48 +86,45 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Check results:**
+
 ```bash
-# Trigger the main workflow
-curl -X GET http://localhost:5000/catch/<path:subpath> \
-  -H "Content-Type: application/json" \
-  -d '{}'
+curl http://localhost:5000/catch/<path:subpath> | python3 -m json.tool
 ```
 
-## Production Deployment
+## Going to Production
 
-### Docker
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Prompt engineering** — tune the AI prompts for your specific domain and tone
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
 
 ```bash
+# Docker
 docker build -t webhook-debugger-ai-assistant-python .
 docker run --env-file .env -p 5000:5000 webhook-debugger-ai-assistant-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [AI Inference Guide](https://developers.telnyx.com/docs/inference)
+- [AI Inference docs](https://developers.telnyx.com/docs/inference)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

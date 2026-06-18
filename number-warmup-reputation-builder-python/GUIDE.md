@@ -1,17 +1,24 @@
-# Number Warmup & Reputation Builder
+# Build a Number Warmup & Reputation Builder
 
-> Number Warmup & Reputation Builder — gradually ramp SMS volume on new numbers to build carrier reputation and avoid spam flags.
+Number Warmup & Reputation Builder — gradually ramp SMS volume on new numbers to build carrier reputation and avoid spam flags.
 
-## What You'll Build
+## How It Works
 
-A production-ready **number warmup & reputation builder** built with Python, Flask, and SMS/MMS.
+```
+Inbound SMS ──► Webhook ──► Your App
+                                │
+                           Process Message
+                                │
+                           Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | 93 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | SMS/MMS |
+## Telnyx Products Used
+
+- **SMS/MMS** — send and receive messages with delivery receipts
+
+## API Endpoints
+
+- **Send Message**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
 
 ## Prerequisites
 
@@ -20,13 +27,9 @@ A production-ready **number warmup & reputation builder** built with Python, Fla
 - [API key](https://portal.telnyx.com/api-keys)
 - [Phone number](https://portal.telnyx.com/numbers/my-numbers) with messaging enabled
 - [Messaging Profile](https://portal.telnyx.com/messaging/profiles) with webhook URL
-- [ngrok](https://ngrok.com) for local webhook testing
+- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
 
-## Telnyx APIs Used
-
-- **Send Message**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -35,31 +38,42 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (93 lines). Here's how it's structured:
+Everything lives in `app.py` (93 lines). Here's what each piece does.
 
-### Endpoints
+### Starting the Workflow
+
+**`start_warmup()`** — Kicks off the main workflow. Validates the request, creates the record, and initiates the Telnyx API calls.
+
+```python
+data = request.get_json()
+    number = data.get("number")
+    warmup_numbers[number] = {"started": time.time(), "day": 0, "total_sent": 0, "today_sent": 0, "status": "warming",
+        "errors": 0, "last_sent": 0}
+    return jsonify({"status": "started", "number": number, "schedule": WARMUP_SCHEDULE}), 200
+@app.route("/warmup/send", methods=["POST"])
+```
+
+### Business Logic
+
+- **`send_warmup()`** — Makes an API call and processes the response.
+- **`warmup_status()`** — Handles the warmup status logic.
+- **`reset_daily()`** — Handles the reset daily logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/warmup/start` | Start |
-| `POST` | `/warmup/send` | Send |
-| `GET` | `/warmup/status` | Status |
+| `POST` | `/warmup/start` | Start Warmup |
+| `POST` | `/warmup/send` | Send Warmup |
+| `GET` | `/warmup/status` | Warmup Status |
 | `POST` | `/warmup/reset-daily` | Reset Daily |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`start_warmup()`** — start warmup
-- **`send_warmup()`** — send warmup
-- **`warmup_status()`** — warmup status
-- **`reset_daily()`** — reset daily
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -67,60 +81,67 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-Expose your local server for Telnyx webhooks:
+In a separate terminal, expose your server for webhooks:
 
 ```bash
 ngrok http 5000
 ```
 
-Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
+Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 
 - **Messaging Profile** → Inbound Webhook → `https://<id>.ngrok.io/webhooks/sms`
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/warmup/start \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone_numbers": ["+12125551234"],
+    "carrier": "Current Carrier"
+  }'
 ```
 
-Or send an SMS to your Telnyx number to trigger the messaging workflow.
+Or text your Telnyx number to trigger the SMS workflow.
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/warmup/status | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t number-warmup-reputation-builder-python .
 docker run --env-file .env -p 5000:5000 number-warmup-reputation-builder-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [Messaging Guide](https://developers.telnyx.com/docs/messaging)
+- [Messaging quickstart](https://developers.telnyx.com/docs/messaging)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

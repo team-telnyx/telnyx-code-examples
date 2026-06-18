@@ -1,31 +1,37 @@
-# Number Lookup Lead Enrichment
+# Build a Number Lookup Lead Enrichment
 
-> Number Lookup Lead Enrichment — CNAM and carrier lookup to qualify and enrich sales leads.
+Number Lookup Lead Enrichment — CNAM and carrier lookup to qualify and enrich sales leads.
 
-## What You'll Build
+## How It Works
 
-A production-ready **number lookup lead enrichment** built with Python, Flask, and AI Inference, Number Lookup.
+```
+Inbound SMS
+      │
+      ▼
+Parse Message ──► AI Inference
+                  (understand intent)
+      │
+      ▼
+Take Action ──► Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | 63 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | AI Inference, Number Lookup |
+## Telnyx Products Used
+
+- **AI Inference** — LLM inference with OpenAI-compatible API, runs on Telnyx infrastructure
+- **Number Lookup** — phone number search, purchase, and configuration
+
+## API Endpoints
+
+- **Number Lookup**: `GET /v2/number_lookup/{phone}` — [API reference](https://developers.telnyx.com/api/number-lookup/lookup)
+- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **Number Lookup**: `GET /v2/number_lookup/{phone}` — [API reference](https://developers.telnyx.com/api/number-lookup/lookup)
-- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -34,29 +40,31 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (63 lines). Here's how it's structured:
+Everything lives in `app.py` (63 lines). Here's what each piece does.
 
-### Endpoints
+### Helper Functions
+
+- **`call_inference()`** — Sends conversation context to Telnyx AI Inference and returns the model's response. Uses the OpenAI-compatible chat completions endpoint.
+
+### Business Logic
+
+- **`lookup_number()`** — Makes an API call and processes the response.
+- **`enrich_lead()`** — Handles the enrich lead logic.
+- **`enrich_bulk()`** — Handles the enrich bulk logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/enrich` | Enrich |
-| `POST` | `/enrich/bulk` | Bulk |
+| `POST` | `/enrich` | Enrich Lead |
+| `POST` | `/enrich/bulk` | Enrich Bulk |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`lookup_number()`** — lookup number
-- **`call_inference()`** — call inference
-- **`enrich_lead()`** — enrich lead
-- **`enrich_bulk()`** — enrich bulk
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -64,48 +72,52 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/enrich \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999",
+    "name": "Acme Corp",
+    "source": "website",
+    "interest": "enterprise plan"
+  }'
 ```
 
-## Production Deployment
+## Going to Production
 
-### Docker
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Prompt engineering** — tune the AI prompts for your specific domain and tone
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
 
 ```bash
+# Docker
 docker build -t number-lookup-lead-enrichment-python .
 docker run --env-file .env -p 5000:5000 number-lookup-lead-enrichment-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [AI Inference Guide](https://developers.telnyx.com/docs/inference)
+- [AI Inference docs](https://developers.telnyx.com/docs/inference)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

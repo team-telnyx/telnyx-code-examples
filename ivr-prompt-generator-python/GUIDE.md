@@ -1,28 +1,34 @@
-# IVR Prompt Generator
+# Build an IVR Prompt Generator
 
-> Generate professional IVR/phone system prompts. AI writes caller-friendly scripts from business descriptions, TTS renders in multiple voices, test via live Telnyx call playback.
+Generate professional IVR/phone system prompts. AI writes caller-friendly scripts from business descriptions, TTS renders in multiple voices, test via live Telnyx call playback.
 
-## What You'll Build
+## How It Works
 
-A production-ready **ivr prompt generator** built with Python, Flask, and Voice, AI Inference, Cloud Storage.
+```
+Inbound/Outbound Call
+        │
+        ▼
+  Call Answered ──► TTS Greeting
+        │
+        ▼
+  Gather Input ──► AI Inference
+  (speech/DTMF)    (process + decide)
+        │
+        ▼
+  Take Action ──► SMS Notification
+  (speak/transfer)
+        │
+        ▼
+  Call Ends ──► Log & Notify
+```
 
-| | |
-|---|---|
-| **Lines of code** | 268 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | Voice, AI Inference, Cloud Storage |
+## Telnyx Products Used
 
-## Prerequisites
+- **Voice** — programmatic call control with webhooks for every call state change
+- **AI Inference** — LLM inference with OpenAI-compatible API, runs on Telnyx infrastructure
+- **Cloud Storage** — S3-compatible object storage for recordings and media
 
-- Python 3.8+
-- [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
-- [API key](https://portal.telnyx.com/api-keys)
-- [Phone number](https://portal.telnyx.com/numbers/my-numbers) with voice enabled
-- [Call Control Application](https://portal.telnyx.com/call-control/applications) with webhook URL
-- [ngrok](https://ngrok.com) for local webhook testing
-
-## Telnyx APIs Used
+## API Endpoints
 
 - **AI Inference (script writing)**: `POST /v2/ai/chat/completions` -- [ref](https://developers.telnyx.com/api/inference/chat-completions)
 - **TTS Generate**: `POST /v2/ai/generate` -- [ref](https://developers.telnyx.com/api/inference/generate)
@@ -30,7 +36,16 @@ A production-ready **ivr prompt generator** built with Python, Flask, and Voice,
 - **Speak (playback)**: `POST /v2/calls/{id}/actions/speak` -- [ref](https://developers.telnyx.com/api/call-control/speak)
 - **Cloud Storage**: `PUT https://storage.telnyx.com/{bucket}/{key}` -- [docs](https://developers.telnyx.com/docs/cloud-storage)
 
-## Step 1: Clone & Configure
+## Prerequisites
+
+- Python 3.8+
+- [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
+- [API key](https://portal.telnyx.com/api-keys)
+- [Phone number](https://portal.telnyx.com/numbers/my-numbers) with voice enabled
+- [Call Control Application](https://portal.telnyx.com/call-control/applications) configured with your webhook URL
+- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
+
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -39,37 +54,36 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (268 lines). Here's how it's structured:
+Everything lives in `app.py` (268 lines). Here's what each piece does.
 
-### Endpoints
+### Handling Webhooks
+
+This is the core of the app — a state machine driven by Telnyx webhook events. Each event triggers the next step:
+
+**`handle_voice()`** — The voice webhook handler — the core state machine. Each Telnyx event triggers the next action in the call flow.
+
+### Business Logic
+
+- **`inference()`** — Makes an API call and processes the response.
+- **`tts_generate()`** — Makes an API call and processes the response.
+- **`telnyx_post()`** — Makes an API call and processes the response.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/prompts/generate` | Generate |
-| `POST` | `/prompts/<set_id>/preview` | Preview |
+| `POST` | `/prompts/generate` | Generate Prompts |
+| `POST` | `/prompts/<set_id>/preview` | Preview Prompt |
 | `POST` | `/webhooks/voice` | Telnyx webhook handler |
-| `GET` | `/prompts/<set_id>` | <Set Id> |
-| `GET` | `/prompt-types` | Prompt Types |
+| `GET` | `/prompts/<set_id>` | Get Prompt Set |
+| `GET` | `/prompt-types` | Get Prompt Types |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`inference()`** — inference
-- **`tts_generate()`** — tts generate
-- **`telnyx_post()`** — telnyx post
-- **`upload_to_storage()`** — upload to storage
-- **`generate_prompts()`** — generate prompts
-- **`preview_prompt()`** — preview prompt
-- **`handle_voice()`** — handle voice
-- **`get_prompt_set()`** — get prompt set
-- **`get_prompt_types()`** — get prompt types
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -77,62 +91,69 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-Expose your local server for Telnyx webhooks:
+In a separate terminal, expose your server for webhooks:
 
 ```bash
 ngrok http 5000
 ```
 
-Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
+Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 
 - **Call Control Application** → Webhook URL → `https://<id>.ngrok.io/webhooks/voice`
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/prompts/generate \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999"
+  }'
 ```
 
-Or call your Telnyx number from any phone to trigger the voice workflow.
+Or call your Telnyx number from any phone to trigger the full voice workflow.
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/prompts/<set_id> | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Error recovery** — handle call failures gracefully with retry or SMS fallback
+- **Prompt engineering** — tune the AI prompts for your specific domain and tone
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t ivr-prompt-generator-python .
 docker run --env-file .env -p 5000:5000 ivr-prompt-generator-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Add conversation memory for multi-turn AI interactions
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [Call Control Guide](https://developers.telnyx.com/docs/voice/call-control)
-- [AI Inference Guide](https://developers.telnyx.com/docs/inference)
+- [Call Control quickstart](https://developers.telnyx.com/docs/voice/call-control)
+- [AI Inference docs](https://developers.telnyx.com/docs/inference)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

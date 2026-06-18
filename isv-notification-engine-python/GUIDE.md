@@ -1,18 +1,31 @@
-# ISV Notification Engine
+# Build an ISV Notification Engine
 
-> SaaS platform sends alerts via SMS/voice/WhatsApp based on customer preference and urgency. Multi-channel with fallback cascade and delivery tracking.
+SaaS platform sends alerts via SMS/voice/WhatsApp based on customer preference and urgency. Multi-channel with fallback cascade and delivery tracking.
 
-## What You'll Build
+## How It Works
 
-A production-ready **isv notification engine** built with Python, Flask, and Voice.
+```
+Trigger Event
+      │
+      ├──► Voice Call ──► TTS ──► DTMF Input ──► Action
+      │
+      └──► SMS Fallback ──► Customer Reply ──► Action
+```
 
-| | |
-|---|---|
-| **Lines of code** | 122 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | Voice |
-| **Channels** | voice |
+## Telnyx Products Used
+
+- **Voice** — programmatic call control with webhooks for every call state change
+
+## API Endpoints
+
+- **Call Control: Speak (TTS)**: `POST /v2/calls/{id}/actions/speak` — [API reference](https://developers.telnyx.com/api/call-control/speak)
+
+## Webhook Events
+
+Telnyx uses webhooks for call control — you don't poll for state. Each event tells you what happened, and your response tells Telnyx what to do next.
+
+This app handles these webhook events ([Call Control docs](https://developers.telnyx.com/docs/api/v2/call-control)):
+- `call.answered` — Call connected — app begins interaction
 
 ## Prerequisites
 
@@ -20,19 +33,10 @@ A production-ready **isv notification engine** built with Python, Flask, and Voi
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
 - [Phone number](https://portal.telnyx.com/numbers/my-numbers) with voice enabled
-- [Call Control Application](https://portal.telnyx.com/call-control/applications) with webhook URL
-- [ngrok](https://ngrok.com) for local webhook testing
+- [Call Control Application](https://portal.telnyx.com/call-control/applications) configured with your webhook URL
+- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
 
-## Telnyx APIs Used
-
-- **Call Control: Speak (TTS)**: `POST /v2/calls/{id}/actions/speak` — [API reference](https://developers.telnyx.com/api/call-control/speak)
-
-## Webhook Events Handled
-
-This app handles these webhook events ([Call Control docs](https://developers.telnyx.com/docs/api/v2/call-control)):
-- `call.answered` — Call connected — app begins interaction
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -41,38 +45,45 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (122 lines). Here's how it's structured:
+Everything lives in `app.py` (122 lines). Here's what each piece does.
 
-### Endpoints
+### Handling Webhooks
+
+This is the core of the app — a state machine driven by Telnyx webhook events. Each event triggers the next step:
+
+**`handle_voice()`** — The voice webhook handler — the core state machine. Each Telnyx event triggers the next action in the call flow.
+
+- `call.answered` → greet the caller with TTS
+
+### Helper Functions
+
+- **`send_sms()`** — Sends an SMS via the Telnyx Messaging API. Wraps the `POST /v2/messages` call with error handling.
+- **`notify()`** — Sends notifications through configured channels (SMS, Slack, email) based on event severity.
+- **`bulk_notify()`** — Sends notifications through configured channels (SMS, Slack, email) based on event severity.
+
+### Business Logic
+
+- **`send_whatsapp()`** — Makes an API call and processes the response.
+- **`make_voice_call()`** — Makes an API call and processes the response.
+- **`deliver()`** — Handles the deliver logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/notify` | Notify |
-| `POST` | `/notify/bulk` | Bulk |
+| `POST` | `/notify/bulk` | Bulk Notify |
 | `POST` | `/webhooks/voice` | Telnyx webhook handler |
-| `GET` | `/customers` | Customers |
-| `PUT` | `/customers/<cid>/preference` | Preference |
-| `GET` | `/notifications` | Notifications |
+| `GET` | `/customers` | List Customers |
+| `PUT` | `/customers/<cid>/preference` | Update Preference |
+| `GET` | `/notifications` | List Notifications |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`send_sms()`** — send sms
-- **`send_whatsapp()`** — send whatsapp
-- **`make_voice_call()`** — make voice call
-- **`deliver()`** — deliver
-- **`notify()`** — notify
-- **`bulk_notify()`** — bulk notify
-- **`handle_voice()`** — handle voice
-- **`list_customers()`** — list customers
-- **`update_preference()`** — update preference
-- **`list_notifications()`** — list notifications
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -80,60 +91,69 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-Expose your local server for Telnyx webhooks:
+In a separate terminal, expose your server for webhooks:
 
 ```bash
 ngrok http 5000
 ```
 
-Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
+Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 
 - **Call Control Application** → Webhook URL → `https://<id>.ngrok.io/webhooks/voice`
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/notify \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999",
+    "message": "Urgent: action required",
+    "priority": "high"
+  }'
 ```
 
-Or call your Telnyx number from any phone to trigger the voice workflow.
+Or call your Telnyx number from any phone to trigger the full voice workflow.
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/customers | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Error recovery** — handle call failures gracefully with retry or SMS fallback
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t isv-notification-engine-python .
 docker run --env-file .env -p 5000:5000 isv-notification-engine-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [Call Control Guide](https://developers.telnyx.com/docs/voice/call-control)
+- [Call Control quickstart](https://developers.telnyx.com/docs/voice/call-control)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

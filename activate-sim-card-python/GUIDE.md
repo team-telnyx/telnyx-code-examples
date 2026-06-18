@@ -1,32 +1,36 @@
-# Production-ready Flask application for SIM card activation via Telnyx.
+# Build a Production-ready Flask application for SIM card activation via Telnyx
 
-> Application. Built with Telnyx IoT/SIM, Migration, Number Porting.
+Application. Built with Telnyx IoT/SIM, Migration, Number Porting.
 
-## What You'll Build
+## How It Works
 
-A production-ready **production-ready flask application for sim card activation via telnyx** built with Python, Flask, and IoT/SIM, Migration, Number Porting.
+```
+Inbound SMS ──► Webhook ──► Your App
+                                │
+                           Process Message
+                                │
+                           Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | 117 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | IoT/SIM, Migration, Number Porting |
+## Telnyx Products Used
+
+- **IoT/SIM** — cellular connectivity and device management
+- **Migration**
+- **Number Porting** — phone number search, purchase, and configuration
+
+## API Endpoints
+
+- **List SIM Cards**: `GET /v2/sim_cards` — [API reference](https://developers.telnyx.com/api/sim-cards/list-sim-cards)
+- **Retrieve SIM Card**: `GET /v2/sim_cards/{id}` — [API reference](https://developers.telnyx.com/api/sim-cards/get-sim-card)
+- **Activate SIM Card**: `PATCH /v2/sim_cards/{id}` — [API reference](https://developers.telnyx.com/api/sim-cards/update-sim-card)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **List SIM Cards**: `GET /v2/sim_cards` — [API reference](https://developers.telnyx.com/api/sim-cards/list-sim-cards)
-- **Retrieve SIM Card**: `GET /v2/sim_cards/{id}` — [API reference](https://developers.telnyx.com/api/sim-cards/get-sim-card)
-- **Activate SIM Card**: `PATCH /v2/sim_cards/{id}` — [API reference](https://developers.telnyx.com/api/sim-cards/update-sim-card)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -35,30 +39,27 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (117 lines). Here's how it's structured:
+Everything lives in `app.py` (117 lines). Here's what each piece does.
 
-### Endpoints
+### Business Logic
+
+- **`list_sims()`** — Handles the list sims logic.
+- **`get_sim()`** — Handles the get sim logic.
+- **`activate_sim()`** — Handles the activate sim logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/sim-cards` | Sim Cards |
-| `GET` | `/sim-cards/<sim_card_id>` | <Sim Card Id> |
-| `POST` | `/sim-cards/<sim_card_id>/activate` | Activate |
+| `GET` | `/sim-cards` | List Sims |
+| `GET` | `/sim-cards/<sim_card_id>` | Get Sim |
+| `POST` | `/sim-cards/<sim_card_id>/activate` | Activate Sim |
 
-### Key Functions
-
-- **`list_sim_cards()`** — list sim cards
-- **`get_sim_card()`** — get sim card
-- **`activate_sim_card()`** — activate sim card
-- **`list_sims()`** — list sims
-- **`get_sim()`** — get sim
-- **`activate_sim()`** — activate sim
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -66,47 +67,55 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
-curl -X GET http://localhost:5000/sim-cards \
+curl -X POST http://localhost:5000/sim-cards/<sim_card_id>/activate \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "device_id": "DEV-001",
+    "event": "threshold_exceeded",
+    "value": 95.2
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/sim-cards | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t activate-sim-card-python .
 docker run --env-file .env -p 5000:5000 activate-sim-card-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

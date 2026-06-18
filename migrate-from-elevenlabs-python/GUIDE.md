@@ -1,18 +1,28 @@
-# Migrate from ElevenLabs
+# Migrate from ElevenLabs to Telnyx
 
-> Migrate from ElevenLabs — import ElevenLabs voice configurations to Telnyx TTS with voice mapping and cost comparison.
+Migrate from ElevenLabs — import ElevenLabs voice configurations to Telnyx TTS with voice mapping and cost comparison.
 
-## What You'll Build
+## How It Works
 
-A production-ready **migrate from elevenlabs** built with Python, Flask, and AI Assistants, Migration, Number Porting.
+```
+API Request ──► Your App ──► Telnyx API
+                   │
+              Process Result
+                   │
+              Return Response
+```
 
-| | |
-|---|---|
-| **Lines of code** | 98 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | AI Assistants, Migration, Number Porting |
-| **Channels** | voice |
+## Telnyx Products Used
+
+- **AI Assistants** — LLM inference with OpenAI-compatible API, runs on Telnyx infrastructure
+- **Migration**
+- **Number Porting** — phone number search, purchase, and configuration
+
+## API Endpoints
+
+- **TTS Generate**: `POST /v2/ai/generate` — [API reference](https://developers.telnyx.com/api/inference/generate)
+- **Chat Completions**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
+- **List Models**: `GET /v2/ai/models` — [API reference](https://developers.telnyx.com/api/inference/list-models)
 
 ## Prerequisites
 
@@ -20,16 +30,10 @@ A production-ready **migrate from elevenlabs** built with Python, Flask, and AI 
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
 - [Phone number](https://portal.telnyx.com/numbers/my-numbers) with voice enabled
-- [Call Control Application](https://portal.telnyx.com/call-control/applications) with webhook URL
-- [ngrok](https://ngrok.com) for local webhook testing
+- [Call Control Application](https://portal.telnyx.com/call-control/applications) configured with your webhook URL
+- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
 
-## Telnyx APIs Used
-
-- **TTS Generate**: `POST /v2/ai/generate` — [API reference](https://developers.telnyx.com/api/inference/generate)
-- **Chat Completions**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
-- **List Models**: `GET /v2/ai/models` — [API reference](https://developers.telnyx.com/api/inference/list-models)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -38,35 +42,31 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (98 lines). Here's how it's structured:
+Everything lives in `app.py` (98 lines). Here's what each piece does.
 
-### Endpoints
+### Business Logic
+
+- **`audit_elevenlabs()`** — Makes an API call and processes the response.
+- **`migrate_voice()`** — Handles the migrate voice logic.
+- **`voice_mapping()`** — Handles the voice mapping logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/audit/elevenlabs` | Elevenlabs |
-| `POST` | `/migrate/voice-config` | Voice Config |
-| `GET` | `/mapping/voices` | Voices |
+| `GET` | `/audit/elevenlabs` | Audit Elevenlabs |
+| `POST` | `/migrate/voice-config` | Migrate Voice |
+| `GET` | `/mapping/voices` | Voice Mapping |
 | `GET` | `/cost-comparison` | Cost Comparison |
 | `POST` | `/test-tts` | Test Tts |
-| `GET` | `/migration-log` | Migration Log |
+| `GET` | `/migration-log` | Get Log |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`audit_elevenlabs()`** — audit elevenlabs
-- **`migrate_voice()`** — migrate voice
-- **`voice_mapping()`** — voice mapping
-- **`cost_comparison()`** — cost comparison
-- **`test_tts()`** — test tts
-- **`get_log()`** — get log
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -74,62 +74,71 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-Expose your local server for Telnyx webhooks:
+In a separate terminal, expose your server for webhooks:
 
 ```bash
 ngrok http 5000
 ```
 
-Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
+Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 
 - **Call Control Application** → Webhook URL → `https://<id>.ngrok.io/webhooks/voice`
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
-curl -X GET http://localhost:5000/audit/elevenlabs \
+curl -X POST http://localhost:5000/migrate/voice-config \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "source": "twilio",
+    "account_sid": "AC...",
+    "auth_token": "..."
+  }'
 ```
 
-Or call your Telnyx number from any phone to trigger the voice workflow.
+Or call your Telnyx number from any phone to trigger the full voice workflow.
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/audit/elevenlabs | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Error recovery** — handle call failures gracefully with retry or SMS fallback
+- **Prompt engineering** — tune the AI prompts for your specific domain and tone
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t migrate-from-elevenlabs-python .
 docker run --env-file .env -p 5000:5000 migrate-from-elevenlabs-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Add conversation memory for multi-turn AI interactions
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [Call Control Guide](https://developers.telnyx.com/docs/voice/call-control)
-- [AI Inference Guide](https://developers.telnyx.com/docs/inference)
+- [Call Control quickstart](https://developers.telnyx.com/docs/voice/call-control)
+- [AI Inference docs](https://developers.telnyx.com/docs/inference)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

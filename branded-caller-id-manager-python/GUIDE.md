@@ -1,17 +1,30 @@
-# Branded Caller ID Manager
+# Build a Branded Caller ID Manager
 
-> Branded Caller ID Manager — register, manage, and verify branded calling profiles with STIR/SHAKEN attestation for higher answer rates.
+Branded Caller ID Manager — register, manage, and verify branded calling profiles with STIR/SHAKEN attestation for higher answer rates.
 
-## What You'll Build
+## How It Works
 
-A production-ready **branded caller id manager** built with Python, Flask, and Branded Calling, CNAM Lookup, Migration, Number Porting, Verify.
+```
+Inbound SMS ──► Webhook ──► Your App
+                                │
+                           Process Message
+                                │
+                           Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | 91 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | Branded Calling, CNAM Lookup, Migration, Number Porting, Verify |
+## Telnyx Products Used
+
+- **Branded Calling** — programmatic call control with webhooks for every call state change
+- **CNAM Lookup**
+- **Migration**
+- **Number Porting** — phone number search, purchase, and configuration
+- **Verify** — phone verification with OTP delivery across channels
+
+## API Endpoints
+
+- **Update Number**: `PATCH /v2/phone_numbers/{id}` — [API reference](https://developers.telnyx.com/api/numbers/update-phone-number)
+- **CNAM Listing**: `POST /v2/cnam_requests` — [API reference](https://developers.telnyx.com/api/cnam/create-cnam-request)
+- **Number Lookup**: `GET /v2/number_lookup/{phone_number}` — [API reference](https://developers.telnyx.com/api/number-lookup/lookup-number)
 
 ## Prerequisites
 
@@ -19,16 +32,10 @@ A production-ready **branded caller id manager** built with Python, Flask, and B
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
 - [Phone number](https://portal.telnyx.com/numbers/my-numbers) with voice enabled
-- [Call Control Application](https://portal.telnyx.com/call-control/applications) with webhook URL
-- [ngrok](https://ngrok.com) for local webhook testing
+- [Call Control Application](https://portal.telnyx.com/call-control/applications) configured with your webhook URL
+- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
 
-## Telnyx APIs Used
-
-- **Update Number**: `PATCH /v2/phone_numbers/{id}` — [API reference](https://developers.telnyx.com/api/numbers/update-phone-number)
-- **CNAM Listing**: `POST /v2/cnam_requests` — [API reference](https://developers.telnyx.com/api/cnam/create-cnam-request)
-- **Number Lookup**: `GET /v2/number_lookup/{phone_number}` — [API reference](https://developers.telnyx.com/api/number-lookup/lookup-number)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -37,35 +44,59 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (91 lines). Here's how it's structured:
+Everything lives in `app.py` (91 lines). Here's what each piece does.
 
-### Endpoints
+### Starting the Workflow
+
+**`create_brand()`** — Kicks off the main workflow. Validates the request, creates the record, and initiates the Telnyx API calls.
+
+```python
+data = request.get_json()
+    try:
+        resp = requests.post(f"{API}/brand", headers=headers,
+            json={"entity_type": data.get("entity_type", "PRIVATE_PROFIT"),
+                "display_name": data.get("display_name"),
+                "company_name": data.get("company_name"),
+                "ein": data.get("ein"), "phone": data.get("phone"),
+                "street": data.get("street"), "city": data.get("city"),
+```
+
+**`create_campaign()`** — Kicks off the main workflow. Validates the request, creates the record, and initiates the Telnyx API calls.
+
+```python
+data = request.get_json()
+    try:
+        resp = requests.post(f"{API}/phoneNumberCampaign", headers=headers,
+            json={"telnyx_brand_id": data.get("brand_id"),
+                "usecase": data.get("usecase", "MIXED"),
+                "description": data.get("description"),
+                "sample_message": data.get("sample_message", ["Your appointment is tomorrow at 2pm. Reply CONFIRM."]),
+                "phone_numbers": data.get("phone_numbers", [])}, timeout=15)
+```
+
+### Business Logic
+
+- **`list_brands()`** — Makes an API call and processes the response.
+- **`update_caller_id()`** — Handles the update caller id logic.
+- **`stir_shaken_status()`** — Makes an API call and processes the response.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/brands` | Brands |
-| `GET` | `/brands` | Brands |
-| `POST` | `/campaigns` | Campaigns |
-| `PUT` | `/numbers/<number>/caller-id` | Caller Id |
-| `GET` | `/stir-shaken/status` | Status |
-| `GET` | `/campaigns` | Campaigns |
+| `POST` | `/brands` | Create Brand |
+| `POST` | `/brands` | List Brands |
+| `POST` | `/campaigns` | Create Campaign |
+| `PUT` | `/numbers/<number>/caller-id` | Update Caller Id |
+| `GET` | `/stir-shaken/status` | Stir Shaken Status |
+| `POST` | `/campaigns` | List Campaigns |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`create_brand()`** — create brand
-- **`list_brands()`** — list brands
-- **`create_campaign()`** — create campaign
-- **`update_caller_id()`** — update caller id
-- **`stir_shaken_status()`** — stir shaken status
-- **`list_campaigns()`** — list campaigns
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -73,60 +104,67 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-Expose your local server for Telnyx webhooks:
+In a separate terminal, expose your server for webhooks:
 
 ```bash
 ngrok http 5000
 ```
 
-Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
+Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 
 - **Call Control Application** → Webhook URL → `https://<id>.ngrok.io/webhooks/voice`
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/brands \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999"
+  }'
 ```
 
-Or call your Telnyx number from any phone to trigger the voice workflow.
+Or call your Telnyx number from any phone to trigger the full voice workflow.
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/stir-shaken/status | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Error recovery** — handle call failures gracefully with retry or SMS fallback
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t branded-caller-id-manager-python .
 docker run --env-file .env -p 5000:5000 branded-caller-id-manager-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [Call Control Guide](https://developers.telnyx.com/docs/voice/call-control)
+- [Call Control quickstart](https://developers.telnyx.com/docs/voice/call-control)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

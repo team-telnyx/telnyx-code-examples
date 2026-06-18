@@ -1,18 +1,31 @@
-# WhatsApp-SMS Bridge
+# Build a WhatsApp-SMS Bridge
 
-> WhatsApp-SMS Bridge — receive messages on WhatsApp and forward them via SMS, and vice versa. Bidirectional bridge between two messaging channels.
+WhatsApp-SMS Bridge — receive messages on WhatsApp and forward them via SMS, and vice versa. Bidirectional bridge between two messaging channels.
 
-## What You'll Build
+## How It Works
 
-A production-ready **whatsapp-sms bridge** built with Python, Flask, and SMS/MMS.
+```
+Inbound SMS ──► Webhook ──► Your App
+                                │
+                           Process Message
+                                │
+                           Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | 80 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | SMS/MMS |
-| **Channels** | sms |
+## Telnyx Products Used
+
+- **SMS/MMS** — send and receive messages with delivery receipts
+
+## API Endpoints
+
+- **Send Message**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
+
+## Webhook Events
+
+Telnyx delivers inbound messages and status updates via webhooks to your server.
+
+This app handles these webhook events ([Messaging docs](https://developers.telnyx.com/docs/api/v2/messaging)):
+- `message.received` — Inbound SMS/MMS received
 
 ## Prerequisites
 
@@ -21,18 +34,9 @@ A production-ready **whatsapp-sms bridge** built with Python, Flask, and SMS/MMS
 - [API key](https://portal.telnyx.com/api-keys)
 - [Phone number](https://portal.telnyx.com/numbers/my-numbers) with messaging enabled
 - [Messaging Profile](https://portal.telnyx.com/messaging/profiles) with webhook URL
-- [ngrok](https://ngrok.com) for local webhook testing
+- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
 
-## Telnyx APIs Used
-
-- **Send Message**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
-
-## Webhook Events Handled
-
-This app handles these webhook events ([Messaging docs](https://developers.telnyx.com/docs/api/v2/messaging)):
-- `message.received` — Inbound SMS/MMS received
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -41,33 +45,46 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (80 lines). Here's how it's structured:
+Everything lives in `app.py` (80 lines). Here's what each piece does.
 
-### Endpoints
+### Starting the Workflow
+
+**`create_bridge()`** — Kicks off the main workflow. Validates the request, creates the record, and initiates the Telnyx API calls.
+
+```python
+data = request.get_json()
+    sms_user = data.get("sms_number")
+    whatsapp_user = data.get("whatsapp_number")
+    bridges[sms_user] = {"whatsapp": whatsapp_user, "direction": "sms_to_whatsapp"}
+    bridges[whatsapp_user] = {"sms": sms_user, "direction": "whatsapp_to_sms"}
+    return jsonify({"status": "bridged", "sms": sms_user, "whatsapp": whatsapp_user}), 200
+@app.route("/webhooks/messaging", methods=["POST"])
+```
+
+### Helper Functions
+
+- **`send_sms()`** — Sends an SMS via the Telnyx Messaging API. Wraps the `POST /v2/messages` call with error handling.
+
+### Business Logic
+
+- **`send_whatsapp()`** — Makes an API call and processes the response.
+- **`handle_message()`** — Handles the handle message logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/bridge` | Bridge |
+| `POST` | `/bridge` | Create Bridge |
 | `POST` | `/webhooks/messaging` | Telnyx webhook handler |
-| `GET` | `/bridges` | Bridges |
-| `GET` | `/messages` | Messages |
+| `GET` | `/bridges` | List Bridges |
+| `GET` | `/messages` | List Messages |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`send_sms()`** — send sms
-- **`send_whatsapp()`** — send whatsapp
-- **`create_bridge()`** — create bridge
-- **`handle_message()`** — handle message
-- **`list_bridges()`** — list bridges
-- **`list_messages()`** — list messages
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -75,60 +92,66 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-Expose your local server for Telnyx webhooks:
+In a separate terminal, expose your server for webhooks:
 
 ```bash
 ngrok http 5000
 ```
 
-Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
+Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 
 - **Messaging Profile** → Inbound Webhook → `https://<id>.ngrok.io/webhooks/sms`
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/bridge \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999"
+  }'
 ```
 
-Or send an SMS to your Telnyx number to trigger the messaging workflow.
+Or text your Telnyx number to trigger the SMS workflow.
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/bridges | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t whatsapp-sms-bridge-python .
 docker run --env-file .env -p 5000:5000 whatsapp-sms-bridge-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [Messaging Guide](https://developers.telnyx.com/docs/messaging)
+- [Messaging quickstart](https://developers.telnyx.com/docs/messaging)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

@@ -1,32 +1,36 @@
-# WireGuard Private Voice Network
+# Build a WireGuard Private Voice Network
 
-> WireGuard Private Voice Network — create WireGuard mesh network for private SIP trunking with encrypted voice traffic.
+WireGuard Private Voice Network — create WireGuard mesh network for private SIP trunking with encrypted voice traffic.
 
-## What You'll Build
+## How It Works
 
-A production-ready **wireguard private voice network** built with Python, Flask, and Migration, Networking, Number Porting.
+```
+API Request ──► Your App ──► Telnyx API
+                   │
+              Process Result
+                   │
+              Return Response
+```
 
-| | |
-|---|---|
-| **Lines of code** | 95 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | Migration, Networking, Number Porting |
+## Telnyx Products Used
+
+- **Migration**
+- **Networking**
+- **Number Porting** — phone number search, purchase, and configuration
+
+## API Endpoints
+
+- **Create WireGuard Interface**: `POST /v2/wireguard_interfaces` — [API reference](https://developers.telnyx.com/api/networking/create-wireguard-interface)
+- **List WireGuard Interfaces**: `GET /v2/wireguard_interfaces` — [API reference](https://developers.telnyx.com/api/networking/list-wireguard-interfaces)
+- **Create Call**: `POST /v2/calls` — [API reference](https://developers.telnyx.com/api/call-control/create-call)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **Create WireGuard Interface**: `POST /v2/wireguard_interfaces` — [API reference](https://developers.telnyx.com/api/networking/create-wireguard-interface)
-- **List WireGuard Interfaces**: `GET /v2/wireguard_interfaces` — [API reference](https://developers.telnyx.com/api/networking/list-wireguard-interfaces)
-- **Create Call**: `POST /v2/calls` — [API reference](https://developers.telnyx.com/api/call-control/create-call)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -35,35 +39,59 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (95 lines). Here's how it's structured:
+Everything lives in `app.py` (95 lines). Here's what each piece does.
 
-### Endpoints
+### Starting the Workflow
+
+**`create_network()`** — Kicks off the main workflow. Validates the request, creates the record, and initiates the Telnyx API calls.
+
+```python
+data = request.get_json()
+    try:
+        resp = requests.post(f"{API}/networks", headers=headers,
+            json={"name": data.get("name", f"voice-net-{int(time.time())}")}, timeout=15)
+        result = resp.json()
+        net_id = result.get("data", {}).get("id")
+        if net_id:
+            networks[net_id] = result.get("data", {})
+```
+
+**`create_interface()`** — Kicks off the main workflow. Validates the request, creates the record, and initiates the Telnyx API calls.
+
+```python
+data = request.get_json()
+    try:
+        resp = requests.post(f"{API}/wireguard_interfaces", headers=headers,
+            json={"network_id": data.get("network_id"),
+                "region_code": data.get("region", "ashburn-va")}, timeout=15)
+        result = resp.json()
+        iface = result.get("data", {})
+        if iface.get("id"):
+```
+
+### Business Logic
+
+- **`list_networks()`** — Makes an API call and processes the response.
+- **`get_config()`** — Makes an API call and processes the response.
+- **`topology()`** — Handles the topology logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/networks` | Networks |
-| `GET` | `/networks` | Networks |
-| `POST` | `/interfaces` | Interfaces |
-| `POST` | `/peers` | Peers |
-| `GET` | `/interfaces/<iface_id>/config` | Config |
+| `POST` | `/networks` | Create Network |
+| `POST` | `/networks` | List Networks |
+| `POST` | `/interfaces` | Create Interface |
+| `POST` | `/peers` | Create Peer |
+| `GET` | `/interfaces/<iface_id>/config` | Get Config |
 | `GET` | `/topology` | Topology |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`create_network()`** — create network
-- **`list_networks()`** — list networks
-- **`create_interface()`** — create interface
-- **`create_peer()`** — create peer
-- **`get_config()`** — get config
-- **`topology()`** — topology
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -71,47 +99,53 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/networks \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999"
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/interfaces/<iface_id>/config | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t wireguard-private-voice-network-python .
 docker run --env-file .env -p 5000:5000 wireguard-private-voice-network-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

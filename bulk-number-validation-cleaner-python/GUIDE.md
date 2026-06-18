@@ -1,31 +1,33 @@
-# Bulk Number Validation & Cleaner
+# Build a Bulk Number Validation & Cleaner
 
-> Bulk Number Validation & Cleaner — validate and clean phone number lists via Telnyx Number Lookup API.
+Bulk Number Validation & Cleaner — validate and clean phone number lists via Telnyx Number Lookup API.
 
-## What You'll Build
+## How It Works
 
-A production-ready **bulk number validation & cleaner** built with Python, Flask, and Number Lookup.
+```
+API Request ──► Your App ──► Telnyx API
+                   │
+              Process Result
+                   │
+              Return Response
+```
 
-| | |
-|---|---|
-| **Lines of code** | 73 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | Number Lookup |
+## Telnyx Products Used
+
+- **Number Lookup** — phone number search, purchase, and configuration
+
+## API Endpoints
+
+- **Number Lookup**: `GET /v2/number_lookup/{phone_number}` — [API reference](https://developers.telnyx.com/api/number-lookup/lookup-number)
+- **List Numbers**: `GET /v2/phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-phone-numbers)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **Number Lookup**: `GET /v2/number_lookup/{phone_number}` — [API reference](https://developers.telnyx.com/api/number-lookup/lookup-number)
-- **List Numbers**: `GET /v2/phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-phone-numbers)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -34,29 +36,28 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (73 lines). Here's how it's structured:
+Everything lives in `app.py` (73 lines). Here's what each piece does.
 
-### Endpoints
+### Business Logic
+
+- **`validate_numbers()`** — Makes an API call and processes the response.
+- **`validate_single()`** — Makes an API call and processes the response.
+- **`list_jobs()`** — Handles the list jobs logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/validate` | Validate |
-| `GET` | `/validate/single/<number>` | <Number> |
-| `GET` | `/jobs` | Jobs |
+| `POST` | `/validate` | Validate Numbers |
+| `GET` | `/validate/single/<number>` | Validate Single |
+| `GET` | `/jobs` | List Jobs |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`validate_numbers()`** — validate numbers
-- **`validate_single()`** — validate single
-- **`list_jobs()`** — list jobs
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -64,47 +65,55 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/validate \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "recipients": ["+12125559999"],
+    "message": "Special offer: 20% off this week",
+    "campaign_name": "summer-promo"
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/validate/single/<number> | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t bulk-number-validation-cleaner-python .
 docker run --env-file .env -p 5000:5000 bulk-number-validation-cleaner-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

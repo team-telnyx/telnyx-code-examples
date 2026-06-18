@@ -1,30 +1,35 @@
-# Production-ready Flask application for device location
+# Build a Production-ready Flask application for device location
 
-> Production-ready Flask application for device location tracking via Telnyx IoT API.
+Production-ready Flask application for device location tracking via Telnyx IoT API.
 
-## What You'll Build
+## How It Works
 
-A production-ready **production-ready flask application for device location** built with Python, Flask, and IoT/SIM, Migration, Number Porting, Verify.
+```
+API Request ──► Your App ──► Telnyx API
+                   │
+              Process Result
+                   │
+              Return Response
+```
 
-| | |
-|---|---|
-| **Lines of code** | 202 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | IoT/SIM, Migration, Number Porting, Verify |
+## Telnyx Products Used
+
+- **IoT/SIM** — cellular connectivity and device management
+- **Migration**
+- **Number Porting** — phone number search, purchase, and configuration
+- **Verify** — phone verification with OTP delivery across channels
+
+## API Endpoints
+
+- **SIM Cards**: `GET /v2/sim_cards` — [API reference](https://developers.telnyx.com/api/sim-cards/list-sim-cards)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **SIM Cards**: `GET /v2/sim_cards` — [API reference](https://developers.telnyx.com/api/sim-cards/list-sim-cards)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -33,32 +38,28 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (202 lines). Here's how it's structured:
+Everything lives in `app.py` (202 lines). Here's what each piece does.
 
-### Endpoints
+### Business Logic
+
+- **`list_devices()`** — Handles the list devices logic.
+- **`get_device_location()`** — Handles the get device location logic.
+- **`get_location_only()`** — Handles the get location only logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `GET` | `/devices` | Devices |
-| `GET` | `/devices/<sim_card_id>` | <Sim Card Id> |
-| `GET` | `/devices/<sim_card_id>/location` | Location |
+| `GET` | `/devices` | List Devices |
+| `GET` | `/devices/<sim_card_id>` | Get Device Location |
+| `GET` | `/devices/<sim_card_id>/location` | Get Location Only |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`get_sim_card_details()`** — get sim card details
-- **`get_sim_network_usage()`** — get sim network usage
-- **`list_all_sim_cards()`** — list all sim cards
-- **`list_devices()`** — list devices
-- **`get_device_location()`** — get device location
-- **`get_location_only()`** — get location only
-- **`health_check()`** — health check
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -66,47 +67,43 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Check results:**
+
 ```bash
-# Trigger the main workflow
-curl -X GET http://localhost:5000/devices \
-  -H "Content-Type: application/json" \
-  -d '{}'
+curl http://localhost:5000/devices | python3 -m json.tool
 ```
 
-## Production Deployment
+## Going to Production
 
-### Docker
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
 
 ```bash
+# Docker
 docker build -t track-iot-device-location-python .
 docker run --env-file .env -p 5000:5000 track-iot-device-location-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

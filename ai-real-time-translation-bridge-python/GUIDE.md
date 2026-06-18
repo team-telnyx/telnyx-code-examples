@@ -1,32 +1,36 @@
-# Ai Real Time Translation Bridge
+# Build an Ai Real Time Translation Bridge
 
-> 
 
-## What You'll Build
 
-A production-ready **ai real time translation bridge** built with Python, Flask, and Telnyx APIs.
+## How It Works
 
-| | |
-|---|---|
-| **Lines of code** | 100 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** |  |
+```
+Inbound/Outbound Call
+        │
+        ▼
+  Call Answered ──► TTS Greeting
+        │
+        ▼
+  Gather Input ──► AI Inference
+  (speech/DTMF)    (process + decide)
+        │
+        ▼
+  Take Action ──► SMS Notification
+  (speak/transfer)
+        │
+        ▼
+  Call Ends ──► Log & Notify
+```
 
-## Prerequisites
-
-- Python 3.8+
-- [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
-- [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
-
-## Telnyx APIs Used
+## API Endpoints
 
 - **Call Control: Hangup**: `POST /v2/calls/{id}/actions/hangup` — [API reference](https://developers.telnyx.com/api/call-control/hangup)
 - **Create Call**: `POST /v2/calls` — [API reference](https://developers.telnyx.com/api/call-control/create-call)
 - **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
 
-## Webhook Events Handled
+## Webhook Events
+
+Your app receives webhook events from Telnyx as things happen.
 
 This app handles these webhook events ([Call Control docs](https://developers.telnyx.com/docs/api/v2/call-control)):
 - `call.answered` — Call connected — app begins interaction
@@ -34,7 +38,13 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 - `call.hangup` — Call ended — app cleans up session, triggers post-call processing
 - `call.speak.ended` — TTS playback finished — app transitions to next action (gather, transfer, etc.)
 
-## Step 1: Clone & Configure
+## Prerequisites
+
+- Python 3.8+
+- [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
+- [API key](https://portal.telnyx.com/api-keys)
+
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -43,30 +53,48 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (100 lines). Here's how it's structured:
+Everything lives in `app.py` (100 lines). Here's what each piece does.
 
-### Endpoints
+### Starting the Workflow
+
+**`create_bridge()`** — Kicks off the main workflow. Validates the request, creates the record, and initiates the Telnyx API calls.
+
+```python
+data = request.get_json()
+    bid = f"BR-{int(time.time())}"
+    bridges[bid] = {"caller_a": data.get("number_a"), "lang_a": data.get("lang_a", "English"),
+        "caller_b": data.get("number_b"), "lang_b": data.get("lang_b", "Spanish"), "state": "initiating", "ccids": {}}
+    try:
+        resp = requests.post("https://api.telnyx.com/v2/calls", headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
+            json={"to": data["number_a"], "from": BRIDGE_NUMBER, "connection_id": CONNECTION_ID,
+                "client_state": json.dumps({"bid": bid, "side": "a"}).encode().hex()}, timeout=10)
+```
+
+### Handling Webhooks
+
+Webhook handlers process events from Telnyx:
+
+**`handle_voice()`** — The voice webhook handler — the core state machine. Each Telnyx event triggers the next action in the call flow.
+
+### Business Logic
+
+- **`translate()`** — Makes an API call and processes the response.
+- **`list_bridges()`** — Manages the conference bridge — adding participants, muting, and tracking active speakers.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/bridge` | Bridge |
+| `POST` | `/bridge` | Create Bridge |
 | `POST` | `/webhooks/voice` | Telnyx webhook handler |
-| `GET` | `/bridges` | Bridges |
+| `GET` | `/bridges` | List Bridges |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`translate()`** — translate
-- **`create_bridge()`** — create bridge
-- **`handle_voice()`** — handle voice
-- **`list_bridges()`** — list bridges
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -74,56 +102,53 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-Expose your local server for Telnyx webhooks:
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-ngrok http 5000
-```
-
-Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
-
-
-## Step 4: Test
-
-```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/bridge \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999"
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/bridges | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t ai-real-time-translation-bridge-python .
 docker run --env-file .env -p 5000:5000 ai-real-time-translation-bridge-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

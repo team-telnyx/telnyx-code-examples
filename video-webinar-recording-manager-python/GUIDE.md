@@ -1,30 +1,35 @@
-# Video Webinar Recording Manager
+# Build a Video Webinar Recording Manager
 
-> Video Webinar Recording Manager — manage video room webinars with automatic recording, transcription, and clip extraction.
+Video Webinar Recording Manager — manage video room webinars with automatic recording, transcription, and clip extraction.
 
-## What You'll Build
+## How It Works
 
-A production-ready **video webinar recording manager** built with Python, Flask, and AI Inference.
+```
+Inbound SMS
+      │
+      ▼
+Parse Message ──► AI Inference
+                  (understand intent)
+      │
+      ▼
+Take Action ──► Reply SMS
+```
 
-| | |
-|---|---|
-| **Lines of code** | 75 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | AI Inference |
+## Telnyx Products Used
+
+- **AI Inference** — LLM inference with OpenAI-compatible API, runs on Telnyx infrastructure
+
+## API Endpoints
+
+- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -33,33 +38,45 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (75 lines). Here's how it's structured:
+Everything lives in `app.py` (75 lines). Here's what each piece does.
 
-### Endpoints
+### Starting the Workflow
+
+**`create_webinar()`** — Kicks off the main workflow. Validates the request, creates the record, and initiates the Telnyx API calls.
+
+```python
+data = request.get_json()
+    try:
+        resp = requests.post(f"{API}/rooms", headers=headers,
+            json={"unique_name": data.get("title", f"webinar-{int(time.time())}"),
+                "max_participants": data.get("max_participants", 100),
+                "enable_recording": True}, timeout=15)
+        result = resp.json()
+        room_id = result.get("data", {}).get("id")
+```
+
+### Business Logic
+
+- **`get_recordings()`** — Makes an API call and processes the response.
+- **`transcribe_recording()`** — Makes an API call and processes the response.
+- **`list_webinars()`** — Handles the list webinars logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/webinars` | Webinars |
-| `GET` | `/webinars/<room_id>/recordings` | Recordings |
-| `POST` | `/recordings/<recording_id>/transcribe` | Transcribe |
-| `GET` | `/webinars` | Webinars |
-| `GET` | `/recordings` | Recordings |
+| `POST` | `/webinars` | Create Webinar |
+| `GET` | `/webinars/<room_id>/recordings` | Get Recordings |
+| `POST` | `/recordings/<recording_id>/transcribe` | Transcribe Recording |
+| `POST` | `/webinars` | List Webinars |
+| `GET` | `/recordings` | List Processed |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`create_webinar()`** — create webinar
-- **`get_recordings()`** — get recordings
-- **`transcribe_recording()`** — transcribe recording
-- **`list_webinars()`** — list webinars
-- **`list_processed()`** — list processed
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -67,48 +84,55 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/webinars \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "phone": "+12125559999"
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/webinars/<room_id>/recordings | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Prompt engineering** — tune the AI prompts for your specific domain and tone
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t video-webinar-recording-manager-python .
 docker run --env-file .env -p 5000:5000 video-webinar-recording-manager-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
-- [AI Inference Guide](https://developers.telnyx.com/docs/inference)
+- [AI Inference docs](https://developers.telnyx.com/docs/inference)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)

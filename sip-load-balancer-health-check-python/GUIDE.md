@@ -1,31 +1,34 @@
-# SIP Load Balancer Health Check
+# Build a SIP Load Balancer Health Check
 
-> SIP Load Balancer Health Check — monitor SIP trunk health across multiple endpoints, auto-failover to healthy trunks, track uptime metrics.
+SIP Load Balancer Health Check — monitor SIP trunk health across multiple endpoints, auto-failover to healthy trunks, track uptime metrics.
 
-## What You'll Build
+## How It Works
 
-A production-ready **sip load balancer health check** built with Python, Flask, and Migration, Number Porting.
+```
+API Request ──► Your App ──► Telnyx API
+                   │
+              Process Result
+                   │
+              Return Response
+```
 
-| | |
-|---|---|
-| **Lines of code** | 73 |
-| **Time to build** | ~15 minutes |
-| **Difficulty** | Intermediate |
-| **Products** | Migration, Number Porting |
+## Telnyx Products Used
+
+- **Migration**
+- **Number Porting** — phone number search, purchase, and configuration
+
+## API Endpoints
+
+- **List SIP Connections**: `GET /v2/sip_connections` — [API reference](https://developers.telnyx.com/api/sip-connections/list-sip-connections)
+- **Send Alert SMS**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
 - [API key](https://portal.telnyx.com/api-keys)
-- [ngrok](https://ngrok.com) for local webhook testing
 
-## Telnyx APIs Used
-
-- **List SIP Connections**: `GET /v2/sip_connections` — [API reference](https://developers.telnyx.com/api/sip-connections/list-sip-connections)
-- **Send Alert SMS**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
-
-## Step 1: Clone & Configure
+## Step 1: Set Up the Project
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
@@ -34,33 +37,30 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Open `.env` and fill in your credentials. Every variable has a comment explaining where to find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
 
-## Step 2: Code Walkthrough
+## Step 2: Understand the Code
 
-The entire app is in `app.py` (73 lines). Here's how it's structured:
+Everything lives in `app.py` (73 lines). Here's what each piece does.
 
-### Endpoints
+### Business Logic
+
+- **`health_check()`** — Health check endpoint for monitoring and load balancer probes.
+- **`get_route()`** — Handles the get route logic.
+- **`list_endpoints()`** — Handles the list endpoints logic.
+
+### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/check` | Check |
-| `GET` | `/route` | Route |
-| `GET` | `/endpoints` | Endpoints |
-| `POST` | `/endpoints` | Endpoints |
-| `GET` | `/log` | Log |
+| `POST` | `/check` | Health Check |
+| `GET` | `/route` | Get Route |
+| `GET` | `/endpoints` | List Endpoints |
+| `GET` | `/endpoints` | Add Endpoint |
+| `GET` | `/log` | Get Log |
 | `GET` | `/health` | Health check |
 
-### Key Functions
-
-- **`health_check()`** — health check
-- **`get_route()`** — get route
-- **`list_endpoints()`** — list endpoints
-- **`add_endpoint()`** — add endpoint
-- **`get_log()`** — get log
-- **`health()`** — health
-
-## Step 3: Run
+## Step 3: Run It
 
 ```bash
 python app.py
@@ -68,47 +68,54 @@ python app.py
 
 Server starts on `http://localhost:5000`.
 
-## Step 4: Test
+## Step 4: Test It
+
+**Health check:**
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 ```
 
+**Trigger the workflow:**
+
 ```bash
-# Trigger the main workflow
 curl -X POST http://localhost:5000/check \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{
+    "name": "Production SIP Trunk",
+    "domain": "sip.example.com"
+  }'
 ```
 
-## Production Deployment
-
-### Docker
+**Check results:**
 
 ```bash
+curl http://localhost:5000/route | python3 -m json.tool
+```
+
+## Going to Production
+
+This example uses in-memory storage for simplicity. For production:
+
+- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
+- **Authentication** — add API key validation on your endpoints
+- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
+- **Monitoring** — add structured logging and health check alerts
+- **Rate limiting** — protect your endpoints from abuse
+
+## Deploy
+
+```bash
+# Docker
 docker build -t sip-load-balancer-health-check-python .
 docker run --env-file .env -p 5000:5000 sip-load-balancer-health-check-python
+
+# Or Makefile
+make setup && make run
 ```
-
-### Makefile
-
-```bash
-make setup    # Install dependencies
-make run      # Start the server
-make docker   # Build and run in Docker
-```
-
-## Customize & Extend
-
-- Replace in-memory storage with PostgreSQL or Redis for production
-- Add authentication to your API endpoints
-- Set up monitoring and alerting
-- Deploy behind a reverse proxy (nginx, Caddy) with TLS
 
 ## Resources
 
-- [Full source code and README](./README.md)
+- [Source code and reference](./README.md)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
-- [Community & Support](https://support.telnyx.com)
