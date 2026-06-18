@@ -4,11 +4,19 @@ title: "Porting LOA Automation"
 description: "Porting LOA Automation — automate Letter of Authorization generation and porting order submission."
 language: python
 framework: flask
+telnyx_products: [Migration, Missions, Number Porting]
 ---
 
 # Porting LOA Automation
 
 Porting LOA Automation — automate Letter of Authorization generation and porting order submission.
+
+
+## Telnyx API Endpoints Used
+
+- **Phone Numbers**: `GET /v2/phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-phone-numbers)
+- **Porting Orders**: `POST /v2/porting_orders` — [API reference](https://developers.telnyx.com/api/porting/create-porting-order)
+
 
 ## Architecture
 

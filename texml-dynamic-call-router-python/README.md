@@ -4,11 +4,18 @@ title: "TeXML Dynamic Call Router"
 description: "TeXML Dynamic Call Router — time-of-day and caller-based routing with TeXML responses."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Voice]
 ---
 
 # TeXML Dynamic Call Router
 
 TeXML Dynamic Call Router — time-of-day and caller-based routing with TeXML responses.
+
+
+## Telnyx API Endpoints Used
+
+- **TeXML**: `TeXML Application` — [API reference](https://developers.telnyx.com/docs/voice/texml)
+
 
 ## Architecture
 

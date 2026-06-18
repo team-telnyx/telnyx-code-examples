@@ -1,14 +1,21 @@
 ---
 name: call-whisper-monitoring
 title: "Production-ready Flask application for Whisper-based call prompts via Telnyx."
-description: "Production-ready Flask application for Whisper-based call prompts via Telnyx."
+description: "Voice application. Built with Telnyx AI Assistants, Migration, Number Porting, SMS/MMS."
 language: python
 framework: flask
+telnyx_products: [AI Assistants, Migration, Number Porting, SMS/MMS, Voice]
 ---
 
 # Production-ready Flask application for Whisper-based call prompts via Telnyx.
 
 Production-ready Flask application for Whisper-based call prompts via Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control: Whisper**: `POST /v2/calls/{id}/actions/bridge` — [API reference](https://developers.telnyx.com/api/call-control/bridge-call)
+
 
 ## Telnyx Webhook Events
 

@@ -4,11 +4,18 @@ title: "Cloud Storage Call Archive"
 description: "Cloud Storage Call Archive — archive call recordings to Telnyx Cloud Storage with searchable metadata."
 language: python
 framework: flask
+telnyx_products: [Cloud Storage, Migration, Number Porting, Voice]
 ---
 
 # Cloud Storage Call Archive
 
 Cloud Storage Call Archive — archive call recordings to Telnyx Cloud Storage with searchable metadata.
+
+
+## Telnyx API Endpoints Used
+
+- **Cloud Storage (S3)**: `S3-compatible API` — [API reference](https://developers.telnyx.com/api/cloud-storage)
+
 
 ## Architecture
 

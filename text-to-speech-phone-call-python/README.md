@@ -1,14 +1,21 @@
 ---
 name: text-to-speech-phone-call
 title: "Production-ready Flask application for text-to-speech calls via Telnyx."
-description: "Production-ready Flask application for text-to-speech calls via Telnyx."
+description: "Voice application. Built with Telnyx Migration, Number Porting, Voice."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Voice]
 ---
 
 # Production-ready Flask application for text-to-speech calls via Telnyx.
 
 Production-ready Flask application for text-to-speech calls via Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control: Speak**: `POST /v2/calls/{id}/actions/speak` -- [API reference](https://developers.telnyx.com/api/call-control/speak)
+
 
 ## Telnyx Webhook Events
 

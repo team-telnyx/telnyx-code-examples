@@ -76,6 +76,7 @@ Copy `.env.example` to `.env` and fill in:
 | `JIRA_URL` | `string` | `https://co.atlassian.net` | no | Jira instance URL | — |
 | `JIRA_EMAIL` | `string` | `you@company.com` | no | Jira account email | — |
 | `JIRA_TOKEN` | `string` | `ATATT...` | no | Jira API token | [→ link](https://id.atlassian.com/manage/api-tokens) |
+| `JIRA_PROJECT` | `string` | `SUP` | no | Jira project key for ticket creation | [→ link](https://id.atlassian.com/manage/api-tokens) |
 | `JIRA_PROJECT` | `string` | `SUP` | no | Jira project key | — |
 | `MANAGER_SLACK_WEBHOOK` | `string` | `https://hooks.slack.com/...` | no | Slack webhook for manager alerts | [→ link](https://api.slack.com/messaging/webhooks) |
 | `HUBSPOT_API_KEY` | `string` | `pat-...` | no | HubSpot private app token | — |

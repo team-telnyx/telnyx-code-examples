@@ -4,11 +4,18 @@ title: "Edge Compute Webhook Proxy"
 description: "Local dev server for testing webhook routing logic before deploying to Telnyx Edge. Includes the Edge function source and deployment instructions."
 language: python
 framework: flask
+telnyx_products: [Edge Compute, Migration, Number Porting, Voice]
 ---
 
 # Edge Compute Webhook Proxy
 
 Local dev server for testing webhook routing logic before deploying to Telnyx Edge. Includes the Edge function source and deployment instructions.
+
+
+## Telnyx API Endpoints Used
+
+- **Edge Compute**: `telnyx-edge CLI` — [API reference](https://developers.telnyx.com/docs/edge)
+
 
 ## Telnyx Webhook Events
 

@@ -4,12 +4,19 @@ title: "Multi-Number Identity Router"
 description: "Multi-Number Identity Router — route calls based on which number was dialed. Each number maps to a different business identity, greeting, and routing destination."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Voice]
 channel: [voice]
 ---
 
 # Multi-Number Identity Router
 
 Multi-Number Identity Router — route calls based on which number was dialed. Each number maps to a different business identity, greeting, and routing destination.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control: Speak**: `POST /v2/calls/{id}/actions/speak` -- [API reference](https://developers.telnyx.com/api/call-control/speak)
+
 
 ## Telnyx Webhook Events
 

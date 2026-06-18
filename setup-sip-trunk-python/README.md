@@ -1,14 +1,21 @@
 ---
 name: setup-sip-trunk
 title: "Production-ready Flask endpoint for setting up SIP trunking via Telnyx."
-description: "Production-ready Flask endpoint for setting up SIP trunking via Telnyx."
+description: "Application. Built with Telnyx Migration, Number Porting."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting]
 ---
 
 # Production-ready Flask endpoint for setting up SIP trunking via Telnyx.
 
 Production-ready Flask endpoint for setting up SIP trunking via Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **SIP Connections**: `GET /v2/sip_connections` — [API reference](https://developers.telnyx.com/api/sip-trunking/list-sip-connections)
+
 
 ## Architecture
 

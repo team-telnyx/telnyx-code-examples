@@ -1,14 +1,21 @@
 ---
 name: transfer-live-phone-calls
 title: "Production-ready Flask application for call transfer via Telnyx Voice API."
-description: "Production-ready Flask application for call transfer via Telnyx Voice API."
+description: "Voice application. Built with Telnyx Migration, Number Porting, Voice."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Voice]
 ---
 
 # Production-ready Flask application for call transfer via Telnyx Voice API.
 
 Production-ready Flask application for call transfer via Telnyx Voice API.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control: Transfer**: `POST /v2/calls/{id}/actions/transfer` -- [API reference](https://developers.telnyx.com/api/call-control/transfer-call)
+
 
 ## Telnyx Webhook Events
 

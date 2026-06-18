@@ -1,14 +1,21 @@
 ---
 name: make-outbound-phone-call
 title: "Production-ready Flask endpoint for initiating outbound calls via Telnyx."
-description: "Production-ready Flask endpoint for initiating outbound calls via Telnyx."
+description: "Application. Built with Telnyx Migration, Number Porting, Voice."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Voice]
 ---
 
 # Production-ready Flask endpoint for initiating outbound calls via Telnyx.
 
 Production-ready Flask endpoint for initiating outbound calls via Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control: Dial**: `POST /v2/calls` — [API reference](https://developers.telnyx.com/api/call-control/dial)
+
 
 ## Architecture
 

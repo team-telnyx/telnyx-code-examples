@@ -1,14 +1,21 @@
 ---
 name: build-ivr-phone-menu
 title: "Production-ready IVR system using Telnyx Voice API and Flask."
-description: "Production-ready IVR system using Telnyx Voice API and Flask."
+description: "Voice application. Built with Telnyx Migration, Number Porting, Voice."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Voice]
 ---
 
 # Production-ready IVR system using Telnyx Voice API and Flask.
 
 Production-ready IVR system using Telnyx Voice API and Flask.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control**: `POST /v2/calls/{id}/actions/gather_using_speak` — [API reference](https://developers.telnyx.com/api/call-control/gather)
+
 
 ## Telnyx Webhook Events
 

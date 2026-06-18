@@ -4,12 +4,20 @@ title: "Hosted Messaging Campaign Manager"
 description: "Hosted Messaging Campaign Manager — manage hosted messaging campaigns with subscriber opt-in/out tracking and delivery analytics."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, SMS/MMS]
 channel: [sms]
 ---
 
 # Hosted Messaging Campaign Manager
 
 Hosted Messaging Campaign Manager — manage hosted messaging campaigns with subscriber opt-in/out tracking and delivery analytics.
+
+
+## Telnyx API Endpoints Used
+
+- **Messaging Profiles**: `GET /v2/messaging_profiles` — [API reference](https://developers.telnyx.com/api/messaging/list-messaging-profiles)
+- **Hosted Messaging**: `POST /v2/messages (hosted)` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
+
 
 ## Telnyx Webhook Events
 

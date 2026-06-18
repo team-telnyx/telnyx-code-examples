@@ -4,12 +4,19 @@ title: "Smart IVR A/B Tester"
 description: "Smart IVR A/B Tester — run two IVR flows simultaneously and track which converts better."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Voice]
 channel: [voice]
 ---
 
 # Smart IVR A/B Tester
 
 Smart IVR A/B Tester — run two IVR flows simultaneously and track which converts better.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control**: `POST /v2/calls/{id}/actions/gather_using_speak` — [API reference](https://developers.telnyx.com/api/call-control/gather)
+
 
 ## Telnyx Webhook Events
 

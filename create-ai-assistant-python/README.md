@@ -1,14 +1,21 @@
 ---
 name: create-ai-assistant
 title: "Production-ready Flask endpoint for creating AI assistants via Telnyx."
-description: "Production-ready Flask endpoint for creating AI assistants via Telnyx."
+description: "Application. Built with Telnyx AI Assistants, Migration, Number Porting, SMS/MMS."
 language: python
 framework: flask
+telnyx_products: [AI Assistants, Migration, Number Porting, SMS/MMS]
 ---
 
 # Production-ready Flask endpoint for creating AI assistants via Telnyx.
 
 Production-ready Flask endpoint for creating AI assistants via Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **AI Assistants: Create**: `POST /v2/ai/assistants` — [API reference](https://developers.telnyx.com/api/ai-assistants/create-assistant)
+
 
 ## Architecture
 

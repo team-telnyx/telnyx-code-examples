@@ -4,11 +4,18 @@ title: "Global IP Failover Monitor"
 description: "Global IP Failover Monitor — monitor Global IP endpoints across regions, auto-failover between healthy endpoints."
 language: python
 framework: flask
+telnyx_products: [Migration, Networking, Number Porting]
 ---
 
 # Global IP Failover Monitor
 
 Global IP Failover Monitor — monitor Global IP endpoints across regions, auto-failover between healthy endpoints.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control: Whisper**: `POST /v2/calls/{id}/actions/bridge` — [API reference](https://developers.telnyx.com/api/call-control/bridge-call)
+
 
 ## Architecture
 

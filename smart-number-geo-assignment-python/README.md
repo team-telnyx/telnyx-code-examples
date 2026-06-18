@@ -4,11 +4,18 @@ title: "Smart Number Geo-Assignment"
 description: "Smart Number Geo-Assignment — automatically purchase and assign local numbers based on caller geography to maximize answer rates."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Numbers]
 ---
 
 # Smart Number Geo-Assignment
 
 Smart Number Geo-Assignment — automatically purchase and assign local numbers based on caller geography to maximize answer rates.
+
+
+## Telnyx API Endpoints Used
+
+- **Phone Numbers**: `GET /v2/available_phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-available-phone-numbers)
+
 
 ## Architecture
 

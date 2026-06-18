@@ -4,12 +4,19 @@ title: "Call Queue with Hold Music"
 description: "Call Queue with Hold Music — queue callers with position announcements and hold music, route to agents."
 language: python
 framework: flask
+telnyx_products: [Cloud Storage, Migration, Number Porting, Voice]
 channel: [voice]
 ---
 
 # Call Queue with Hold Music
 
 Call Queue with Hold Music — queue callers with position announcements and hold music, route to agents.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control: Queue**: `POST /v2/calls/{id}/actions/enqueue` — [API reference](https://developers.telnyx.com/api/call-control/enqueue-call)
+
 
 ## Telnyx Webhook Events
 

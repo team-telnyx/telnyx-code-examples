@@ -4,11 +4,18 @@ title: "Cloud Storage Media CDN"
 description: "Cloud Storage Media CDN — use Telnyx Cloud Storage as a CDN for IVR prompts, hold music, and voice assets."
 language: python
 framework: flask
+telnyx_products: [Cloud Storage, Migration, Number Porting, Voice]
 ---
 
 # Cloud Storage Media CDN
 
 Cloud Storage Media CDN — use Telnyx Cloud Storage as a CDN for IVR prompts, hold music, and voice assets.
+
+
+## Telnyx API Endpoints Used
+
+- **Cloud Storage (S3)**: `S3-compatible API` — [API reference](https://developers.telnyx.com/api/cloud-storage)
+
 
 ## Architecture
 

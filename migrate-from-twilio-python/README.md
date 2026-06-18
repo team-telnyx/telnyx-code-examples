@@ -4,12 +4,21 @@ title: "Migrate from Twilio"
 description: "Migrate from Twilio — complete Twilio-to-Telnyx migration tool: numbers, messaging profiles, voice apps, and webhook configs."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, SMS/MMS, Voice]
 channel: [sms]
 ---
 
 # Migrate from Twilio
 
 Migrate from Twilio — complete Twilio-to-Telnyx migration tool: numbers, messaging profiles, voice apps, and webhook configs.
+
+
+## Telnyx API Endpoints Used
+
+- **Messaging**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api/messaging/send-message)
+- **Messaging Profiles**: `GET /v2/messaging_profiles` — [API reference](https://developers.telnyx.com/api/messaging/list-messaging-profiles)
+- **Phone Numbers**: `GET /v2/phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-phone-numbers)
+
 
 ## Architecture
 

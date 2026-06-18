@@ -4,11 +4,19 @@ title: "Porting Order Tracker Dashboard â submit, track, and"
 description: "Porting Order Tracker Dashboard â submit, track, and manage porting orders with SLA monitoring, timeline visualization, and bulk operations."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting]
 ---
 
 # Porting Order Tracker Dashboard â submit, track, and
 
 Porting Order Tracker Dashboard â submit, track, and manage porting orders with SLA monitoring, timeline visualization, and bulk operations.
+
+
+## Telnyx API Endpoints Used
+
+- **Phone Numbers**: `GET /v2/phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-phone-numbers)
+- **Porting Orders**: `POST /v2/porting_orders` — [API reference](https://developers.telnyx.com/api/porting/create-porting-order)
+
 
 ## Architecture
 

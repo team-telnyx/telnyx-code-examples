@@ -4,11 +4,18 @@ title: "Verify Multi-Channel Auth"
 description: "Verify Multi-Channel Auth — multi-channel verification: SMS first, fallback to voice call, then WhatsApp. Cascading 2FA."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Verify, WhatsApp]
 ---
 
 # Verify Multi-Channel Auth
 
 Verify Multi-Channel Auth — multi-channel verification: SMS first, fallback to voice call, then WhatsApp. Cascading 2FA.
+
+
+## Telnyx API Endpoints Used
+
+- **Verify**: `POST /v2/verifications` -- [API reference](https://developers.telnyx.com/api/verify/create-verification)
+
 
 ## Architecture
 

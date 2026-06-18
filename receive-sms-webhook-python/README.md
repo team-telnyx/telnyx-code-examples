@@ -1,15 +1,22 @@
 ---
 name: receive-sms-webhook
 title: "Production-ready Flask webhook endpoint for receiving inbound SMS via Telnyx."
-description: "Production-ready Flask webhook endpoint for receiving inbound SMS via Telnyx."
+description: "SMS application. Built with Telnyx Migration, Number Porting."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting]
 channel: [sms]
 ---
 
 # Production-ready Flask webhook endpoint for receiving inbound SMS via Telnyx.
 
 Production-ready Flask webhook endpoint for receiving inbound SMS via Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **Messaging**: `POST /v2/messages` -- [API reference](https://developers.telnyx.com/api/messaging/send-message)
+
 
 ## Telnyx Webhook Events
 

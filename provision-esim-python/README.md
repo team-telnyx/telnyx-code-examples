@@ -1,14 +1,22 @@
 ---
 name: provision-esim
 title: "Production-ready Flask application for eSIM provisioning via Telnyx."
-description: "Production-ready Flask application for eSIM provisioning via Telnyx."
+description: "Application. Built with Telnyx IoT/SIM, Migration, Number Porting."
 language: python
 framework: flask
+telnyx_products: [IoT/SIM, Migration, Number Porting]
 ---
 
 # Production-ready Flask application for eSIM provisioning via Telnyx.
 
 Production-ready Flask application for eSIM provisioning via Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **SIM Cards: Activate**: `POST /v2/sim_cards/{id}/actions/enable` — [API reference](https://developers.telnyx.com/api/sim-cards/sim-card-actions)
+- **eSIM Provisioning**: `POST /v2/sim_cards/actions/bulk_set_public_ips` — [API reference](https://developers.telnyx.com/api/sim-cards)
+
 
 ## Architecture
 

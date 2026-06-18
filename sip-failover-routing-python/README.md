@@ -1,14 +1,22 @@
 ---
 name: sip-failover-routing
 title: "Production-ready SIP failover routing system with Flask and Telnyx."
-description: "Production-ready SIP failover routing system with Flask and Telnyx."
+description: "Voice application. Built with Telnyx Migration, Number Porting."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting]
 ---
 
 # Production-ready SIP failover routing system with Flask and Telnyx.
 
 Production-ready SIP failover routing system with Flask and Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **Phone Numbers**: `GET /v2/phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-phone-numbers)
+- **SIP Connections**: `GET /v2/sip_connections` — [API reference](https://developers.telnyx.com/api/sip-trunking/list-sip-connections)
+
 
 ## Architecture
 

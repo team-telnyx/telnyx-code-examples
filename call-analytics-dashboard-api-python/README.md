@@ -1,7 +1,7 @@
 ---
 name: call-analytics-dashboard-api
 title: "Call Analytics Dashboard API — pull CDRs and build usage analytics."
-description: "Call Analytics Dashboard API — pull CDRs and build usage analytics."
+description: "SMS application. Built with Telnyx CDR, Migration, Number Porting, SMS/MMS."
 language: python
 framework: flask
 telnyx_products: [SMS/MMS]

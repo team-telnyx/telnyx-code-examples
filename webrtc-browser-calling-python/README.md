@@ -1,14 +1,21 @@
 ---
 name: webrtc-browser-calling
 title: "Production-ready WebRTC calling application with Telnyx Voice API and FastAPI."
-description: "Production-ready WebRTC calling application with Telnyx Voice API and FastAPI."
+description: "Voice application. Built with Telnyx Migration, Number Porting, Voice, WebRTC."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Voice, WebRTC]
 ---
 
 # Production-ready WebRTC calling application with Telnyx Voice API and FastAPI.
 
 Production-ready WebRTC calling application with Telnyx Voice API and FastAPI.
+
+
+## Telnyx API Endpoints Used
+
+- **WebRTC Token**: `POST /v2/webrtc_tokens` — [API reference](https://developers.telnyx.com/api/webrtc/create-token)
+
 
 ## Telnyx Webhook Events
 

@@ -1,14 +1,21 @@
 ---
 name: route-phone-calls-to-ai-agent
 title: "Production-ready Flask webhook for handling inbound calls via Telnyx Voice API."
-description: "Production-ready Flask webhook for handling inbound calls via Telnyx Voice API."
+description: "Voice application. Built with Telnyx Migration, Number Porting, Voice."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Voice]
 ---
 
 # Production-ready Flask webhook for handling inbound calls via Telnyx Voice API.
 
 Production-ready Flask webhook for handling inbound calls via Telnyx Voice API.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control: Transfer**: `POST /v2/calls/{id}/actions/transfer` -- [API reference](https://developers.telnyx.com/api/call-control/transfer-call)
+
 
 ## Telnyx Webhook Events
 

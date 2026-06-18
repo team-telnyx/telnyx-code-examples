@@ -1,14 +1,21 @@
 ---
 name: chat-with-ai-assistant
 title: "Production-ready Flask endpoint for chatting with Telnyx AI Assistants."
-description: "Production-ready Flask endpoint for chatting with Telnyx AI Assistants."
+description: "Application. Built with Telnyx AI Assistants, Migration, Number Porting, SMS/MMS."
 language: python
 framework: flask
+telnyx_products: [AI Assistants, Migration, Number Porting, SMS/MMS]
 ---
 
 # Production-ready Flask endpoint for chatting with Telnyx AI Assistants.
 
 Production-ready Flask endpoint for chatting with Telnyx AI Assistants.
+
+
+## Telnyx API Endpoints Used
+
+- **AI Assistants: Chat**: `POST /v2/ai/assistants/{id}/chat` — [API reference](https://developers.telnyx.com/api/ai-assistants/chat)
+
 
 ## Architecture
 

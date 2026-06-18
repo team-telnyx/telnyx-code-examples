@@ -4,12 +4,19 @@ title: "Media Stream Live Transcription"
 description: "Media Stream Live Transcription — fork call audio to WebSocket for real-time transcription display."
 language: python
 framework: flask
+telnyx_products: [Media Streaming, Migration, Number Porting, Voice]
 channel: [voice]
 ---
 
 # Media Stream Live Transcription
 
 Media Stream Live Transcription — fork call audio to WebSocket for real-time transcription display.
+
+
+## Telnyx API Endpoints Used
+
+- **Media Streaming**: `WebSocket stream` — [API reference](https://developers.telnyx.com/docs/voice/media-streaming)
+
 
 ## Telnyx Webhook Events
 

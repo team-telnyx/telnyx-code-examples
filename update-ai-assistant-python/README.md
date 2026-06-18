@@ -1,14 +1,21 @@
 ---
 name: update-ai-assistant
 title: "Production-ready FastAPI endpoint for updating AI assistants via Telnyx."
-description: "Production-ready FastAPI endpoint for updating AI assistants via Telnyx."
+description: "Application. Built with Telnyx AI Assistants, Migration, Number Porting."
 language: python
 framework: flask
+telnyx_products: [AI Assistants, Migration, Number Porting]
 ---
 
 # Production-ready FastAPI endpoint for updating AI assistants via Telnyx.
 
 Production-ready FastAPI endpoint for updating AI assistants via Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **AI Assistants: Update**: `PATCH /v2/ai/assistants/{id}` — [API reference](https://developers.telnyx.com/api/ai-assistants/update-assistant)
+
 
 ## Architecture
 

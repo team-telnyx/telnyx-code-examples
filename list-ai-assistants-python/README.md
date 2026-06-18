@@ -1,14 +1,21 @@
 ---
 name: list-ai-assistants
 title: "Production-ready Flask endpoint for listing Telnyx AI Assistants."
-description: "Production-ready Flask endpoint for listing Telnyx AI Assistants."
+description: "Application. Built with Telnyx AI Assistants, Migration, Number Porting."
 language: python
 framework: flask
+telnyx_products: [AI Assistants, Migration, Number Porting]
 ---
 
 # Production-ready Flask endpoint for listing Telnyx AI Assistants.
 
 Production-ready Flask endpoint for listing Telnyx AI Assistants.
+
+
+## Telnyx API Endpoints Used
+
+- **AI Assistants: List**: `GET /v2/ai/assistants` — [API reference](https://developers.telnyx.com/api/ai-assistants/list-assistants)
+
 
 ## Architecture
 

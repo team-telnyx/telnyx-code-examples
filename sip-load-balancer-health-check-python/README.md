@@ -4,11 +4,18 @@ title: "SIP Load Balancer Health Check"
 description: "SIP Load Balancer Health Check — monitor SIP trunk health across multiple endpoints, auto-failover to healthy trunks, track uptime metrics."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting]
 ---
 
 # SIP Load Balancer Health Check
 
 SIP Load Balancer Health Check — monitor SIP trunk health across multiple endpoints, auto-failover to healthy trunks, track uptime metrics.
+
+
+## Telnyx API Endpoints Used
+
+- **SIP Connections**: `GET /v2/sip_connections` — [API reference](https://developers.telnyx.com/api/sip-trunking/list-sip-connections)
+
 
 ## Architecture
 

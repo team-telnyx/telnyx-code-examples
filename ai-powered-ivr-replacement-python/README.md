@@ -4,11 +4,18 @@ title: "AI-Powered IVR Replacement"
 description: "AI-Powered IVR Replacement — natural language routing with A/B testing and structured insights."
 language: python
 framework: flask
+telnyx_products: [AI Assistants, Migration, Number Porting]
 ---
 
 # AI-Powered IVR Replacement
 
 AI-Powered IVR Replacement — natural language routing with A/B testing and structured insights.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control**: `POST /v2/calls/{id}/actions/gather_using_speak` — [API reference](https://developers.telnyx.com/api/call-control/gather)
+
 
 ## Telnyx Webhook Events
 

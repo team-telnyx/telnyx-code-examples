@@ -1,14 +1,21 @@
 ---
 name: send-mms-picture-message
 title: "Production-ready Flask endpoint for sending MMS via Telnyx."
-description: "Production-ready Flask endpoint for sending MMS via Telnyx."
+description: "Application. Built with Telnyx Migration, Number Porting, SMS/MMS."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, SMS/MMS]
 ---
 
 # Production-ready Flask endpoint for sending MMS via Telnyx.
 
 Production-ready Flask endpoint for sending MMS via Telnyx.
+
+
+## Telnyx API Endpoints Used
+
+- **Messaging (MMS)**: `POST /v2/messages` -- [API reference](https://developers.telnyx.com/api/messaging/send-message)
+
 
 ## Architecture
 

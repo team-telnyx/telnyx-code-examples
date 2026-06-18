@@ -4,11 +4,18 @@ title: "Billing Anomaly Detector"
 description: "Billing Anomaly Detector — monitor usage and billing for anomalies, alert on cost spikes and unusual patterns."
 language: python
 framework: flask
+telnyx_products: [CDR, Migration, Number Porting, SMS/MMS]
 ---
 
 # Billing Anomaly Detector
 
 Billing Anomaly Detector — monitor usage and billing for anomalies, alert on cost spikes and unusual patterns.
+
+
+## Telnyx API Endpoints Used
+
+- **CDR Reports**: `GET /v2/reports/call_detail_records` -- [API reference](https://developers.telnyx.com/api/reports/list-cdrs)
+
 
 ## Architecture
 

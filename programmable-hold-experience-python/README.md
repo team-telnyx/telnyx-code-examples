@@ -4,12 +4,19 @@ title: "Programmable Hold Experience"
 description: "Programmable Hold Experience — custom hold experiences: tips, trivia, estimated wait time, callback offers."
 language: python
 framework: flask
+telnyx_products: [Cloud Storage, Migration, Number Porting, Voice]
 channel: [voice]
 ---
 
 # Programmable Hold Experience
 
 Programmable Hold Experience — custom hold experiences: tips, trivia, estimated wait time, callback offers.
+
+
+## Telnyx API Endpoints Used
+
+- **Call Control: Queue**: `POST /v2/calls/{id}/actions/enqueue` — [API reference](https://developers.telnyx.com/api/call-control/enqueue-call)
+
 
 ## Telnyx Webhook Events
 

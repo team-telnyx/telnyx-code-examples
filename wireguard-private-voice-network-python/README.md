@@ -4,11 +4,18 @@ title: "WireGuard Private Voice Network"
 description: "WireGuard Private Voice Network — create WireGuard mesh network for private SIP trunking with encrypted voice traffic."
 language: python
 framework: flask
+telnyx_products: [Migration, Networking, Number Porting]
 ---
 
 # WireGuard Private Voice Network
 
 WireGuard Private Voice Network — create WireGuard mesh network for private SIP trunking with encrypted voice traffic.
+
+
+## Telnyx API Endpoints Used
+
+- **WireGuard Interfaces**: `POST /v2/wireguard_interfaces` — [API reference](https://developers.telnyx.com/api/networking/create-wireguard-interface)
+
 
 ## Architecture
 

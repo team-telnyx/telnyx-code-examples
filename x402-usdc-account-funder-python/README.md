@@ -4,11 +4,18 @@ title: "x402 USDC Account Funder"
 description: "X402 USDC Account Funder — fund your Telnyx account with USDC cryptocurrency on the Base blockchain."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting]
 ---
 
 # x402 USDC Account Funder
 
 X402 USDC Account Funder — fund your Telnyx account with USDC cryptocurrency on the Base blockchain.
+
+
+## Telnyx API Endpoints Used
+
+- **x402 Payments**: `POST /v2/balance/fund` — [API reference](https://developers.telnyx.com/api/account)
+
 
 ## Architecture
 

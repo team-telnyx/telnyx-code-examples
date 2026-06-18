@@ -4,11 +4,18 @@ title: "Number Search and Purchase API"
 description: "Number Search and Purchase API — search, filter, and buy phone numbers programmatically."
 language: python
 framework: flask
+telnyx_products: [Migration, Number Porting, Numbers]
 ---
 
 # Number Search and Purchase API
 
 Number Search and Purchase API — search, filter, and buy phone numbers programmatically.
+
+
+## Telnyx API Endpoints Used
+
+- **Phone Numbers**: `GET /v2/available_phone_numbers` — [API reference](https://developers.telnyx.com/api/numbers/list-available-phone-numbers)
+
 
 ## Architecture
 

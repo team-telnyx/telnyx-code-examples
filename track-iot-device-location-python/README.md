@@ -4,11 +4,18 @@ title: "Production-ready Flask application for device location"
 description: "Production-ready Flask application for device location tracking via Telnyx IoT API."
 language: python
 framework: flask
+telnyx_products: [IoT/SIM, Migration, Number Porting, Verify]
 ---
 
 # Production-ready Flask application for device location
 
 Production-ready Flask application for device location tracking via Telnyx IoT API.
+
+
+## Telnyx API Endpoints Used
+
+- **SIM Cards**: `GET /v2/sim_cards` — [API reference](https://developers.telnyx.com/api/sim-cards/list-sim-cards)
+
 
 ## Architecture
 
