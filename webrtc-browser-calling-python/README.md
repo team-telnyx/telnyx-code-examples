@@ -91,7 +91,7 @@ curl http://localhost:5000/api/credentials
 **Response:**
 
 ```json
-{"sip_username": "user@sip.telnyx.com", "credential_id": "...", "status": "ok"}
+{"sip_username": "user@sip.telnyx.com", "credential_id": "<value>", "status": "ok"}
 ```
 
 **Health check:**
@@ -105,3 +105,17 @@ curl http://localhost:5000/health
 - [Call Control Guide](https://developers.telnyx.com/docs/voice/call-control)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
+
+## API Reference
+
+### `GET /health`
+
+Health check endpoint.
+
+```bash
+curl http://localhost:5000/health
+```
+
+```json
+{"status": "ok"}
+```

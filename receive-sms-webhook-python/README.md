@@ -130,3 +130,17 @@ curl http://localhost:5000/health
 - [Messaging Guide](https://developers.telnyx.com/docs/messaging)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx Portal](https://portal.telnyx.com)
+
+## API Reference
+
+### `GET /health`
+
+Health check endpoint.
+
+```bash
+curl http://localhost:5000/health
+```
+
+```json
+{"status": "ok"}
+```

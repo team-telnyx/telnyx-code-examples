@@ -97,6 +97,13 @@ curl http://localhost:8080/health
 {"status": "ok", "tools": ["search_numbers", "send_sms", "create_call"]}
 ```
 
+## Setup
+
+```bash
+cd edge-mcp-server-deploy-python
+pip install -r requirements.txt
+```
+
 ## Resources
 
 - [Edge Compute Docs](https://developers.telnyx.com/docs/edge-compute)

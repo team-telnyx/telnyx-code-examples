@@ -94,6 +94,13 @@ curl -X POST http://localhost:8080 \
 {"status": "processed", "event_type": "call.initiated"}
 ```
 
+## Setup
+
+```bash
+cd edge-compute-webhook-proxy-python
+pip install -r requirements.txt
+```
+
 ## Resources
 
 - [Edge Compute Docs](https://developers.telnyx.com/docs/edge-compute)

@@ -121,7 +121,7 @@ curl -X POST http://localhost:5000/migrate/voice-config \
   -d '{
     "source": "twilio",
     "account_sid": "AC...",
-    "auth_token": "..."
+    "auth_token": "<value>"
   }'
 ```
 
