@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Messaging Campaign A/B Test Optimizer — test SMS copy variants, AI picks winners, auto-scales."""
-import os, json, time, random, requests, telnyx
+import os, json, time, secrets, requests, telnyx
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 import threading, time as _ttl_time
@@ -63,7 +63,7 @@ def send_campaign(cid):
         return jsonify({"error": "Not found"}), 404
     variants = campaign["variants"]
     for contact in campaign["contacts"]:
-        variant_index = random.randrange(len(variants))
+        variant_index = secrets.randbelow(len(variants))
         variant = variants[variant_index]
         send_sms(contact, variant["text"])
         variant["sent"] += 1

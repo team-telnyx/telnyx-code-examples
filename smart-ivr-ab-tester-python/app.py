@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Smart IVR A/B Tester — run two IVR flows simultaneously and track which converts better."""
-import os, json, time, random, requests, telnyx
+import os, json, time, secrets, requests, telnyx
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 import threading, time as _ttl_time
@@ -63,7 +63,7 @@ def handle_voice():
     ccid = p.get("call_control_id")
     if event_type == "call.initiated" and p.get("direction") == "incoming":
         exp = experiments.get("default", DEFAULT_EXPERIMENT)
-        variant = "a" if random.random() < exp["traffic_split"] else "b"
+        variant = "a" if secrets.randbelow(1000) / 1000 < exp["traffic_split"] else "b"
         exp["results"][variant]["calls"] += 1
         active_calls[ccid] = {"variant": variant, "experiment": "default"}
         client.calls.actions.answer(ccid)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Programmable Hold Experience — custom hold experiences: tips, trivia, estimated wait time, callback offers."""
-import os, json, time, random, requests, telnyx
+import os, json, time, secrets, requests, telnyx
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 import threading, time as _ttl_time
@@ -61,7 +61,7 @@ def handle_voice():
         client.calls.actions.answer(ccid)
         return jsonify({"status": "answering"}), 200
     elif event_type == "call.answered":
-        wait_min = random.randint(2, 8)
+        wait_min = 2 + secrets.randbelow(7)
         client.calls.actions.speak(ccid, payload=f"Thank you for calling. Your estimated wait time is {wait_min} minutes. While you wait, here are some tips. Press 9 at any time for a callback instead.", voice="female", language_code="en-US")
         return jsonify({"status": "greeting"}), 200
     elif event_type == "call.speak.ended":
@@ -74,7 +74,7 @@ def handle_voice():
             elif HOLD_MUSIC_URL:
                 client.calls.actions.playback_start(ccid, audio_url=HOLD_MUSIC_URL)
             else:
-                tip = random.choice(TIPS + TRIVIA)
+                tip = secrets.choice(TIPS + TRIVIA)
                 hold["tip_idx"] += 1
                 client.calls.actions.speak(ccid, payload=tip, voice="female", language_code="en-US")
         return jsonify({"status": "holding"}), 200
