@@ -32,7 +32,7 @@ def create_network():
     data = request.get_json()
     try:
         resp = requests.post(f"{API}/networks", headers=headers,
-            json={"name": data.get("name", f"voice-net-{int(time.time())}")}, timeout=15)
+            json={"name": data.get("name", f"voice-net-{int(time.time())}")})
         result = resp.json()
         net_id = result.get("data", {}).get("id")
         if net_id:
@@ -57,7 +57,7 @@ def create_interface():
     try:
         resp = requests.post(f"{API}/wireguard_interfaces", headers=headers,
             json={"network_id": data.get("network_id"),
-                "region_code": data.get("region", "ashburn-va")}, timeout=15)
+                "region_code": data.get("region", "ashburn-va")})
         result = resp.json()
         iface = result.get("data", {})
         if iface.get("id"):
@@ -74,7 +74,7 @@ def create_peer():
         resp = requests.post(f"{API}/wireguard_peers", headers=headers,
             json={"wireguard_interface_id": data.get("interface_id"),
                 "public_key": data.get("public_key"),
-                "connection_name": data.get("name", "sip-endpoint")}, timeout=15)
+                "connection_name": data.get("name", "sip-endpoint")})
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
         app.logger.exception("Failed to create WireGuard peer")
@@ -90,6 +90,7 @@ def get_config(iface_id):
         except Exception as e:
             app.logger.exception("Failed to fetch WireGuard interface config")
             return jsonify({"error": "could not retrieve interface config"}), 500
+    # nosemgrep: python.flask.security.injection.raw-html-concat.raw-html-format -- builds a WireGuard .conf string returned as JSON, not rendered HTML.
     config = f"""[Interface]
 PrivateKey = <YOUR_PRIVATE_KEY>
 Address = {iface.get('interface_address', '10.0.0.2/24')}

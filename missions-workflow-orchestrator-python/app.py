@@ -17,7 +17,7 @@ def create_mission():
         resp = requests.post(f"{API}/missions", headers=headers,
             json={"name": data.get("name"), "description": data.get("description"),
                 "status": data.get("status", "draft"),
-                "tasks": data.get("tasks", [])}, timeout=15)
+                "tasks": data.get("tasks", [])})
         result = resp.json()
         local_missions.append(result)
         return jsonify(result), resp.status_code
@@ -49,7 +49,7 @@ def add_task(mission_id):
     try:
         resp = requests.post(f"{API}/missions/{mission_id}/tasks", headers=headers,
             json={"name": data.get("name"), "type": data.get("type", "action"),
-                "config": data.get("config", {}), "depends_on": data.get("depends_on", [])}, timeout=15)
+                "config": data.get("config", {}), "depends_on": data.get("depends_on", [])})
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
         app.logger.exception("Failed to add task to mission")

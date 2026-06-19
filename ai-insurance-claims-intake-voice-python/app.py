@@ -96,7 +96,7 @@ def handle_voice():
                 if claim_data.get("injuries") or claim_data.get("urgency") == "high":
                     try:
                         requests.post("https://api.telnyx.com/v2/messages", headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-                            json={"from": CLAIMS_NUMBER, "to": CLAIMS_NUMBER, "text": f"URGENT CLAIM: {claim_data.get('claim_type', 'unknown', timeout=10)} - injuries reported. Caller: {call['caller']}"}, timeout=10)
+                            json={"from": CLAIMS_NUMBER, "to": CLAIMS_NUMBER, "text": f"URGENT CLAIM: {claim_data.get('claim_type', 'unknown')} - injuries reported. Caller: {call['caller']}"}, timeout=10)
                     except Exception:
                         pass
             except Exception as e:

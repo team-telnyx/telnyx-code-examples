@@ -148,7 +148,7 @@ def handle_voice():
                     json={"payload": "Thank you for your time today. We'll review your responses and follow up. Have a great day!",
                         "voice": "female", "language_code": "en-US"}, timeout=10)
             if RECRUITER_SLACK:
-                try: requests.post(RECRUITER_SLACK, json={"text": f"Screen complete: {candidate['name']} - Score: {scorecard.get('score',0)}/100 - {scorecard.get('recommend','review').upper()}\nStrengths: {scorecard.get('strengths','')}\nConcerns: {scorecard.get('concerns','')}"}, timeout=5)
+                try: requests.post(RECRUITER_SLACK, json={"text": f"Screen complete: {candidate['name']} - Score: {scorecard.get('score',0)}/100 - {scorecard.get('recommend','review').upper()}\nStrengths: {scorecard.get('strengths','')}\nConcerns: {scorecard.get('concerns','')}"})
                 except Exception: pass
     elif event == "call.hangup":
         screens.pop(ccid, None)

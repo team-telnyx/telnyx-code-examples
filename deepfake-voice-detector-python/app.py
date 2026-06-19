@@ -212,7 +212,7 @@ def send_alert(call_id, result, caller):
                     f"Confidence: {result.get('confidence', 'N/A')}\n"
                     f"Indicators: {', '.join(result.get('indicators', []))}\n"
                     f"Reasoning: {result.get('reasoning', 'N/A')}"
-        }, timeout=5)
+        })
     except Exception as e:
         app.logger.error("Alert webhook failed: %s", e)
 

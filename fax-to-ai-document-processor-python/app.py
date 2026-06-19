@@ -51,7 +51,7 @@ def handle_fax():
         if result.get("priority") == "urgent":
             try:
                 requests.post("https://api.telnyx.com/v2/messages", headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-                    json={"from": FAX_NUMBER, "to": FAX_NUMBER, "text": f"URGENT FAX from {from_number}: {result.get('summary', 'Review needed', timeout=10)}"}, timeout=10)
+                    json={"from": FAX_NUMBER, "to": FAX_NUMBER, "text": f"URGENT FAX from {from_number}: {result.get('summary', 'Review needed')}"}, timeout=10)
             except Exception:
                 pass
         return jsonify({"status": "processed", "analysis": result}), 200

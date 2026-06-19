@@ -91,7 +91,7 @@ def handle_voice():
                 work_orders.append(wo)
                 if wo.get("urgency") == "emergency":
                     requests.post("https://api.telnyx.com/v2/messages", headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-                        json={"from": MAINTENANCE_NUMBER, "to": MAINTENANCE_NUMBER, "text": f"EMERGENCY: Unit {wo.get('unit', '?', timeout=10)} - {wo.get('issue', 'unknown')}"}, timeout=10)
+                        json={"from": MAINTENANCE_NUMBER, "to": MAINTENANCE_NUMBER, "text": f"EMERGENCY: Unit {wo.get('unit', '?')} - {wo.get('issue', 'unknown')}"})
             except Exception:
                 pass
         return jsonify({"status": "ended"}), 200

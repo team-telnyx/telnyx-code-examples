@@ -71,10 +71,13 @@ class MCPServer:
 
     def _telnyx_request(self, method, path, body=None):
         url = f"{TELNYX_API}{path}"
+        if not url.startswith("https://"):  # only https Telnyx endpoints
+            raise ValueError("refusing non-https URL")
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         data = json.dumps(body).encode() if body else None
         req = Request(url, data=data, headers=headers, method=method)
         try:
+            # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected -- url validated https against the constant Telnyx API base above.
             resp = urlopen(req, timeout=15)
             return json.loads(resp.read())
         except URLError as e:

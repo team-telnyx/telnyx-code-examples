@@ -74,6 +74,7 @@ def update_status(order_id):
     if tracking:
         order["tracking"] = tracking
     order["updates"].append({"status": new_status, "time": time.time()})
+    # nosemgrep: python.flask.security.injection.tainted-sql-string.tainted-sql-string -- builds SMS message text; this app has no SQL/database.
     status_messages = {
         "shipped": f"Your order {order_id} has shipped! Tracking: {tracking or 'pending'}",
         "out_for_delivery": f"Your order {order_id} is out for delivery today!",

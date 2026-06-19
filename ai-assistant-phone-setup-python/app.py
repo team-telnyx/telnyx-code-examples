@@ -31,7 +31,7 @@ def create_assistant():
     data = request.get_json()
     try:
         resp = requests.post(f"{API}/ai/assistants", headers=headers,
-            json={"name": data.get("name", "My Assistant", timeout=10),
+            json={"name": data.get("name", "My Assistant"),
                 "instructions": data.get("instructions", "You are a helpful assistant. Be friendly and concise."),
                 "model": data.get("model", "meta-llama/Llama-3.3-70B-Instruct"),
                 "voice": {"provider": data.get("voice_provider", "telnyx"),

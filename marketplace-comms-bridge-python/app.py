@@ -78,7 +78,7 @@ def handle_sms():
                         "at": time.strftime("%Y-%m-%dT%H:%M:%SZ")})
                     send_sms(sender, "Your message was flagged for review. Please keep all transactions on-platform for your safety.")
                     if OPS_SLACK:
-                        try: requests.post(OPS_SLACK, json={"text": f"FLAGGED message from {sender}: {message} | Reason: {moderation.get('reason','', timeout=10)}"}, timeout=5)
+                        try: requests.post(OPS_SLACK, json={"text": f"FLAGGED message from {sender}: {message} | Reason: {moderation.get('reason','')}"}, timeout=5)
                         except Exception: pass
     return jsonify({"status": "ok"}), 200
 

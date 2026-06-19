@@ -32,11 +32,11 @@ def submit_order():
     data = request.get_json()
     try:
         resp = requests.post(f"{API}/porting_orders", headers=headers,
-            json={"phone_numbers": data.get("phone_numbers", [], timeout=10),
+            json={"phone_numbers": data.get("phone_numbers", []),
                 "authorized_person": data.get("authorized_person"),
                 "current_provider": data.get("current_provider"),
                 "billing_phone_number": data.get("billing_phone_number"),
-                "customer_reference": data.get("reference", "")}, timeout=15)
+                "customer_reference": data.get("reference", "")})
         result = resp.json()
         order = {"id": result.get("data", {}).get("id"), "numbers": data.get("phone_numbers"),
             "count": len(data.get("phone_numbers", [])), "provider": data.get("current_provider"),
@@ -57,7 +57,7 @@ def bulk_submit():
     for batch in data.get("batches", []):
         try:
             resp = requests.post(f"{API}/porting_orders", headers=headers,
-                json={"phone_numbers": batch.get("phone_numbers", [], timeout=10),
+                json={"phone_numbers": batch.get("phone_numbers", []),
                     "authorized_person": batch.get("authorized_person"),
                     "current_provider": batch.get("current_provider"),
                     "billing_phone_number": batch.get("billing_phone_number")}, timeout=15)

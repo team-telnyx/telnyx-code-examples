@@ -66,7 +66,7 @@ def page_oncall(triage_data):
     try:
         requests.post("https://events.pagerduty.com/v2/enqueue", json={
             "routing_key": PAGERDUTY_KEY, "event_action": "trigger",
-            "payload": {"summary": f"Urgent triage: {triage_data.get('symptoms', 'Unknown', timeout=10)} - Patient: {triage_data.get('caller', 'Unknown')}",
+            "payload": {"summary": f"Urgent triage: {triage_data.get('symptoms', 'Unknown')} - Patient: {triage_data.get('caller', 'Unknown')}",
                 "severity": "warning", "source": "telnyx-triage",
                 "custom_details": triage_data}}, timeout=10)
     except Exception:

@@ -86,7 +86,7 @@ def inject_audio(ccid):
     if audio_url:
         try:
             requests.post(f"{API}/calls/{ccid}/actions/playback_start", headers=headers,
-                json={"audio_url": audio_url, "overlay": data.get("overlay", True, timeout=10)}, timeout=10)
+                json={"audio_url": audio_url, "overlay": data.get("overlay", True)}, timeout=10)
             return jsonify({"status": "injecting", "audio": audio_url}), 200
         except Exception:
             app.logger.exception("Failed to inject audio")

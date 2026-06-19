@@ -50,11 +50,11 @@ def migrate_agent():
         model = "meta-llama/Llama-3.3-70B-Instruct"
     try:
         resp = requests.post(f"{TELNYX_API}/ai/assistants", headers=telnyx_headers,
-            json={"name": vapi_config.get("name", "Migrated Vapi Agent", timeout=10),
+            json={"name": vapi_config.get("name", "Migrated Vapi Agent"),
                 "instructions": vapi_config.get("systemPrompt", vapi_config.get("instructions", "")),
                 "model": model,
                 "voice": {"provider": "telnyx", "settings": {"voice_id": voice_id}},
-                "greeting": vapi_config.get("firstMessage", "Hello! How can I help?")}, timeout=15)
+                "greeting": vapi_config.get("firstMessage", "Hello! How can I help?")})
         result = resp.json()
         migration_log.append({"action": "migrate_agent", "vapi_name": vapi_config.get("name"),
             "telnyx_id": result.get("id"),

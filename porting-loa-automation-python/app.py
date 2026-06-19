@@ -62,7 +62,7 @@ def submit_and_port():
     loa_id = f"LOA-{int(time.time())}"
     try:
         resp = requests.post(f"{API}/porting_orders", headers=headers,
-            json={"phone_numbers": data.get("phone_numbers", [], timeout=10),
+            json={"phone_numbers": data.get("phone_numbers", []),
                 "authorized_person": data.get("authorized_person"),
                 "current_provider": data.get("current_provider"),
                 "billing_phone_number": data.get("billing_number"),

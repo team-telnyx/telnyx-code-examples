@@ -36,7 +36,7 @@ def create_room():
         resp = requests.post(f"{API}/rooms", headers=headers,
             json={"unique_name": data.get("name", f"room-{int(time.time())}"),
                 "max_participants": data.get("max_participants", 10),
-                "enable_recording": data.get("record", False)}, timeout=15)
+                "enable_recording": data.get("record", False)})
         result = resp.json()
         room_id = result.get("data", {}).get("id")
         if room_id:

@@ -146,6 +146,7 @@ def check_exceptions():
     new_eta = data.get("new_eta", "unknown")
     if customer_phone:
         if exception_type == "delay":
+            # nosemgrep: python.flask.security.injection.tainted-sql-string.tainted-sql-string -- builds SMS message text; this app has no SQL/database.
             send_sms(customer_phone, f"Update on your order: Your package ({tracking}) has been delayed. New estimated delivery: {new_eta}. We apologize for the inconvenience.")
         elif exception_type == "returned":
             send_sms(customer_phone, f"Your package ({tracking}) was returned to sender. We'll reship it automatically. Reply REFUND if you'd prefer a refund instead.")

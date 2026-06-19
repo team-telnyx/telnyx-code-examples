@@ -29,7 +29,7 @@ def audit_elevenlabs():
         return jsonify({"error": "ELEVENLABS_API_KEY not configured"}), 400
     try:
         resp = requests.get("https://api.elevenlabs.io/v1/voices",
-            headers={"xi-api-key": ELEVENLABS_API_KEY}, timeout=15)
+            headers={"xi-api-key": ELEVENLABS_API_KEY})
         voices = resp.json().get("voices", []) if resp.ok else []
         audit = []
         for v in voices:

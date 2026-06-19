@@ -40,7 +40,7 @@ def start_verification():
     try:
         resp = requests.post(f"{API}/verifications", headers=headers,
             json={"phone_number": phone, "type": channel,
-                "timeout_secs": data.get("timeout", 300)}, timeout=15)
+                "timeout_secs": data.get("timeout", 300)})
         result = resp.json()
         vid = result.get("data", {}).get("id", f"V-{int(time.time())}")
         verifications[vid] = {"id": vid, "phone": phone, "channel": channel,

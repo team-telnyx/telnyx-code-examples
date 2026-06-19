@@ -78,7 +78,10 @@ class WebhookProxy:
                     sig = self._sign(enriched_body)
                     if sig:
                         headers["X-Edge-Signature"] = f"sha256={sig}"
+                    if not self.forward_url.startswith("https://"):  # only https forward targets
+                        raise ValueError("forward_url must be https")
                     req = Request(self.forward_url, data=enriched_body, headers=headers, method="POST")
+                    # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected -- forward_url validated https above.
                     urlopen(req, timeout=5)
                     self.stats["forwarded"] += 1
                 except (URLError, Exception) as e:

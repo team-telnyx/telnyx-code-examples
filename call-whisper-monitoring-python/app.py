@@ -3,6 +3,7 @@
 
 import os
 import json
+import requests
 import telnyx
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
@@ -76,7 +77,7 @@ def transcribe_audio(audio_url: str) -> str:
     """Download audio from URL and transcribe using OpenAI Whisper."""
     try:
         # Download audio file from Telnyx
-        response = request.get(audio_url, timeout=10)
+        response = requests.get(audio_url, timeout=10)
         response.raise_for_status()
         
         # Transcribe using Whisper API

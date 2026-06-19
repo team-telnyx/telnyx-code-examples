@@ -31,7 +31,7 @@ _start_ttl_cleanup(port_orders)
 @app.route("/ports/list", methods=["GET"])
 def list_ports():
     try:
-        resp = requests.get("https://api.telnyx.com/v2/porting_orders", headers={"Authorization": f"Bearer {TELNYX_API_KEY}"}, timeout=15)
+        resp = requests.get("https://api.telnyx.com/v2/porting_orders", headers={"Authorization": f"Bearer {TELNYX_API_KEY}"})
         if resp.ok:
             return jsonify(resp.json()), 200
     except Exception as e:

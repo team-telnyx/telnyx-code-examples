@@ -17,7 +17,7 @@ def validate_address():
         "locality": data.get("city"), "administrative_area": data.get("state"), "postal_code": data.get("zip"), "country_code": data.get("country", "US")}
     try:
         resp = requests.post("https://api.telnyx.com/v2/addresses", headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            json={**address, "address_book": True, "business_name": data.get("business_name", "", timeout=10)}, timeout=15)
+            json={**address, "address_book": True, "business_name": data.get("business_name", "")}, timeout=15)
         if resp.ok:
             result = resp.json().get("data", {})
             validated_addresses.append(result)

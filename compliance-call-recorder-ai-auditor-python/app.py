@@ -141,7 +141,7 @@ def store_recording(call_control_id, recording_url):
         # Upload to Telnyx Cloud Storage (S3-compatible) via boto3.
         filename = f"recordings/{time.strftime('%Y/%m/%d')}/{call_control_id}.mp3"
         s3.put_object(Bucket=STORAGE_BUCKET, Key=filename, Body=rec_resp.content, ContentType="audio/mpeg")
-        return filename
+        return filename  # nosemgrep: python.flask.security.audit.directly-returned-format-string -- internal helper return (S3 object key), not an HTTP response.
     except (ClientError, requests.RequestException) as e:
         app.logger.error("Recording storage failed: %s", e)
     return None

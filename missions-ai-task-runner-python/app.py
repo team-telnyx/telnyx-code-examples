@@ -50,7 +50,7 @@ def run_ai_task():
                 if action_config["method"] == "GET":
                     api_resp = requests.get(f"{API}{endpoint}", headers=headers, timeout=15)
                 else:
-                    api_resp = requests.post(f"{API}{endpoint}", headers=headers, json=step.get("params", {}, timeout=10), timeout=15)
+                    api_resp = requests.post(f"{API}{endpoint}", headers=headers, json=step.get("params", {}), timeout=15)
                 step["result"] = api_resp.json() if api_resp.ok else {"error": api_resp.text[:200]}
             conversation.append({"role": "assistant", "content": response})
             conversation.append({"role": "user", "content": f"Step {i+1} result: {json.dumps(step.get('result', 'executed'))}"})

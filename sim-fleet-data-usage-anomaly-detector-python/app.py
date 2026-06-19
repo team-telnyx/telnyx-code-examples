@@ -14,7 +14,7 @@ anomalies = []
 
 def get_sim_usage():
     try:
-        resp = requests.get("https://api.telnyx.com/v2/sim_cards", headers={"Authorization": f"Bearer {TELNYX_API_KEY}"}, timeout=15)
+        resp = requests.get("https://api.telnyx.com/v2/sim_cards", headers={"Authorization": f"Bearer {TELNYX_API_KEY}"})
         if resp.ok:
             return resp.json().get("data", [])
     except Exception:
