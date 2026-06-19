@@ -27,9 +27,9 @@ function verifyTelnyxSignature(rawBody, headers, toleranceSec = 300) {
 
 const app = express();
 
-// Initialize the Telnyx client. The factory form returns a client instance
+// Initialize the Telnyx client. The constructor form takes an options object
 // while error classes (AuthenticationError, etc.) remain on the module export.
-const telnyx = require("telnyx")(process.env.TELNYX_API_KEY);
+const telnyx = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 const client = telnyx;
 
 // Mount the raw body parser on the webhook route so the exact bytes Telnyx
@@ -50,22 +50,17 @@ app.use((req, res, next) => {
  * Returns JSON-serializable connection data.
  */
 async function createSipConnection(connectionName) {
-  const response = await client.sipConnections.create({
+  const response = await client.credentialConnections.create({
     connection_name: connectionName,
-    inbound: {
-      uri: process.env.SIP_ENDPOINT,
-    },
-    inbound_authentication: {
-      username: process.env.SIP_USERNAME,
-      password: process.env.SIP_PASSWORD,
-    },
+    user_name: process.env.SIP_USERNAME,
+    password: process.env.SIP_PASSWORD,
   });
 
   // Extract serializable data — SDK objects are NOT JSON-serializable
   return {
     id: response.data.id,
     connection_name: response.data.connection_name,
-    inbound_uri: response.data.inbound?.uri,
+    user_name: response.data.user_name,
     created_at: response.data.created_at,
   };
 }
@@ -75,12 +70,12 @@ async function createSipConnection(connectionName) {
  * Returns array of JSON-serializable connection objects.
  */
 async function listSipConnections() {
-  const response = await client.sipConnections.list();
+  const response = await client.credentialConnections.list();
 
   return response.data.map((conn) => ({
     id: conn.id,
     connection_name: conn.connection_name,
-    inbound_uri: conn.inbound?.uri,
+    user_name: conn.user_name,
     created_at: conn.created_at,
   }));
 }
@@ -90,13 +85,12 @@ async function listSipConnections() {
  * Returns JSON-serializable connection data.
  */
 async function getSipConnection(connectionId) {
-  const response = await client.sipConnections.retrieve(connectionId);
+  const response = await client.credentialConnections.retrieve(connectionId);
 
   return {
     id: response.data.id,
     connection_name: response.data.connection_name,
-    inbound_uri: response.data.inbound?.uri,
-    inbound_authentication_username: response.data.inbound_authentication?.username,
+    user_name: response.data.user_name,
     created_at: response.data.created_at,
   };
 }
@@ -122,11 +116,11 @@ app.post("/sip/connections", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code).json({ error: error.message });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status).json({ error: error.message });
     }
     return res.status(500).json({ error: "Internal server error" });
   }
@@ -147,11 +141,11 @@ app.get("/sip/connections", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code).json({ error: error.message });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status).json({ error: error.message });
     }
     return res.status(500).json({ error: "Internal server error" });
   }
@@ -178,11 +172,11 @@ app.get("/sip/connections/:id", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code).json({ error: error.message });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status).json({ error: error.message });
     }
     return res.status(500).json({ error: "Internal server error" });
   }

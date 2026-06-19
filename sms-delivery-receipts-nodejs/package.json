@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "telnyx": "^2.0.0",
-    "dotenv": "^16.4.5"
+    "telnyx": "^6.83.0",
+    "dotenv": "^16.4.5",
+    "ws": "^8.21.0"
   }
 }

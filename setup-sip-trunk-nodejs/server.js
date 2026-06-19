@@ -29,7 +29,7 @@ async function createSipConnection(name, username, password, endpoint) {
   }
 
   // Create SIP connection via Telnyx API
-  const response = await client.sipConnections.create({
+  const response = await client.credentialConnections.create({
     connection_name: name,
     outbound_voice_profile_id: null,
     inbound: {
@@ -67,7 +67,7 @@ async function getSipConnection(connectionId) {
     throw new Error("Connection ID is required");
   }
 
-  const response = await client.sipConnections.retrieve(connectionId);
+  const response = await client.credentialConnections.retrieve(connectionId);
 
   return {
     id: response.data.id,
@@ -83,7 +83,7 @@ async function getSipConnection(connectionId) {
  * Returns JSON-serializable list of connections.
  */
 async function listSipConnections() {
-  const response = await client.sipConnections.list();
+  const response = await client.credentialConnections.list();
 
   return response.data.map((conn) => ({
     id: conn.id,
@@ -116,10 +116,10 @@ app.post("/sip/connections", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 400).json({
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 400).json({
         error: error.message,
-        status_code: error.status_code,
+        status_code: error.status,
       });
     }
     if (error instanceof Telnyx.APIConnectionError) {
@@ -151,10 +151,10 @@ app.get("/sip/connections/:id", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 400).json({
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 400).json({
         error: error.message,
-        status_code: error.status_code,
+        status_code: error.status,
       });
     }
     if (error instanceof Telnyx.APIConnectionError) {
@@ -179,10 +179,10 @@ app.get("/sip/connections", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 400).json({
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 400).json({
         error: error.message,
-        status_code: error.status_code,
+        status_code: error.status,
       });
     }
     if (error instanceof Telnyx.APIConnectionError) {

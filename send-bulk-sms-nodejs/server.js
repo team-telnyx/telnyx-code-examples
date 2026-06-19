@@ -42,9 +42,9 @@ async function sendSingleSMS(toNumber, message) {
     );
   }
 
-  // Use client.messages.create() with the new SDK pattern
-  const response = await client.messages.create({
-    from_: fromNumber,
+  // Use client.messages.send() with the new SDK pattern
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
   });
@@ -148,10 +148,10 @@ app.post("/sms/send-bulk", async (req, res) => {
         error: "Rate limit exceeded. Please slow down.",
       });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 500).json({
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 500).json({
         error: error.message,
-        status_code: error.status_code,
+        status_code: error.status,
       });
     }
     if (error instanceof Telnyx.APIConnectionError) {
@@ -194,10 +194,10 @@ app.post("/sms/send-single", async (req, res) => {
         error: "Rate limit exceeded. Please slow down.",
       });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 500).json({
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 500).json({
         error: error.message,
-        status_code: error.status_code,
+        status_code: error.status,
       });
     }
     if (error instanceof Telnyx.APIConnectionError) {

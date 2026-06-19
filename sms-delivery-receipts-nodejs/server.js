@@ -13,7 +13,7 @@ const app = express();
 // Initialize Telnyx client with the new SDK pattern.
 // The same client instance is used for sending SMS and for verifying
 // inbound webhook signatures via client.webhooks.unwrap().
-const client = new Telnyx(process.env.TELNYX_API_KEY);
+const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 // In-memory store for delivery receipts (use a database in production)
 const deliveryReceipts = {};
@@ -35,8 +35,8 @@ async function sendSMS(toNumber, message) {
     );
   }
 
-  const response = await client.messages.create({
-    from_: fromNumber,
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
   });
@@ -121,14 +121,14 @@ app.post("/sms/send", express.json(), async (req, res) => {
       return res.status(429).json({
         error: "Rate limit exceeded. Please slow down.",
       });
-    } else if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code).json({
-        error: "Failed to send message",
-        status_code: error.status_code,
-      });
     } else if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({
         error: "Network error connecting to Telnyx",
+      });
+    } else if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 500).json({
+        error: "Failed to send message",
+        status_code: error.status,
       });
     } else if (error instanceof Error && error.message.includes("E.164")) {
       return res.status(400).json({ error: "Invalid phone number format" });

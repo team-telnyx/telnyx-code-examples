@@ -116,11 +116,11 @@ router.get('/sims', async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code).json({ error: error.message });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({ error: 'Network error connecting to Telnyx' });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status).json({ error: error.message });
     }
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -146,11 +146,11 @@ router.get('/sims/:simCardId', async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code).json({ error: error.message });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({ error: 'Network error connecting to Telnyx' });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status).json({ error: error.message });
     }
     res.status(500).json({ error: 'Internal server error' });
   }

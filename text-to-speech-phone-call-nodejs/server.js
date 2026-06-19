@@ -42,7 +42,7 @@ const jsonParser = express.json();
 // Initialize the Telnyx client for outbound API calls (dial / speak).
 // Inbound webhook signatures are verified with the native-crypto helper above,
 // not the SDK, so verification is independent of the installed SDK version.
-const telnyx = Telnyx(process.env.TELNYX_API_KEY);
+const telnyx = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 const client = telnyx;
 
 /**
@@ -69,7 +69,7 @@ async function initiateCall(toNumber) {
 
   // Initiate the call using client.calls.dial()
   const response = await client.calls.dial({
-    from_: fromNumber,
+    from: fromNumber,
     to: toNumber,
     connection_id: connectionId,
   });
@@ -130,15 +130,15 @@ app.post("/calls/initiate", jsonParser, async (req, res) => {
         .status(429)
         .json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res
-        .status(error.status_code || 500)
-        .json({ error: error.message, status_code: error.status_code });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res
         .status(503)
         .json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res
+        .status(error.status || 500)
+        .json({ error: error.message, status_code: error.status });
     }
     // Handle validation errors
     return res.status(400).json({ error: error.message });
@@ -169,15 +169,15 @@ app.post("/calls/:callControlId/speak", jsonParser, async (req, res) => {
         .status(429)
         .json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res
-        .status(error.status_code || 500)
-        .json({ error: error.message, status_code: error.status_code });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res
         .status(503)
         .json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res
+        .status(error.status || 500)
+        .json({ error: error.message, status_code: error.status });
     }
     return res.status(400).json({ error: error.message });
   }

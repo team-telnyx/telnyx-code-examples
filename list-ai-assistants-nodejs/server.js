@@ -22,7 +22,7 @@ app.use(express.json());
  */
 async function listAssistants() {
   // Call the Telnyx API to list all assistants
-  const response = await client.ai_assistants.list();
+  const response = await client.ai.assistants.list();
 
   // Extract serializable fields from each assistant object
   // SDK objects are NOT JSON-serializable — always unpack to plain objects
@@ -63,16 +63,16 @@ app.get("/assistants", async (req, res) => {
       });
     }
 
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status || 500).json({
-        error: error.message,
-        status_code: error.status,
-      });
-    }
-
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({
         error: "Network error connecting to Telnyx. Please try again later.",
+      });
+    }
+
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 500).json({
+        error: error.message,
+        status: error.status,
       });
     }
 

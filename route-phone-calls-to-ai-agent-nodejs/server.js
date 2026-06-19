@@ -10,9 +10,10 @@ require("dotenv").config();
 
 const app = express();
 
-// Initialize the Telnyx client (function-style). Used for outbound API calls
+// Initialize the Telnyx client. Used for outbound API calls
 // (answering the call) and SDK error types.
-const telnyx = require("telnyx")(process.env.TELNYX_API_KEY);
+const Telnyx = require("telnyx");
+const telnyx = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 // Verify the Telnyx Ed25519 webhook signature (version-proof; stdlib only — no SDK dependency).
 function verifyTelnyxSignature(rawBody, headers, toleranceSec = 300) {
@@ -56,7 +57,7 @@ async function handleInboundCall(event) {
   // Only answer on the 'call.initiated' event
   if (eventType === "call.initiated") {
     // Answer the call using the call_control_id returned in the webhook
-    const response = await telnyx.calls.create(callControlId, "answer");
+    await telnyx.calls.actions.answer(callControlId);
 
     return {
       call_control_id: callControlId,
@@ -116,25 +117,24 @@ app.post(
       return res.status(200).json(result);
     } catch (error) {
       // Handle Telnyx SDK errors
-      if (error instanceof telnyx.errors.TelnyxAuthenticationError) {
+      if (error instanceof Telnyx.AuthenticationError) {
         return res.status(401).json({ error: "Invalid API key" });
       }
 
-      if (error instanceof telnyx.errors.TelnyxRateLimitError) {
+      if (error instanceof Telnyx.RateLimitError) {
         return res
           .status(429)
           .json({ error: "Rate limit exceeded. Please slow down." });
       }
 
-      if (error instanceof telnyx.errors.TelnyxConnectionError) {
+      if (error instanceof Telnyx.APIConnectionError) {
         return res
           .status(503)
           .json({ error: "Network error connecting to Telnyx" });
       }
 
-      if (error instanceof telnyx.errors.TelnyxAPIError) {
-        const statusCode = error.statusCode || 502;
-        return res.status(statusCode).json({ error: "Telnyx API error" });
+      if (error instanceof Telnyx.APIError) {
+        return res.status(error.status || 502).json({ error: "Telnyx API error" });
       }
 
       // Handle validation errors

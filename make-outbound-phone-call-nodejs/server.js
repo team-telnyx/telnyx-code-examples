@@ -43,17 +43,19 @@ async function initiateCall(toNumber) {
   // connection_id is REQUIRED and links the call to your Call Control Application
   // call_control_id is RETURNED in the response — do not pass it as input
   const response = await client.calls.dial({
-    from_: fromNumber,
+    from: fromNumber,
     to: toNumber,
     connection_id: connectionId,
   });
 
   // Extract serializable data — SDK objects are NOT JSON-serializable
+  // Dial is asynchronous, so the call is not yet alive (is_alive === false);
+  // there is no "state" field on the response — report "initiated".
   return {
     call_control_id: response.data.call_control_id,
     from: fromNumber,
     to: toNumber,
-    state: response.data.state || "initiated",
+    state: "initiated",
   };
 }
 
@@ -83,17 +85,17 @@ app.post("/calls/dial", async (req, res) => {
         .json({ error: "Rate limit exceeded. Please slow down." });
     }
 
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code).json({
-        error: error.message,
-        status_code: error.status_code,
-      });
-    }
-
     if (error instanceof Telnyx.APIConnectionError) {
       return res
         .status(503)
         .json({ error: "Network error connecting to Telnyx" });
+    }
+
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 500).json({
+        error: error.message,
+        status_code: error.status,
+      });
     }
 
     // Handle validation errors

@@ -68,7 +68,7 @@ async function initiateCall(toNumber) {
 
   // Use client.calls.dial() to initiate the call
   const response = await client.calls.dial({
-    from_: fromNumber,
+    from: fromNumber,
     to: toNumber,
     connection_id: connectionId,
   });
@@ -100,8 +100,8 @@ async function startRecording(callControlId) {
     throw new Error(`Call ${callControlId} not found`);
   }
 
-  // Use client.calls.actions.start_recording() to begin recording
-  const response = await client.calls.actions.start_recording(callControlId, {
+  // Use client.calls.actions.startRecording() to begin recording
+  const response = await client.calls.actions.startRecording(callControlId, {
     format: "wav",
   });
 
@@ -127,8 +127,8 @@ async function stopRecording(callControlId) {
     throw new Error(`Call ${callControlId} not found`);
   }
 
-  // Use client.calls.actions.stop_recording() to end recording
-  const response = await client.calls.actions.stop_recording(callControlId);
+  // Use client.calls.actions.stopRecording() to end recording
+  const response = await client.calls.actions.stopRecording(callControlId);
 
   // Update call state
   const callData = activeCalls.get(callControlId);
@@ -184,15 +184,15 @@ app.post("/calls/initiate", jsonParser, async (req, res) => {
         .status(429)
         .json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res
-        .status(error.status_code || 500)
-        .json({ error: error.message, status_code: error.status_code });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res
         .status(503)
         .json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res
+        .status(error.status || 500)
+        .json({ error: error.message, status_code: error.status });
     }
     return res.status(400).json({ error: error.message });
   }
@@ -217,15 +217,15 @@ app.post("/calls/:callControlId/recording/start", jsonParser, async (req, res) =
         .status(429)
         .json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res
-        .status(error.status_code || 500)
-        .json({ error: error.message, status_code: error.status_code });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res
         .status(503)
         .json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res
+        .status(error.status || 500)
+        .json({ error: error.message, status_code: error.status });
     }
     return res.status(400).json({ error: error.message });
   }
@@ -250,15 +250,15 @@ app.post("/calls/:callControlId/recording/stop", jsonParser, async (req, res) =>
         .status(429)
         .json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res
-        .status(error.status_code || 500)
-        .json({ error: error.message, status_code: error.status_code });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res
         .status(503)
         .json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res
+        .status(error.status || 500)
+        .json({ error: error.message, status_code: error.status });
     }
     return res.status(400).json({ error: error.message });
   }

@@ -39,9 +39,9 @@ async function sendMMS(toNumber, message, mediaUrls) {
     throw new Error("At least one media URL is required for MMS");
   }
 
-  // Use client.messages.create() with media_urls parameter
-  const response = await client.messages.create({
-    from_: fromNumber,
+  // Use client.messages.send() with media_urls parameter
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
     media_urls: mediaUrls,
@@ -94,16 +94,16 @@ app.post("/mms/send", async (req, res) => {
       });
     }
 
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 500).json({
-        error: "Failed to send MMS",
-        status_code: error.status_code,
-      });
-    }
-
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({
         error: "Network error connecting to Telnyx",
+      });
+    }
+
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 500).json({
+        error: "Failed to send MMS",
+        status_code: error.status,
       });
     }
 

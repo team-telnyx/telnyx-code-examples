@@ -28,8 +28,8 @@ async function chatWithAssistant(assistantId, message) {
     throw new Error("Message cannot be empty");
   }
 
-  // Use client.ai_assistants.chat() to send message and get response
-  const response = await client.ai_assistants.chat(assistantId, {
+  // Use client.ai.assistants.chat() to send message and get response
+  const response = await client.ai.assistants.chat(assistantId, {
     messages: [
       {
         role: "user",
@@ -42,7 +42,7 @@ async function chatWithAssistant(assistantId, message) {
   return {
     assistant_id: assistantId,
     user_message: message,
-    assistant_response: response.data.result,
+    assistant_response: response.content,
     timestamp: new Date().toISOString(),
   };
 }
@@ -72,16 +72,16 @@ app.post("/chat", async (req, res) => {
         .status(429)
         .json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 500).json({
-        error: error.message,
-        status_code: error.status_code,
-      });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res
         .status(503)
         .json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 500).json({
+        error: error.message,
+        status: error.status,
+      });
     }
     // Handle validation errors
     if (error.message.includes("environment variable")) {

@@ -31,8 +31,8 @@ async function createAssistant(name, instructions, model, enabledFeatures) {
     throw new Error('enabledFeatures must be a non-empty array');
   }
 
-  // Use client.ai_assistants.create() to create a new assistant
-  const response = await client.ai_assistants.create({
+  // Use client.ai.assistants.create() to create a new assistant
+  const response = await client.ai.assistants.create({
     name: name,
     instructions: instructions,
     model: model,
@@ -41,12 +41,12 @@ async function createAssistant(name, instructions, model, enabledFeatures) {
 
   // Extract serializable data — SDK objects are NOT JSON-serializable
   return {
-    id: response.data.id,
-    name: response.data.name,
-    model: response.data.model,
-    instructions: response.data.instructions,
-    enabled_features: response.data.enabled_features,
-    created_at: response.data.created_at,
+    id: response.id,
+    name: response.name,
+    model: response.model,
+    instructions: response.instructions,
+    enabled_features: response.enabled_features,
+    created_at: response.created_at,
   };
 }
 
@@ -75,14 +75,14 @@ app.post('/assistants/create', async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 400).json({
-        error: error.message,
-        status_code: error.status_code,
-      });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({ error: 'Network error connecting to Telnyx' });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 400).json({
+        error: error.message,
+        status_code: error.status,
+      });
     }
     // Handle validation errors
     if (error.message.includes('Missing required fields') || error.message.includes('enabledFeatures')) {
