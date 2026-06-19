@@ -1,0 +1,4 @@
+apscheduler
+flask
+python-dotenv
+telnyx

@@ -205,7 +205,7 @@ examples:
     folder: setup-sip-trunk-go
 
   # ─────────────────────────────────────────────────────────────────────
-  # SMS / MMS (12 examples)
+  # SMS / MMS (30 examples)
   # ─────────────────────────────────────────────────────────────────────
   - product: sms
     use_case: send-single-sms
@@ -278,6 +278,114 @@ examples:
     language: ruby
     framework: rails
     folder: send-sms-ruby
+
+  - product: sms
+    use_case: two-way-sms
+    language: python
+    framework: flask
+    folder: two-way-sms-chat-python
+
+  - product: sms
+    use_case: sms-survey
+    language: python
+    framework: flask
+    folder: sms-survey-bot-python
+
+  - product: sms
+    use_case: scheduled-sms
+    language: python
+    framework: flask
+    folder: schedule-sms-messages-python
+
+  - product: sms
+    use_case: alphanumeric-sender-id
+    language: python
+    framework: flask
+    folder: alphanumeric-sender-id-sms-python
+
+  - product: sms
+    use_case: long-code-sms
+    language: python
+    framework: flask
+    folder: long-code-sms-python
+
+  - product: sms
+    use_case: toll-free-sms
+    language: python
+    framework: flask
+    folder: toll-free-sms-python
+
+  - product: sms
+    use_case: shortcode-sms
+    language: python
+    framework: flask
+    folder: shortcode-sms-python
+
+  - product: sms
+    use_case: mms-receive
+    language: python
+    framework: flask
+    folder: receive-mms-webhook-python
+
+  - product: sms
+    use_case: delivery-receipts
+    language: python
+    framework: flask
+    folder: sms-delivery-receipts-python
+
+  - product: sms
+    use_case: number-lookup
+    language: python
+    framework: flask
+    folder: phone-number-lookup-python
+
+  - product: sms
+    use_case: opt-out-management
+    language: python
+    framework: flask
+    folder: sms-opt-out-management-python
+
+  - product: sms
+    use_case: conversation-threading
+    language: python
+    framework: flask
+    folder: sms-conversation-threading-python
+
+  - product: sms
+    use_case: sms-notifications
+    language: python
+    framework: flask
+    folder: send-sms-notifications-python
+
+  - product: sms
+    use_case: sms-marketing
+    language: python
+    framework: flask
+    folder: sms-marketing-campaign-python
+
+  - product: sms
+    use_case: two-way-sms
+    language: nodejs
+    framework: express
+    folder: two-way-sms-chat-nodejs
+
+  - product: sms
+    use_case: mms-send
+    language: nodejs
+    framework: express
+    folder: send-mms-picture-message-nodejs
+
+  - product: sms
+    use_case: sms-autoresponder
+    language: nodejs
+    framework: express
+    folder: sms-auto-reply-bot-nodejs
+
+  - product: sms
+    use_case: delivery-receipts
+    language: nodejs
+    framework: express
+    folder: sms-delivery-receipts-nodejs
 
   # ─────────────────────────────────────────────────────────────────────
   # IoT / SIM Management (7 examples)
