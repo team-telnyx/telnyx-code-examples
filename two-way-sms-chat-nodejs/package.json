@@ -1,7 +1,7 @@
 {
-  "name": "telnyx-example",
+  "name": "two-way-sms-chat-nodejs",
   "version": "1.0.0",
-  "description": "Telnyx API example",
+  "description": "Two-way SMS chat with Telnyx and Express",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,7 +10,6 @@
   "dependencies": {
     "express": "latest",
     "telnyx": "latest",
-    "dotenv": "latest",
-    "body-parser": "latest"
+    "dotenv": "latest"
   }
 }

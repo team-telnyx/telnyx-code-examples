@@ -1,333 +1,212 @@
-# SMS Survey with Python and Flask
+---
+name: sms-survey-bot
+title: "SMS Survey Bot"
+description: "Run multi-question SMS surveys over the Telnyx Messaging API. Sends questions, validates inbound replies via signed webhooks, tracks per-participant progress, and exposes results."
+language: python
+framework: flask
+telnyx_products: [Messaging]
+channel: [sms]
+---
 
-## What Does This Example Do?
+# SMS Survey Bot
 
-Build a production-ready Flask application that conducts multi-question SMS surveys using the Telnyx Python SDK. This tutorial demonstrates how to manage survey state, handle inbound SMS responses via webhooks, track participant progress, and generate survey results—all with proper error handling and secure credential management.
+Run multi-question SMS surveys over the Telnyx Messaging API. Sends questions, validates inbound replies via signed webhooks, tracks per-participant progress, and exposes results.
 
-## Who Is This For?
+## Why Telnyx
 
-- **Python developers** building sms features with Flask.
-- **Backend engineers** integrating telephony or messaging into existing applications.
-- **DevOps teams** looking for containerized, production-ready telecom examples.
-- **Startups and enterprises** replacing legacy telecom providers with a modern API-first platform.
+Telnyx is an **AI Communications Infrastructure** platform — voice, messaging, SIP, AI, and IoT on one private, global network.
 
-## Why Telnyx?
+- **Deliverability built in** — number reputation, 10DLC registration, and deliverability monitoring are included.
+- **Signed webhooks** — every inbound event is Ed25519-signed so you can reject spoofed traffic before processing.
+- **Developer-first** — typed SDKs for Python, Node.js, Go, and Ruby with a consistent webhook event model.
 
-Telnyx is an **AI Communications Infrastructure** platform that gives developers a single API for [voice](https://telnyx.com/products/voice-ai-agents), [messaging](https://telnyx.com/products/sms-api), [SIP](https://telnyx.com/products/sip-trunks), [AI](https://telnyx.com/ai-assistants), and [IoT](https://telnyx.com/products/iot-sim-card) — no Frankenstack required.
+## Telnyx API Endpoints Used
 
-- **Integrated platform** — [Voice](https://telnyx.com/products/voice-ai-agents), [SMS](https://telnyx.com/products/sms-api), [SIP trunking](https://telnyx.com/products/sip-trunks), [AI assistants](https://telnyx.com/ai-assistants), and [IoT SIM management](https://telnyx.com/products/iot-sim-card) under one roof. No stitching together multiple vendors.
-- **Global private network** — Calls and messages traverse the Telnyx-owned IP network for lower latency and higher reliability than the public internet.
-- **Developer-first** — SDKs for Python, Node.js, Go, Ruby, Java, and PHP. Comprehensive webhook event model. Sandbox environment for testing.
-- **Competitive pricing** — Pay-as-you-go with no minimums, contracts, or per-seat fees.
+- **Send Message**: `POST /v2/messages` — sends each survey question, validation prompts, and the completion message. [API reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- **Inbound message webhook** (`message.received`): Telnyx delivers each participant reply to `/webhook/sms`. [Webhook reference](https://developers.telnyx.com/api-reference/inbound-message-webhook)
 
-## Prerequisites
+| Direction | Endpoint / Event | Purpose |
+|-----------|------------------|---------|
+| Outbound | `POST /v2/messages` | Send survey questions and the completion message |
+| Inbound | `message.received` webhook | Receive participant replies |
 
-- Python 3.8 or higher.
-- A Telnyx account with an active API key from the [Telnyx Portal](https://portal.telnyx.com).
-- A Telnyx phone number enabled for inbound and outbound SMS.
-- A Messaging Profile configured with a webhook URL for inbound messages.
-- pip (Python package manager).
-- A publicly accessible URL for webhook callbacks (use ngrok for local development).
+## Architecture
 
-## Quick Start
+```
+  POST /survey/start ──┐
+                       ▼
+              ┌──────────────────┐
+              │  Flask app        │
+              │  (survey state)   │──► POST /v2/messages ──► participant
+              └────────┬─────────┘
+                       ▲
+   participant reply ──┘
+   (message.received) ──► POST /webhook/sms (signature verified)
+                       │
+                       └──► advance question / complete / reject
+```
 
-### Option 1: Local (recommended)
+The Flask app holds per-participant survey state in memory (swap for a database in
+production). It sends questions outbound via the Messaging API and receives replies
+on a single signed webhook, advancing each participant through the question set.
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in:
+
+| Variable | Type | Example | Required | Description | Where to get it |
+|----------|------|---------|----------|-------------|-----------------|
+| `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key, used to send messages | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
+| `TELNYX_PUBLIC_KEY` | `string` | `e5b5c...` | **yes** | Public key used to verify inbound webhook signatures | [Portal → Account → Public Key](https://portal.telnyx.com) |
+| `TELNYX_PHONE_NUMBER` | `string` | `+15551234567` | **yes** | SMS-enabled Telnyx number the survey sends from (E.164) | [Portal → Numbers](https://portal.telnyx.com/numbers/my-numbers) |
+| `FLASK_DEBUG` | `string` | `false` | no | Enable Flask debug mode | — |
+
+## Setup
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/sms-survey-bot-python
-cp .env.example .env
-# Edit .env with your Telnyx API key and phone number
+cp .env.example .env    # ← fill in your credentials
 pip install -r requirements.txt
-python app.py
+python app.py           # starts on http://localhost:5000
 ```
 
-### Option 2: Manual
+### Webhook Configuration
 
-See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
+1. Expose your local server:
 
-## Implementation Details
+   ```bash
+   ngrok http 5000
+   ```
 
-Create `app.py` with the Flask application, survey logic, and webhook handler:
+2. Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
 
-```python
-#!/usr/bin/env python3
-"""Production-ready Flask SMS survey application using Telnyx."""
+   - **Messaging Profile** → Inbound Settings → Webhook URL → `https://<id>.ngrok.io/webhook/sms`
 
-import os
-import json
-import telnyx
-from dotenv import load_dotenv
-from flask import Flask, jsonify, request
-from config import SURVEY_QUESTIONS, survey_responses
+3. Copy your **Public Key** from the Portal account page into `TELNYX_PUBLIC_KEY`. Inbound webhooks are rejected with `401` if the signature does not verify.
 
-load_dotenv()
+## API Reference
 
-app = Flask(__name__)
+### `POST /survey/start`
 
-# Initialize Telnyx client with the new SDK pattern
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
+Start a survey for a participant. Sends them the first question.
 
-TELNYX_PHONE_NUMBER = os.getenv("TELNYX_PHONE_NUMBER")
-
-def start_survey(to_number: str) -> dict:
-    """Initiate a survey by sending the first question to a participant."""
-    if not to_number.startswith("+"):
-        raise ValueError("Phone number must be in E.164 format (e.g., +15551234567)")
-    
-    # Initialize survey state for this participant
-    survey_responses[to_number] = {
-        "current_question": 0,
-        "responses": [],
-        "status": "in_progress",
-    }
-    
-    # Send the first question
-    first_question = SURVEY_QUESTIONS[0]
-    response = client.messages.create(
-        from_=TELNYX_PHONE_NUMBER,
-        to=to_number,
-        text=first_question["text"],
-    )
-    
-    return {
-        "participant": to_number,
-        "message_id": response.data.id,
-        "question_number": 1,
-        "total_questions": len(SURVEY_QUESTIONS),
-        "status": "survey_started",
-    }
-
-def process_survey_response(from_number: str, message_text: str) -> dict:
-    """Process inbound survey response and advance to next question or complete survey."""
-    if from_number not in survey_responses:
-        return {
-            "status": "error",
-            "message": "No active survey found for this number. Reply START to begin.",
-        }
-    
-    participant_state = survey_responses[from_number]
-    
-    if participant_state["status"] != "in_progress":
-        return {
-            "status": "error",
-            "message": "Survey already completed for this participant.",
-        }
-    
-    current_q_index = participant_state["current_question"]
-    current_question = SURVEY_QUESTIONS[current_q_index]
-    
-    # Validate response against allowed options
-    if message_text.strip() not in current_question["valid_responses"]:
-        response = client.messages.create(
-            from_=TELNYX_PHONE_NUMBER,
-            to=from_number,
-            text=f"Invalid response. {current_question['text']}",
-        )
-        return {
-            "status": "invalid_response",
-            "message_id": response.data.id,
-            "message": "Response rejected. Resending question.",
-        }
-    
-    # Record valid response
-    participant_state["responses"].append({
-        "question_id": current_question["id"],
-        "question_text": current_question["text"],
-        "response": message_text.strip(),
-    })
-    
-    # Check if survey is complete
-    if current_q_index + 1 >= len(SURVEY_QUESTIONS):
-        participant_state["status"] = "completed"
-        completion_message = (
-            f"Thank you for completing the survey! Your responses have been recorded. "
-            f"Total questions answered: {len(participant_state['responses'])}"
-        )
-        response = client.messages.create(
-            from_=TELNYX_PHONE_NUMBER,
-            to=from_number,
-            text=completion_message,
-        )
-        return {
-            "status": "survey_completed",
-            "message_id": response.data.id,
-            "participant": from_number,
-            "responses_count": len(participant_state["responses"]),
-        }
-    
-    # Send next question
-    next_q_index = current_q_index + 1
-    next_question = SURVEY_QUESTIONS[next_q_index]
-    participant_state["current_question"] = next_q_index
-    
-    response = client.messages.create(
-        from_=TELNYX_PHONE_NUMBER,
-        to=from_number,
-        text=next_question["text"],
-    )
-    
-    return {
-        "status": "question_sent",
-        "message_id": response.data.id,
-        "question_number": next_q_index + 1,
-        "total_questions": len(SURVEY_QUESTIONS),
-    }
-
-@app.route("/survey/start", methods=["POST"])
-def start_survey_endpoint():
-    """HTTP endpoint to initiate a survey for a participant."""
-    data = request.get_json()
-    
-    if not data:
-        return jsonify({"error": "Request body required"}), 400
-    
-    to_number = data.get("to")
-    
-    if not to_number:
-        return jsonify({"error": "Missing required field: 'to'"}), 400
-    
-    try:
-        result = start_survey(to_number)
-        return jsonify(result), 200
-        
-    except telnyx.AuthenticationError:
-        return jsonify({"error": "Invalid API key"}), 401
-    except telnyx.RateLimitError:
-        return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
-    except telnyx.APIStatusError as e:
-        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
-    except telnyx.APIConnectionError:
-        return jsonify({"error": "Network error connecting to Telnyx"}), 503
-    except ValueError as e:
-        return jsonify({"error": "Invalid request"}), 400
-
-@app.route("/webhook/sms", methods=["POST"])
-def webhook_sms():
-    """Webhook endpoint to receive inbound SMS messages from Telnyx."""
-    payload = request.get_json()
-    
-    if not payload:
-        return jsonify({"error": "No payload"}), 400
-    
-    # Extract event data from Telnyx webhook
-    event_type = payload.get("data", {}).get("event_type")
-    
-    if event_type != "message.received":
-        return jsonify({"status": "ignored"}), 200
-    
-    message_data = payload.get("data", {})
-    from_number = message_data.get("from", {}).get("phone_number")
-    message_text = message_data.get("text", "").strip()
-    
-    if not from_number or not message_text:
-        return jsonify({"error": "Missing from or text"}), 400
-    
-    try:
-        # Handle special commands
-        if message_text.upper() == "START":
-            result = start_survey(from_number)
-            return jsonify(result), 200
-        
-        # Process survey response
-        result = process_survey_response(from_number, message_text)
-        return jsonify(result), 200
-        
-    except telnyx.AuthenticationError:
-        return jsonify({"error": "Invalid API key"}), 401
-    except telnyx.RateLimitError:
-        return jsonify({"error": "Rate limit exceeded"}), 429
-    except telnyx.APIStatusError as e:
-        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
-    except telnyx.APIConnectionError:
-        return jsonify({"error": "Network error connecting to Telnyx"}), 503
-    except Exception as e:
-        return jsonify({"error": "Internal server error"}), 500
-
-@app.route("/survey/results", methods=["GET"])
-def get_survey_results():
-    """HTTP endpoint to retrieve survey results for all participants."""
-    results = []
-    
-    for participant, state in survey_responses.items():
-        results.append({
-            "participant": participant,
-            "status": state["status"],
-            "responses_count": len(state["responses"]),
-            "responses": state["responses"],
-        })
-    
-    return jsonify({
-        "total_participants": len(results),
-        "results": results,
-    }), 200
-
-@app.route("/survey/participant/<participant>", methods=["GET"])
-def get_participant_results(participant):
-    """HTTP endpoint to retrieve survey results for a specific participant."""
-    if participant not in survey_responses:
-        return jsonify({"error": "Participant not found"}), 404
-    
-    state = survey_responses[participant]
-    
-    return jsonify({
-        "participant": participant,
-        "status": state["status"],
-        "responses_count": len(state["responses"]),
-        "responses": state["responses"],
-    }), 200
-
-if __name__ == "__main__":
-    app.run(debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", port=5000)
+```bash
+curl -X POST http://localhost:5000/survey/start \
+  -H "Content-Type: application/json" \
+  -d '{"to": "+12125551234"}'
 ```
 
-## Complete Code
+**Response:**
 
-See [`app.py`](./app.py) for the full implementation.
+```json
+{
+  "participant": "+12125551234",
+  "message_id": "msg-f5d7a7e0-1234-5678",
+  "question_number": 1,
+  "total_questions": 3,
+  "status": "survey_started"
+}
+```
+
+### `POST /webhook/sms`
+
+Telnyx delivers inbound `message.received` events here. The signature is verified
+before the body is parsed. A reply of `START` begins a new survey; any other reply
+advances the participant's active survey. This endpoint is called by Telnyx, not by you.
+
+```json
+{
+  "data": {
+    "event_type": "message.received",
+    "payload": {
+      "from": { "phone_number": "+12125551234" },
+      "text": "5"
+    }
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "status": "question_sent",
+  "message_id": "msg-aaaa-bbbb",
+  "question_number": 2,
+  "total_questions": 3
+}
+```
+
+### `GET /survey/results`
+
+Return progress and recorded answers for all participants.
+
+```bash
+curl http://localhost:5000/survey/results
+```
+
+**Response:**
+
+```json
+{
+  "total_participants": 1,
+  "results": [
+    {
+      "participant": "+12125551234",
+      "status": "in_progress",
+      "responses_count": 1,
+      "responses": [
+        { "question_id": 1, "question_text": "How satisfied...", "response": "5" }
+      ]
+    }
+  ]
+}
+```
+
+### `GET /survey/participant/<participant>`
+
+Return progress and answers for a single participant (URL-encode the `+`).
+
+```bash
+curl http://localhost:5000/survey/participant/%2B12125551234
+```
+
+**Response:**
+
+```json
+{
+  "participant": "+12125551234",
+  "status": "completed",
+  "responses_count": 3,
+  "responses": [
+    { "question_id": 1, "question_text": "How satisfied...", "response": "5" },
+    { "question_id": 2, "question_text": "Would you recommend...", "response": "Y" },
+    { "question_id": 3, "question_text": "How likely...", "response": "4" }
+  ]
+}
+```
 
 ## Troubleshooting
 
-| Issue | Problem | Solution |
-|-------|---------|----------|
-| Webhook not receiving messages | The `/webhook/sms` endpoint is not being called when inbound SMS arrives. | Verify your Messaging Profile in the Telnyx Portal is configured with the correct webhook URL. Ensure the URL is publicly accessible (test with `curl https://your-ngrok-url.ngrok.io/webhook/sms`). Check that ngrok is still running and the tunnel is active. Confirm the phone number receiving messages is associated with the correct Messaging Profile. |
-| Survey state not persisting | Participant responses are lost or survey state resets unexpectedly. | The in-memory `survey_responses` dictionary is cleared when the Flask server restarts. For production, implement persistent storage using a database (PostgreSQL, MongoDB, etc.) instead of in-memory storage. Store participant state with timestamps to handle timeouts and abandoned surveys. |
-| Invalid response validation failing | Participants report that valid responses are rejected as invalid. | Check that response validation in `process_survey_response()` matches the exact valid options defined in `SURVEY_QUESTIONS`. Ensure case sensitivity is handled correctly (e.g., "Y" vs "y"). Test with the exact response strings shown in the survey question text. Verify that whitespace is being stripped from incoming messages with `.strip()`. |
-| Rate limiting errors (429) | The application returns "Rate limit exceeded" when sending multiple survey messages. | Implement exponential backoff between API calls. Add a delay between sending the survey initiation and first question. For bulk surveys, space out survey starts across multiple seconds. Check your Telnyx account plan limits and consider upgrading if conducting large-scale surveys. |
-| Authentication errors (401) | The endpoint returns `{"error": "Invalid API key"}` with HTTP 401. | Verify your `TELNYX_API_KEY` in the `.env` file matches the key shown in the [Telnyx Portal](https://portal.telnyx.com). Ensure there are no trailing spaces or quotes. If the key was regenerated recently, update your environment file and restart the Flask server. Confirm the `.env` file is in the same directory as `app.py` and `load_dotenv()` is called before accessing environment variables. |
+- **401 `invalid signature` on `/webhook/sms`**: `TELNYX_PUBLIC_KEY` is missing or wrong. Copy the Public Key from the Telnyx Portal account page into `.env` and restart. The key must match the account that owns the Messaging Profile.
+- **Webhook never fires**: Confirm the Messaging Profile's inbound webhook URL points at `/webhook/sms` on your public (ngrok) URL and that the receiving number is assigned to that profile.
+- **401 `Invalid API key`**: `TELNYX_API_KEY` is wrong or revoked. Generate a new one at [portal.telnyx.com/api-keys](https://portal.telnyx.com/api-keys).
+- **Survey state lost after restart**: State lives in the in-memory `survey_responses` dict. Replace it with a database (PostgreSQL, Redis) for production.
+- **Valid reply rejected as invalid**: Replies are matched exactly against `valid_responses` in `SURVEY_QUESTIONS`. Check case (`Y`/`y`) and that whitespace is stripped.
+- **429 Rate limit exceeded**: Space out survey starts and add backoff between sends when running large batches.
 
-## FAQ
+## Related Examples
 
-**Q: Do I need a Telnyx account to run this example?**
-
-Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key. Telnyx offers free trial credit for testing.
-
-**Q: Can I use this SMS example in production?**
-
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
-
-**Q: What Python version do I need?**
-
-Python 3.8 or higher. Python 3.12+ is recommended.
-
-**Q: How is Telnyx different from Twilio?**
-
-Telnyx is an AI Communications Infrastructure platform with a private global network, integrated voice + messaging + AI + SIP + IoT under one API, and significantly lower pricing. No need to stitch together multiple vendors.
-
-**Q: Where do I get a Telnyx phone number?**
-
-Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > Search & Buy, and purchase a number with the capabilities you need (SMS, voice, or both).
+- [send-sms-python](../send-sms-python/) — send a single SMS message.
+- [ai-compliance-quiz-phone-python](../ai-compliance-quiz-phone-python/) — interactive quiz over voice with signed webhooks.
 
 ## Resources
 
 - [Messaging Overview](https://developers.telnyx.com/docs/messaging)
-- [Send an SMS — Quickstart](https://developers.telnyx.com/docs/messaging/messages/send-message)
-- [Messaging API Reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- [Send a Message — API reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- [Inbound Message Webhook reference](https://developers.telnyx.com/api-reference/inbound-message-webhook)
+- [Webhook signature verification](https://developers.telnyx.com/docs/messaging/messages/receive-webhooks)
 - [Python SDK](https://developers.telnyx.com/development/sdk/python)
 - [Telnyx SMS API](https://telnyx.com/products/sms-api)
 - [Messaging Pricing](https://telnyx.com/pricing/messaging)
-
-## Related Examples
-
-- [Receive SMS Webhooks with Python](/tutorials/sms/python/receive-sms-webhook).
-- [Send Bulk SMS Messages](/tutorials/sms/python/send-bulk-sms).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/python/otp-2fa).

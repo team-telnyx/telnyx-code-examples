@@ -1,199 +1,190 @@
-# Build Two-Way SMS with Python and Flask
+---
+name: two-way-sms-chat
+title: "Two-Way SMS Chat"
+description: "Send and receive SMS with Telnyx to run interactive, stateful text conversations over a Flask webhook."
+language: python
+framework: flask
+telnyx_products: [Messaging]
+channel: [sms]
+---
 
-## What Does This Example Do?
+# Two-Way SMS Chat
 
-Create a complete two-way SMS system using Flask and the Telnyx Python SDK. This tutorial demonstrates how to send outbound messages and receive inbound SMS via webhooks, enabling interactive conversations between your application and users.
+Send and receive SMS with Telnyx to run interactive, stateful text conversations over a Flask webhook.
 
-## Who Is This For?
+## Why Telnyx
 
-- **Python developers** building sms features with Flask.
-- **Backend engineers** integrating telephony or messaging into existing applications.
-- **DevOps teams** looking for containerized, production-ready telecom examples.
-- **Startups and enterprises** replacing legacy telecom providers with a modern API-first platform.
+Telnyx is an **AI Communications Infrastructure** platform — voice, messaging, SIP, AI, and IoT on one private, global network.
 
-## Why Telnyx?
+- **Two-way messaging built in** — send and receive SMS through a single Messaging Profile, with inbound delivered to your webhook in real time.
+- **Deliverability built in** — number reputation, 10DLC registration, and deliverability monitoring included.
+- **Signed webhooks** — every inbound event is signed with Ed25519 so you can verify it came from Telnyx before acting on it.
 
-Telnyx is an **AI Communications Infrastructure** platform that gives developers a single API for [voice](https://telnyx.com/products/voice-ai-agents), [messaging](https://telnyx.com/products/sms-api), [SIP](https://telnyx.com/products/sip-trunks), [AI](https://telnyx.com/ai-assistants), and [IoT](https://telnyx.com/products/iot-sim-card) — no Frankenstack required.
+## Telnyx API Endpoints Used
 
-- **Integrated platform** — [Voice](https://telnyx.com/products/voice-ai-agents), [SMS](https://telnyx.com/products/sms-api), [SIP trunking](https://telnyx.com/products/sip-trunks), [AI assistants](https://telnyx.com/ai-assistants), and [IoT SIM management](https://telnyx.com/products/iot-sim-card) under one roof. No stitching together multiple vendors.
-- **Global private network** — Calls and messages traverse the Telnyx-owned IP network for lower latency and higher reliability than the public internet.
-- **Developer-first** — SDKs for Python, Node.js, Go, Ruby, Java, and PHP. Comprehensive webhook event model. Sandbox environment for testing.
-- **Competitive pricing** — Pay-as-you-go with no minimums, contracts, or per-seat fees.
+- **Send Message**: `POST /v2/messages` — sends the outbound reply. [API reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- **Inbound Message webhook**: `message.received` — Telnyx delivers inbound SMS to your `/webhooks/sms` route. [Webhook reference](https://developers.telnyx.com/docs/messaging/messages/receive-webhooks)
 
-## Prerequisites
+## Architecture
 
-- Python 3.8 or higher
-- A Telnyx account with an active API key from the [Telnyx Portal](https://portal.telnyx.com)
-- A Telnyx phone number enabled for SMS
-- A publicly accessible URL for webhooks (use ngrok for local development)
-- pip (Python package manager)
+```
+  User texts your number
+            │
+            ▼
+  ┌────────────────────┐
+  │  Telnyx Messaging   │  signs the webhook (Ed25519)
+  └─────────┬──────────┘
+            │  POST message.received
+            ▼
+  ┌────────────────────┐
+  │  /webhooks/sms      │  verify signature → parse data.payload
+  │  (Flask)            │  → process_inbound_message()
+  └─────────┬──────────┘
+            │  POST /v2/messages (reply)
+            ▼
+  ┌────────────────────┐
+  │  Telnyx Messaging   │  ──► reply SMS to the user
+  └────────────────────┘
+```
 
-## Quick Start
+Conversation state is held in an in-memory dict keyed by the sender's phone number. Replace it with a database for production (see [GUIDE.md](./GUIDE.md)).
 
-### Option 1: Local (recommended)
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in:
+
+| Variable | Type | Example | Required | Description | Where to get it |
+|----------|------|---------|----------|-------------|-----------------|
+| `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key, used to send replies | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
+| `TELNYX_PUBLIC_KEY` | `string` | `MFkwEwYH...` | **yes** | Public key used to verify inbound webhook signatures | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
+| `TELNYX_PHONE_NUMBER` | `string` | `+15551234567` | **yes** | Your Telnyx number (E.164) that sends/receives messages | [Portal → My Numbers](https://portal.telnyx.com/numbers/my-numbers) |
+| `FLASK_DEBUG` | `string` | `false` | no | Enable Flask debug mode | — |
+
+## Setup
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/two-way-sms-chat-python
-cp .env.example .env
-# Edit .env with your Telnyx API key and phone number
+cp .env.example .env    # ← fill in your credentials
 pip install -r requirements.txt
-python app.py
+python app.py           # starts on http://localhost:5000
 ```
 
-### Option 2: Manual
+### Webhook Configuration
 
-See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
+1. Expose your local server:
 
-## Implementation Details
+   ```bash
+   ngrok http 5000
+   ```
 
-Create `app.py` with the Flask application and webhook handler. The system stores conversation state in memory for demonstration:
+2. Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
 
-```python
-import os
-import telnyx
-from dotenv import load_dotenv
-from flask import Flask, jsonify, request
-from datetime import datetime
+   - **Messaging → Messaging Profiles** → your profile → **Inbound Settings** → Webhook URL → `https://<id>.ngrok.io/webhooks/sms`
 
-load_dotenv()
+3. Assign your `TELNYX_PHONE_NUMBER` to that Messaging Profile so inbound SMS is routed to the webhook.
 
-app = Flask(__name__)
+## API Reference
 
-# Initialize client with the new SDK pattern
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
+### `POST /webhooks/sms`
 
-# Simple in-memory storage for conversation state
-conversations = {}
+Receives signed `message.received` events from Telnyx. The signature is verified before the body is parsed; an invalid or missing signature returns `401`. On a valid inbound message the route generates a reply and sends it back to the user.
 
-def send_sms(to_number: str, message: str) -> dict:
-    """Send SMS via Telnyx and return JSON-serializable response data."""
-    from_number = os.getenv("TELNYX_PHONE_NUMBER")
-    if not from_number:
-        raise ValueError("TELNYX_PHONE_NUMBER environment variable not set")
-    
-    if not to_number.startswith("+"):
-        raise ValueError("Phone number must be in E.164 format")
-    
-    response = client.messages.create(
-        from_=from_number,
-        to=to_number,
-        text=message,
-    )
-    
-    return {
-        "message_id": response.data.id,
-        "status": response.data.to[0].status if response.data.to else "unknown",
-        "from": from_number,
-        "to": to_number,
-        "text": message,
+```bash
+# Telnyx calls this — example shape of the event it POSTs:
+curl -X POST http://localhost:5000/webhooks/sms \
+  -H "Content-Type: application/json" \
+  -H "telnyx-signature-ed25519: <signature>" \
+  -H "telnyx-timestamp: <unix-ts>" \
+  -d '{
+    "data": {
+      "event_type": "message.received",
+      "payload": {
+        "from": { "phone_number": "+12125551234" },
+        "to": [ { "phone_number": "+15551234567" } ],
+        "text": "hello"
+      }
     }
-
-def process_inbound_message(from_number: str, message_text: str) -> str:
-    """Process inbound SMS and generate appropriate response."""
-    message_lower = message_text.lower().strip()
-    
-    # Initialize conversation state if new user
-    if from_number not in conversations:
-        conversations[from_number] = {
-            "state": "new",
-            "created_at": datetime.now(),
-            "message_count": 0
-        }
-    
-    conversation = conversations[from_number]
-    conversation["message_count"] += 1
-    conversation["last_message"] = datetime.now()
-    
-    # Simple conversation flow based on keywords
-    if message_lower in ["hello", "hi", "hey", "start"]:
-        conversation["state"] = "greeted"
-        return "Hello! Welcome to Telnyx SMS. Type 'help' for available commands or 'info' to learn more about our services."
-    
-    elif message_lower == "help":
-        return "Available commands:\n• 'info' - Learn about Telnyx\n• 'status' - Check your conversation stats\n• 'reset' - Start over\n• 'stop' - End conversation"
-    
-    elif message_lower == "info":
-        conversation["state"] = "informed"
-        return "Telnyx provides programmable SMS, Voice, and IoT connectivity APIs. Visit telnyx.com to get started with our developer-friendly platform!"
-    
-    elif message_lower == "status":
-        return f"Conversation started: {conversation['created_at'].strftime('%Y-%m-%d %H:%M')}\nMessages exchanged: {conversation['message_count']}\nCurrent state: {conversation['state']}"
-    
-    elif message_lower == "reset":
-        conversations[from_number] = {
-            "state": "reset",
-            "created_at": datetime.now(),
-            "message_count": 1
-        }
-        return "Conversation reset! Type 'hello' to start fresh."
-    
-    elif message_lower in ["stop", "quit", "end"]:
-        conversation["state"] = "ended"
-        return "Thanks for trying Telnyx SMS! Conversation ended. Text 'hello' anytime to start again."
-    
-    else:
-        # Echo back with helpful suggestion
-        return f"You said: '{message_text}'\n\nI didn't understand that command. Type 'help' to see available options."
+  }'
 ```
 
-## Complete Code
+**Response:**
 
-See [`app.py`](./app.py) for the full implementation.
+```json
+{
+  "status": "processed",
+  "inbound_message": "hello",
+  "response_sent": "Hello! Welcome to Telnyx SMS. Type 'help' for available commands or 'info' to learn more about our services.",
+  "message_id": "msg-f5d7a7e0-1234-5678"
+}
+```
+
+### `POST /sms/send`
+
+Send an outbound SMS directly (not part of the inbound flow). Useful for testing your number and credentials.
+
+```bash
+curl -X POST http://localhost:5000/sms/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "+12125551234",
+    "message": "Hello from Telnyx!"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "message_id": "msg-f5d7a7e0-1234-5678",
+  "status": "queued",
+  "from": "+15551234567",
+  "to": "+12125551234",
+  "text": "Hello from Telnyx!"
+}
+```
+
+### `GET /conversations`
+
+List active in-memory conversations (debugging only).
+
+```bash
+curl http://localhost:5000/conversations
+```
+
+**Response:**
+
+```json
+[
+  {
+    "phone_number": "+12125551234",
+    "state": "greeted",
+    "message_count": 2,
+    "created_at": "2026-06-18T12:00:00"
+  }
+]
+```
+
+See [API.md](./API.md) for the full typed endpoint reference.
 
 ## Troubleshooting
 
-### Issue 1: Webhooks Not Received
+- **`401 invalid signature` on `/webhooks/sms`**: `TELNYX_PUBLIC_KEY` is missing or wrong. Copy the public key from [portal.telnyx.com/api-keys](https://portal.telnyx.com/api-keys) into `.env` and restart. The key must belong to the same account that sends the webhooks.
+- **Webhooks never arrive**: Confirm the Messaging Profile's Inbound Webhook URL points at `https://<id>.ngrok.io/webhooks/sms` and that your `TELNYX_PHONE_NUMBER` is assigned to that profile. Verify ngrok is still running and the URL hasn't rotated.
+- **Replies not delivered**: Check the server logs for the `send_sms()` path. Make sure `TELNYX_PHONE_NUMBER` is E.164 and is messaging-enabled on the same profile.
+- **`401 Invalid API key` on `/sms/send`**: `TELNYX_API_KEY` is invalid. Generate a new one at [portal.telnyx.com/api-keys](https://portal.telnyx.com/api-keys).
 
-**Problem:** Your Flask app doesn't receive webhook events when SMS messages are sent to your Telnyx number.
+## Related Examples
 
-**Solution:** Verify your Messaging Profile configuration in the Telnyx Portal. Ensure the webhook URL matches your ngrok HTTPS URL exactly (including `/webhooks/sms` path). Check that `message.received` events are enabled. Test the webhook URL directly with a POST request to confirm Flask is receiving requests. If using ngrok, ensure it's still running and the URL hasn't changed.
-
-### Issue 2: Webhook Authentication Errors
-
-**Problem:** The webhook endpoint returns 401 errors or "Authentication failed" when processing inbound messages.
-
-**Solution:** Webhook requests don't require API key authentication - they're incoming from Telnyx. The authentication error likely occurs when your app tries to send the response SMS. Verify your `TELNYX_API_KEY` environment variable is correctly set and the API key is valid. Check that the Flask server restarted after updating the `.env` file.
-
-### Issue 3: Response Messages Not Sending
-
-**Problem:** Inbound messages are received and processed, but the automated responses aren't delivered to users.
-
-**Solution:** Check the Flask logs for specific error messages from the `send_sms()` function. Verify your `TELNYX_PHONE_NUMBER` environment variable is set and matches a number assigned to your Messaging Profile. Ensure the phone number is in E.164 format. Test the `/sms/send` endpoint directly to isolate whether the issue is with webhook processing or SMS sending functionality.
-
-## FAQ
-
-**Q: Do I need a Telnyx account to run this example?**
-
-Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key. Telnyx offers free trial credit for testing.
-
-**Q: Can I use this SMS example in production?**
-
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
-
-**Q: What Python version do I need?**
-
-Python 3.8 or higher. Python 3.12+ is recommended.
-
-**Q: How is Telnyx different from Twilio?**
-
-Telnyx is an AI Communications Infrastructure platform with a private global network, integrated voice + messaging + AI + SIP + IoT under one API, and significantly lower pricing. No need to stitch together multiple vendors.
-
-**Q: Where do I get a Telnyx phone number?**
-
-Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > Search & Buy, and purchase a number with the capabilities you need (SMS, voice, or both).
+- [send-sms-python](../send-sms-python/) — send a single outbound SMS
+- [sms-chatbot-with-conversation-memory-python](../sms-chatbot-with-conversation-memory-python/) — AI-powered SMS chatbot with memory
 
 ## Resources
 
 - [Messaging Overview](https://developers.telnyx.com/docs/messaging)
-- [Send an SMS — Quickstart](https://developers.telnyx.com/docs/messaging/messages/send-message)
+- [Receive SMS Webhooks](https://developers.telnyx.com/docs/messaging/messages/receive-webhooks)
 - [Messaging API Reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- [Webhook Signing & Verification](https://developers.telnyx.com/docs/messaging/messages/webhook-signing)
 - [Python SDK](https://developers.telnyx.com/development/sdk/python)
 - [Telnyx SMS API](https://telnyx.com/products/sms-api)
 - [Messaging Pricing](https://telnyx.com/pricing/messaging)
-
-## Related Examples
-
-- [Send Bulk SMS Messages](/tutorials/sms/python/send-bulk-sms)
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/python/otp-2fa)
-- [Create SMS Survey System](/tutorials/sms/python/sms-survey)

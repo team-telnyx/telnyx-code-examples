@@ -107,16 +107,14 @@ app.post("/mms/send", async (req, res) => {
       });
     }
 
-    // Handle validation errors
-    if (error.message.includes("E.164") || error.message.includes("environment")) {
+    // Handle validation errors (from sendMMS helper)
+    if (error.message.includes("E.164") || error.message.includes("environment") || error.message.includes("media URL")) {
       return res.status(400).json({ error: "Invalid request parameters" });
     }
 
-    // Generic error fallback
-    return res.status(500).json({
-      error: "Internal server error",
-      details: "API request failed",
-    });
+    // Catch-all for unexpected errors — log server-side, return a generic message
+    console.error("Failed to send MMS:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -126,7 +124,7 @@ app.get("/health", (req, res) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`MMS server running on http://localhost:${PORT}`);
 });

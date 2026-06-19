@@ -1,17 +1,15 @@
 {
-  "name": "telnyx-example",
+  "name": "sms-delivery-receipts-nodejs",
   "version": "1.0.0",
-  "description": "Telnyx API example",
+  "description": "Track SMS delivery receipts with Telnyx webhooks using Node.js and Express",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "node --check server.js"
   },
   "dependencies": {
-    "express": "latest",
-    "telnyx": "latest",
-    "dotenv": "latest",
-    "body-parser": "latest",
-    "nodemon": "latest"
+    "express": "^4.19.2",
+    "telnyx": "^2.0.0",
+    "dotenv": "^16.4.5"
   }
 }

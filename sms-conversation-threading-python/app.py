@@ -3,6 +3,7 @@
 
 import os
 import uuid
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
@@ -12,6 +13,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Database setup
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///conversations.db")
@@ -53,7 +57,11 @@ Base.metadata.create_all(bind=engine)
 
 # Flask app setup
 app = Flask(__name__)
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
+# public_key (from the Portal) lets the SDK verify inbound webhook signatures.
+client = telnyx.Telnyx(
+    api_key=os.getenv("TELNYX_API_KEY"),
+    public_key=os.getenv("TELNYX_PUBLIC_KEY"),
+)
 
 
 def get_or_create_conversation(contact_number: str) -> str:
@@ -248,27 +256,36 @@ def send_to_contact(contact_number: str):
 @app.route("/webhooks/sms", methods=["POST"])
 def handle_inbound_sms():
     """Webhook endpoint to receive inbound SMS and add to conversation thread."""
-    payload = request.get_json()
-    
-    if not payload or "data" not in payload:
+    # Verify the Telnyx Ed25519 signature against the raw body before trusting
+    # anything. unwrap() reads the telnyx-signature-ed25519 / telnyx-timestamp
+    # headers and raises if the signature or timestamp (replay) check fails.
+    try:
+        client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 401
+
+    body = request.get_json(silent=True)
+    if not body or "data" not in body:
         return jsonify({"error": "Invalid webhook payload"}), 400
-    
-    event_data = payload.get("data", {})
-    
-    if payload.get("type") != "message.received":
+
+    data = body.get("data", {})
+    event_type = data.get("event_type")          # event_type lives at the data level
+    payload = data.get("payload", {})             # Telnyx nests event fields under data.payload
+
+    if event_type != "message.received":
         return jsonify({"status": "ignored"}), 200
-    
-    from_number = event_data.get("from", {}).get("phone_number")
-    to_number = event_data.get("to", [{}])[0].get("phone_number")
-    message_body = event_data.get("text", "")
-    message_id = event_data.get("id")
-    
+
+    from_number = (payload.get("from") or {}).get("phone_number")
+    to_number = (payload.get("to") or [{}])[0].get("phone_number")
+    message_body = payload.get("text", "")
+    message_id = payload.get("id")
+
     if not from_number or not to_number:
         return jsonify({"error": "Missing phone numbers in webhook"}), 400
-    
+
     try:
         conversation_id = get_or_create_conversation(from_number)
-        
+
         store_message(
             conversation_id=conversation_id,
             direction="inbound",
@@ -278,10 +295,11 @@ def handle_inbound_sms():
             status="received",
             telnyx_message_id=message_id,
         )
-        
+
         return jsonify({"status": "stored"}), 200
-        
-    except Exception as e:
+
+    except Exception:
+        logger.exception("Failed to store inbound SMS")
         return jsonify({"error": "Internal server error"}), 500
 
 

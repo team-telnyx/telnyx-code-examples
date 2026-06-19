@@ -11,8 +11,12 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Initialize Telnyx client with the new SDK pattern
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
+# Initialize Telnyx client with the new SDK pattern.
+# public_key (from the Portal) lets the SDK verify inbound webhook signatures.
+client = telnyx.Telnyx(
+    api_key=os.getenv("TELNYX_API_KEY"),
+    public_key=os.getenv("TELNYX_PUBLIC_KEY"),
+)
 
 TELNYX_PHONE_NUMBER = os.getenv("TELNYX_PHONE_NUMBER")
 
@@ -170,25 +174,34 @@ def start_survey_endpoint():
         return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
-    except ValueError as e:
+    except ValueError:
         return jsonify({"error": "Invalid request"}), 400
 
 
 @app.route("/webhook/sms", methods=["POST"])
 def webhook_sms():
     """Webhook endpoint to receive inbound SMS messages from Telnyx."""
-    payload = request.get_json()
-    
+    # Verify the Telnyx Ed25519 signature against the raw body before trusting
+    # anything. unwrap() reads the telnyx-signature-ed25519 / telnyx-timestamp
+    # headers and raises if the signature or timestamp (replay) check fails.
+    try:
+        client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 401
+
+    payload = request.get_json(silent=True)
+
     if not payload:
         return jsonify({"error": "No payload"}), 400
-    
-    # Extract event data from Telnyx webhook
-    event_type = payload.get("data", {}).get("event_type")
-    
+
+    # event_type lives at the data level; event fields are nested under data.payload
+    data = payload.get("data", {})
+    event_type = data.get("event_type")
+
     if event_type != "message.received":
         return jsonify({"status": "ignored"}), 200
-    
-    message_data = payload.get("data", {})
+
+    message_data = data.get("payload", {})
     from_number = message_data.get("from", {}).get("phone_number")
     message_text = message_data.get("text", "").strip()
     
@@ -213,7 +226,8 @@ def webhook_sms():
         return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
-    except Exception as e:
+    except Exception:
+        app.logger.exception("Unhandled error processing inbound SMS webhook")
         return jsonify({"error": "Internal server error"}), 500
 
 

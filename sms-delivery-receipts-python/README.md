@@ -1,368 +1,210 @@
-# Delivery Receipts with Python and Flask
+---
+name: sms-delivery-receipts
+title: "SMS Delivery Receipts"
+description: "Track SMS delivery status with Telnyx message.finalized webhooks, store delivery receipts in SQLite, and query message status over HTTP."
+language: python
+framework: flask
+telnyx_products: [Messaging]
+channel: [sms]
+---
 
-## What Does This Example Do?
+# SMS Delivery Receipts
 
-Build a production-ready Flask application that tracks SMS delivery status using Telnyx webhooks. This tutorial demonstrates how to receive and process `message.finalized` webhook events, store delivery receipts in a database, and query message status via HTTP endpoints. You'll learn to handle asynchronous delivery notifications, validate webhook signatures, and implement idempotent processing for production resilience.
+Track SMS delivery status with Telnyx `message.finalized` webhooks, store delivery receipts in SQLite, and query message status over HTTP.
 
-## Who Is This For?
+## Why Telnyx
 
-- **Python developers** building sms features with Flask.
-- **Backend engineers** integrating telephony or messaging into existing applications.
-- **DevOps teams** looking for containerized, production-ready telecom examples.
-- **Startups and enterprises** replacing legacy telecom providers with a modern API-first platform.
+Telnyx is an **AI Communications Infrastructure** platform — voice, messaging, SIP, AI, and IoT on one private, global network.
 
-## Why Telnyx?
+- **Delivery receipts built in** — every outbound message emits `message.sent` and `message.finalized` events with carrier-level status and error codes.
+- **Signed webhooks** — inbound events are signed with Ed25519 so you can verify they came from Telnyx before trusting them.
+- **Deliverability built in** — number reputation, 10DLC registration, and deliverability monitoring included.
 
-Telnyx is an **AI Communications Infrastructure** platform that gives developers a single API for [voice](https://telnyx.com/products/voice-ai-agents), [messaging](https://telnyx.com/products/sms-api), [SIP](https://telnyx.com/products/sip-trunks), [AI](https://telnyx.com/ai-assistants), and [IoT](https://telnyx.com/products/iot-sim-card) — no Frankenstack required.
+## Telnyx API Endpoints Used
 
-- **Integrated platform** — [Voice](https://telnyx.com/products/voice-ai-agents), [SMS](https://telnyx.com/products/sms-api), [SIP trunking](https://telnyx.com/products/sip-trunks), [AI assistants](https://telnyx.com/ai-assistants), and [IoT SIM management](https://telnyx.com/products/iot-sim-card) under one roof. No stitching together multiple vendors.
-- **Global private network** — Calls and messages traverse the Telnyx-owned IP network for lower latency and higher reliability than the public internet.
-- **Developer-first** — SDKs for Python, Node.js, Go, Ruby, Java, and PHP. Comprehensive webhook event model. Sandbox environment for testing.
-- **Competitive pricing** — Pay-as-you-go with no minimums, contracts, or per-seat fees.
+- **Send Message**: `POST /v2/messages` -- [API reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- **Delivery webhooks**: `message.finalized` events delivered to your Messaging Profile webhook URL -- [Webhook reference](https://developers.telnyx.com/docs/messaging/messages/receiving-webhooks)
 
-## Prerequisites
+## Architecture
 
-- Python 3.8 or higher.
-- A Telnyx account with an active API key from the [Telnyx Portal](https://portal.telnyx.com).
-- A Telnyx phone number enabled for outbound SMS.
-- A publicly accessible URL (ngrok, Heroku, or similar) to receive webhooks.
-- pip (Python package manager).
-- SQLite3 (included with Python).
+```
+  POST /sms/send
+        │
+        ▼
+  ┌──────────────────┐     POST /v2/messages
+  │  Flask app.py    │ ─────────────────────────►  Telnyx Messaging
+  └────────┬─────────┘                                     │
+           │ INSERT (status=queued)                        │
+           ▼                                               │
+   ┌────────────────┐                                      │
+   │  SQLite         │ ◄──── UPDATE status / INSERT receipt │
+   │  receipts.db    │                                      │
+   └────────────────┘                                      │
+           ▲                                               │
+           │  message.finalized (signed webhook)           │
+  POST /webhooks/message  ◄────────────────────────────────┘
+```
 
-## Quick Start
+The server holds no in-flight state: outbound sends are written to SQLite immediately, and the asynchronous `message.finalized` webhook updates the row and records a delivery receipt. Receipt writes are idempotent on `message_id`.
 
-### Option 1: Local (recommended)
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in:
+
+| Variable | Type | Example | Required | Description | Where to get it |
+|----------|------|---------|----------|-------------|-----------------|
+| `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key for sending messages | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
+| `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_public_key_here` | **yes** | Ed25519 public key used to verify inbound webhook signatures | [Portal → API Keys → Public Key](https://portal.telnyx.com/api-keys) |
+| `TELNYX_PHONE_NUMBER` | `string` | `+15551234567` | **yes** | Telnyx number (E.164) used as the sender | [Portal → My Numbers](https://portal.telnyx.com/numbers/my-numbers) |
+| `FLASK_DEBUG` | `string` | `false` | no | Enable Flask debug mode (`true`/`false`) | — |
+
+## Setup
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/sms-delivery-receipts-python
-cp .env.example .env
-# Edit .env with your Telnyx API key and phone number
+cp .env.example .env    # ← fill in your credentials
 pip install -r requirements.txt
-python app.py
+python app.py           # creates receipts.db and starts on http://localhost:5000
 ```
 
-### Option 2: Manual
+### Webhook Configuration
 
-See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
+1. Expose your local server:
 
-## Implementation Details
+   ```bash
+   ngrok http 5000
+   ```
 
-Create `app.py` with database initialization, message sending, and webhook handling:
+2. Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
 
-```python
-import os
-import sqlite3
-import json
-from datetime import datetime
-from dotenv import load_dotenv
-import telnyx
-from flask import Flask, jsonify, request
+   - **Messaging → Messaging Profiles** → your profile → **Webhook URL** → `https://<id>.ngrok.io/webhooks/message`
 
-load_dotenv()
+The same profile's API key and public key must match the `TELNYX_API_KEY` and `TELNYX_PUBLIC_KEY` in your `.env`, otherwise signature verification will reject the webhook with `401`.
 
-app = Flask(__name__)
+## API Reference
 
-# Initialize Telnyx client with the new SDK pattern
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
+### `POST /sms/send`
 
-# Database configuration
-DB_PATH = "receipts.db"
+Send an SMS and begin tracking its delivery.
 
-def get_db_connection():
-    """Get a database connection with row factory for dict-like access."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+```bash
+curl -X POST http://localhost:5000/sms/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "+12125551234",
+    "message": "Hello from Telnyx!"
+  }'
+```
 
-def send_sms_with_tracking(to_number: str, message: str) -> dict:
-    """Send SMS via Telnyx and store message record for tracking."""
-    from_number = os.getenv("TELNYX_PHONE_NUMBER")
-    if not from_number:
-        raise ValueError("TELNYX_PHONE_NUMBER environment variable not set")
-    
-    # Validate E.164 format
-    if not to_number.startswith("+"):
-        raise ValueError("Phone number must be in E.164 format (e.g., +15551234567)")
-    
-    # Send message via Telnyx API
-    response = client.messages.create(
-        from_=from_number,
-        to=to_number,
-        text=message,
-    )
-    
-    # Store message record in database for tracking
-    message_id = response.data.id
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute(
-        """
-        INSERT INTO messages (id, from_number, to_number, text, status, direction)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (message_id, from_number, to_number, message, "queued", "outbound"),
-    )
-    conn.commit()
-    conn.close()
-    
-    # Return JSON-serializable response
-    return {
-        "message_id": message_id,
-        "status": "queued",
-        "from": from_number,
-        "to": to_number,
+**Response `200`:**
+
+```json
+{
+  "message_id": "40017c1a-6a3b-4c8e-9b1d-0f9e3a1c2b44",
+  "status": "queued",
+  "from": "+15551234567",
+  "to": "+12125551234"
+}
+```
+
+### `POST /webhooks/message`
+
+Receives Telnyx `message.finalized` events. The Ed25519 signature is verified before the body is parsed; an invalid or missing signature returns `401`. Other event types are acknowledged with `{"status": "ignored"}`.
+
+```bash
+# Telnyx sends this automatically; shown here for shape only.
+curl -X POST http://localhost:5000/webhooks/message \
+  -H "Content-Type: application/json" \
+  -H "telnyx-signature-ed25519: <signature>" \
+  -H "telnyx-timestamp: <unix-ts>" \
+  -d '{
+    "data": {
+      "event_type": "message.finalized",
+      "payload": {
+        "id": "40017c1a-6a3b-4c8e-9b1d-0f9e3a1c2b44",
+        "to": [{ "phone_number": "+12125551234", "status": "delivered" }]
+      }
     }
-
-@app.route("/sms/send", methods=["POST"])
-def send_sms_endpoint():
-    """HTTP endpoint to send SMS and begin tracking delivery."""
-    data = request.get_json()
-    
-    if not data:
-        return jsonify({"error": "Request body required"}), 400
-    
-    to_number = data.get("to")
-    message = data.get("message")
-    
-    if not to_number or not message:
-        return jsonify({"error": "Missing required fields: 'to' and 'message'"}), 400
-    
-    try:
-        result = send_sms_with_tracking(to_number, message)
-        return jsonify(result), 200
-        
-    except telnyx.AuthenticationError:
-        return jsonify({"error": "Invalid API key"}), 401
-    except telnyx.RateLimitError:
-        return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
-    except telnyx.APIStatusError as e:
-        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
-    except telnyx.APIConnectionError:
-        return jsonify({"error": "Network error connecting to Telnyx"}), 503
-    except ValueError as e:
-        return jsonify({"error": "Invalid request"}), 400
-
-@app.route("/webhooks/message", methods=["POST"])
-def handle_message_webhook():
-    """
-    Receive and process message.finalized webhook events.
-    Updates message status and stores delivery receipt.
-    """
-    payload = request.get_json()
-    
-    if not payload:
-        return jsonify({"error": "Empty payload"}), 400
-    
-    # Extract event data — webhook structure: {"data": {"event_type": "...", "payload": {...}}}
-    event_type = payload.get("data", {}).get("event_type")
-    event_payload = payload.get("data", {}).get("payload", {})
-    
-    # Only process message.finalized events
-    if event_type != "message.finalized":
-        return jsonify({"status": "ignored"}), 200
-    
-    message_id = event_payload.get("id")
-    if not message_id:
-        return jsonify({"error": "Missing message ID in webhook"}), 400
-    
-    # Extract delivery status from the to array
-    to_array = event_payload.get("to", [])
-    if not to_array:
-        return jsonify({"error": "Missing 'to' array in webhook"}), 400
-    
-    to_entry = to_array[0]
-    delivery_status = to_entry.get("status", "unknown")
-    error_code = to_entry.get("error_code")
-    error_message = to_entry.get("error_message")
-    
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check if receipt already exists (idempotency)
-        cursor.execute(
-            "SELECT id FROM delivery_receipts WHERE message_id = ?",
-            (message_id,),
-        )
-        existing = cursor.fetchone()
-        
-        if existing:
-            # Already processed — return success to acknowledge webhook
-            conn.close()
-            return jsonify({"status": "already_processed"}), 200
-        
-        # Update message status
-        cursor.execute(
-            """
-            UPDATE messages
-            SET status = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            """,
-            (delivery_status, message_id),
-        )
-        
-        # Store delivery receipt
-        cursor.execute(
-            """
-            INSERT INTO delivery_receipts (message_id, status, error_code, error_message)
-            VALUES (?, ?, ?, ?)
-            """,
-            (message_id, delivery_status, error_code, error_message),
-        )
-        
-        conn.commit()
-        conn.close()
-        
-        return jsonify({"status": "processed"}), 200
-        
-    except sqlite3.IntegrityError:
-        # Duplicate message_id — idempotent response
-        return jsonify({"status": "already_processed"}), 200
-    except Exception as e:
-        return jsonify({"error": "Internal server error"}), 500
-
-@app.route("/messages/<message_id>", methods=["GET"])
-def get_message_status(message_id: str):
-    """Retrieve message and delivery receipt status by message ID."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Fetch message record
-        cursor.execute(
-            "SELECT * FROM messages WHERE id = ?",
-            (message_id,),
-        )
-        message = cursor.fetchone()
-        
-        if not message:
-            conn.close()
-            return jsonify({"error": "Message not found"}), 404
-        
-        # Fetch delivery receipt if available
-        cursor.execute(
-            "SELECT * FROM delivery_receipts WHERE message_id = ?",
-            (message_id,),
-        )
-        receipt = cursor.fetchone()
-        conn.close()
-        
-        # Build response — convert Row objects to dicts
-        response = {
-            "id": message["id"],
-            "from": message["from_number"],
-            "to": message["to_number"],
-            "text": message["text"],
-            "status": message["status"],
-            "direction": message["direction"],
-            "created_at": message["created_at"],
-            "updated_at": message["updated_at"],
-        }
-        
-        if receipt:
-            response["delivery_receipt"] = {
-                "status": receipt["status"],
-                "error_code": receipt["error_code"],
-                "error_message": receipt["error_message"],
-                "received_at": receipt["received_at"],
-            }
-        
-        return jsonify(response), 200
-        
-    except Exception as e:
-        return jsonify({"error": "Internal server error"}), 500
-
-@app.route("/messages", methods=["GET"])
-def list_messages():
-    """List all messages with optional status filter."""
-    status_filter = request.args.get("status")
-    
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        if status_filter:
-            cursor.execute(
-                "SELECT * FROM messages WHERE status = ? ORDER BY created_at DESC",
-                (status_filter,),
-            )
-        else:
-            cursor.execute(
-                "SELECT * FROM messages ORDER BY created_at DESC"
-            )
-        
-        messages = cursor.fetchall()
-        conn.close()
-        
-        # Convert Row objects to dicts
-        return jsonify([
-            {
-                "id": m["id"],
-                "from": m["from_number"],
-                "to": m["to_number"],
-                "status": m["status"],
-                "direction": m["direction"],
-                "created_at": m["created_at"],
-            }
-            for m in messages
-        ]), 200
-        
-    except Exception as e:
-        return jsonify({"error": "Internal server error"}), 500
-
-if __name__ == "__main__":
-    app.run(debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", port=5000)
+  }'
 ```
 
-## Complete Code
+**Response `200`:**
 
-See [`app.py`](./app.py) for the full implementation.
+```json
+{ "status": "processed" }
+```
+
+### `GET /messages/<message_id>`
+
+Fetch a single message and its delivery receipt (if one has arrived).
+
+```bash
+curl http://localhost:5000/messages/40017c1a-6a3b-4c8e-9b1d-0f9e3a1c2b44
+```
+
+**Response `200`:**
+
+```json
+{
+  "id": "40017c1a-6a3b-4c8e-9b1d-0f9e3a1c2b44",
+  "from": "+15551234567",
+  "to": "+12125551234",
+  "text": "Hello from Telnyx!",
+  "status": "delivered",
+  "direction": "outbound",
+  "created_at": "2026-06-18 22:40:00",
+  "updated_at": "2026-06-18 22:40:03",
+  "delivery_receipt": {
+    "status": "delivered",
+    "error_code": null,
+    "error_message": null,
+    "received_at": "2026-06-18 22:40:03"
+  }
+}
+```
+
+### `GET /messages`
+
+List tracked messages, newest first. Optional `?status=` filter (e.g. `queued`, `delivered`, `failed`).
+
+```bash
+curl "http://localhost:5000/messages?status=delivered"
+```
+
+**Response `200`:**
+
+```json
+[
+  {
+    "id": "40017c1a-6a3b-4c8e-9b1d-0f9e3a1c2b44",
+    "from": "+15551234567",
+    "to": "+12125551234",
+    "status": "delivered",
+    "direction": "outbound",
+    "created_at": "2026-06-18 22:40:00"
+  }
+]
+```
 
 ## Troubleshooting
 
-| Issue | Problem | Solution |
-|-------|---------|----------|
-| Webhook not receiving events | POST requests to `/webhooks/message` are not arriving from Telnyx. | Verify the webhook URL is publicly accessible and matches the URL configured in your Telnyx Messaging Profile. Use ngrok (`ngrok http 5000`) to expose your local Flask server and update the webhook URL in the Telnyx Portal. Check Flask logs for incoming requests. Ensure your firewall allows inbound traffic on port 5000 (or your configured port). |
-| Database locked error | SQLite returns "database is locked" when multiple requests try to write simultaneously. | SQLite has limited concurrent write support. For production, migrate to PostgreSQL or MySQL. For development, add a small retry delay in the webhook handler: `import time; time.sleep(0.1)` before database operations. Ensure all database connections are properly closed with `conn.close()`. |
-| Message status stuck on "queued" | Messages never transition to "delivered" or "failed" status. | Confirm your Telnyx Messaging Profile has the webhook URL configured for `message.finalized` events. Check the Telnyx Portal logs to verify events are being generated. Ensure the Flask server is running and accessible at the webhook URL. Test with `curl -X POST http://localhost:5000/webhooks/message -H "Content-Type: application/json" -d '{"data": {"event_type": "message.finalized", "payload": {"id": "test-id", "to": [{"status": "delivered"}]}}}'` to simulate a webhook. |
-| Duplicate receipt processing | The same delivery receipt is processed multiple times, creating duplicate database entries. | The code includes idempotency checks using `UNIQUE` constraint on `message_id` in the `delivery_receipts` table. If duplicates still occur, verify the webhook handler returns HTTP 200 to acknowledge receipt. Telnyx will retry failed webhooks (non-2xx responses), so ensure the handler always returns 200 even if processing fails. |
-| Authentication error on message send | POST to `/sms/send` returns `{"error": "Invalid API key"}` with HTTP 401. | Verify `TELNYX_API_KEY` in `.env` matches the key from the [Telnyx Portal](https://portal.telnyx.com). Ensure there are no trailing spaces or quotes. Restart the Flask server after updating `.env`. Check that `load_dotenv()` is called before `os.getenv()`. |
-
-## FAQ
-
-**Q: Do I need a Telnyx account to run this example?**
-
-Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key. Telnyx offers free trial credit for testing.
-
-**Q: Can I use this SMS example in production?**
-
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
-
-**Q: What Python version do I need?**
-
-Python 3.8 or higher. Python 3.12+ is recommended.
-
-**Q: How is Telnyx different from Twilio?**
-
-Telnyx is an AI Communications Infrastructure platform with a private global network, integrated voice + messaging + AI + SIP + IoT under one API, and significantly lower pricing. No need to stitch together multiple vendors.
-
-**Q: Where do I get a Telnyx phone number?**
-
-Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > Search & Buy, and purchase a number with the capabilities you need (SMS, voice, or both).
-
-## Resources
-
-- [Messaging Overview](https://developers.telnyx.com/docs/messaging)
-- [Send an SMS — Quickstart](https://developers.telnyx.com/docs/messaging/messages/send-message)
-- [Messaging API Reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
-- [Python SDK](https://developers.telnyx.com/development/sdk/python)
-- [Telnyx SMS API](https://telnyx.com/products/sms-api)
-- [Messaging Pricing](https://telnyx.com/pricing/messaging)
+- **`401 invalid signature` on the webhook**: The request did not carry a valid Telnyx Ed25519 signature. Confirm `TELNYX_PUBLIC_KEY` is set and belongs to the same profile/account as `TELNYX_API_KEY`, and that the webhook URL in the Portal points at this app.
+- **Message status stuck on `queued`**: The `message.finalized` webhook never reached the app. Verify the Messaging Profile's webhook URL is your public ngrok HTTPS URL ending in `/webhooks/message`, and check the Portal's webhook delivery logs.
+- **`401 Invalid API key` on `/sms/send`**: `TELNYX_API_KEY` is wrong or has a trailing space/quote. Regenerate it at [portal.telnyx.com/api-keys](https://portal.telnyx.com/api-keys) and restart the app.
+- **`database is locked`**: SQLite has limited concurrent-write support. For production, move to PostgreSQL or MySQL.
+- **No such table: messages**: The database is created on startup by `init_db()`. Make sure you launched the app with `python app.py` (which calls it) and that the process has write access to the folder.
 
 ## Related Examples
 
-- [Send Bulk SMS Messages](/tutorials/sms/python/send-bulk-sms).
-- [Receive SMS Webhooks with Python](/tutorials/sms/python/receive-sms-webhook).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/python/otp-2fa).
+- [send-sms-python](../send-sms-python/) — send a single SMS with delivery status webhooks.
+- [ai-compliance-quiz-phone-python](../ai-compliance-quiz-phone-python/) — another example using signed Telnyx webhooks.
+
+## Resources
+
+- [Messaging Guide](https://developers.telnyx.com/docs/messaging)
+- [Receiving Webhooks](https://developers.telnyx.com/docs/messaging/messages/receiving-webhooks)
+- [Send a Message — API Reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- [Python SDK](https://developers.telnyx.com/development/sdk/python)
+- [Telnyx SMS API](https://telnyx.com/products/sms-api)
+- [Messaging Pricing](https://telnyx.com/pricing/messaging)

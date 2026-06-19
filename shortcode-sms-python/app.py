@@ -12,8 +12,12 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Initialize Telnyx client with the new SDK pattern
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
+# Initialize Telnyx client with the new SDK pattern.
+# public_key (from the Portal) lets the SDK verify inbound webhook signatures.
+client = telnyx.Telnyx(
+    api_key=os.getenv("TELNYX_API_KEY"),
+    public_key=os.getenv("TELNYX_PUBLIC_KEY"),
+)
 
 TELNYX_SHORTCODE = os.getenv("TELNYX_SHORTCODE")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
@@ -87,52 +91,63 @@ def send_sms_endpoint():
 @app.route("/webhooks/sms", methods=["POST"])
 def handle_inbound_sms():
     """Webhook endpoint to receive inbound SMS messages."""
+    # Verify the Telnyx Ed25519 signature against the raw body before trusting
+    # anything. unwrap() reads the telnyx-signature-ed25519 / telnyx-timestamp
+    # headers and raises if the signature or timestamp (replay) check fails.
     try:
-        payload = request.get_json()
-        
-        if not payload:
+        client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 401
+
+    try:
+        body = request.get_json(silent=True)
+
+        if not body:
             return jsonify({"error": "No payload received"}), 400
-        
-        # Parse webhook event
-        event_type = payload.get("data", {}).get("event_type")
-        
+
+        # event_type lives at the data level; the event fields are nested under
+        # data.payload (the message object for Messaging webhooks).
+        data = body.get("data", {})
+        event_type = data.get("event_type")
+        payload = data.get("payload", {})
+
         if event_type == "message.received":
-            message_data = payload.get("data", {})
-            
-            # Extract message details
+            # Extract message details from the nested payload object.
+            to_list = payload.get("to") or [{}]
             inbound_message = {
-                "id": message_data.get("id"),
-                "from": message_data.get("from", {}).get("phone_number"),
-                "to": message_data.get("to", [{}])[0].get("phone_number"),
-                "text": message_data.get("text"),
-                "received_at": message_data.get("received_at"),
-                "direction": message_data.get("direction"),
+                "id": payload.get("id"),
+                "from": (payload.get("from") or {}).get("phone_number"),
+                "to": to_list[0].get("phone_number"),
+                "text": payload.get("text"),
+                "received_at": payload.get("received_at"),
+                "direction": payload.get("direction"),
             }
-            
+
             # Store message (in production, save to database)
             received_messages.append(inbound_message)
-            
+
             # Log for debugging
             print(f"Inbound SMS: {inbound_message['from']} -> {inbound_message['to']}: {inbound_message['text']}")
-            
+
             return jsonify({"status": "received"}), 200
-        
+
         elif event_type == "message.finalized":
             # Handle delivery status updates
-            message_data = payload.get("data", {})
-            status = message_data.get("to", [{}])[0].get("status")
-            message_id = message_data.get("id")
-            
+            to_list = payload.get("to") or [{}]
+            status = to_list[0].get("status")
+            message_id = payload.get("id")
+
             print(f"Message {message_id} status: {status}")
-            
+
             return jsonify({"status": "processed"}), 200
-        
+
         else:
             # Acknowledge other event types
             return jsonify({"status": "acknowledged"}), 200
-    
-    except Exception as e:
-        print(f"Webhook error: {str(e)}")
+
+    except Exception:
+        # Log full detail server-side; never leak exception text to callers.
+        app.logger.exception("Webhook processing error")
         return jsonify({"error": "Internal server error"}), 500
 
 

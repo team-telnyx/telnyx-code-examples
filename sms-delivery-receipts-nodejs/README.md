@@ -1,273 +1,187 @@
-# Delivery Receipts with Node.js and Express
+---
+name: sms-delivery-receipts
+title: "SMS Delivery Receipts"
+description: "Track SMS delivery status with Telnyx webhooks. Send messages, receive finalized delivery receipts, and look up per-message status."
+language: nodejs
+framework: express
+telnyx_products: [Messaging]
+channel: [sms]
+---
 
-## What Does This Example Do?
+# SMS Delivery Receipts
 
-Build a production-ready Express application that receives and processes SMS delivery receipts from Telnyx. This tutorial demonstrates webhook configuration, message status tracking, and proper error handling for telecom APIs. You'll set up an endpoint to receive delivery status updates and store them for monitoring outbound message performance.
+Send SMS through Telnyx and track each message's final delivery status using signed `message.finalized` webhooks.
 
-## Who Is This For?
+## Telnyx API Endpoints Used
 
-- **Node.js developers** building sms features with Express.
-- **Backend engineers** integrating telephony or messaging into existing applications.
-- **DevOps teams** looking for containerized, production-ready telecom examples.
-- **Startups and enterprises** replacing legacy telecom providers with a modern API-first platform.
+- **Send Message**: `POST /v2/messages` -- [API reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- **Delivery Receipt Webhook**: `message.finalized` event delivered to your webhook URL -- [webhook reference](https://developers.telnyx.com/api-reference/webhooks/message-finalized)
 
-## Why Telnyx?
+## Architecture
 
-Telnyx is an **AI Communications Infrastructure** platform that gives developers a single API for [voice](https://telnyx.com/products/voice-ai-agents), [messaging](https://telnyx.com/products/sms-api), [SIP](https://telnyx.com/products/sip-trunks), [AI](https://telnyx.com/ai-assistants), and [IoT](https://telnyx.com/products/iot-sim-card) — no Frankenstack required.
+```
+  POST /sms/send
+        │
+        ▼
+  ┌──────────────────┐        POST /v2/messages
+  │  Express server   │ ───────────────────────────► Telnyx Messaging
+  └────────┬─────────┘
+           │  track message_id (in-memory)
+           │
+           │   message.finalized (signed webhook)
+           ▼
+  ┌──────────────────┐
+  │ POST /webhooks/sms│  verify signature → update receipt status
+  └────────┬─────────┘
+           │
+           ▼
+   GET /receipts/:id   GET /receipts
+```
 
-- **Integrated platform** — [Voice](https://telnyx.com/products/voice-ai-agents), [SMS](https://telnyx.com/products/sms-api), [SIP trunking](https://telnyx.com/products/sip-trunks), [AI assistants](https://telnyx.com/ai-assistants), and [IoT SIM management](https://telnyx.com/products/iot-sim-card) under one roof. No stitching together multiple vendors.
-- **Global private network** — Calls and messages traverse the Telnyx-owned IP network for lower latency and higher reliability than the public internet.
-- **Developer-first** — SDKs for Python, Node.js, Go, Ruby, Java, and PHP. Comprehensive webhook event model. Sandbox environment for testing.
-- **Competitive pricing** — Pay-as-you-go with no minimums, contracts, or per-seat fees.
+## Why Telnyx
 
-## Prerequisites
+Telnyx is an **AI Communications Infrastructure** platform — voice, messaging, SIP, AI, and IoT on one private, global network.
 
-- Node.js 14 or higher.
-- A Telnyx account with an active API key from the [Telnyx Portal](https://portal.telnyx.com).
-- A Telnyx phone number enabled for outbound SMS.
-- npm (Node package manager).
-- A publicly accessible URL for webhook delivery (ngrok, Cloudflare Tunnel, or deployed server).
+- **Real delivery feedback** — finalized webhooks tell you whether each message was actually delivered or failed, with carrier-level error reasons.
+- **Signed webhooks** — every inbound event is Ed25519-signed so you can reject spoofed requests.
+- **Deliverability built in** — number reputation, 10DLC registration, and deliverability monitoring included.
 
-## Quick Start
+See [API.md](./API.md) for the typed endpoint reference and [GUIDE.md](./GUIDE.md) for a step-by-step tutorial.
 
-### Option 1: Local (recommended)
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in:
+
+| Variable | Type | Example | Required | Description | Where to get it |
+|----------|------|---------|----------|-------------|-----------------|
+| `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal → API Keys](https://portal.telnyx.com/app/api-keys) |
+| `TELNYX_PUBLIC_KEY` | `string` | `o4i...=` | **yes** | Public key used to verify inbound webhook signatures | [Portal → Account → Public Key](https://portal.telnyx.com/app/account/public-key) |
+| `TELNYX_PHONE_NUMBER` | `string` | `+15551234567` | **yes** | Telnyx number (E.164) used as the SMS sender | [Portal → My Numbers](https://portal.telnyx.com/app/numbers/my-numbers) |
+| `PORT` | `number` | `3000` | no | Port the Express server listens on | — |
+
+## Setup
 
 ```bash
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/sms-delivery-receipts-nodejs
-cp .env.example .env
-# Edit .env with your Telnyx API key and phone number
+cp .env.example .env    # ← fill in your credentials
 npm install
-node server.js
+node server.js          # starts on http://localhost:3000
 ```
 
-### Option 2: Manual
+### Webhook Configuration
 
-See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
+1. Expose your local server:
 
-## Implementation Details
+   ```bash
+   ngrok http 3000
+   ```
 
-Create `app.js` and initialize the Telnyx client with proper webhook handling:
+2. Copy the HTTPS URL and configure it in the [Telnyx Portal](https://portal.telnyx.com):
 
-```javascript
-const express = require("express");
-const bodyParser = require("body-parser");
-const Telnyx = require("telnyx");
-require("dotenv").config();
+   - **Messaging → Messaging Profiles** → your profile → **Outbound** → Webhook URL → `https://<id>.ngrok.io/webhooks/sms`
 
-const app = express();
-app.use(bodyParser.json());
+   Delivery receipts (`message.finalized`) are sent to the messaging profile's webhook URL.
 
-// Initialize Telnyx client with the new SDK pattern
-const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
+## API Reference
 
-// In-memory store for delivery receipts (use a database in production)
-const deliveryReceipts = {};
+### `POST /sms/send`
 
-/**
- * Send SMS and track message ID for delivery receipt matching.
- * Returns JSON-serializable response data.
- */
-async function sendSMS(toNumber, message) {
-  const fromNumber = process.env.TELNYX_PHONE_NUMBER;
-  if (!fromNumber) {
-    throw new Error("TELNYX_PHONE_NUMBER environment variable not set");
-  }
+Send an SMS and begin tracking its delivery receipt.
 
-  // Validate E.164 format to prevent API errors
-  if (!toNumber.startsWith("+")) {
-    throw new Error(
-      "Phone number must be in E.164 format (e.g., +15551234567)"
-    );
-  }
-
-  const response = await client.messages.create({
-    from_: fromNumber,
-    to: toNumber,
-    text: message,
-  });
-
-  // Extract serializable data — SDK objects are NOT JSON-serializable
-  const messageId = response.data.id;
-  const status = response.data.to && response.data.to[0] ? response.data.to[0].status : "unknown";
-
-  // Initialize receipt tracking for this message
-  deliveryReceipts[messageId] = {
-    id: messageId,
-    from: fromNumber,
-    to: toNumber,
-    status: status,
-    sentAt: new Date().toISOString(),
-    deliveredAt: null,
-    failureReason: null,
-  };
-
-  return {
-    message_id: messageId,
-    status: status,
-    from: fromNumber,
-    to: toNumber,
-  };
-}
-
-/**
- * Process incoming delivery receipt webhook from Telnyx.
- * Updates message status based on finalized event.
- */
-function processDeliveryReceipt(event) {
-  const messageId = event.data.id;
-  const eventType = event.type;
-
-  if (!deliveryReceipts[messageId]) {
-    // Message not found in our tracking store
-    console.warn(`Received event for unknown message ID: ${messageId}`);
-    return null;
-  }
-
-  const receipt = deliveryReceipts[messageId];
-
-  // Update status based on event type
-  if (eventType === "message.finalized") {
-    const finalStatus = event.data.to && event.data.to[0] ? event.data.to[0].status : "unknown";
-    receipt.status = finalStatus;
-
-    if (finalStatus === "delivered") {
-      receipt.deliveredAt = new Date().toISOString();
-    } else if (finalStatus === "failed") {
-      receipt.failureReason =
-        event.data.to && event.data.to[0] ? event.data.to[0].error?.message : "Unknown error";
-    }
-  }
-
-  return receipt;
-}
-
-// Route to send SMS
-app.post("/sms/send", async (req, res) => {
-  const { to, message } = req.body;
-
-  if (!to || !message) {
-    return res.status(400).json({
-      error: "Missing required fields: 'to' and 'message'",
-    });
-  }
-
-  try {
-    const result = await sendSMS(to, message);
-    return res.status(200).json(result);
-  } catch (error) {
-    if (error instanceof Telnyx.AuthenticationError) {
-      return res.status(401).json({ error: "Invalid API key" });
-    } else if (error instanceof Telnyx.RateLimitError) {
-      return res.status(429).json({
-        error: "Rate limit exceeded. Please slow down.",
-      });
-    } else if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code).json({
-        error: error.message,
-        status_code: error.status_code,
-      });
-    } else if (error instanceof Telnyx.APIConnectionError) {
-      return res.status(503).json({
-        error: "Network error connecting to Telnyx",
-      });
-    } else if (error instanceof Error && error.message.includes("E.164")) {
-      return res.status(400).json({ error: error.message });
-    }
-    return res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-// Webhook endpoint to receive delivery receipts
-app.post("/webhooks/sms", (req, res) => {
-  const event = req.body;
-
-  // Validate webhook signature in production
-  // See Telnyx documentation for signature verification
-
-  if (event.type === "message.finalized") {
-    const receipt = processDeliveryReceipt(event);
-    if (receipt) {
-      console.log(`Delivery receipt processed for message ${receipt.id}: ${receipt.status}`);
-    }
-  }
-
-  // Always return 200 to acknowledge receipt
-  res.status(200).json({ success: true });
-});
-
-// Route to retrieve delivery receipt status
-app.get("/receipts/:messageId", (req, res) => {
-  const { messageId } = req.params;
-  const receipt = deliveryReceipts[messageId];
-
-  if (!receipt) {
-    return res.status(404).json({ error: "Message not found" });
-  }
-
-  return res.status(200).json(receipt);
-});
-
-// Route to list all delivery receipts
-app.get("/receipts", (req, res) => {
-  const receipts = Object.values(deliveryReceipts);
-  return res.status(200).json(receipts);
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Webhook URL: ${process.env.WEBHOOK_URL}`);
-});
+```bash
+curl -X POST http://localhost:3000/sms/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "+12125551234",
+    "message": "Hello from Telnyx!"
+  }'
 ```
 
-## Complete Code
+**Response `200`:**
 
-See [`server.js`](./server.js) for the full implementation.
+```json
+{
+  "message_id": "40385f64-5717-4562-b3fc-2c963f66afa6",
+  "status": "queued",
+  "from": "+15551234567",
+  "to": "+12125551234"
+}
+```
+
+### `POST /webhooks/sms`
+
+Receives Telnyx delivery-receipt webhooks. The raw body and `telnyx-signature-ed25519` / `telnyx-timestamp` headers are verified against `TELNYX_PUBLIC_KEY` on every request; unsigned or invalid requests get `401`. Telnyx calls this endpoint — you do not call it directly.
+
+```json
+{
+  "data": {
+    "event_type": "message.finalized",
+    "payload": {
+      "id": "40385f64-5717-4562-b3fc-2c963f66afa6",
+      "to": [{ "phone_number": "+12125551234", "status": "delivered" }]
+    }
+  }
+}
+```
+
+**Response `200`:**
+
+```json
+{ "success": true }
+```
+
+### `GET /receipts/:messageId`
+
+Look up the tracked status of a single message.
+
+```bash
+curl http://localhost:3000/receipts/40385f64-5717-4562-b3fc-2c963f66afa6
+```
+
+**Response `200`:**
+
+```json
+{
+  "id": "40385f64-5717-4562-b3fc-2c963f66afa6",
+  "from": "+15551234567",
+  "to": "+12125551234",
+  "status": "delivered",
+  "sentAt": "2026-06-18T12:00:00.000Z",
+  "deliveredAt": "2026-06-18T12:00:08.000Z",
+  "failureReason": null
+}
+```
+
+### `GET /receipts`
+
+List all tracked delivery receipts.
+
+```bash
+curl http://localhost:3000/receipts
+```
+
+**Response `200`:** an array of receipt objects.
 
 ## Troubleshooting
 
-| Issue | Problem | Solution |
-|-------|---------|----------|
-| Webhook events not received | The `/webhooks/sms` endpoint is not receiving `message.finalized` events from Telnyx. | Verify that your Messaging Profile in the [Telnyx Portal](https://portal.telnyx.com) has the webhook URL configured correctly. Ensure the URL is publicly accessible (test with `curl https://your-url/webhooks/sms`). If using ngrok, confirm the tunnel is active and the URL in your `.env` matches the ngrok forwarding URL. Check server logs for incoming POST requests. |
-| Delivery receipt status shows "queued" indefinitely | Messages remain in "queued" status and never transition to "delivered" or "failed". | This is normal for the first few seconds after sending. Delivery status updates are asynchronous and may take 10–30 seconds depending on carrier. Ensure your Messaging Profile webhook is configured and the server is running. Check the Telnyx Portal message logs to verify the actual delivery status. If messages show "failed" in the portal but not in your app, the webhook event may not have been received—verify network connectivity and webhook configuration. |
-| Authentication Error (401) | The endpoint returns `{"error": "Invalid API key"}` with HTTP 401. | Verify your `TELNYX_API_KEY` in the `.env` file matches the key shown in the [Telnyx Portal](https://portal.telnyx.com). Ensure there are no trailing spaces or quotes. If the key was regenerated recently, update your environment file and restart the Express server. Confirm the `.env` file is in the same directory as `app.js` and that `require("dotenv").config()` is called before initializing the Telnyx client. |
-| Invalid Phone Number Format | You receive a 400 error stating "Phone number must be in E.164 format" or a Telnyx API error about invalid destination. | Ensure all phone numbers use E.164 format: start with `+`, followed by country code and number without spaces or dashes. Example: `+15551234567` (US) or `+447700900123` (UK). Update your test curl command to use properly formatted numbers. Verify the `TELNYX_PHONE_NUMBER` in your `.env` file is also in E.164 format. |
-| Message ID not found in receipts | Calling `GET /receipts/:messageId` returns `{"error": "Message not found"}` even though the message was sent successfully. | The in-memory store is cleared when the server restarts. For production, use a persistent database (PostgreSQL, MongoDB, etc.) instead of the in-memory object. Ensure the message ID in your request matches the `message_id` returned from the `/sms/send` endpoint. If testing across server restarts, implement database persistence. |
-
-## FAQ
-
-**Q: Do I need a Telnyx account to run this example?**
-
-Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key. Telnyx offers free trial credit for testing.
-
-**Q: Can I use this SMS example in production?**
-
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
-
-**Q: What Node.js version do I need?**
-
-Node.js 18 or higher. Node.js 20 LTS is recommended.
-
-**Q: How is Telnyx different from Twilio?**
-
-Telnyx is an AI Communications Infrastructure platform with a private global network, integrated voice + messaging + AI + SIP + IoT under one API, and significantly lower pricing. No need to stitch together multiple vendors.
-
-**Q: Where do I get a Telnyx phone number?**
-
-Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > Search & Buy, and purchase a number with the capabilities you need (SMS, voice, or both).
-
-## Resources
-
-- [Messaging Overview](https://developers.telnyx.com/docs/messaging)
-- [Send an SMS — Quickstart](https://developers.telnyx.com/docs/messaging/messages/send-message)
-- [Messaging API Reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
-- [Node.js SDK](https://developers.telnyx.com/development/sdk/node)
-- [Telnyx SMS API](https://telnyx.com/products/sms-api)
-- [Messaging Pricing](https://telnyx.com/pricing/messaging)
+- **`401 invalid signature` on `/webhooks/sms`**: `TELNYX_PUBLIC_KEY` is missing or wrong. Copy the key from [Portal → Account → Public Key](https://portal.telnyx.com/app/account/public-key). The key must match the account that owns the messaging profile sending the webhooks.
+- **401 Unauthorized on `/sms/send`**: Your `TELNYX_API_KEY` is invalid. Generate a new one at [portal.telnyx.com/app/api-keys](https://portal.telnyx.com/app/api-keys).
+- **Status stuck at `queued`**: Delivery status is asynchronous and can take 10–30 seconds. Confirm the messaging profile's webhook URL points at your `/webhooks/sms` endpoint and the server is reachable.
+- **`Message not found` from `GET /receipts/:messageId`**: The in-memory store is cleared on restart. Use a database for production, and confirm the ID matches the `message_id` returned by `/sms/send`.
+- **Invalid phone number format**: Numbers must be E.164 (`+15551234567`). Check both the request `to` and `TELNYX_PHONE_NUMBER`.
 
 ## Related Examples
 
-- [Receive SMS Webhooks with Node.js](/tutorials/sms/nodejs/receive-sms-webhook).
-- [Send Bulk SMS Messages with Node.js](/tutorials/sms/nodejs/send-bulk-sms).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/nodejs/otp-2fa).
+- [send-sms-nodejs](../send-sms-nodejs/) — send a single SMS.
+- [receive-sms-webhook-nodejs](../receive-sms-webhook-nodejs/) — receive inbound SMS via webhooks.
+- [send-bulk-sms-nodejs](../send-bulk-sms-nodejs/) — send SMS to many recipients.
+
+## Resources
+
+- [Messaging Guide](https://developers.telnyx.com/docs/messaging)
+- [Send a Message — API reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- [Webhook signing & verification](https://developers.telnyx.com/docs/messaging/messages/receive-webhooks)
+- [Node.js SDK](https://developers.telnyx.com/development/sdk/node)
+- [Telnyx SMS API](https://telnyx.com/products/sms-api)
+- [Messaging Pricing](https://telnyx.com/pricing/messaging)

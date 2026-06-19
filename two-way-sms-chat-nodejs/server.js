@@ -6,12 +6,12 @@
 
 require('dotenv').config();
 const express = require('express');
-const bodyParser = require('body-parser');
 const Telnyx = require('telnyx');
 
 // Configuration
 const config = {
   apiKey: process.env.TELNYX_API_KEY,
+  publicKey: process.env.TELNYX_PUBLIC_KEY,
   phoneNumber: process.env.TELNYX_PHONE_NUMBER,
   webhookUrl: process.env.WEBHOOK_URL,
   port: process.env.PORT || 3000,
@@ -27,11 +27,18 @@ if (!config.phoneNumber) {
 
 const app = express();
 
-// Middleware
-app.use(bodyParser.json());
-
 // Initialize Telnyx client
-const client = new Telnyx({ apiKey: config.apiKey });
+const client = Telnyx(config.apiKey);
+
+// Capture the raw request body so webhook signatures can be verified.
+// Telnyx signs the exact bytes it sent, so the raw payload is required.
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 
 /**
  * Send SMS via Telnyx and return JSON-serializable response data.
@@ -49,8 +56,8 @@ async function sendSms(toNumber, message) {
 
   return {
     message_id: response.data.id,
-    status: response.data.to && response.data.to.length > 0 
-      ? response.data.to[0].status 
+    status: response.data.to && response.data.to.length > 0
+      ? response.data.to[0].status
       : 'unknown',
     from: config.phoneNumber,
     to: toNumber,
@@ -85,7 +92,7 @@ app.post('/sms/send', async (req, res) => {
     }
     if (error instanceof Telnyx.APIStatusError) {
       return res.status(error.status_code || 500).json({
-        error: "Failed to send message",
+        error: 'Failed to send message',
         status_code: error.status_code,
       });
     }
@@ -94,10 +101,11 @@ app.post('/sms/send', async (req, res) => {
         error: 'Network error connecting to Telnyx',
       });
     }
-    if (error.message.includes('E.164 format')) {
-      return res.status(400).json({ error: "Invalid phone number format" });
+    if (error.message && error.message.includes('E.164 format')) {
+      return res.status(400).json({ error: 'Invalid phone number format' });
     }
-    return res.status(500).json({ error: "Internal server error" });
+    console.error('Failed to send SMS:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -106,16 +114,28 @@ app.post('/sms/send', async (req, res) => {
  * Receive inbound SMS messages and delivery status updates from Telnyx.
  */
 app.post('/webhooks/sms', async (req, res) => {
+  // Verify the webhook signature on every request. Reject anything that
+  // does not carry a valid Telnyx signature for the raw request body.
+  try {
+    await client.webhooks.unwrap(req.rawBody.toString(), {
+      headers: req.headers,
+      key: config.publicKey,
+    });
+  } catch (err) {
+    return res.status(401).json({ error: 'invalid signature' });
+  }
+
   const event = req.body;
 
   if (!event.data || !event.data.payload) {
     return res.status(400).json({ error: 'Invalid webhook payload' });
   }
 
+  const eventType = event.data.event_type;
   const payload = event.data.payload;
 
   // Handle inbound messages
-  if (event.type === 'message.received') {
+  if (eventType === 'message.received') {
     const inboundMessage = {
       message_id: payload.id,
       from: payload.from.phone_number,
@@ -131,7 +151,7 @@ app.post('/webhooks/sms', async (req, res) => {
       // Send automatic reply
       await sendSms(inboundMessage.from, 'Thanks for your message! We received it.');
     } catch (error) {
-      console.error('Failed to send auto-reply:', error.message);
+      console.error('Failed to send auto-reply:', error);
     }
 
     return res.status(200).json({
@@ -141,13 +161,13 @@ app.post('/webhooks/sms', async (req, res) => {
   }
 
   // Handle message sent confirmation
-  if (event.type === 'message.sent') {
+  if (eventType === 'message.sent') {
     console.log('Message sent:', payload.id);
     return res.status(200).json({ success: true });
   }
 
   // Handle final delivery status
-  if (event.type === 'message.finalized') {
+  if (eventType === 'message.finalized') {
     console.log('Message finalized:', {
       id: payload.id,
       status: payload.to[0]?.status || 'unknown',
@@ -170,10 +190,7 @@ app.get('/health', (req, res) => {
 // Error handler middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: "Internal server error",
-  });
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // Start server

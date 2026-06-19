@@ -2,6 +2,7 @@
 """Production-ready Flask application for SMS notifications via Telnyx."""
 
 import os
+import logging
 import telnyx
 from datetime import datetime
 from enum import Enum
@@ -9,6 +10,15 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request, Blueprint
 
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# public_key (from the Portal) lets the SDK verify inbound webhook signatures.
+client = telnyx.Telnyx(
+    api_key=os.getenv("TELNYX_API_KEY"),
+    public_key=os.getenv("TELNYX_PUBLIC_KEY"),
+)
 
 
 # ============================================================================
@@ -86,9 +96,7 @@ def send_notification(recipient: str, message: str, notification_type: str = "al
     from_number = os.getenv("TELNYX_PHONE_NUMBER")
     if not from_number:
         raise ValueError("TELNYX_PHONE_NUMBER environment variable not set")
-    
-    client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
-    
+
     notification = Notification(recipient, message, notification_type)
     notification_counter += 1
     notification.id = notification_counter
@@ -220,28 +228,38 @@ def list_all_notifications():
 @bp.route("/webhooks/sms", methods=["POST"])
 def handle_sms_webhook():
     """Webhook endpoint to receive SMS delivery status updates from Telnyx."""
-    data = request.get_json()
-    
+    # Verify the Telnyx Ed25519 signature against the raw body before trusting
+    # anything. unwrap() reads the telnyx-signature-ed25519 / telnyx-timestamp
+    # headers and raises if the signature or timestamp (replay) check fails.
+    try:
+        client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 401
+
+    data = request.get_json(silent=True)
+
     if not data:
         return jsonify({"error": "No webhook data"}), 400
-    
-    event_type = data.get("data", {}).get("event_type")
-    message_id = data.get("data", {}).get("id")
-    
+
+    event = data.get("data", {})
+    event_type = event.get("event_type")          # event_type lives at the data level
+    payload = event.get("payload", {})             # event fields are nested under data.payload
+    message_id = payload.get("id")
+
     if not event_type or not message_id:
         return jsonify({"error": "Invalid webhook payload"}), 400
-    
+
     if event_type == "message.finalized":
-        delivery_status = data.get("data", {}).get("to", [{}])[0].get("status")
+        delivery_status = payload.get("to", [{}])[0].get("status")
         status = "failed" if delivery_status == "failed" else "delivered"
     else:
         status = "sent" if event_type == "message.sent" else "unknown"
-    
+
     try:
         update_notification_status(message_id, status)
         return jsonify({"status": "processed"}), 200
-    except Exception as e:
-        print(f"Webhook processing error: {str(e)}")
+    except Exception:
+        logger.exception("Webhook processing error")
         return jsonify({"status": "processed"}), 200
 
 

@@ -14,8 +14,9 @@ load_dotenv()
 
 class Config:
     """Application configuration from environment variables."""
-    
+
     TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
+    TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY")
     TELNYX_LONG_CODE = os.getenv("TELNYX_LONG_CODE")
     WEBHOOK_URL = os.getenv("WEBHOOK_URL")
     
@@ -30,6 +31,8 @@ class Config:
         """Validate required configuration at startup."""
         if not cls.TELNYX_API_KEY:
             raise ValueError("TELNYX_API_KEY environment variable not set")
+        if not cls.TELNYX_PUBLIC_KEY:
+            raise ValueError("TELNYX_PUBLIC_KEY environment variable not set")
         if not cls.TELNYX_LONG_CODE:
             raise ValueError("TELNYX_LONG_CODE environment variable not set")
         if not cls.WEBHOOK_URL:
@@ -43,8 +46,12 @@ Config.validate()
 
 app = Flask(__name__)
 
-# Initialize Telnyx client with the new SDK pattern
-client = telnyx.Telnyx(api_key=Config.TELNYX_API_KEY)
+# Initialize Telnyx client. public_key (from the Portal) lets the SDK verify
+# inbound webhook signatures via client.webhooks.unwrap().
+client = telnyx.Telnyx(
+    api_key=Config.TELNYX_API_KEY,
+    public_key=Config.TELNYX_PUBLIC_KEY,
+)
 
 # In-memory message queue and delivery tracking
 message_queue = []
@@ -199,21 +206,31 @@ def get_message_status(message_id: str):
 @app.route("/webhooks/message", methods=["POST"])
 def handle_message_webhook():
     """Handle inbound SMS and delivery status updates from Telnyx."""
-    data = request.get_json()
-    
+    # Verify the Telnyx Ed25519 signature against the raw body before trusting
+    # anything. unwrap() reads the telnyx-signature-ed25519 / telnyx-timestamp
+    # headers and raises if the signature or timestamp (replay) check fails.
+    try:
+        client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 401
+
+    data = request.get_json(silent=True)
+
     if not data:
         return jsonify({"error": "No webhook data"}), 400
-    
-    event_type = data.get("data", {}).get("event_type")
-    message_id = data.get("data", {}).get("id")
-    
+
+    event = data.get("data", {})
+    event_type = event.get("event_type")
+    payload = event.get("payload", {})  # Telnyx nests event fields under data.payload
+    message_id = payload.get("id")
+
     if event_type == "message.received":
         # Handle inbound SMS
-        from_number = data.get("data", {}).get("from", {}).get("phone_number")
-        message_text = data.get("data", {}).get("text")
-        
+        from_number = payload.get("from", {}).get("phone_number")
+        message_text = payload.get("text")
+
         print(f"[INBOUND] From: {from_number}, Message: {message_text}")
-        
+
         # Store inbound message
         if message_id:
             message_status[message_id] = {
@@ -223,16 +240,16 @@ def handle_message_webhook():
                 "text": message_text,
                 "timestamp": datetime.utcnow().isoformat(),
             }
-        
+
         return jsonify({"status": "received"}), 200
-    
+
     elif event_type == "message.finalized":
         # Handle delivery status update
-        to_number = data.get("data", {}).get("to", [{}])[0].get("phone_number")
-        delivery_status = data.get("data", {}).get("to", [{}])[0].get("status")
-        
+        to_number = payload.get("to", [{}])[0].get("phone_number")
+        delivery_status = payload.get("to", [{}])[0].get("status")
+
         print(f"[DELIVERY] Message {message_id} to {to_number}: {delivery_status}")
-        
+
         # Update message status
         if message_id:
             message_status[message_id] = {

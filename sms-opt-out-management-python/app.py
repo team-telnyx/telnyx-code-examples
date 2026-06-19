@@ -12,8 +12,12 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Initialize Telnyx client with the new SDK pattern
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
+# Initialize Telnyx client with the new SDK pattern.
+# public_key (from the Portal) lets the SDK verify inbound webhook signatures.
+client = telnyx.Telnyx(
+    api_key=os.getenv("TELNYX_API_KEY"),
+    public_key=os.getenv("TELNYX_PUBLIC_KEY"),
+)
 
 DB_PATH = os.getenv("DB_PATH", "optout.db")
 
@@ -269,22 +273,31 @@ def handle_sms_webhook():
     Handle inbound SMS webhooks from Telnyx.
     Automatically opt out users who reply with 'STOP' or 'UNSUBSCRIBE'.
     """
-    data = request.get_json()
-    
+    # Verify the Telnyx Ed25519 signature against the raw body before trusting
+    # anything. unwrap() reads the telnyx-signature-ed25519 / telnyx-timestamp
+    # headers and raises if the signature or timestamp (replay) check fails.
+    try:
+        client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 401
+
+    data = request.get_json(silent=True)
+
     if not data:
         return jsonify({"error": "No webhook data"}), 400
-    
-    # Extract webhook event data
+
+    # Extract webhook event data — event_type lives at the data level,
+    # while the message fields are nested under data.payload.
     event_type = data.get("data", {}).get("event_type")
-    
+
     # Only process message.received events
     if event_type != "message.received":
         return jsonify({"status": "ignored"}), 200
-    
-    message_data = data.get("data", {})
-    from_number = message_data.get("from", {}).get("phone_number")
-    text = message_data.get("text", "").upper().strip()
-    message_id = message_data.get("id")
+
+    payload = data.get("data", {}).get("payload", {})
+    from_number = payload.get("from", {}).get("phone_number")
+    text = payload.get("text", "").upper().strip()
+    message_id = payload.get("id")
     
     # Log the inbound message
     if message_id and from_number:

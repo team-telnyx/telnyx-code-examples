@@ -5,15 +5,15 @@
  */
 
 const express = require("express");
-const bodyParser = require("body-parser");
 const Telnyx = require("telnyx");
 require("dotenv").config();
 
 const app = express();
-app.use(bodyParser.json());
 
-// Initialize Telnyx client with the new SDK pattern
-const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
+// Initialize Telnyx client with the new SDK pattern.
+// The same client instance is used for sending SMS and for verifying
+// inbound webhook signatures via client.webhooks.unwrap().
+const client = new Telnyx(process.env.TELNYX_API_KEY);
 
 // In-memory store for delivery receipts (use a database in production)
 const deliveryReceipts = {};
@@ -69,8 +69,10 @@ async function sendSMS(toNumber, message) {
  * Updates message status based on finalized event.
  */
 function processDeliveryReceipt(event) {
-  const messageId = event.data.id;
-  const eventType = event.type;
+  // event_type lives at the data level; the message fields live in data.payload.
+  const eventType = event.data.event_type;
+  const payload = event.data.payload || {};
+  const messageId = payload.id;
 
   if (!deliveryReceipts[messageId]) {
     // Message not found in our tracking store
@@ -82,22 +84,22 @@ function processDeliveryReceipt(event) {
 
   // Update status based on event type
   if (eventType === "message.finalized") {
-    const finalStatus = event.data.to && event.data.to[0] ? event.data.to[0].status : "unknown";
+    const finalStatus = payload.to && payload.to[0] ? payload.to[0].status : "unknown";
     receipt.status = finalStatus;
 
     if (finalStatus === "delivered") {
       receipt.deliveredAt = new Date().toISOString();
     } else if (finalStatus === "failed") {
       receipt.failureReason =
-        event.data.to && event.data.to[0] ? event.data.to[0].error?.message : "Unknown error";
+        payload.to && payload.to[0] ? payload.to[0].error?.message : "Unknown error";
     }
   }
 
   return receipt;
 }
 
-// Route to send SMS
-app.post("/sms/send", async (req, res) => {
+// Route to send SMS (JSON body parsed for this route)
+app.post("/sms/send", express.json(), async (req, res) => {
   const { to, message } = req.body;
 
   if (!to || !message) {
@@ -110,6 +112,9 @@ app.post("/sms/send", async (req, res) => {
     const result = await sendSMS(to, message);
     return res.status(200).json(result);
   } catch (error) {
+    // Log the full error server-side; never leak exception text to clients.
+    console.error("Failed to send SMS:", error);
+
     if (error instanceof Telnyx.AuthenticationError) {
       return res.status(401).json({ error: "Invalid API key" });
     } else if (error instanceof Telnyx.RateLimitError) {
@@ -132,23 +137,48 @@ app.post("/sms/send", async (req, res) => {
   }
 });
 
-// Webhook endpoint to receive delivery receipts
-app.post("/webhooks/sms", (req, res) => {
-  const event = req.body;
+// Webhook endpoint to receive delivery receipts.
+// express.raw() captures the unparsed body so we can verify the Telnyx
+// signature against the exact bytes that were signed.
+app.post(
+  "/webhooks/sms",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const rawBody = req.body; // Buffer of the raw request body
 
-  // Validate webhook signature in production
-  // See Telnyx documentation for signature verification
-
-  if (event.type === "message.finalized") {
-    const receipt = processDeliveryReceipt(event);
-    if (receipt) {
-      console.log(`Delivery receipt processed for message ${receipt.id}: ${receipt.status}`);
+    // Enforce signature verification on every inbound Telnyx webhook.
+    try {
+      await client.webhooks.unwrap(rawBody.toString(), {
+        headers: req.headers,
+        key: process.env.TELNYX_PUBLIC_KEY,
+      });
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err);
+      return res.status(401).json({ error: "invalid signature" });
     }
-  }
 
-  // Always return 200 to acknowledge receipt
-  res.status(200).json({ success: true });
-});
+    let event;
+    try {
+      event = JSON.parse(rawBody.toString());
+    } catch (err) {
+      console.error("Failed to parse webhook body:", err);
+      return res.status(400).json({ error: "invalid payload" });
+    }
+
+    // event_type lives at the data level for Telnyx webhooks.
+    if (event.data && event.data.event_type === "message.finalized") {
+      const receipt = processDeliveryReceipt(event);
+      if (receipt) {
+        console.log(
+          `Delivery receipt processed for message ${receipt.id}: ${receipt.status}`
+        );
+      }
+    }
+
+    // Always return 200 to acknowledge receipt
+    res.status(200).json({ success: true });
+  }
+);
 
 // Route to retrieve delivery receipt status
 app.get("/receipts/:messageId", (req, res) => {
@@ -171,5 +201,5 @@ app.get("/receipts", (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Webhook URL: ${process.env.WEBHOOK_URL}`);
+  console.log(`Webhook endpoint: http://localhost:${PORT}/webhooks/sms`);
 });

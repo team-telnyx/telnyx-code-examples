@@ -15,8 +15,12 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Initialize Telnyx client with the new SDK pattern
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
+# Initialize Telnyx client with the new SDK pattern.
+# public_key (from the Portal) lets the SDK verify inbound webhook signatures.
+client = telnyx.Telnyx(
+    api_key=os.getenv("TELNYX_API_KEY"),
+    public_key=os.getenv("TELNYX_PUBLIC_KEY"),
+)
 
 # Rate limiting configuration
 RATE_LIMIT_DELAY = 0.1  # 100ms between messages to stay under API limits
@@ -272,7 +276,8 @@ def create_campaign_endpoint():
         return jsonify({"error": "Invalid API key"}), 401
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
-    except Exception as e:
+    except Exception:
+        app.logger.exception("Failed to create campaign")
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -295,9 +300,10 @@ def send_campaign_endpoint(campaign_id):
         return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
-    except ValueError as e:
+    except ValueError:
         return jsonify({"error": "Resource not found"}), 404
-    except Exception as e:
+    except Exception:
+        app.logger.exception("Failed to send campaign batch")
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -308,48 +314,58 @@ def get_campaign_endpoint(campaign_id):
         result = get_campaign_status(campaign_id)
         return jsonify(result), 200
 
-    except ValueError as e:
+    except ValueError:
         return jsonify({"error": "Resource not found"}), 404
-    except Exception as e:
+    except Exception:
+        app.logger.exception("Failed to fetch campaign status")
         return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/webhooks/message-status", methods=["POST"])
 def webhook_message_status():
     """Handle Telnyx webhook events for message delivery status."""
-    data = request.get_json()
-    
-    if not data:
-        return jsonify({"error": "No webhook data"}), 400
-    
-    # Telnyx sends events in a 'data' array
-    events = data.get("data", [])
-    
-    conn = get_db()
-    
+    # Verify the Telnyx Ed25519 signature against the raw body before trusting
+    # anything. unwrap() reads the telnyx-signature-ed25519 / telnyx-timestamp
+    # headers and raises if the signature or timestamp (replay) check fails.
     try:
-        for event in events:
-            event_type = event.get("type")
-            message_id = event.get("payload", {}).get("id")
-            status = event.get("payload", {}).get("to", [{}])[0].get("status")
-            
-            if message_id and status:
-                # Record event
-                conn.execute(
-                    "INSERT INTO message_events (message_id, event_type, status) VALUES (?, ?, ?)",
-                    (message_id, event_type, status)
-                )
-                
-                # Update recipient status
-                conn.execute(
-                    "UPDATE campaign_recipients SET status = ? WHERE message_id = ?",
-                    (status, message_id)
-                )
-        
+        client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 401
+
+    body = request.get_json(silent=True)
+
+    if not body:
+        return jsonify({"error": "No webhook data"}), 400
+
+    # Telnyx delivers a single event object under "data".
+    data = body.get("data", {})
+    event_type = data.get("event_type")
+    payload = data.get("payload", {})  # Telnyx nests event fields under data.payload
+    message_id = payload.get("id")
+    to = payload.get("to") or [{}]
+    status = to[0].get("status")
+
+    conn = get_db()
+
+    try:
+        if message_id and status:
+            # Record event
+            conn.execute(
+                "INSERT INTO message_events (message_id, event_type, status) VALUES (?, ?, ?)",
+                (message_id, event_type, status)
+            )
+
+            # Update recipient status
+            conn.execute(
+                "UPDATE campaign_recipients SET status = ? WHERE message_id = ?",
+                (status, message_id)
+            )
+
         conn.commit()
         return jsonify({"status": "received"}), 200
-        
-    except Exception as e:
+
+    except Exception:
+        app.logger.exception("Failed to process message-status webhook")
         return jsonify({"error": "Internal server error"}), 500
     finally:
         conn.close()

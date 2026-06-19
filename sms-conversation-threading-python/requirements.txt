@@ -1,4 +1,4 @@
-flask
-python-dotenv
-sqlalchemy
-telnyx
+flask>=3.0
+python-dotenv>=1.0
+sqlalchemy>=2.0
+telnyx>=4.0.0

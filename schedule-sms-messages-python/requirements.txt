@@ -1,4 +1,4 @@
-apscheduler
-flask
-python-dotenv
-telnyx
+apscheduler>=3.10.0
+flask>=3.0.0
+python-dotenv>=1.0.0
+telnyx>=4.0.0

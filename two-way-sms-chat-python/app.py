@@ -2,6 +2,7 @@
 """Production-ready Flask application for two-way SMS with Telnyx."""
 
 import os
+import logging
 import telnyx
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
@@ -10,9 +11,14 @@ from datetime import datetime
 load_dotenv()
 
 app = Flask(__name__)
+logger = logging.getLogger(__name__)
 
-# Initialize client with the new SDK pattern
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
+# Initialize client with the new SDK pattern.
+# public_key (from the Portal) lets the SDK verify inbound webhook signatures.
+client = telnyx.Telnyx(
+    api_key=os.getenv("TELNYX_API_KEY"),
+    public_key=os.getenv("TELNYX_PUBLIC_KEY"),
+)
 
 # Simple in-memory storage for conversation state
 conversations = {}
@@ -93,9 +99,17 @@ def process_inbound_message(from_number: str, message_text: str) -> str:
 @app.route("/webhooks/sms", methods=["POST"])
 def handle_sms_webhook():
     """Handle inbound SMS webhooks from Telnyx."""
+    # Verify the Telnyx Ed25519 signature against the raw body before trusting
+    # anything. unwrap() reads the telnyx-signature-ed25519 / telnyx-timestamp
+    # headers and raises if the signature or timestamp (replay) check fails.
+    try:
+        client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
+    except Exception:
+        return jsonify({"error": "invalid signature"}), 401
+
     try:
         webhook_data = request.get_json()
-        
+
         if not webhook_data:
             return jsonify({"error": "No webhook data received"}), 400
         
@@ -135,7 +149,8 @@ def handle_sms_webhook():
         return jsonify({"error": "API request failed"}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error"}), 503
-    except Exception as e:
+    except Exception:
+        logger.exception("Unhandled error processing inbound SMS webhook")
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -165,7 +180,7 @@ def send_sms_endpoint():
         return jsonify({"error": "API request failed"}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error"}), 503
-    except ValueError as e:
+    except ValueError:
         return jsonify({"error": "Invalid request"}), 400
 
 

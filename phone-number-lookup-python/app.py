@@ -112,7 +112,7 @@ def lookup_endpoint():
         return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
-    except ValueError as e:
+    except ValueError:
         return jsonify({"error": "Invalid request"}), 400
 
 
@@ -134,7 +134,7 @@ def lookup_get_endpoint(phone_number: str):
         return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
-    except ValueError as e:
+    except ValueError:
         return jsonify({"error": "Invalid request"}), 400
 
 
