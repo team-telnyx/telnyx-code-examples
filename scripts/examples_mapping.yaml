@@ -108,6 +108,36 @@ examples:
     framework: gin
     folder: route-phone-calls-to-ai-agent-go
 
+  - product: voice
+    use_case: outbound-call
+    language: ruby
+    framework: rails
+    folder: make-outbound-phone-call-ruby
+
+  - product: voice
+    use_case: outbound-call
+    language: php
+    framework: laravel
+    folder: make-outbound-phone-call-php
+
+  - product: voice
+    use_case: outbound-call
+    language: java
+    framework: spring
+    folder: make-outbound-phone-call-java
+
+  - product: voice
+    use_case: outbound-call
+    language: csharp
+    framework: aspnet
+    folder: make-outbound-phone-call-csharp
+
+  - product: voice
+    use_case: inbound-call-webhook
+    language: ruby
+    framework: rails
+    folder: route-phone-calls-to-ai-agent-ruby
+
   # ─────────────────────────────────────────────────────────────────────
   # AI Assistants (8 examples)
   # ─────────────────────────────────────────────────────────────────────
@@ -159,6 +189,36 @@ examples:
     framework: express
     folder: list-ai-assistants-nodejs
 
+  - product: ai
+    use_case: chat-with-ai-assistant
+    language: go
+    framework: gin
+    folder: chat-with-ai-assistant-go
+
+  - product: ai
+    use_case: chat-with-ai-assistant
+    language: ruby
+    framework: rails
+    folder: chat-with-ai-assistant-ruby
+
+  - product: ai
+    use_case: chat-with-ai-assistant
+    language: php
+    framework: laravel
+    folder: chat-with-ai-assistant-php
+
+  - product: ai
+    use_case: chat-with-ai-assistant
+    language: java
+    framework: spring
+    folder: chat-with-ai-assistant-java
+
+  - product: ai
+    use_case: chat-with-ai-assistant
+    language: csharp
+    framework: aspnet
+    folder: chat-with-ai-assistant-csharp
+
   # ─────────────────────────────────────────────────────────────────────
   # SIP Trunking (7 examples)
   # ─────────────────────────────────────────────────────────────────────
@@ -203,6 +263,30 @@ examples:
     language: go
     framework: gin
     folder: setup-sip-trunk-go
+
+  - product: sip
+    use_case: sip-trunking-setup
+    language: ruby
+    framework: rails
+    folder: setup-sip-trunk-ruby
+
+  - product: sip
+    use_case: sip-trunking-setup
+    language: php
+    framework: laravel
+    folder: setup-sip-trunk-php
+
+  - product: sip
+    use_case: sip-trunking-setup
+    language: java
+    framework: spring
+    folder: setup-sip-trunk-java
+
+  - product: sip
+    use_case: sip-trunking-setup
+    language: csharp
+    framework: aspnet
+    folder: setup-sip-trunk-csharp
 
   # ─────────────────────────────────────────────────────────────────────
   # SMS / MMS (30 examples)
@@ -278,6 +362,48 @@ examples:
     language: ruby
     framework: rails
     folder: send-sms-ruby
+
+  - product: sms
+    use_case: send-single-sms
+    language: php
+    framework: laravel
+    folder: send-sms-php
+
+  - product: sms
+    use_case: send-single-sms
+    language: java
+    framework: spring
+    folder: send-sms-java
+
+  - product: sms
+    use_case: send-single-sms
+    language: csharp
+    framework: aspnet
+    folder: send-sms-csharp
+
+  - product: sms
+    use_case: receive-sms-webhook
+    language: ruby
+    framework: rails
+    folder: receive-sms-webhook-ruby
+
+  - product: sms
+    use_case: receive-sms-webhook
+    language: php
+    framework: laravel
+    folder: receive-sms-webhook-php
+
+  - product: sms
+    use_case: receive-sms-webhook
+    language: java
+    framework: spring
+    folder: receive-sms-webhook-java
+
+  - product: sms
+    use_case: receive-sms-webhook
+    language: csharp
+    framework: aspnet
+    folder: receive-sms-webhook-csharp
 
   - product: sms
     use_case: two-way-sms
@@ -431,6 +557,30 @@ examples:
     language: go
     framework: gin
     folder: activate-sim-card-go
+
+  - product: iot
+    use_case: sim-activation
+    language: ruby
+    framework: rails
+    folder: activate-sim-card-ruby
+
+  - product: iot
+    use_case: sim-activation
+    language: php
+    framework: laravel
+    folder: activate-sim-card-php
+
+  - product: iot
+    use_case: sim-activation
+    language: java
+    framework: spring
+    folder: activate-sim-card-java
+
+  - product: iot
+    use_case: sim-activation
+    language: csharp
+    framework: aspnet
+    folder: activate-sim-card-csharp
 
   # ─────────────────────────────────────────────────────────────────────
   # Full-corpus registration (180 examples)

@@ -37,6 +37,9 @@ LANG_CODE_FILE = {
     "nodejs": "server.js",
     "go": "main.go",
     "ruby": "app.rb",
+    "java": "Application.java",
+    "php": "index.php",
+    "csharp": "Program.cs",
 }
 
 LANG_DEP_FILE = {
@@ -44,6 +47,9 @@ LANG_DEP_FILE = {
     "nodejs": "package.json",
     "go": "go.mod",
     "ruby": "Gemfile",
+    "java": "pom.xml",
+    "php": "composer.json",
+    "csharp": "TelnyxExample.csproj",
 }
 
 # Sections required on every example README. Kept to the set common to both the
@@ -140,6 +146,19 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
                 )
                 if result.returncode != 0:
                     errors.append(f"Node.js syntax error in {code_file}: {result.stderr[:200]}")
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                pass
+
+        elif language == "php":
+            try:
+                result = subprocess.run(  # nosec B603
+                    ["php", "-l", str(code_path)],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if result.returncode != 0:
+                    errors.append(f"PHP syntax error in {code_file}: {result.stderr[:200]}")
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 pass
 

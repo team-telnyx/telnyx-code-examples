@@ -43,6 +43,9 @@ LANG_DEP_FILE = {
     "nodejs": "package.json",
     "go": "go.mod",
     "ruby": "Gemfile",
+    "java": "pom.xml",
+    "php": "composer.json",
+    "csharp": "TelnyxExample.csproj",
 }
 
 LANG_LABELS = {
@@ -141,6 +144,8 @@ LANG_SDK_URL = {
     "nodejs": ("Node.js SDK", "https://developers.telnyx.com/development/sdk/node"),
     "ruby":   ("Ruby SDK", "https://developers.telnyx.com/development/sdk/ruby"),
     "go":     ("Go SDK", "https://developers.telnyx.com/development/sdk/go"),
+    "java":   ("Java SDK", "https://developers.telnyx.com/development/sdk/java"),
+    "php":    ("PHP SDK", "https://developers.telnyx.com/development/sdk/php"),
 }
 
 # Code block language tags for extraction
@@ -310,6 +315,18 @@ def extract_env_vars(code: str, language: str) -> list[str]:
     # Ruby: ENV["VAR"]
     env_vars.update(re.findall(r'ENV\[["\'](\w+)["\']', code))
 
+    # PHP: env('VAR'), getenv('VAR'), $_ENV['VAR']
+    env_vars.update(re.findall(r"env\(['\"](\w+)['\"]", code))
+    env_vars.update(re.findall(r"getenv\(['\"](\w+)['\"]", code))
+    env_vars.update(re.findall(r"\$_ENV\[['\"](\w+)['\"]", code))
+
+    # Java: System.getenv("VAR"), @Value("${VAR}")
+    env_vars.update(re.findall(r'System\.getenv\(["\'](\w+)["\']', code))
+    env_vars.update(re.findall(r'@Value\("\$\{(\w+)\}', code))
+
+    # C#: Environment.GetEnvironmentVariable("VAR")
+    env_vars.update(re.findall(r'Environment\.GetEnvironmentVariable\(["\'](\w+)["\']', code))
+
     # Ensure TELNYX_API_KEY is always present
     env_vars.add("TELNYX_API_KEY")
 
@@ -330,6 +347,12 @@ def extract_dependencies(sections: dict, language: str, framework: str) -> str:
         return _extract_go_deps(setup, framework)
     elif language == "ruby":
         return _extract_ruby_deps(setup, framework)
+    elif language == "java":
+        return _extract_java_deps(setup, framework)
+    elif language == "php":
+        return _extract_php_deps(setup, framework)
+    elif language == "csharp":
+        return _extract_csharp_deps(setup, framework)
     return ""
 
 
@@ -421,6 +444,94 @@ def _extract_ruby_deps(setup: str, framework: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _extract_java_deps(setup: str, framework: str) -> str:
+    """Produce a minimal pom.xml for a Spring Boot + Telnyx Java project."""
+    return """<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.0</version>
+    </parent>
+    <groupId>com.telnyx.example</groupId>
+    <artifactId>telnyx-example</artifactId>
+    <version>1.0.0</version>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.telnyx.sdk</groupId>
+            <artifactId>telnyx-java</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+"""
+
+
+def _extract_php_deps(setup: str, framework: str) -> str:
+    """Produce a composer.json for a PHP + Telnyx project."""
+    require = {
+        "php": ">=8.1",
+        "telnyx/telnyx-php": "^3.0",
+        "vlucas/phpdotenv": "^5.5",
+    }
+    if framework in ("laravel", "Laravel"):
+        require["laravel/framework"] = "^11.0"
+    elif framework in ("symfony", "Symfony"):
+        require["symfony/framework-bundle"] = "^7.0"
+    else:
+        require["slim/slim"] = "^4.0"
+        require["slim/psr7"] = "^1.0"
+
+    composer = {
+        "name": "telnyx/example",
+        "description": "Telnyx API example",
+        "type": "project",
+        "require": require,
+        "autoload": {
+            "psr-4": {
+                "App\\": "src/"
+            }
+        },
+    }
+    return json.dumps(composer, indent=4) + "\n"
+
+
+def _extract_csharp_deps(setup: str, framework: str) -> str:
+    """Produce a .csproj file for a C# ASP.NET + Telnyx project."""
+    return """<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Telnyx" Version="3.0.0" />
+    <PackageReference Include="DotNetEnv" Version="3.1.0" />
+  </ItemGroup>
+</Project>
+"""
+
+
 # ---------------------------------------------------------------------------
 # Generators: Dockerfile, Makefile, .env.example
 # ---------------------------------------------------------------------------
@@ -503,6 +614,71 @@ EXPOSE {port}
 
 CMD ["ruby", "{code_file}"]
 """
+    elif language == "java":
+        return f"""FROM eclipse-temurin:21-jdk AS builder
+
+WORKDIR /app
+
+COPY pom.xml .
+RUN mvn dependency:go-offline -B || true
+
+COPY . .
+RUN mvn package -DskipTests -B
+
+FROM eclipse-temurin:21-jre
+
+WORKDIR /app
+COPY --from=builder /app/target/*.jar app.jar
+
+RUN useradd -r appuser
+USER appuser
+
+EXPOSE {port}
+
+CMD ["java", "-jar", "app.jar"]
+"""
+    elif language == "php":
+        return f"""FROM php:8.3-cli
+
+WORKDIR /app
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+COPY composer.json composer.lock* ./
+RUN composer install --no-dev --no-interaction --optimize-autoloader
+
+COPY . .
+
+RUN useradd -r appuser && chown -R appuser /app
+USER appuser
+
+EXPOSE {port}
+
+CMD ["php", "-S", "0.0.0.0:{port}", "-t", "public", "{code_file}"]
+"""
+    elif language == "csharp":
+        return f"""FROM mcr.microsoft.com/dotnet/sdk:8.0 AS builder
+
+WORKDIR /app
+
+COPY *.csproj ./
+RUN dotnet restore
+
+COPY . .
+RUN dotnet publish -c Release -o /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+
+WORKDIR /app
+COPY --from=builder /app/publish .
+
+RUN useradd -r appuser && chown -R appuser /app
+USER appuser
+
+EXPOSE {port}
+
+CMD ["dotnet", "TelnyxExample.dll"]
+"""
     else:
         return f"""FROM python:3.12-slim
 WORKDIR /app
@@ -534,6 +710,18 @@ def generate_makefile(language: str, framework: str) -> str:
         setup_cmd = "bundle install"
         run_cmd = f"ruby {code_file}"
         test_cmd = f"ruby -c {code_file}"
+    elif language == "java":
+        setup_cmd = "mvn install -DskipTests"
+        run_cmd = "mvn spring-boot:run"
+        test_cmd = "mvn compile"
+    elif language == "php":
+        setup_cmd = "composer install"
+        run_cmd = f"php -S localhost:8000 -t public {code_file}"
+        test_cmd = f"php -l {code_file}"
+    elif language == "csharp":
+        setup_cmd = "dotnet restore"
+        run_cmd = "dotnet run"
+        test_cmd = "dotnet build"
     else:
         setup_cmd = "echo 'Setup complete'"
         run_cmd = f"python {code_file}"
