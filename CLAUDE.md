@@ -13,8 +13,10 @@ telnyx-code-examples/
 │   ├── verify.py                     # Validates all example folders
 │   ├── transform.py                  # Converts tutorial-factory markdown → example folder
 │   ├── batch_pipeline.py             # Batch processing pipeline
+│   ├── gen_llms_txt.py               # Generates/validates the root llms.txt index
 │   └── examples_mapping.yaml         # Central registry: product/use_case/language/framework → folder
 ├── README.md                         # Root README with category tables listing all examples
+├── llms.txt                          # LLM-facing index (llmstxt.org) — generated, do not hand-edit
 ├── CONTRIBUTING.md                   # Contributor guidelines
 └── LICENSE
 ```
@@ -106,6 +108,18 @@ Converts tutorial-factory markdown into a deployable example folder with all req
 ### examples_mapping.yaml — central registry
 
 Maps product / use_case / language / framework to folder names. Used by both `verify.py` and `transform.py`.
+
+### gen_llms_txt.py — generate the llms.txt index
+
+```bash
+python scripts/gen_llms_txt.py            # regenerate root llms.txt
+python scripts/gen_llms_txt.py --check     # CI sync gate (fails if stale)
+```
+
+Builds the root `llms.txt` ([llmstxt.org](https://llmstxt.org/)) from `examples_mapping.yaml`
+(product → category) + each example's README frontmatter `title`/`description`, with absolute
+`raw.githubusercontent.com` links. **Never hand-edit `llms.txt`** — regenerate it. A PR that
+adds/renames/recategorizes an example must re-run this; CI enforces sync via `--check`.
 
 ## Branding
 
