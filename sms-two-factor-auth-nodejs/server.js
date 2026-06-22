@@ -47,8 +47,8 @@ async function sendOTPSMS(toNumber, otp) {
 
   const message = `Your verification code is: ${otp}. Do not share this code with anyone.`;
 
-  const response = await client.messages.create({
-    from_: fromNumber,
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
   });
@@ -163,11 +163,11 @@ app.post("/auth/request-otp", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 500).json({ error: error.message });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 500).json({ error: error.message });
     }
     // Handle validation errors
     if (error.message.includes("E.164 format")) {

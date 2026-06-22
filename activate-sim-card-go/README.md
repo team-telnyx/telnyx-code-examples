@@ -26,7 +26,7 @@ Activate a Telnyx IoT SIM card over HTTP using the Telnyx Go SDK and Gin.
   │   Gin handler     │
   │  (validate body)  │
   └────────┬─────────┘
-           │ client.SimCards.Activate(id)
+           │ client.SimCards.Actions.Enable(ctx, id)
            ▼
   ┌──────────────────┐
   │  Telnyx IoT SIM   │
@@ -78,9 +78,10 @@ curl -X POST http://localhost:8080/sim/activate \
 ```json
 {
   "id": "6b14e151-8493-4fa1-8664-1cc4e6d14158",
-  "iccid": "89310410106543789301",
-  "status": "enabling",
-  "sim_card_group_id": "47a1c2c4-3f5d-4e0e-9b3b-1f1b2c3d4e5f"
+  "sim_card_id": "6b14e151-8493-4fa1-8664-1cc4e6d14158",
+  "action_type": "enable",
+  "status": "in-progress",
+  "created_at": "2024-01-01T00:00:00Z"
 }
 ```
 

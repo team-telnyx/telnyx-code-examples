@@ -12,7 +12,7 @@ Build a production-ready Express endpoint that sends a user message to a Telnyx 
   │ Express (server.js)   │
   │  chatWithAssistant()  │
   └──────────┬───────────┘
-             │  client.ai_assistants.chat(assistantId, {messages})
+             │  client.ai.assistants.chat(assistantId, {messages})
              ▼
   ┌──────────────────────┐
   │ Telnyx AI Assistant   │
@@ -67,7 +67,7 @@ const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 ### Helper Function
 
-`chatWithAssistant(assistantId, message)` validates its inputs, calls the assistant, and returns a JSON-serializable object. SDK response objects are not directly serializable, so it pulls out `response.data.result`:
+`chatWithAssistant(assistantId, message)` validates its inputs, calls the assistant, and returns a JSON-serializable object. SDK response objects are not directly serializable, so it pulls out `response.content`:
 
 ```javascript
 async function chatWithAssistant(assistantId, message) {
@@ -78,14 +78,14 @@ async function chatWithAssistant(assistantId, message) {
     throw new Error("Message cannot be empty");
   }
 
-  const response = await client.ai_assistants.chat(assistantId, {
+  const response = await client.ai.assistants.chat(assistantId, {
     messages: [{ role: "user", content: message }],
   });
 
   return {
     assistant_id: assistantId,
     user_message: message,
-    assistant_response: response.data.result,
+    assistant_response: response.content,
     timestamp: new Date().toISOString(),
   };
 }

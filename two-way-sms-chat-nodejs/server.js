@@ -28,7 +28,7 @@ if (!config.phoneNumber) {
 const app = express();
 
 // Initialize Telnyx client
-const client = Telnyx(config.apiKey);
+const client = new Telnyx({ apiKey: config.apiKey });
 
 // Capture the raw request body so webhook signatures can be verified.
 // Telnyx signs the exact bytes it sent, so the raw payload is required.
@@ -48,8 +48,8 @@ async function sendSms(toNumber, message) {
     throw new Error('Phone number must be in E.164 format (e.g., +15551234567)');
   }
 
-  const response = await client.messages.create({
-    from_: config.phoneNumber,
+  const response = await client.messages.send({
+    from: config.phoneNumber,
     to: toNumber,
     text: message,
   });
@@ -90,15 +90,15 @@ app.post('/sms/send', async (req, res) => {
         error: 'Rate limit exceeded. Please slow down.',
       });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res.status(error.status_code || 500).json({
-        error: 'Failed to send message',
-        status_code: error.status_code,
-      });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res.status(503).json({
         error: 'Network error connecting to Telnyx',
+      });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res.status(error.status || 500).json({
+        error: 'Failed to send message',
+        status_code: error.status,
       });
     }
     if (error.message && error.message.includes('E.164 format')) {

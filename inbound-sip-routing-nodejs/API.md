@@ -147,13 +147,13 @@ curl -X POST http://localhost:5000/webhooks/inbound-call \
 
 ## Telnyx API Endpoints Called
 
-The app calls these Telnyx API endpoints via the Node.js SDK (`client.sipConnections`):
+The app calls these Telnyx API endpoints via the Node.js SDK (`client.credentialConnections`):
 
 | SDK method | HTTP | Telnyx endpoint | Used by |
 |------------|------|-----------------|---------|
-| `sipConnections.create()` | `POST` | `/v2/sip_connections` | `POST /sip/connections` |
-| `sipConnections.list()` | `GET` | `/v2/sip_connections` | `GET /sip/connections` |
-| `sipConnections.retrieve(id)` | `GET` | `/v2/sip_connections/{id}` | `GET /sip/connections/:id` |
+| `credentialConnections.create()` | `POST` | `/v2/sip_connections` | `POST /sip/connections` |
+| `credentialConnections.list()` | `GET` | `/v2/sip_connections` | `GET /sip/connections` |
+| `credentialConnections.retrieve(id)` | `GET` | `/v2/sip_connections/{id}` | `GET /sip/connections/:id` |
 
 ## Error Handling
 
@@ -173,4 +173,4 @@ All endpoints return JSON. On error:
 | `503` | Network error reaching Telnyx (`Telnyx.APIConnectionError`) |
 | `500` | Internal server error |
 
-The status code from a `Telnyx.APIStatusError` is passed through with the upstream message.
+The status code from a `Telnyx.APIError` is passed through with the upstream message.

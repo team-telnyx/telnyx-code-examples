@@ -50,7 +50,7 @@ curl -X POST http://localhost:5000/calls/dial \
 
 ## Error Handling
 
-All responses are JSON. On error the body has the shape `{"error": "..."}` (the `APIStatusError` case also includes a `status_code` field).
+All responses are JSON. On error the body has the shape `{"error": "..."}` (the `APIError` case also includes a `status_code` field).
 
 | Status | Meaning | When it happens |
 |--------|---------|-----------------|
@@ -59,7 +59,7 @@ All responses are JSON. On error the body has the shape `{"error": "..."}` (the 
 | `401` | Invalid API key | Telnyx `AuthenticationError` — `TELNYX_API_KEY` is wrong |
 | `429` | Rate limit exceeded | Telnyx `RateLimitError` |
 | `503` | Network error connecting to Telnyx | Telnyx `APIConnectionError` |
-| _passthrough_ | Telnyx API status error | Telnyx `APIStatusError` — responds with the upstream `status_code` |
+| _passthrough_ | Telnyx API status error | Telnyx `APIError` — responds with the upstream `status_code` |
 | `500` | Internal server error | Unhandled error |
 
 ---
@@ -70,6 +70,6 @@ The server calls the Telnyx API through the Node.js SDK.
 
 | SDK call | HTTP | Path | Purpose |
 |----------|------|------|---------|
-| `client.calls.dial({ from_, to, connection_id })` | `POST` | `/v2/calls` | Initiate an outbound call. `connection_id` is **required** and links the call to your Call Control Application; `call_control_id` is **returned** in the response — do not pass it as input. |
+| `client.calls.dial({ from, to, connection_id })` | `POST` | `/v2/calls` | Initiate an outbound call. `connection_id` is **required** and links the call to your Call Control Application; `call_control_id` is **returned** in the response — do not pass it as input. |
 
 See the [Dial API reference](https://developers.telnyx.com/api-reference/call-commands/dial).

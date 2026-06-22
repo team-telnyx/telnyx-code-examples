@@ -28,9 +28,9 @@ async function sendSms(toNumber, message) {
     );
   }
 
-  // Use client.messages.create() to send the SMS
-  const response = await client.messages.create({
-    from_: fromNumber,
+  // Use client.messages.send() to send the SMS
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
   });
@@ -74,15 +74,15 @@ app.post("/sms/send", async (req, res) => {
         .status(429)
         .json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
-      return res
-        .status(error.status_code || 500)
-        .json({ error: error.message, status_code: error.status_code });
-    }
     if (error instanceof Telnyx.APIConnectionError) {
       return res
         .status(503)
         .json({ error: "Network error connecting to Telnyx" });
+    }
+    if (error instanceof Telnyx.APIError) {
+      return res
+        .status(error.status || 500)
+        .json({ error: error.message, status_code: error.status });
     }
     // Handle validation errors (from sendSms helper)
     if (error.message.includes("E.164") || error.message.includes("environment")) {

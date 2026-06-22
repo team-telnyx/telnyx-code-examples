@@ -33,7 +33,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
   │  Express server   │
   │   (server.js)     │
   └────────┬─────────┘
-           │ client.ai_assistants.list()
+           │ client.ai.assistants.list()
            ▼
   ┌──────────────────┐
   │ Telnyx AI         │

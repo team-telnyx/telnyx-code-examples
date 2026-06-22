@@ -12,7 +12,7 @@ Build a small Express endpoint that sends an SMS message using the Telnyx Messag
   │ Express handler   │
   │ (validate input)  │
   └────────┬─────────┘
-           │ client.messages.create()
+           │ client.messages.send()
            ▼
   ┌──────────────────┐
   │ Telnyx Messaging  │
@@ -78,8 +78,8 @@ async function sendSms(toNumber, message) {
     throw new Error("Phone number must be in E.164 format (e.g., +15551234567)");
   }
 
-  const response = await client.messages.create({
-    from_: fromNumber,
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
   });
@@ -95,7 +95,7 @@ async function sendSms(toNumber, message) {
 
 ### The endpoint
 
-`POST /sms/send` reads `to` and `message` from the JSON body, rejects missing fields with a 400, and maps Telnyx SDK errors (`AuthenticationError`, `RateLimitError`, `APIStatusError`, `APIConnectionError`) to the right HTTP status codes.
+`POST /sms/send` reads `to` and `message` from the JSON body, rejects missing fields with a 400, and maps Telnyx SDK errors (`AuthenticationError`, `RateLimitError`, `APIError`, `APIConnectionError`) to the right HTTP status codes.
 
 | Method | Path | Purpose |
 |--------|------|---------|

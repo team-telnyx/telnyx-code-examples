@@ -12,7 +12,7 @@ Build a small Express endpoint that sends an MMS picture message — text plus o
   │ Express handler   │
   │ (validate input)  │
   └────────┬─────────┘
-           │ client.messages.create({ media_urls })
+           │ client.messages.send({ media_urls })
            ▼
   ┌──────────────────┐
   │ Telnyx Messaging  │
@@ -86,8 +86,8 @@ async function sendMMS(toNumber, message, mediaUrls) {
     throw new Error("At least one media URL is required for MMS");
   }
 
-  const response = await client.messages.create({
-    from_: fromNumber,
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
     media_urls: mediaUrls,
@@ -105,7 +105,7 @@ async function sendMMS(toNumber, message, mediaUrls) {
 
 ### The endpoint
 
-`POST /mms/send` reads `to`, `message`, and `media_urls` from the JSON body, rejects missing fields and non-array `media_urls` with a 400, and maps Telnyx SDK errors (`AuthenticationError`, `RateLimitError`, `APIStatusError`, `APIConnectionError`) to the right HTTP status codes. Unexpected errors are logged server-side and returned as a generic `500`.
+`POST /mms/send` reads `to`, `message`, and `media_urls` from the JSON body, rejects missing fields and non-array `media_urls` with a 400, and maps Telnyx SDK errors (`AuthenticationError`, `RateLimitError`, `APIError`, `APIConnectionError`) to the right HTTP status codes. Unexpected errors are logged server-side and returned as a generic `500`.
 
 | Method | Path | Purpose |
 |--------|------|---------|

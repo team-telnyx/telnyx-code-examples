@@ -91,11 +91,17 @@ app.post("/calls/initiate", async (req, res) => {
 The webhook handler reacts to call events and speaks automatically on answer:
 
 ```javascript
-app.post("/webhooks/call", async (req, res) => {
-  const event = req.body.data;
+app.post("/webhooks/call", express.raw({ type: "*/*" }), async (req, res) => {
+  // Verify the Telnyx Ed25519 signature over the EXACT raw bytes before parsing.
+  if (!verifyTelnyxSignature(req.body.toString(), req.headers)) {
+    return res.status(401).json({ error: "invalid signature" });
+  }
+
+  const event = JSON.parse(req.body.toString()).data;
+  const payload = event.payload || {};
 
   if (event.event_type === "call.answered") {
-    const callControlId = event.call_control_id;
+    const callControlId = payload.call_control_id;
     const message =
       "Hello! This is a text-to-speech message from Telnyx. Thank you for calling.";
     await playTTS(callControlId, message);

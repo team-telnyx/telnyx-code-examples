@@ -122,7 +122,7 @@ The application calls the Telnyx Messaging API through the Node.js SDK:
 
 | SDK call | HTTP endpoint | Purpose |
 |----------|---------------|---------|
-| `client.messages.create({ from_, to, text })` | `POST /v2/messages` | Send the OTP SMS to the user |
+| `client.messages.send({ from, to, text })` | `POST /v2/messages` | Send the OTP SMS to the user |
 
 [Send a Message — API reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
 

@@ -12,7 +12,7 @@ Create a Telnyx AI Assistant over an HTTP endpoint using the Telnyx Node.js SDK 
   │  Express (server.js)  │
   │  createAssistant()    │
   └──────────┬───────────┘
-             │ client.ai_assistants.create()
+             │ client.ai.assistants.create()
              ▼
   ┌──────────────────────┐
   │  Telnyx AI Assistants │
@@ -62,10 +62,10 @@ const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 ### Helper Function
 
-- **`createAssistant(name, instructions, model, enabledFeatures)`** — validates the inputs, calls `client.ai_assistants.create()`, then extracts a JSON-serializable object from the SDK response (SDK objects are not directly JSON-serializable).
+- **`createAssistant(name, instructions, model, enabledFeatures)`** — validates the inputs, calls `client.ai.assistants.create()`, then extracts a JSON-serializable object from the SDK response (SDK objects are not directly JSON-serializable).
 
 ```javascript
-const response = await client.ai_assistants.create({
+const response = await client.ai.assistants.create({
   name: name,
   instructions: instructions,
   model: model,

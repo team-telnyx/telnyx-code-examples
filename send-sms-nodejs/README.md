@@ -20,7 +20,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
 
 - **Send Message**: `POST /v2/messages` -- [API reference](https://developers.telnyx.com/api/messaging/send-message)
 
-Called from the code via `client.messages.create({ from_, to, text })`.
+Called from the code via `client.messages.send({ from, to, text })`.
 
 ## Architecture
 
@@ -32,7 +32,7 @@ Called from the code via `client.messages.create({ from_, to, text })`.
   │ Express handler   │
   │ (validate input)  │
   └────────┬─────────┘
-           │ client.messages.create()
+           │ client.messages.send()
            ▼
   ┌──────────────────┐
   │ Telnyx Messaging  │

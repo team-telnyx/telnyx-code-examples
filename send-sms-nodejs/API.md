@@ -59,7 +59,7 @@ All responses are JSON. On error the body is `{"error": "..."}` (Telnyx API erro
 | `500` | Server error | Unexpected error |
 | `503` | Service unavailable | Network error reaching Telnyx (`Telnyx.APIConnectionError`) |
 
-Telnyx `APIStatusError` responses are returned with the upstream `status_code` and message.
+Telnyx `APIError` responses are returned with the upstream `status_code` and message.
 
 ---
 
@@ -67,6 +67,6 @@ Telnyx `APIStatusError` responses are returned with the upstream `status_code` a
 
 | Method | Path | SDK call | Purpose |
 |--------|------|----------|---------|
-| `POST` | `/v2/messages` | `client.messages.create({ from_, to, text })` | Send the SMS |
+| `POST` | `/v2/messages` | `client.messages.send({ from, to, text })` | Send the SMS |
 
 - [Send Message API reference](https://developers.telnyx.com/api/messaging/send-message)

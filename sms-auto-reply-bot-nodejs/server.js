@@ -20,7 +20,7 @@ app.use(express.json({
 
 // Initialize the Telnyx client. Used both for sending SMS and for verifying
 // inbound webhook signatures via client.webhooks.unwrap().
-const client = Telnyx(process.env.TELNYX_API_KEY);
+const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 /**
  * Send SMS via Telnyx and return JSON-serializable response data.
@@ -41,8 +41,8 @@ async function sendSMS(toNumber, message) {
     );
   }
 
-  // Use client.messages.create() to send the message
-  const response = await client.messages.create({
+  // Use client.messages.send() to send the message
+  const response = await client.messages.send({
     from: fromNumber,
     to: toNumber,
     text: message,
@@ -73,13 +73,13 @@ function handleTelnyxError(error, res) {
     console.error("Rate limit exceeded:", error.message);
     return res.status(429).json({ error: "Rate limit exceeded" });
   }
-  if (error instanceof Telnyx.APIStatusError) {
-    console.error("API error:", error.message);
-    return res.status(502).json({ error: "Upstream API error" });
-  }
   if (error instanceof Telnyx.APIConnectionError) {
     console.error("Connection error:", error.message);
     return res.status(503).json({ error: "Network error connecting to Telnyx" });
+  }
+  if (error instanceof Telnyx.APIError) {
+    console.error("API error:", error.message);
+    return res.status(502).json({ error: "Upstream API error" });
   }
   console.error("Unexpected error:", error.message);
   return res.status(500).json({ error: "Internal server error" });

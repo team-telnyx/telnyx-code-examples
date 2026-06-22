@@ -74,7 +74,7 @@ curl http://localhost:5000/health
 
 | Method | Path | SDK call | Purpose |
 |--------|------|----------|---------|
-| `POST` | `/v2/ai/assistants` | `client.ai_assistants.create(...)` | Create a new AI assistant |
+| `POST` | `/v2/ai/assistants` | `client.ai.assistants.create(...)` | Create a new AI assistant |
 
 [Create an Assistant — API reference](https://developers.telnyx.com/api-reference/assistants/create-an-assistant)
 
@@ -91,7 +91,7 @@ All endpoints return JSON. On error:
 | Status | Meaning |
 |--------|---------|
 | `201` | Assistant created |
-| `400` | Bad request — missing/invalid fields or Telnyx `APIStatusError` |
+| `400` | Bad request — missing/invalid fields or Telnyx `APIError` |
 | `401` | Invalid API key (`AuthenticationError`) |
 | `429` | Rate limit exceeded (`RateLimitError`) |
 | `500` | Unhandled server error |

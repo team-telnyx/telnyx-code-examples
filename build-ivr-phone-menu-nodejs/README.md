@@ -22,7 +22,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
 
 - **Answer Call**: `POST /v2/calls/{call_control_id}/actions/answer` — [API reference](https://developers.telnyx.com/api/call-control/answer-call)
 - **Speak Text (TTS)**: `POST /v2/calls/{call_control_id}/actions/speak` — [API reference](https://developers.telnyx.com/api/call-control/speak)
-- **Gather DTMF**: `POST /v2/calls/{call_control_id}/actions/gather_dtmf` — [API reference](https://developers.telnyx.com/api/call-control/gather)
+- **Gather Using Speak**: `POST /v2/calls/{call_control_id}/actions/gather_using_speak` — [API reference](https://developers.telnyx.com/api/call-control/gather-using-speak)
 - **Transfer Call**: `POST /v2/calls/{call_control_id}/actions/transfer` — [API reference](https://developers.telnyx.com/api/call-control/transfer-call)
 
 ## Architecture
@@ -41,7 +41,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
   │  /webhooks/*          │
   └─────────┬────────────┘
             │
-  call.initiated ──► answer ──► speak (menu) ──► gather_dtmf
+  call.initiated ──► answer ──► gather_using_speak (menu + DTMF)
             │
   dtmf.received ──► 1 ► transfer sales
                     2 ► transfer support
@@ -186,7 +186,7 @@ curl http://localhost:5000/health
 |-------|-------|-----|
 | `401 Invalid API key` | `TELNYX_API_KEY` is missing or wrong | Verify the key in `.env` matches the one in the [Portal](https://portal.telnyx.com/api-keys); no quotes or trailing spaces, then restart `node server.js` |
 | Webhooks never arrive | Local server not publicly reachable | Run `ngrok http 5000` and set the ngrok HTTPS URL as your Call Control Application webhook URL in the [Telnyx Portal](https://portal.telnyx.com) |
-| DTMF input ignored | `gather_dtmf` not running, or call already transferred/ended | Confirm the greeting calls `gather_dtmf` after `speak`, and that the call is still active when the digit is pressed; check server logs |
+| DTMF input ignored | `gather_using_speak` not running, or call already transferred/ended | Confirm the greeting calls `gatherUsingSpeak` (speaks the prompt and collects DTMF in one command), and that the call is still active when the digit is pressed; check server logs |
 | Transfer says "Transferring…" but nothing happens | Destination number invalid or not in E.164 | Edit the hardcoded sales/support numbers in `server.js` to valid E.164 numbers (e.g. `+15559876543`) your account can dial |
 | `429 Rate limit exceeded` | Too many Call Control requests | Slow down request volume; the error middleware already returns 429 for `RateLimitError` |
 

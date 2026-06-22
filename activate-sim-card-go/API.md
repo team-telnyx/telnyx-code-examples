@@ -19,18 +19,20 @@ Activate a Telnyx IoT SIM card by its SIM card ID.
 ```json
 {
   "id": "6b14e151-8493-4fa1-8664-1cc4e6d14158",
-  "iccid": "89310410106543789301",
-  "status": "enabling",
-  "sim_card_group_id": "47a1c2c4-3f5d-4e0e-9b3b-1f1b2c3d4e5f"
+  "sim_card_id": "6b14e151-8493-4fa1-8664-1cc4e6d14158",
+  "action_type": "enable",
+  "status": "in-progress",
+  "created_at": "2024-01-01T00:00:00Z"
 }
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | `string` | SIM card ID |
-| `iccid` | `string` | Integrated Circuit Card Identifier of the SIM |
-| `status` | `string` | Current SIM status (e.g. `enabling`) |
-| `sim_card_group_id` | `string` | ID of the SIM card group the SIM belongs to |
+| `id` | `string` | SIM Card Action ID tracking the enable operation |
+| `sim_card_id` | `string` | ID of the SIM card being enabled |
+| `action_type` | `string` | Type of action performed (e.g. `enable`) |
+| `status` | `string` | Current status of the action (e.g. `in-progress`) |
+| `created_at` | `string` | Timestamp when the action was created |
 
 **Try it:**
 
@@ -44,7 +46,7 @@ curl -X POST http://localhost:8080/sim/activate \
 
 ## Telnyx API Endpoints Called
 
-The application calls the Telnyx Go SDK method `client.SimCards.Activate(simCardID, nil)`, which maps to:
+The application calls the Telnyx Go SDK method `client.SimCards.Actions.Enable(ctx, simCardID)`, which maps to:
 
 - **Activate SIM Card**: `POST /v2/sim_cards/{id}/actions/enable` -- [API reference](https://developers.telnyx.com/api-reference/sim-cards/enable-sim-card)
 
@@ -61,10 +63,9 @@ All endpoints return JSON. On error:
 | Status | Meaning |
 |--------|---------|
 | `200` | Success — SIM activation accepted |
-| `400` | Bad request — missing `sim_card_id` or other validation error |
-| `401` | Invalid API key |
-| `429` | Rate limit exceeded |
-| `503` | Network error connecting to Telnyx |
+| `400` | Bad request — missing `sim_card_id`, validation error, or non-API error (e.g. connection failure) |
+| `401` | Invalid API key (echoed upstream status from `*telnyx.Error`) |
+| `429` | Rate limit exceeded (echoed upstream status from `*telnyx.Error`) |
 
-For `APIStatusError` responses, the body also includes a `status_code` field echoing the upstream HTTP status returned by the Telnyx API.
+For `*telnyx.Error` responses, the body also includes a `status_code` field echoing the upstream HTTP status returned by the Telnyx API.
 </content>

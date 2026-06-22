@@ -70,7 +70,7 @@ A helper that validates inputs and places the call. It reads `TELNYX_PHONE_NUMBE
 
 ```javascript
 const response = await client.calls.dial({
-  from_: fromNumber,
+  from: fromNumber,
   to: toNumber,
   connection_id: connectionId,
 });
@@ -83,7 +83,7 @@ return {
   call_control_id: response.data.call_control_id,
   from: fromNumber,
   to: toNumber,
-  state: response.data.state || "initiated",
+  state: "initiated",
 };
 ```
 
@@ -95,7 +95,7 @@ The route reads `to` from the JSON body, returns `400` if it is missing, otherwi
 |-----------|-------------|------|
 | `AuthenticationError` | `401` | `Invalid API key` |
 | `RateLimitError` | `429` | `Rate limit exceeded...` |
-| `APIStatusError` | upstream `status_code` | upstream message + `status_code` |
+| `APIError` | upstream `status_code` | upstream message + `status_code` |
 | `APIConnectionError` | `503` | `Network error connecting to Telnyx` |
 | other `Error` (validation) | `400` | the error message |
 

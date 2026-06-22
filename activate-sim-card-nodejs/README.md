@@ -22,7 +22,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
 ## Telnyx API Endpoints Used
 
 - **Get SIM Card**: `GET /v2/sim_cards/{id}` — via `client.simCards.retrieve()` — [API reference](https://developers.telnyx.com/api-reference/sim-cards/get-sim-card)
-- **Activate SIM Card**: `POST /v2/sim_cards/{id}/actions/enable` — via `client.simCards.activate()` — [API reference](https://developers.telnyx.com/api-reference/sim-cards/enable-sim-card)
+- **Activate SIM Card**: `POST /v2/sim_cards/{id}/actions/enable` — via `client.simCards.actions.enable()` — [API reference](https://developers.telnyx.com/api-reference/sim-cards/enable-sim-card)
 
 ## Architecture
 

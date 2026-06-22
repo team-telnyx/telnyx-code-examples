@@ -130,7 +130,7 @@ All endpoints return JSON. On error:
 { "error": "Description of what went wrong" }
 ```
 
-`APIStatusError` responses also include a `status_code` field echoing the upstream Telnyx status.
+Telnyx API errors (matched as `*telnyx.Error`) also include a `status_code` field echoing the upstream Telnyx status.
 
 | Status | Meaning |
 |--------|---------|
@@ -146,10 +146,10 @@ All endpoints return JSON. On error:
 
 ## Telnyx API Endpoints Called
 
-The application calls the following Telnyx API endpoints via the Go SDK (`github.com/telnyx/telnyx-go`):
+The application calls the following Telnyx API endpoints via the Go SDK (`github.com/team-telnyx/telnyx-go/v4`):
 
 | App route | SDK call | Telnyx endpoint |
 |-----------|----------|-----------------|
-| `POST /sip-connections` | `client.SIPConnections.Create(...)` | `POST /v2/sip_connections` |
-| `GET /sip-connections` | `client.SIPConnections.List(...)` | `GET /v2/sip_connections` |
-| `GET /sip-connections/:id` | `client.SIPConnections.Retrieve(id)` | `GET /v2/sip_connections/{id}` |
+| `POST /sip-connections` | `client.CredentialConnections.New(ctx, ...)` | `POST /v2/credential_connections` |
+| `GET /sip-connections` | `client.CredentialConnections.List(ctx, ...)` | `GET /v2/credential_connections` |
+| `GET /sip-connections/:id` | `client.CredentialConnections.Get(ctx, id)` | `GET /v2/credential_connections/{id}` |

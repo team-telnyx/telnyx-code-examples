@@ -83,7 +83,7 @@ The server calls the following Telnyx API on your behalf via the Node.js SDK:
 
 | SDK call | HTTP | Path | Reference |
 |----------|------|------|-----------|
-| `client.ai_assistants.list()` | `GET` | `/v2/ai/assistants` | [List Assistants](https://developers.telnyx.com/api-reference/assistants/get-assistants) |
+| `client.ai.assistants.list()` | `GET` | `/v2/ai/assistants` | [List Assistants](https://developers.telnyx.com/api-reference/assistants/get-assistants) |
 
 ---
 
@@ -101,5 +101,5 @@ All endpoints return JSON. On error:
 | `401` | Invalid API key | `Telnyx.AuthenticationError` |
 | `429` | Rate limit exceeded | `Telnyx.RateLimitError` |
 | `503` | Network error reaching Telnyx | `Telnyx.APIConnectionError` |
-| `4xx`/`5xx` | Telnyx API status error (passes through `status_code`) | `Telnyx.APIStatusError` |
+| `4xx`/`5xx` | Telnyx API error (passes through `error.status`) | `Telnyx.APIError` |
 | `500` | Unexpected server error | catch-all |

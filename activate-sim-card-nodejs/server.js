@@ -50,14 +50,14 @@ async function activateSimCard(simCardId) {
     throw new Error('SIM card ID must be a non-empty string');
   }
 
-  const response = await client.simCards.activate(simCardId);
+  const response = await client.simCards.actions.enable(simCardId);
 
   return {
     id: response.data.id,
-    iccid: response.data.iccid,
+    actionType: response.data.action_type,
+    simCardId: response.data.sim_card_id,
     status: response.data.status,
-    simCardGroupId: response.data.sim_card_group_id,
-    activatedAt: response.data.activated_at || null,
+    createdAt: response.data.created_at || null,
   };
 }
 
@@ -76,16 +76,16 @@ function handleError(error, res) {
     });
   }
 
-  if (error instanceof Telnyx.APIStatusError) {
-    return res.status(error.status_code || 500).json({
-      error: error.message,
-      status_code: error.status_code,
-    });
-  }
-
   if (error instanceof Telnyx.APIConnectionError) {
     return res.status(503).json({
       error: 'Network error connecting to Telnyx',
+    });
+  }
+
+  if (error instanceof Telnyx.APIError) {
+    return res.status(error.status || 500).json({
+      error: error.message,
+      status: error.status,
     });
   }
 

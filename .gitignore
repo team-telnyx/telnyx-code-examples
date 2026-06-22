@@ -21,6 +21,8 @@ yarn-debug.log*
 yarn-error.log*
 
 # Go
+# Compiled `go build` output (each Go example is `module telnyx-example`)
+telnyx-example
 *.exe
 *.exe~
 *.dll

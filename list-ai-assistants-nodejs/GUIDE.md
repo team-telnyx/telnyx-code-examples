@@ -12,7 +12,7 @@ List all AI assistants in your Telnyx account using the Telnyx Node.js SDK and a
   │  Express server   │
   │   (server.js)     │
   └────────┬─────────┘
-           │ client.ai_assistants.list()
+           │ client.ai.assistants.list()
            ▼
   ┌──────────────────┐
   │ Telnyx AI         │
@@ -68,7 +68,7 @@ app.use(express.json());
 
 ```javascript
 async function listAssistants() {
-  const response = await client.ai_assistants.list();
+  const response = await client.ai.assistants.list();
   return response.data.map((assistant) => ({
     id: assistant.id,
     name: assistant.name,
@@ -104,7 +104,7 @@ app.get("/assistants", async (req, res) => {
         error: "Invalid API key. Verify TELNYX_API_KEY in your environment.",
       });
     }
-    // ...RateLimitError → 429, APIStatusError → status, APIConnectionError → 503
+    // ...RateLimitError → 429, APIError → error.status, APIConnectionError → 503
   }
 });
 ```

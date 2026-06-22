@@ -16,7 +16,7 @@ Create, retrieve, and list credential-authenticated SIP connections using the Te
              ▼
   ┌──────────────────────┐
   │  Telnyx SIP Trunking  │
-  │  sip_connections       │
+  │  credential_connections│
   └──────────────────────┘
 ```
 
@@ -62,9 +62,9 @@ const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 ### Helper Functions
 
-- **`createSipConnection(name, username, password, endpoint)`** — Validates the four required fields and the endpoint format, then calls `client.sipConnections.create(...)` with `authentication_type: "credential"`. Returns a JSON-serializable subset of the response.
-- **`getSipConnection(connectionId)`** — Calls `client.sipConnections.retrieve(id)` and returns the connection's id, name, status, and timestamps.
-- **`listSipConnections()`** — Calls `client.sipConnections.list()` and maps each connection to a compact object.
+- **`createSipConnection(name, username, password, endpoint)`** — Validates the four required fields and the endpoint format, then calls `client.credentialConnections.create(...)` with `authentication_type: "credential"`. Returns a JSON-serializable subset of the response.
+- **`getSipConnection(connectionId)`** — Calls `client.credentialConnections.retrieve(id)` and returns the connection's id, name, status, and timestamps.
+- **`listSipConnections()`** — Calls `client.credentialConnections.list()` and maps each connection to a compact object.
 
 Because the SDK returns objects that are not directly JSON-serializable, each helper extracts only plain fields (id, name, status, timestamps) before returning.
 
@@ -76,7 +76,7 @@ Because the SDK returns objects that are not directly JSON-serializable, each he
 | `GET` | `/sip/connections/:id` | Retrieve one connection by ID |
 | `GET` | `/sip/connections` | List all connections |
 
-Each route catches typed SDK errors and maps them to HTTP statuses — `AuthenticationError` → `401`, `RateLimitError` → `429`, `APIStatusError` → the upstream status code, `APIConnectionError` → `503`, and validation errors → `400`.
+Each route catches typed SDK errors and maps them to HTTP statuses — `AuthenticationError` → `401`, `RateLimitError` → `429`, `APIError` → the upstream status code, `APIConnectionError` → `503`, and validation errors → `400`.
 
 ## Step 3: Run It
 

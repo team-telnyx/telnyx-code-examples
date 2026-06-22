@@ -105,5 +105,5 @@ All routes return JSON. On error:
 | `401` | Authentication error | Invalid `TELNYX_API_KEY` (`Telnyx.AuthenticationError`). |
 | `429` | Rate limited | Too many requests (`Telnyx.RateLimitError`). |
 | `503` | Upstream connection error | Network error reaching Telnyx (`Telnyx.APIConnectionError`). |
-| `error.status_code` | Telnyx API status error | Propagated from `Telnyx.APIStatusError`, with `status_code` in the body. |
+| `error.status` | Telnyx API status error | Propagated from `Telnyx.APIError`, with `status_code` in the body. |
 | `500` | Server error | Any unexpected exception. |

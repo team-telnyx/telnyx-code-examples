@@ -36,7 +36,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
              ▼
   ┌──────────────────────┐
   │  Telnyx SIP Trunking  │
-  │  sip_connections       │
+  │  credential_connections│
   └──────────────────────┘
 ```
 

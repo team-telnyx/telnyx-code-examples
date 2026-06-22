@@ -18,7 +18,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
 
 ## Telnyx API Endpoints Used
 
-- **Send Message**: `POST /v2/messages` (via `client.Messaging.CreateMessage`) -- [API reference](https://developers.telnyx.com/api/messaging/send-message)
+- **Send Message**: `POST /v2/messages` (via `client.Messages.Send`) -- [API reference](https://developers.telnyx.com/api/messaging/send-message)
 
 ## Architecture
 
@@ -31,7 +31,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
   │ - validate E.164    │
   │ - read from-number  │
   └─────────┬──────────┘
-            │  CreateMessage
+            │  Messages.Send
             ▼
   ┌────────────────────┐
   │ Telnyx Messaging    │

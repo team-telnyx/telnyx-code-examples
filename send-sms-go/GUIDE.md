@@ -13,7 +13,7 @@ Send an SMS message using the Telnyx Messaging API and Go SDK, exposed over a Gi
   │ - validate E.164    │
   │ - read from-number  │
   └─────────┬──────────┘
-            │  CreateMessage
+            │  Messages.Send
             ▼
   ┌────────────────────┐
   │ Telnyx Messaging    │
@@ -28,7 +28,7 @@ Send an SMS message using the Telnyx Messaging API and Go SDK, exposed over a Gi
 
 ## API Endpoints
 
-- **Send Message**: `POST /v2/messages` (via `client.Messaging.CreateMessage`) -- [API reference](https://developers.telnyx.com/api/messaging/send-message)
+- **Send Message**: `POST /v2/messages` (via `client.Messages.Send`) -- [API reference](https://developers.telnyx.com/api/messaging/send-message)
 
 ## Prerequisites
 
@@ -64,13 +64,14 @@ Everything lives in `main.go`. Here is what each piece does.
 ```go
 func initTelnyxClient() *telnyx.Client {
 	apiKey := os.Getenv("TELNYX_API_KEY")
-	return telnyx.NewClient(telnyx.WithAPIKey(apiKey))
+	client := telnyx.NewClient(option.WithAPIKey(apiKey))
+	return &client
 }
 ```
 
 ### Send helper
 
-`SendSMS()` reads the from-number, validates that the destination is E.164, builds `CreateMessageParams`, and calls the API. It returns a plain map because the SDK response object is not JSON-serializable:
+`SendSMS()` reads the from-number, validates that the destination is E.164, builds `MessageSendParams`, and calls the API. It returns a plain map because the SDK response object is not JSON-serializable:
 
 ```go
 func SendSMS(client *telnyx.Client, toNumber string, message string) (map[string]interface{}, error) {
@@ -83,27 +84,24 @@ func SendSMS(client *telnyx.Client, toNumber string, message string) (map[string
 		return nil, fmt.Errorf("phone number must be in E.164 format (e.g., +15551234567)")
 	}
 
-	params := &messaging.CreateMessageParams{
-		From: fromNumber,
+	params := telnyx.MessageSendParams{
 		To:   toNumber,
-		Text: message,
+		From: telnyx.String(fromNumber),
+		Text: telnyx.String(message),
 	}
 
-	response, err := client.Messaging.CreateMessage(params)
+	response, err := client.Messages.Send(context.Background(), params)
 	// ... extract message_id, status, from, to into a map
 }
 ```
 
 ### HTTP endpoint
 
-`main()` loads `.env` with `godotenv.Load()`, creates a Gin router, and registers `POST /sms/send`. The handler binds the JSON body (`to` and `message` are both `binding:"required"`), calls `SendSMS`, and maps SDK error types to HTTP status codes:
+`main()` loads `.env` with `godotenv.Load()`, creates a Gin router, and registers `POST /sms/send`. The handler binds the JSON body (`to` and `message` are both `binding:"required"`), calls `SendSMS`, and maps errors to HTTP status codes. Telnyx API failures surface as `*telnyx.Error`, matched with `errors.As`; the handler returns the error's `StatusCode`:
 
-| Error type | Status |
-|------------|--------|
-| `*telnyx.AuthenticationError` | `401` |
-| `*telnyx.RateLimitError` | `429` |
-| `*telnyx.APIStatusError` | the API's status code |
-| `*telnyx.APIConnectionError` | `503` |
+| Error | Status |
+|-------|--------|
+| `*telnyx.Error` (any Telnyx API error) | the error's `StatusCode` (e.g. `401`, `429`) |
 | anything else (validation) | `400` |
 
 The server listens on `:5000`.

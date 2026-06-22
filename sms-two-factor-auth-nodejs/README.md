@@ -24,7 +24,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
 
 - **Send Message**: `POST /v2/messages` — [API reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
 
-Called by the app via the Node.js SDK as `client.messages.create({ from_, to, text })`.
+Called by the app via the Node.js SDK as `client.messages.send({ from, to, text })`.
 
 ## Architecture
 

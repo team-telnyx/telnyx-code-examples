@@ -118,7 +118,7 @@ async function handleInboundCall(event) {
 The webhook route rejects any request without a `data` object (`400`), then
 delegates to `handleInboundCall`. Telnyx SDK errors are mapped to HTTP status
 codes: `AuthenticationError` → `401`, `RateLimitError` → `429`,
-`APIStatusError` → its own `status_code`, `APIConnectionError` → `503`, missing
+`APIError` → its own `status`, `APIConnectionError` → `503`, missing
 fields → `400`, and anything else → `500`.
 
 ## Step 3: Run It

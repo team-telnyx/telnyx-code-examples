@@ -66,7 +66,7 @@ Everything lives in `server.js`. Here is what each piece does.
 ### Helper Functions
 
 - **`generateOTP(length)`** — produces a random numeric code of the configured length.
-- **`sendOTPSMS(toNumber, otp)`** — validates the destination is E.164, then sends the code via `client.messages.create()` and returns the serializable `message_id`, `status`, and `to`.
+- **`sendOTPSMS(toNumber, otp)`** — validates the destination is E.164, then sends the code via `client.messages.send()` and returns the serializable `message_id`, `status`, and `to`.
 - **`storeOTP(phoneNumber, otp)`** — saves the code in the in-memory `otpStore` with an expiry timestamp and an attempt counter.
 - **`verifyOTP(phoneNumber, otp)`** — checks the stored code: returns failure if missing, expired, over the 3-attempt limit, or mismatched; on a match it deletes the entry and returns success.
 - **`checkOTPRateLimit(phoneNumber)`** — a sliding-window limiter allowing 5 OTP requests per number per 15 minutes.

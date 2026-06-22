@@ -4,7 +4,7 @@ This Express app exposes four HTTP routes. The three `/webhooks/*` routes receiv
 
 ## `POST /webhooks/call-initiated`
 
-Handles the `call.initiated` event. Answers the call, stores call state, speaks the menu greeting, and starts a single-digit DTMF gather.
+Handles the `call.initiated` event. Answers the call, stores call state, then speaks the menu greeting and collects a single DTMF digit in one `gather_using_speak` command.
 
 ### Request
 
@@ -122,8 +122,8 @@ The app calls these Telnyx Call Control endpoints via the Node.js SDK (`client.c
 | SDK method | HTTP endpoint | Used in |
 |------------|---------------|---------|
 | `client.calls.actions.answer(callControlId)` | `POST /v2/calls/{call_control_id}/actions/answer` | `call-initiated` |
-| `client.calls.actions.speak(callControlId, { payload, voice, language })` | `POST /v2/calls/{call_control_id}/actions/speak` | greeting, menu, transfer prompts |
-| `client.calls.actions.gather_dtmf(callControlId, { max_digits, timeout_millis })` | `POST /v2/calls/{call_control_id}/actions/gather_dtmf` | after greeting and on repeat/invalid |
+| `client.calls.actions.gatherUsingSpeak(callControlId, { payload, voice, language, maximum_digits, timeout_millis })` | `POST /v2/calls/{call_control_id}/actions/gather_using_speak` | greeting menu, repeat, invalid retry |
+| `client.calls.actions.speak(callControlId, { payload, voice, language })` | `POST /v2/calls/{call_control_id}/actions/speak` | transfer prompts |
 | `client.calls.actions.transfer(callControlId, { to })` | `POST /v2/calls/{call_control_id}/actions/transfer` | digit `1` (sales), digit `2` (support) |
 
 ## Error Handling

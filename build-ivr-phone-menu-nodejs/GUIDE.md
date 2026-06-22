@@ -17,7 +17,7 @@ Build a production-ready Interactive Voice Response (IVR) system using the Telny
   │ Express app           │
   └─────────┬────────────┘
             │
-  call.initiated ──► answer ──► speak (menu) ──► gather_dtmf
+  call.initiated ──► answer ──► gather_using_speak (menu + DTMF)
   dtmf.received  ──► transfer / repeat / retry
   call.hangup    ──► clean up call state
 ```
@@ -30,7 +30,7 @@ Build a production-ready Interactive Voice Response (IVR) system using the Telny
 
 - **Answer Call**: `POST /v2/calls/{call_control_id}/actions/answer` — [API reference](https://developers.telnyx.com/api/call-control/answer-call)
 - **Speak Text (TTS)**: `POST /v2/calls/{call_control_id}/actions/speak` — [API reference](https://developers.telnyx.com/api/call-control/speak)
-- **Gather DTMF**: `POST /v2/calls/{call_control_id}/actions/gather_dtmf` — [API reference](https://developers.telnyx.com/api/call-control/gather)
+- **Gather Using Speak**: `POST /v2/calls/{call_control_id}/actions/gather_using_speak` — [API reference](https://developers.telnyx.com/api/call-control/gather-using-speak)
 - **Transfer Call**: `POST /v2/calls/{call_control_id}/actions/transfer` — [API reference](https://developers.telnyx.com/api/call-control/transfer-call)
 
 ## Webhook Events
@@ -73,7 +73,7 @@ Everything lives in `server.js`. It is an Express app that initializes the Telny
 
 ### Helper Functions
 
-- **`answerAndGreet(callControlId)`** — Answers the call with `client.calls.actions.answer`, stores call state, speaks the menu greeting with `client.calls.actions.speak`, then starts a single-digit gather with `client.calls.actions.gather_dtmf` (`max_digits: 1`, `timeout_millis: 5000`).
+- **`answerAndGreet(callControlId)`** — Answers the call with `telnyx.calls.actions.answer`, stores call state, then speaks the menu greeting and collects a single digit in one command with `telnyx.calls.actions.gatherUsingSpeak` (`maximum_digits: 1`, `timeout_millis: 5000`).
 - **`routeMenuSelection(callControlId, digit)`** — Branches on the pressed digit: `1` transfers to sales, `2` transfers to support, `3` repeats the menu and gathers again, and any other digit speaks "Invalid selection" before gathering again.
 - **`cleanupCallState(callControlId)`** — Removes the call from the in-memory `Map` when the call ends.
 
@@ -90,14 +90,16 @@ The greeting handler is the entry point. On `call.initiated` it answers, speaks 
 
 ```javascript
 async function answerAndGreet(callControlId) {
-  await client.calls.actions.answer(callControlId);
+  await telnyx.calls.actions.answer(callControlId);
   callState.set(callControlId, { status: "greeting", menuLevel: "main", createdAt: Date.now() });
-  await client.calls.actions.speak(callControlId, {
+  // Speak the greeting prompt and collect DTMF input in one command.
+  await telnyx.calls.actions.gatherUsingSpeak(callControlId, {
     payload: "Welcome to our IVR system. Press 1 for sales, 2 for support, or 3 to repeat this menu.",
     voice: "male",
     language: "en-US",
+    maximum_digits: 1,
+    timeout_millis: 5000,
   });
-  await client.calls.actions.gather_dtmf(callControlId, { max_digits: 1, timeout_millis: 5000 });
 }
 ```
 
@@ -106,8 +108,8 @@ When the caller presses a key, `routeMenuSelection` transfers or replays the men
 ```javascript
 switch (digit) {
   case "1":
-    await client.calls.actions.speak(callControlId, { payload: "Transferring you to our sales team. Please hold.", voice: "male", language: "en-US" });
-    await client.calls.actions.transfer(callControlId, { to: "+15559876543" });
+    await telnyx.calls.actions.speak(callControlId, { payload: "Transferring you to our sales team. Please hold.", voice: "male", language: "en-US" });
+    await telnyx.calls.actions.transfer(callControlId, { to: "+15559876543" });
     break;
   // ...
 }

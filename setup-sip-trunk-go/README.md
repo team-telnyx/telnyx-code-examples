@@ -18,9 +18,9 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
 
 ## Telnyx API Endpoints Used
 
-- **Create SIP Connection**: `POST /v2/sip_connections` -- [API reference](https://developers.telnyx.com/api/connections/create-credential-connection)
-- **List SIP Connections**: `GET /v2/sip_connections` -- [API reference](https://developers.telnyx.com/api/connections/list-connections)
-- **Retrieve SIP Connection**: `GET /v2/sip_connections/{id}` -- [API reference](https://developers.telnyx.com/api/connections/retrieve-connection)
+- **Create Credential Connection**: `POST /v2/credential_connections` -- [API reference](https://developers.telnyx.com/api/connections/create-credential-connection)
+- **List Credential Connections**: `GET /v2/credential_connections` -- [API reference](https://developers.telnyx.com/api/connections/list-connections)
+- **Retrieve Credential Connection**: `GET /v2/credential_connections/{id}` -- [API reference](https://developers.telnyx.com/api/connections/retrieve-connection)
 
 ## Architecture
 

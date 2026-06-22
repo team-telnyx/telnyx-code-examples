@@ -67,9 +67,9 @@ const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 ### Helper Functions
 
-- **`createSipConnection(connectionName)`** — calls `client.sipConnections.create()` with the connection name plus the inbound URI and authentication from the environment, then returns a JSON-serializable subset of the response.
-- **`listSipConnections()`** — calls `client.sipConnections.list()` and maps each connection to a plain object.
-- **`getSipConnection(connectionId)`** — calls `client.sipConnections.retrieve(id)` and returns the connection, including the inbound authentication username.
+- **`createSipConnection(connectionName)`** — calls `client.credentialConnections.create()` with the connection name plus the inbound URI and authentication from the environment, then returns a JSON-serializable subset of the response.
+- **`listSipConnections()`** — calls `client.credentialConnections.list()` and maps each connection to a plain object.
+- **`getSipConnection(connectionId)`** — calls `client.credentialConnections.retrieve(id)` and returns the connection, including the inbound authentication username.
 
 The helpers extract only serializable fields because SDK response objects are not directly JSON-serializable.
 
@@ -104,16 +104,20 @@ app.post("/sip/connections", async (req, res) => {
 });
 ```
 
-The webhook handler logs the call event fields and acknowledges immediately:
+The webhook handler verifies the Telnyx signature against the raw request body, then logs the call event fields and acknowledges immediately:
 
 ```javascript
-app.post("/webhooks/inbound-call", (req, res) => {
-  const event = req.body;
+app.post("/webhooks/inbound-call", async (req, res) => {
+  const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || "");
+  if (!verifyTelnyxSignature(rawBody.toString(), req.headers)) {
+    return res.status(401).json({ error: "invalid signature" });
+  }
+  const event = JSON.parse(rawBody.toString());
   console.log("Inbound call event received:", {
     event_type: event.data?.event_type,
-    call_session_id: event.data?.call_session_id,
-    from: event.data?.from,
-    to: event.data?.to,
+    call_session_id: event.data?.payload?.call_session_id,
+    from: event.data?.payload?.from,
+    to: event.data?.payload?.to,
     timestamp: event.data?.occurred_at,
   });
   res.status(200).json({ status: "received" });

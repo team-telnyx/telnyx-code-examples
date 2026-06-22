@@ -64,7 +64,7 @@ stashes the buffer on `req.rawBody` before parsing. The Telnyx client is
 initialized once and reused for both sending and verification.
 
 ```javascript
-const client = Telnyx(process.env.TELNYX_API_KEY);
+const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 app.use(express.json({
   verify: (req, _res, buf) => { req.rawBody = buf; },

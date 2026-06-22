@@ -176,4 +176,4 @@ All endpoints return JSON. On error:
 | `503` | Network error reaching Telnyx (`Telnyx.APIConnectionError`) |
 | `500` | Internal server error |
 
-`Telnyx.APIStatusError` is surfaced with the upstream `status_code` and message.
+`Telnyx.APIError` is surfaced with the upstream `error.status` and message.

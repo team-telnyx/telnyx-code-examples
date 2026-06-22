@@ -37,7 +37,7 @@ Send a message to the AI Assistant identified by the `AI_ASSISTANT_ID` environme
 |-------|------|-------------|
 | `assistant_id` | `string` | ID of the assistant that handled the request |
 | `user_message` | `string` | Echo of the submitted `message` |
-| `assistant_response` | `string` | The assistant's reply (`response.data.result` from the Telnyx SDK) |
+| `assistant_response` | `string` | The assistant's reply (`response.content` from the Telnyx SDK) |
 | `timestamp` | `string` | ISO 8601 timestamp of when the response was built |
 
 **Try it:**
@@ -78,7 +78,7 @@ curl http://localhost:5000/health
 
 | Method | Path | SDK call | Purpose |
 |--------|------|----------|---------|
-| `POST` | `/v2/ai/assistants/{assistant_id}/chat` | `client.ai_assistants.chat(assistantId, { messages })` | Send a `user` message to the assistant and receive a generated response |
+| `POST` | `/v2/ai/assistants/{assistant_id}/chat` | `client.ai.assistants.chat(assistantId, { messages })` | Send a `user` message to the assistant and receive a generated response |
 
 The SDK request payload mirrors the chat schema:
 
@@ -107,5 +107,5 @@ All endpoints return JSON. On error:
 | `400` | Bad request | Missing `message`, empty/whitespace `message`, or other validation failure |
 | `401` | Unauthorized | Invalid `TELNYX_API_KEY` (`Telnyx.AuthenticationError`) |
 | `429` | Rate limited | Account rate limit exceeded (`Telnyx.RateLimitError`) |
-| `500` | Server error | `AI_ASSISTANT_ID` not set, or an unspecified Telnyx API error (`Telnyx.APIStatusError`) |
+| `500` | Server error | `AI_ASSISTANT_ID` not set, or an unspecified Telnyx API error (`Telnyx.APIError`) |
 | `503` | Service unavailable | Network error reaching Telnyx (`Telnyx.APIConnectionError`) |

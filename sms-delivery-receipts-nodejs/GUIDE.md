@@ -63,12 +63,12 @@ The Telnyx client is constructed once and reused both for sending SMS and for
 verifying webhook signatures:
 
 ```javascript
-const client = new Telnyx(process.env.TELNYX_API_KEY);
+const client = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 ```
 
 ### Send and track a message — `sendSMS()`
 
-`POST /sms/send` validates the body, calls `client.messages.create()`, and
+`POST /sms/send` validates the body, calls `client.messages.send()`, and
 records the returned message ID in an in-memory store so later delivery
 receipts can be matched back to the message.
 

@@ -26,7 +26,7 @@ Create a Telnyx AI Assistant over an HTTP endpoint using the Telnyx Node.js SDK 
   │  Express (server.js)  │
   │  createAssistant()    │
   └──────────┬───────────┘
-             │ client.ai_assistants.create()
+             │ client.ai.assistants.create()
              ▼
   ┌──────────────────────┐
   │  Telnyx AI Assistants │
@@ -40,7 +40,7 @@ Create a Telnyx AI Assistant over an HTTP endpoint using the Telnyx Node.js SDK 
 Telnyx is an **AI Communications Infrastructure** platform — voice, messaging, SIP, AI, and IoT on one private, global network. AI Assistants run natively on that network, so the same assistant can answer telephony calls and reply to messages without stitching together separate vendors.
 
 - **Native AI** — assistants ship with built-in LLM hosting, telephony, and messaging.
-- **Single SDK** — `telnyx` for Node.js wraps every endpoint, including `ai_assistants`.
+- **Single SDK** — `telnyx` for Node.js wraps every endpoint, including `ai.assistants`.
 
 ## Environment Variables
 

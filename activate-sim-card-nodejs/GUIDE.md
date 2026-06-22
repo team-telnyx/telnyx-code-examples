@@ -64,8 +64,8 @@ const client = new Telnyx({ apiKey: config.apiKey });
 ### Helper functions
 
 - **`getSimCard(simCardId)`** — calls `client.simCards.retrieve(simCardId)` and returns a plain object (`id`, `iccid`, `status`, `simCardGroupId`, `phoneNumber`) so it serializes cleanly to JSON.
-- **`activateSimCard(simCardId)`** — validates the ID is a non-empty string, then calls `client.simCards.activate(simCardId)` and returns `id`, `iccid`, `status`, `simCardGroupId`, and `activatedAt`.
-- **`handleError(error, res)`** — maps Telnyx SDK exceptions (`AuthenticationError`, `RateLimitError`, `APIStatusError`, `APIConnectionError`) and the validation error to the right HTTP status codes, without leaking internals on unexpected errors.
+- **`activateSimCard(simCardId)`** — validates the ID is a non-empty string, then calls `client.simCards.actions.enable(simCardId)` and returns `id`, `iccid`, `status`, `simCardGroupId`, and `activatedAt`.
+- **`handleError(error, res)`** — maps Telnyx SDK exceptions (`AuthenticationError`, `RateLimitError`, `APIError`, `APIConnectionError`) and the validation error to the right HTTP status codes, without leaking internals on unexpected errors.
 
 ### Routes
 

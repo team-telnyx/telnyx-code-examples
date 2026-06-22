@@ -63,7 +63,7 @@ Everything lives in `server.js`. Here is what each piece does.
 ### Helper Functions
 
 - **`sleep(ms)`** — Promise-based delay used to space out API calls.
-- **`sendSingleSMS(toNumber, message)`** — Validates the number is E.164, calls `client.messages.create()` (`POST /v2/messages`), and returns a JSON-serializable result with `message_id`, `status`, `from`, and `to`.
+- **`sendSingleSMS(toNumber, message)`** — Validates the number is E.164, calls `client.messages.send()` (`POST /v2/messages`), and returns a JSON-serializable result with `message_id`, `status`, `from`, and `to`.
 - **`sendBulkSMS(recipients, delayMs)`** — Loops over the recipients, calls `sendSingleSMS` for each, collects results into `successful` and `failed` arrays, and waits `delayMs` between calls. A single bad recipient does not abort the batch.
 
 ### All Endpoints
@@ -115,8 +115,8 @@ async function sendSingleSMS(toNumber, message) {
     throw new Error("Phone number must be in E.164 format (e.g., +15551234567)");
   }
 
-  const response = await client.messages.create({
-    from_: fromNumber,
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
   });
@@ -130,7 +130,7 @@ async function sendSingleSMS(toNumber, message) {
 }
 ```
 
-Telnyx SDK exceptions (`AuthenticationError`, `RateLimitError`, `APIStatusError`, `APIConnectionError`) are mapped to `401`, `429`, the upstream status, and `503` respectively in the route handlers.
+Telnyx SDK exceptions (`AuthenticationError`, `RateLimitError`, `APIError`, `APIConnectionError`) are mapped to `401`, `429`, the upstream status, and `503` respectively in the route handlers.
 
 ## Step 3: Run It
 

@@ -12,7 +12,7 @@ Activate a Telnyx IoT SIM card over HTTP using the Telnyx Go SDK and Gin.
   │   Gin handler     │
   │  (validate body)  │
   └────────┬─────────┘
-           │ client.SimCards.Activate(id)
+           │ client.SimCards.Actions.Enable(ctx, id)
            ▼
   ┌──────────────────┐
   │  Telnyx IoT SIM   │
@@ -57,12 +57,13 @@ Everything lives in `main.go`. Here's what each piece does.
 `init()` loads `.env` with `godotenv.Load()`, reads `TELNYX_API_KEY`, panics if it is missing, and creates the SDK client:
 
 ```go
-client = telnyx.NewClient(telnyx.WithAPIKey(apiKey))
+clientValue := telnyx.NewClient(option.WithAPIKey(apiKey))
+client = &clientValue
 ```
 
 ### Helper Function
 
-- **`activateSIM(simCardID string)`** — Validates the ID is non-empty, calls `client.SimCards.Activate(simCardID, nil)`, and unpacks the SDK response into a plain `map[string]interface{}` with `id`, `iccid`, `status`, and `sim_card_group_id`.
+- **`activateSIM(simCardID string)`** — Validates the ID is non-empty, calls `client.SimCards.Actions.Enable(ctx, simCardID)`, and unpacks the SDK response into a plain `map[string]interface{}` with `id`, `sim_card_id`, `action_type`, `status`, and `created_at`.
 
 ### Endpoints
 
@@ -86,13 +87,13 @@ router.POST("/sim/activate", func(c *gin.Context) {
     }
 
     result, err := activateSIM(request.SimCardID)
-    // ... error switch on AuthenticationError, RateLimitError,
-    //     APIStatusError, APIConnectionError ...
+    // ... errors.As(err, &apiErr) on *telnyx.Error echoes apiErr.StatusCode;
+    //     any other error falls back to a generic 400 ...
     c.JSON(http.StatusOK, result)
 })
 ```
 
-Authentication errors return `401`, rate limits `429`, connection errors `503`, and other API errors echo their upstream status code.
+API failures surface as `*telnyx.Error`; the handler uses `errors.As` to extract it and echoes its `StatusCode` (e.g. `401` for an invalid key, `429` for rate limits). Any other error falls back to a generic `400`.
 
 ## Step 3: Run It
 
@@ -114,7 +115,7 @@ curl -X POST http://localhost:8080/sim/activate \
   }'
 ```
 
-You should get back the SIM's `id`, `iccid`, `status` (e.g. `enabling`), and `sim_card_group_id`.
+You should get back the action's `id`, `sim_card_id`, `action_type` (e.g. `enable`), `status` (e.g. `in-progress`), and `created_at`.
 
 ## Going to Production
 

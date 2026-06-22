@@ -20,7 +20,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
 
 - **Send Message**: `POST /v2/messages` -- [API reference](https://developers.telnyx.com/api/messaging/send-message)
 
-Called from the code via `client.messages.create({ from_, to, text, media_urls })`. Supplying `media_urls` promotes the message from SMS to MMS.
+Called from the code via `client.messages.send({ from, to, text, media_urls })`. Supplying `media_urls` promotes the message from SMS to MMS.
 
 ## Architecture
 
@@ -32,7 +32,7 @@ Called from the code via `client.messages.create({ from_, to, text, media_urls }
   │ Express handler   │
   │ (validate input)  │
   └────────┬─────────┘
-           │ client.messages.create({ media_urls })
+           │ client.messages.send({ media_urls })
            ▼
   ┌──────────────────┐
   │ Telnyx Messaging  │

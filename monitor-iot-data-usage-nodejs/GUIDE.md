@@ -91,7 +91,7 @@ pollDataUsage(); // initial poll
 | `GET` | `/api/sims/:simCardId/usage-summary` | Computed MB summary + 80% alert |
 | `GET` | `/health` | Liveness check |
 
-Each `/api` handler maps Telnyx SDK errors to HTTP status codes: `AuthenticationError → 401`, `RateLimitError → 429`, `APIStatusError → status_code`, `APIConnectionError → 503`, and anything else to `500`.
+Each `/api` handler maps Telnyx SDK errors to HTTP status codes: `AuthenticationError → 401`, `RateLimitError → 429`, `APIError → error.status`, `APIConnectionError → 503`, and anything else to `500`.
 
 ## Step 3: Run It
 

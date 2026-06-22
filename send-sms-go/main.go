@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -8,14 +10,17 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/telnyx/telnyx-go/v2"
-	"github.com/telnyx/telnyx-go/v2/messaging"
+	"github.com/team-telnyx/telnyx-go/v4"
+	"github.com/team-telnyx/telnyx-go/v4/option"
 )
 
-// Initialize client with the new SDK pattern
+// Initialize client with the new SDK pattern.
+// NewClient returns a value Client, so we take its address to share a single
+// client across handlers.
 func initTelnyxClient() *telnyx.Client {
 	apiKey := os.Getenv("TELNYX_API_KEY")
-	return telnyx.NewClient(telnyx.WithAPIKey(apiKey))
+	client := telnyx.NewClient(option.WithAPIKey(apiKey))
+	return &client
 }
 
 // SendSMS sends an SMS via Telnyx and returns response data.
@@ -30,21 +35,22 @@ func SendSMS(client *telnyx.Client, toNumber string, message string) (map[string
 		return nil, fmt.Errorf("phone number must be in E.164 format (e.g., +15551234567)")
 	}
 
-	// Create message request
-	params := &messaging.CreateMessageParams{
-		From: fromNumber,
+	// Create message request. Service methods take a context as the first
+	// argument and the params as a value struct.
+	params := telnyx.MessageSendParams{
 		To:   toNumber,
-		Text: message,
+		From: telnyx.String(fromNumber),
+		Text: telnyx.String(message),
 	}
 
-	response, err := client.Messaging.CreateMessage(params)
+	response, err := client.Messages.Send(context.Background(), params)
 	if err != nil {
 		return nil, err
 	}
 
 	// Extract serializable data — SDK objects are NOT JSON-serializable
 	status := "unknown"
-	if response.Data != nil && len(response.Data.To) > 0 {
+	if len(response.Data.To) > 0 {
 		status = response.Data.To[0].Status
 	}
 
@@ -84,32 +90,21 @@ func main() {
 		// Call SendSMS helper function
 		result, err := SendSMS(client, requestBody.To, requestBody.Message)
 		if err != nil {
-			// Handle Telnyx-specific errors
-			switch err.(type) {
-			case *telnyx.AuthenticationError:
-				c.JSON(http.StatusUnauthorized, gin.H{
-					"error": "Invalid API key",
-				})
-			case *telnyx.RateLimitError:
-				c.JSON(http.StatusTooManyRequests, gin.H{
-					"error": "Rate limit exceeded. Please slow down.",
-				})
-			case *telnyx.APIStatusError:
-				apiErr := err.(*telnyx.APIStatusError)
+			// Handle Telnyx API errors. The SDK surfaces API failures as
+			// *telnyx.Error, which carries the HTTP status code.
+			var apiErr *telnyx.Error
+			if errors.As(err, &apiErr) {
 				c.JSON(apiErr.StatusCode, gin.H{
 					"error":       apiErr.Error(),
 					"status_code": apiErr.StatusCode,
 				})
-			case *telnyx.APIConnectionError:
-				c.JSON(http.StatusServiceUnavailable, gin.H{
-					"error": "Network error connecting to Telnyx",
-				})
-			default:
-				// Handle validation errors
-				c.JSON(http.StatusBadRequest, gin.H{
-					"error": err.Error(),
-				})
+				return
 			}
+
+			// Handle validation and other errors
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
 			return
 		}
 

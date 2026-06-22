@@ -73,8 +73,8 @@ const activeCalls = new Map();
 ### Helper Functions
 
 - **`initiateCall(toNumber)`** — validates `TELNYX_PHONE_NUMBER`, `TELNYX_CONNECTION_ID`, and E.164 format, then calls `client.calls.dial()`. Stores the returned `call_control_id` in `activeCalls`.
-- **`startRecording(callControlId)`** — calls `client.calls.actions.start_recording()` with `format: "wav"` and records the `recording_id`.
-- **`stopRecording(callControlId)`** — calls `client.calls.actions.stop_recording()` and marks the recording `stopped`.
+- **`startRecording(callControlId)`** — calls `client.calls.actions.startRecording()` with `format: "wav"` and records the `recording_id`.
+- **`stopRecording(callControlId)`** — calls `client.calls.actions.stopRecording()` and marks the recording `stopped`.
 - **`getCallStatus(callControlId)`** — returns the tracked call and recording state from the in-memory map.
 
 ### Endpoints

@@ -54,7 +54,7 @@ Everything lives in `server.js`. Here is what each piece does.
 The Telnyx client is created from your API key. The JSON body parser also stashes the raw request bytes on `req.rawBody`, because webhook signatures are computed over the exact bytes Telnyx sent — re-serializing the parsed JSON would break verification.
 
 ```javascript
-const client = Telnyx(config.apiKey);
+const client = new Telnyx({ apiKey: config.apiKey });
 
 app.use(
   express.json({
@@ -67,7 +67,7 @@ app.use(
 
 ### Sending an SMS
 
-`sendSms()` validates the destination is E.164 and calls `client.messages.create()`. The SDK response object is not directly JSON-serializable, so it returns a plain object.
+`sendSms()` validates the destination is E.164 and calls `client.messages.send()`. The SDK response object is not directly JSON-serializable, so it returns a plain object.
 
 ```javascript
 async function sendSms(toNumber, message) {
@@ -75,8 +75,8 @@ async function sendSms(toNumber, message) {
     throw new Error('Phone number must be in E.164 format (e.g., +15551234567)');
   }
 
-  const response = await client.messages.create({
-    from_: config.phoneNumber,
+  const response = await client.messages.send({
+    from: config.phoneNumber,
     to: toNumber,
     text: message,
   });

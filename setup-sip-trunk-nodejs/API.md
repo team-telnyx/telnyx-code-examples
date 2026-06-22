@@ -132,9 +132,9 @@ The application wraps these Telnyx SIP Trunking endpoints via the `telnyx` Node.
 
 | SDK call | Telnyx endpoint | Used by |
 |----------|-----------------|---------|
-| `client.sipConnections.create(...)` | `POST /v2/sip_connections` | `POST /sip/connections` |
-| `client.sipConnections.retrieve(id)` | `GET /v2/sip_connections/{id}` | `GET /sip/connections/:id` |
-| `client.sipConnections.list()` | `GET /v2/sip_connections` | `GET /sip/connections` |
+| `client.credentialConnections.create(...)` | `POST /v2/sip_connections` | `POST /sip/connections` |
+| `client.credentialConnections.retrieve(id)` | `GET /v2/sip_connections/{id}` | `GET /sip/connections/:id` |
+| `client.credentialConnections.list()` | `GET /v2/sip_connections` | `GET /sip/connections` |
 
 ## Error Handling
 

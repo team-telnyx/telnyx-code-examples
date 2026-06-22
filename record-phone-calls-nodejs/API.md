@@ -203,8 +203,8 @@ Handler behavior:
 | SDK call | HTTP endpoint | Reference |
 |----------|---------------|-----------|
 | `client.calls.dial()` | `POST /v2/calls` | [Dial](https://developers.telnyx.com/api-reference/call-commands/dial) |
-| `client.calls.actions.start_recording()` | `POST /v2/calls/{call_control_id}/actions/record_start` | [Recording start](https://developers.telnyx.com/api-reference/call-commands/recording-start) |
-| `client.calls.actions.stop_recording()` | `POST /v2/calls/{call_control_id}/actions/record_stop` | [Recording stop](https://developers.telnyx.com/api-reference/call-commands/recording-stop) |
+| `client.calls.actions.startRecording()` | `POST /v2/calls/{call_control_id}/actions/record_start` | [Recording start](https://developers.telnyx.com/api-reference/call-commands/recording-start) |
+| `client.calls.actions.stopRecording()` | `POST /v2/calls/{call_control_id}/actions/record_stop` | [Recording stop](https://developers.telnyx.com/api-reference/call-commands/recording-stop) |
 
 ## Error Handling
 

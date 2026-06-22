@@ -50,21 +50,18 @@ The handler calls one Telnyx endpoint through the Go SDK:
 
 | SDK call | HTTP | Telnyx endpoint |
 |----------|------|-----------------|
-| `client.Messaging.CreateMessage(params)` | `POST` | `/v2/messages` |
+| `client.Messages.Send(ctx, params)` | `POST` | `/v2/messages` |
 
-`CreateMessageParams` is populated with `From` (from `TELNYX_PHONE_NUMBER`), `To`, and `Text`.
+`MessageSendParams` is populated with `From` (from `TELNYX_PHONE_NUMBER`), `To`, and `Text`.
 
 ---
 
 ## Error Handling
 
-All responses are JSON. On error the body is `{"error": "..."}`. Telnyx SDK error types are mapped to HTTP status codes:
+All responses are JSON. On error the body is `{"error": "..."}`. Telnyx API failures surface as `*telnyx.Error`, matched with `errors.As`; the handler returns the error's `StatusCode`:
 
 | Status | Trigger | Body |
 |--------|---------|------|
 | `200` | Message accepted by Telnyx | success object above |
 | `400` | Missing `to`/`message`, or non-E.164 number, or other validation error | `{"error": "Missing required fields: 'to' and 'message'"}` / `{"error": "phone number must be in E.164 format (e.g., +15551234567)"}` |
-| `401` | `*telnyx.AuthenticationError` — invalid API key | `{"error": "Invalid API key"}` |
-| `429` | `*telnyx.RateLimitError` | `{"error": "Rate limit exceeded. Please slow down."}` |
-| `503` | `*telnyx.APIConnectionError` — network error reaching Telnyx | `{"error": "Network error connecting to Telnyx"}` |
-| varies | `*telnyx.APIStatusError` — other API error | `{"error": "<message>", "status_code": <code>}` |
+| varies | `*telnyx.Error` — any Telnyx API error, matched via `errors.As`; the response uses the error's `StatusCode` (e.g. `401` for an invalid API key, `429` when rate limited) | `{"error": "<message>", "status_code": <StatusCode>}` |

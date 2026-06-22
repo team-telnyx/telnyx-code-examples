@@ -13,7 +13,8 @@ const crypto = require("crypto");
 const app = express();
 
 // Telnyx client — used for Call Control actions (answer/speak/gather/etc.).
-const telnyx = require("telnyx")(process.env.TELNYX_API_KEY);
+const Telnyx = require("telnyx");
+const telnyx = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 // Verify the Telnyx Ed25519 webhook signature (version-proof; stdlib only — no SDK dependency).
 function verifyTelnyxSignature(rawBody, headers, toleranceSec = 300) {

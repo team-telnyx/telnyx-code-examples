@@ -6,12 +6,13 @@
 
 const express = require("express");
 const crypto = require("crypto");
+const Telnyx = require("telnyx");
 require("dotenv").config();
 
-// Initialize Telnyx client. The installed Node SDK is a factory function,
-// so it is initialized by calling it with the API key. It is still used for
-// outbound Call Control API calls (answer/speak/gather/transfer).
-const telnyx = require("telnyx")(process.env.TELNYX_API_KEY);
+// Initialize the Telnyx client (v6 constructor form). The API key must be
+// passed as `{ apiKey }`; the legacy factory form silently drops the key.
+// It is used for outbound Call Control API calls (answer/speak/gather/transfer).
+const telnyx = new Telnyx({ apiKey: process.env.TELNYX_API_KEY });
 
 // Verify the Telnyx Ed25519 webhook signature (version-proof; stdlib only — no SDK dependency).
 function verifyTelnyxSignature(rawBody, headers, toleranceSec = 300) {
@@ -63,16 +64,13 @@ async function answerAndGreet(callControlId) {
       createdAt: Date.now(),
     });
 
-    // Play initial greeting prompt
-    await telnyx.calls.actions.speak(callControlId, {
+    // Speak the greeting prompt and collect DTMF input in one command
+    // (up to 1 digit, 5 second timeout).
+    await telnyx.calls.actions.gatherUsingSpeak(callControlId, {
       payload: "Welcome to our IVR system. Press 1 for sales, 2 for support, or 3 to repeat this menu.",
       voice: "male",
       language: "en-US",
-    });
-
-    // Start collecting DTMF input (up to 1 digit, 5 second timeout)
-    await telnyx.calls.actions.gather_dtmf(callControlId, {
-      max_digits: 1,
+      maximum_digits: 1,
       timeout_millis: 5000,
     });
   } catch (error) {
@@ -119,28 +117,24 @@ async function routeMenuSelection(callControlId, digit) {
         break;
 
       case "3":
-        // Repeat menu
-        await telnyx.calls.actions.speak(callControlId, {
+        // Repeat menu: speak the prompt and collect DTMF in one command
+        await telnyx.calls.actions.gatherUsingSpeak(callControlId, {
           payload: "Press 1 for sales, 2 for support, or 3 to repeat this menu.",
           voice: "male",
           language: "en-US",
-        });
-        await telnyx.calls.actions.gather_dtmf(callControlId, {
-          max_digits: 1,
+          maximum_digits: 1,
           timeout_millis: 5000,
         });
         state.menuLevel = "main";
         break;
 
       default:
-        // Invalid selection
-        await telnyx.calls.actions.speak(callControlId, {
+        // Invalid selection: re-prompt and collect DTMF in one command
+        await telnyx.calls.actions.gatherUsingSpeak(callControlId, {
           payload: "Invalid selection. Please try again.",
           voice: "male",
           language: "en-US",
-        });
-        await telnyx.calls.actions.gather_dtmf(callControlId, {
-          max_digits: 1,
+          maximum_digits: 1,
           timeout_millis: 5000,
         });
         break;
@@ -262,22 +256,19 @@ app.get("/health", (req, res) => {
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err.message);
 
-  // The Telnyx SDK tags errors with a `type` and an HTTP `statusCode`.
-  // Map the well-known error types to appropriate HTTP responses without
-  // depending on importing the error constructors directly.
-  const status = err.statusCode || err.status_code;
-
-  switch (err.type) {
-    case "TelnyxAuthenticationError":
-      return res.status(401).json({ error: "Invalid API key" });
-    case "TelnyxRateLimitError":
-      return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
-    case "TelnyxConnectionError":
-      return res.status(503).json({ error: "Network error connecting to Telnyx" });
-    default:
-      if (status) {
-        return res.status(status).json({ error: err.message, status_code: status });
-      }
+  // Map well-known Telnyx SDK error types to appropriate HTTP responses.
+  // In the v6 SDK, APIError carries the numeric HTTP code on `status`.
+  if (err instanceof Telnyx.AuthenticationError) {
+    return res.status(401).json({ error: "Invalid API key" });
+  }
+  if (err instanceof Telnyx.RateLimitError) {
+    return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
+  }
+  if (err instanceof Telnyx.APIConnectionError) {
+    return res.status(503).json({ error: "Network error connecting to Telnyx" });
+  }
+  if (err instanceof Telnyx.APIError && err.status) {
+    return res.status(err.status).json({ error: "Telnyx API error", status: err.status });
   }
 
   // Generic error — do not leak internal exception details.

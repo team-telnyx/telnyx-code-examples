@@ -128,7 +128,7 @@ Health check.
 |--------|------|---------|-----------|
 | `POST` | `/v2/messages` | Send one SMS message (called once per recipient) | [Send a message](https://developers.telnyx.com/api-reference/messages/send-a-message) |
 
-Invoked in code via the Node.js SDK: `client.messages.create({ from_, to, text })`.
+Invoked in code via the Node.js SDK: `client.messages.send({ from, to, text })`.
 
 ## Error Handling
 

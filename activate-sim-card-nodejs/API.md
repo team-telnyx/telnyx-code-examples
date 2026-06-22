@@ -105,7 +105,7 @@ The code calls the Telnyx IoT SIM API through the Node.js SDK:
 | SDK call | Telnyx endpoint | Used by route |
 |----------|-----------------|---------------|
 | `client.simCards.retrieve(id)` | `GET /v2/sim_cards/{id}` | `GET /sim/:id` |
-| `client.simCards.activate(id)` | `POST /v2/sim_cards/{id}/actions/enable` | `POST /sim/:id/activate` |
+| `client.simCards.actions.enable(id)` | `POST /v2/sim_cards/{id}/actions/enable` | `POST /sim/:id/activate` |
 
 ## Error Handling
 
@@ -120,4 +120,4 @@ All endpoints return JSON. Errors are mapped from Telnyx SDK exceptions to HTTP 
 | `503` | Network error reaching Telnyx | `{"error": "Network error connecting to Telnyx"}` |
 | `500` | Unexpected server error | `{"error": "Internal server error", "message": "..."}` |
 
-For Telnyx `APIStatusError` responses, the server returns the upstream status code (e.g. `404`) with `{"error": "...", "status_code": <code>}`.
+For Telnyx `APIError` responses, the server returns the upstream status code (e.g. `404`) with `{"error": "...", "status_code": <code>}`.
