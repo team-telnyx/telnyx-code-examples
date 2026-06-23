@@ -47,3 +47,21 @@ vendor/bundle/
 
 # OS
 Thumbs.db
+
+### OpenCode Configuration ###
+opencode.json
+opencode.json.backup
+opencode.json.bak*
+opencode-package.json
+opencode-bun.lock
+oh-my-opencode.json
+agents/
+tui.json
+.mcp.json
+AGENTS.md
+.pre-commit-config.yaml
+.editorconfig
+secret-models.json
+antigravity-accounts.json
+antigravity-logs/
+*.heapsnapshot
