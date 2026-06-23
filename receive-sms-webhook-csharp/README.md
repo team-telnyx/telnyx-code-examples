@@ -1,3 +1,13 @@
+---
+name: receive-sms-webhook
+title: "Receive SMS Webhook"
+description: "Receive inbound SMS via webhook with Ed25519 signature verification using C# and ASP.NET."
+language: csharp
+framework: aspnet
+telnyx_products: [SMS/MMS]
+channel: [sms]
+---
+
 # Receive SMS Webhook with C# and ASP.NET
 
 Receive inbound SMS messages via Telnyx webhooks with a minimal ASP.NET (net8.0) server that verifies the Telnyx Ed25519 signature before trusting any payload.

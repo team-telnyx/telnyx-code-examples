@@ -1,3 +1,12 @@
+---
+name: route-phone-calls-to-ai-agent
+title: "Route Phone Calls to AI Agent"
+description: "Handle inbound calls with webhook-driven AI routing using Ruby and Sinatra."
+language: ruby
+framework: sinatra
+telnyx_products: [Voice]
+---
+
 # Route Phone Calls to an AI Agent (Ruby / Sinatra)
 
 Receive inbound Telnyx Call Control webhooks in a Sinatra app, verify the Ed25519 signature, then answer the call and hand it off to a Telnyx AI assistant.

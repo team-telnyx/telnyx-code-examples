@@ -1,7 +1,7 @@
 ---
 name: omnichannel-ai-receptionist
 title: "Omnichannel AI Receptionist"
-description: "Voice and SMS application powered by Telnyx AI Inference. Built with Telnyx AI Assistants, AI Inference, Migration, Number Porting."
+description: "One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference."
 language: python
 framework: flask
 telnyx_products: [Voice AI, SMS/MMS, AI Inference]
@@ -10,7 +10,7 @@ channel: [voice, sms]
 
 # Omnichannel AI Receptionist — one AI brain across voice, SMS, and WhatsApp.
 
-Voice and SMS application powered by Telnyx AI Inference. Built with Telnyx AI Assistants, AI Inference, Migration, Number Porting.
+One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference.
 
 ## Telnyx API Endpoints Used
 

@@ -9,7 +9,7 @@ telnyx_products: [Cloud Storage, SMS/MMS, Verify]
 
 # Production-ready OTP 2FA system with Flask and Telnyx SMS.
 
-SMS application. Built with Telnyx Cloud Storage, Migration, Number Porting, SMS/MMS.
+Implement SMS-based two-factor authentication.
 
 ## Telnyx API Endpoints Used
 

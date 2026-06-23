@@ -1,3 +1,12 @@
+---
+name: make-outbound-phone-call
+title: "Make Outbound Phone Call"
+description: "Place an outbound phone call with the Telnyx Call Control API using C# and ASP.NET."
+language: csharp
+framework: aspnet
+telnyx_products: [Voice, Call Control]
+---
+
 # Make Outbound Phone Call (C#)
 
 Place an outbound phone call with the Telnyx Call Control API. A minimal ASP.NET endpoint dials a number through the official Telnyx .NET SDK and returns the call control ID.

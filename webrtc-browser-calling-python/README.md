@@ -9,7 +9,7 @@ telnyx_products: [Voice, WebRTC]
 
 # Production-ready WebRTC calling application with Telnyx Voice API and FastAPI.
 
-Voice application. Built with Telnyx Migration, Number Porting, Voice, WebRTC.
+Enable browser-based calling with WebRTC.
 
 ## Telnyx API Endpoints Used
 

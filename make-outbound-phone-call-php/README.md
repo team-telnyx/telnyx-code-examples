@@ -1,3 +1,12 @@
+---
+name: make-outbound-phone-call
+title: "Make Outbound Phone Call"
+description: "Place an outbound phone call with the Telnyx Call Control API using PHP."
+language: php
+framework: vanilla-php
+telnyx_products: [Voice, Call Control]
+---
+
 # Make Outbound Phone Call (PHP)
 
 Place an outbound phone call with the Telnyx Call Control API in vanilla PHP. A single `index.php` front controller exposes an endpoint that dials a number and returns the call control ID, plus an Ed25519-verified webhook receiver for call lifecycle events.

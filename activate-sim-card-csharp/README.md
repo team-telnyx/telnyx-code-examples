@@ -1,3 +1,12 @@
+---
+name: activate-sim-card
+title: "Activate SIM Card"
+description: "Enable (activate) a SIM card on the Telnyx network using C# and ASP.NET."
+language: csharp
+framework: aspnet
+telnyx_products: [IoT/SIM]
+---
+
 # Activate a SIM Card (C# / .NET)
 
 Production-ready minimal ASP.NET (net8.0) app that enables (activates) a Telnyx SIM card using the official `Telnyx.net` SDK.

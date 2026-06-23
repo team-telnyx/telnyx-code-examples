@@ -1,3 +1,12 @@
+---
+name: make-outbound-phone-call
+title: "Make Outbound Phone Call"
+description: "Place an outbound phone call with the Telnyx Call Control API using Java."
+language: java
+framework: jdk-http-server
+telnyx_products: [Voice, Call Control]
+---
+
 # Make Outbound Phone Call (Java)
 
 Programmatically place an outbound phone call using Telnyx Call Control (`calls.dial`) with the Telnyx Java SDK and the JDK's built-in HTTP server.

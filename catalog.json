@@ -1,0 +1,2629 @@
+{
+  "name": "Telnyx Code Examples",
+  "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
+  "homepage": "https://developers.telnyx.com",
+  "repository": "https://github.com/team-telnyx/telnyx-code-examples",
+  "generated_at": "2026-06-23T14:12:46Z",
+  "example_count": 291,
+  "examples": [
+    {
+      "folder": "route-phone-calls-to-ai-agent-python",
+      "title": "Route Phone Calls to AI Agent",
+      "description": "Handle inbound calls with webhook-driven AI routing.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/route-phone-calls-to-ai-agent-python"
+    },
+    {
+      "folder": "make-outbound-phone-call-python",
+      "title": "Make Outbound Phone Call",
+      "description": "Programmatically place an outbound phone call using Telnyx Call Control and handle the call lifecycle.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/make-outbound-phone-call-python"
+    },
+    {
+      "folder": "build-ivr-phone-menu-python",
+      "title": "Build IVR Phone Menu",
+      "description": "Build an interactive voice response menu with DTMF input.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-ivr-phone-menu-python"
+    },
+    {
+      "folder": "record-phone-calls-python",
+      "title": "Record Phone Calls",
+      "description": "Record calls and receive recording webhooks.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/record-phone-calls-python"
+    },
+    {
+      "folder": "transfer-live-phone-calls-python",
+      "title": "Transfer Live Phone Calls",
+      "description": "Transfer active calls to another number or agent.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/transfer-live-phone-calls-python"
+    },
+    {
+      "folder": "text-to-speech-phone-call-python",
+      "title": "Text to Speech Phone Call",
+      "description": "Play text-to-speech audio during a phone call.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/text-to-speech-phone-call-python"
+    },
+    {
+      "folder": "build-conference-calling-python",
+      "title": "Build Conference Calling",
+      "description": "Create multi-party conference calls.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-conference-calling-python"
+    },
+    {
+      "folder": "call-whisper-monitoring-python",
+      "title": "Call Whisper Monitoring",
+      "description": "Monitor calls with whisper prompts for agents.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-whisper-monitoring-python"
+    },
+    {
+      "folder": "call-forwarding-python",
+      "title": "Call Forwarding",
+      "description": "Forward incoming calls to another destination.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-forwarding-python"
+    },
+    {
+      "folder": "webrtc-browser-calling-python",
+      "title": "WebRTC Browser Calling",
+      "description": "Enable browser-based calling with WebRTC.",
+      "product": "voice",
+      "language": "python",
+      "framework": "fastapi",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/webrtc-browser-calling-python"
+    },
+    {
+      "folder": "route-phone-calls-to-ai-agent-nodejs",
+      "title": "Route Phone Calls to AI Agent",
+      "description": "Receive inbound call webhooks from the Telnyx Voice API and answer calls programmatically with an Express server using Call Control.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/route-phone-calls-to-ai-agent-nodejs"
+    },
+    {
+      "folder": "make-outbound-phone-call-nodejs",
+      "title": "Make Outbound Phone Call",
+      "description": "Initiate an outbound phone call using the Telnyx Call Control API. Exposes an Express endpoint that dials a number and returns the call control ID.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/make-outbound-phone-call-nodejs"
+    },
+    {
+      "folder": "make-outbound-phone-call-php",
+      "title": "Make Outbound Phone Call",
+      "description": "Place an outbound phone call with the Telnyx Call Control API using PHP.",
+      "product": "voice",
+      "language": "php",
+      "framework": "vanilla",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/make-outbound-phone-call-php"
+    },
+    {
+      "folder": "make-outbound-phone-call-java",
+      "title": "Make Outbound Phone Call",
+      "description": "Place an outbound phone call with the Telnyx Call Control API using Java.",
+      "product": "voice",
+      "language": "java",
+      "framework": "httpserver",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/make-outbound-phone-call-java"
+    },
+    {
+      "folder": "make-outbound-phone-call-csharp",
+      "title": "Make Outbound Phone Call",
+      "description": "Place an outbound phone call with the Telnyx Call Control API using C# and ASP.NET.",
+      "product": "voice",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/make-outbound-phone-call-csharp"
+    },
+    {
+      "folder": "make-outbound-phone-call-ruby",
+      "title": "Make Outbound Phone Call",
+      "description": "Place an outbound phone call using the Telnyx Call Control API and the Telnyx Ruby SDK, exposed through a Sinatra endpoint.",
+      "product": "voice",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/make-outbound-phone-call-ruby"
+    },
+    {
+      "folder": "build-ivr-phone-menu-nodejs",
+      "title": "Build an IVR Phone Menu",
+      "description": "Production-ready IVR system using the Telnyx Voice API and Express.js. Answers inbound calls, plays a menu via TTS, collects DTMF input, and routes callers to sales or support.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-ivr-phone-menu-nodejs"
+    },
+    {
+      "folder": "record-phone-calls-nodejs",
+      "title": "Record Phone Calls",
+      "description": "Initiate outbound calls and control call recording using the Telnyx Voice API with Express. Handles call lifecycle webhooks and recording start/stop.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/record-phone-calls-nodejs"
+    },
+    {
+      "folder": "text-to-speech-phone-call-nodejs",
+      "title": "Text-to-Speech Phone Call",
+      "description": "Initiate an outbound voice call and play a text-to-speech message on answer using the Telnyx Call Control API.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/text-to-speech-phone-call-nodejs"
+    },
+    {
+      "folder": "route-phone-calls-to-ai-agent-go",
+      "title": "Route Phone Calls to AI Agent",
+      "description": "Receive inbound call webhooks from the Telnyx Voice API and answer calls programmatically with a Go + Gin server.",
+      "product": "voice",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/route-phone-calls-to-ai-agent-go"
+    },
+    {
+      "folder": "route-phone-calls-to-ai-agent-ruby",
+      "title": "Route Phone Calls to AI Agent",
+      "description": "Handle inbound calls with webhook-driven AI routing using Ruby and Sinatra.",
+      "product": "voice",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/route-phone-calls-to-ai-agent-ruby"
+    },
+    {
+      "folder": "create-ai-assistant-python",
+      "title": "Create AI Assistant",
+      "description": "Create a new Telnyx AI Assistant with a system prompt, model selection, and tool configuration.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/create-ai-assistant-python"
+    },
+    {
+      "folder": "chat-with-ai-assistant-python",
+      "title": "Chat with AI Assistant",
+      "description": "Send messages to a Telnyx AI Assistant and receive responses. Supports conversation history and streaming.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chat-with-ai-assistant-python"
+    },
+    {
+      "folder": "list-ai-assistants-python",
+      "title": "List AI Assistants",
+      "description": "List all Telnyx AI Assistants in your account with filtering and pagination.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/list-ai-assistants-python"
+    },
+    {
+      "folder": "clone-ai-assistant-python",
+      "title": "Clone AI Assistant",
+      "description": "Clone an existing AI assistant configuration.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/clone-ai-assistant-python"
+    },
+    {
+      "folder": "update-ai-assistant-python",
+      "title": "Update AI Assistant",
+      "description": "Update an existing Telnyx AI Assistant's configuration, model, system prompt, and tools via the API.",
+      "product": "ai",
+      "language": "python",
+      "framework": "fastapi",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/update-ai-assistant-python"
+    },
+    {
+      "folder": "create-ai-assistant-nodejs",
+      "title": "Create AI Assistant",
+      "description": "Create a Telnyx AI Assistant over an HTTP endpoint using the Telnyx Node.js SDK and Express.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/create-ai-assistant-nodejs"
+    },
+    {
+      "folder": "chat-with-ai-assistant-nodejs",
+      "title": "Chat With AI Assistant",
+      "description": "Send a message to a Telnyx AI Assistant and return its response over a production-ready Express endpoint.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chat-with-ai-assistant-nodejs"
+    },
+    {
+      "folder": "chat-with-ai-assistant-php",
+      "title": "Chat With a Telnyx AI Assistant (PHP)",
+      "description": "Send a message to a Telnyx AI Assistant from a vanilla PHP front controller and return its reply, keeping conversation context across turns.",
+      "product": "ai",
+      "language": "php",
+      "framework": "vanilla",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chat-with-ai-assistant-php"
+    },
+    {
+      "folder": "chat-with-ai-assistant-java",
+      "title": "Chat With an AI Assistant",
+      "description": "Chat with a Telnyx AI Assistant and thread a multi-turn conversation using the Telnyx Java SDK over a JDK HttpServer endpoint.",
+      "product": "ai",
+      "language": "java",
+      "framework": "httpserver",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chat-with-ai-assistant-java"
+    },
+    {
+      "folder": "chat-with-ai-assistant-go",
+      "title": "Chat with a Telnyx AI Assistant",
+      "description": "Send messages to a Telnyx AI assistant and maintain multi-turn context with a conversation id, using a Go + Gin server.",
+      "product": "ai",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chat-with-ai-assistant-go"
+    },
+    {
+      "folder": "chat-with-ai-assistant-ruby",
+      "title": "Chat With AI Assistant",
+      "description": "Chat with a Telnyx AI Assistant and maintain conversation context over a production-ready Sinatra endpoint using the Telnyx Ruby SDK.",
+      "product": "ai",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chat-with-ai-assistant-ruby"
+    },
+    {
+      "folder": "list-ai-assistants-nodejs",
+      "title": "List AI Assistants",
+      "description": "List all AI assistants in your Telnyx account using the Telnyx Node.js SDK and an Express endpoint.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/list-ai-assistants-nodejs"
+    },
+    {
+      "folder": "setup-sip-trunk-python",
+      "title": "Setup SIP Trunk",
+      "description": "Provision and configure a SIP trunk connection on Telnyx with codec preferences, authentication, and failover.",
+      "product": "sip",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/setup-sip-trunk-python"
+    },
+    {
+      "folder": "inbound-sip-routing-python",
+      "title": "Inbound SIP Routing",
+      "description": "Route inbound SIP calls to your endpoints.",
+      "product": "sip",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/inbound-sip-routing-python"
+    },
+    {
+      "folder": "sip-failover-routing-python",
+      "title": "SIP Failover Routing",
+      "description": "Configure failover routing for SIP connections.",
+      "product": "sip",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sip-failover-routing-python"
+    },
+    {
+      "folder": "configure-sip-codecs-python",
+      "title": "Configure SIP Codecs",
+      "description": "Configure audio codecs for SIP trunks.",
+      "product": "sip",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/configure-sip-codecs-python"
+    },
+    {
+      "folder": "setup-sip-trunk-nodejs",
+      "title": "Set Up a SIP Trunk",
+      "description": "Create, retrieve, and list credential-authenticated SIP connections using the Telnyx SIP Trunking API.",
+      "product": "sip",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/setup-sip-trunk-nodejs"
+    },
+    {
+      "folder": "inbound-sip-routing-nodejs",
+      "title": "Inbound SIP Routing",
+      "description": "Create and manage Telnyx SIP connections for inbound call routing, and receive inbound call webhooks, using Node.js and Express.",
+      "product": "sip",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/inbound-sip-routing-nodejs"
+    },
+    {
+      "folder": "setup-sip-trunk-go",
+      "title": "Setup SIP Trunk",
+      "description": "Create, list, and retrieve Telnyx SIP trunk connections via a Go and Gin REST API.",
+      "product": "sip",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/setup-sip-trunk-go"
+    },
+    {
+      "folder": "setup-sip-trunk-java",
+      "title": "Set Up a SIP Trunk (Java)",
+      "description": "Create, list, and retrieve credential-authenticated Telnyx SIP connections with the Telnyx Java SDK and the JDK's built-in HTTP server.",
+      "product": "sip",
+      "language": "java",
+      "framework": "jdk-httpserver",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/setup-sip-trunk-java"
+    },
+    {
+      "folder": "setup-sip-trunk-csharp",
+      "title": "Set Up a SIP Trunk (C#)",
+      "description": "Create, list, and retrieve credential-authenticated SIP connections using the Telnyx.net SDK and minimal ASP.NET.",
+      "product": "sip",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/setup-sip-trunk-csharp"
+    },
+    {
+      "folder": "setup-sip-trunk-php",
+      "title": "Set Up a SIP Trunk (PHP)",
+      "description": "Create, list, and retrieve a Telnyx credential (SIP) connection using the Telnyx PHP SDK over a vanilla PHP front controller.",
+      "product": "sip",
+      "language": "php",
+      "framework": "vanilla",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/setup-sip-trunk-php"
+    },
+    {
+      "folder": "setup-sip-trunk-ruby",
+      "title": "Set Up a SIP Trunk (Ruby)",
+      "description": "Create, list, and retrieve credential-authenticated SIP connections using the Telnyx SIP Trunking API with Ruby and Sinatra.",
+      "product": "sip",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/setup-sip-trunk-ruby"
+    },
+    {
+      "folder": "send-sms-python",
+      "title": "Send SMS",
+      "description": "Send an SMS message using the Telnyx Messaging API. Supports delivery status webhooks.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-sms-python"
+    },
+    {
+      "folder": "receive-sms-webhook-python",
+      "title": "Receive SMS Webhook",
+      "description": "Receive inbound SMS via webhook.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-sms-webhook-python"
+    },
+    {
+      "folder": "send-bulk-sms-python",
+      "title": "Send Bulk SMS",
+      "description": "Send SMS messages to multiple recipients.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-bulk-sms-python"
+    },
+    {
+      "folder": "sms-two-factor-auth-python",
+      "title": "SMS Two Factor Auth",
+      "description": "Implement SMS-based two-factor authentication.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-auth-python"
+    },
+    {
+      "folder": "send-mms-picture-message-python",
+      "title": "Send MMS Picture Message",
+      "description": "Send an MMS message with image attachments using the Telnyx Messaging API.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-mms-picture-message-python"
+    },
+    {
+      "folder": "sms-auto-reply-bot-python",
+      "title": "SMS Auto Reply Bot",
+      "description": "Build an SMS autoresponder bot.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-auto-reply-bot-python"
+    },
+    {
+      "folder": "send-sms-nodejs",
+      "title": "Send SMS (Node.js)",
+      "description": "Send an SMS message using the Telnyx Messaging API with a Node.js and Express endpoint.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-sms-nodejs"
+    },
+    {
+      "folder": "receive-sms-webhook-nodejs",
+      "title": "Receive SMS Webhook",
+      "description": "Receive inbound SMS messages via Telnyx webhooks with an Express server. Validates payloads and acknowledges within 5 seconds.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-sms-webhook-nodejs"
+    },
+    {
+      "folder": "receive-sms-webhook-csharp",
+      "title": "Receive SMS Webhook",
+      "description": "Receive inbound SMS via webhook with Ed25519 signature verification using C# and ASP.NET.",
+      "product": "sms",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-sms-webhook-csharp"
+    },
+    {
+      "folder": "receive-sms-webhook-php",
+      "title": "Receive SMS Webhook (PHP)",
+      "description": "Receive and Ed25519-verify inbound Telnyx SMS webhooks using the Telnyx PHP SDK over a vanilla PHP front controller.",
+      "product": "sms",
+      "language": "php",
+      "framework": "vanilla",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-sms-webhook-php"
+    },
+    {
+      "folder": "receive-sms-webhook-java",
+      "title": "Receive SMS Webhook (Java)",
+      "description": "Receive inbound SMS via Telnyx webhooks with a JDK HttpServer, verifying the Ed25519 signature before reading data.payload.",
+      "product": "sms",
+      "language": "java",
+      "framework": "jdk-httpserver",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-sms-webhook-java"
+    },
+    {
+      "folder": "receive-sms-webhook-ruby",
+      "title": "Receive SMS Webhook (Ruby)",
+      "description": "Receive inbound SMS messages via Telnyx webhooks with a Sinatra server, verifying the Telnyx Ed25519 signature before trusting any payload.",
+      "product": "sms",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-sms-webhook-ruby"
+    },
+    {
+      "folder": "sms-two-factor-auth-nodejs",
+      "title": "SMS Two-Factor Authentication (OTP)",
+      "description": "Production-ready OTP 2FA system with Node.js and Express. Generates one-time passwords, delivers them over SMS via the Telnyx Messaging API, and verifies them with expiration, attempt limits, and rate limiting.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-auth-nodejs"
+    },
+    {
+      "folder": "send-bulk-sms-nodejs",
+      "title": "Send Bulk SMS",
+      "description": "Send bulk SMS messages to many recipients with rate limiting and per-message error tracking using the Telnyx Messaging API and Express.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-bulk-sms-nodejs"
+    },
+    {
+      "folder": "send-sms-go",
+      "title": "Send SMS (Go)",
+      "description": "Send an SMS message using the Telnyx Messaging API and Go SDK, exposed over a Gin HTTP endpoint.",
+      "product": "sms",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-sms-go"
+    },
+    {
+      "folder": "send-sms-ruby",
+      "title": "Send SMS",
+      "description": "Send an SMS message using the Telnyx Messaging API and the Telnyx Ruby SDK, exposed through a Rails controller endpoint.",
+      "product": "sms",
+      "language": "ruby",
+      "framework": "rails",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-sms-ruby"
+    },
+    {
+      "folder": "send-sms-csharp",
+      "title": "Send SMS (C#)",
+      "description": "Send an SMS message using the Telnyx Messaging API with a C# minimal ASP.NET endpoint.",
+      "product": "sms",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-sms-csharp"
+    },
+    {
+      "folder": "send-sms-java",
+      "title": "Send SMS (Java)",
+      "description": "Send an SMS message using the Telnyx Messaging API and Java SDK, exposed over a JDK HttpServer endpoint.",
+      "product": "sms",
+      "language": "java",
+      "framework": "jdk-httpserver",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-sms-java"
+    },
+    {
+      "folder": "send-sms-php",
+      "title": "Send SMS",
+      "description": "Send an SMS message using the Telnyx Messaging API and the Telnyx PHP SDK, exposed through a vanilla PHP front controller.",
+      "product": "sms",
+      "language": "php",
+      "framework": "vanilla",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-sms-php"
+    },
+    {
+      "folder": "two-way-sms-chat-python",
+      "title": "Two-Way SMS Chat",
+      "description": "Send and receive SMS with Telnyx to run interactive, stateful text conversations over a Flask webhook.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/two-way-sms-chat-python"
+    },
+    {
+      "folder": "sms-survey-bot-python",
+      "title": "SMS Survey Bot",
+      "description": "Run multi-question SMS surveys over the Telnyx Messaging API. Sends questions, validates inbound replies via signed webhooks, tracks per-participant progress, and exposes results.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-survey-bot-python"
+    },
+    {
+      "folder": "schedule-sms-messages-python",
+      "title": "Schedule SMS Messages",
+      "description": "Schedule SMS messages to be sent at a future time with the Telnyx Messaging API, backed by an APScheduler job store and a Flask job-management API.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/schedule-sms-messages-python"
+    },
+    {
+      "folder": "alphanumeric-sender-id-sms-python",
+      "title": "Alphanumeric Sender ID SMS",
+      "description": "Send SMS messages with a branded alphanumeric sender ID using the Telnyx Messaging API. Validates sender IDs and enforces regional restrictions.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/alphanumeric-sender-id-sms-python"
+    },
+    {
+      "folder": "long-code-sms-python",
+      "title": "Long Code SMS",
+      "description": "Send A2P SMS over a long code with a rate-limited queue, delivery tracking, and signed inbound webhooks using the Telnyx Messaging API.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/long-code-sms-python"
+    },
+    {
+      "folder": "toll-free-sms-python",
+      "title": "Toll-Free SMS",
+      "description": "Send SMS from a toll-free number with the Telnyx Messaging API and track delivery status via signed webhooks.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/toll-free-sms-python"
+    },
+    {
+      "folder": "shortcode-sms-python",
+      "title": "Shortcode SMS",
+      "description": "Send and receive two-way SMS over a Telnyx shortcode with Flask. Includes inbound webhook handling with signature verification.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/shortcode-sms-python"
+    },
+    {
+      "folder": "receive-mms-webhook-python",
+      "title": "Receive MMS Webhook",
+      "description": "Receive inbound MMS messages with a Telnyx webhook, verify the signature, and download media attachments.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-mms-webhook-python"
+    },
+    {
+      "folder": "sms-delivery-receipts-python",
+      "title": "SMS Delivery Receipts",
+      "description": "Track SMS delivery status with Telnyx message.finalized webhooks, store delivery receipts in SQLite, and query message status over HTTP.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-delivery-receipts-python"
+    },
+    {
+      "folder": "phone-number-lookup-python",
+      "title": "Phone Number Lookup",
+      "description": "Look up carrier, line type, and portability data for any phone number using the Telnyx Number Lookup API, with a 24-hour in-memory cache.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/phone-number-lookup-python"
+    },
+    {
+      "folder": "sms-opt-out-management-python",
+      "title": "SMS Opt-Out Management",
+      "description": "Manage SMS opt-out preferences with Telnyx. Auto-handles STOP/UNSUBSCRIBE replies via verified inbound webhooks, blocks messages to opted-out numbers, and keeps an auditable opt-out list in SQLite.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-opt-out-management-python"
+    },
+    {
+      "folder": "sms-conversation-threading-python",
+      "title": "SMS Conversation Threading",
+      "description": "Group inbound and outbound SMS by contact into persistent conversation threads with the Telnyx Messaging API and a SQLAlchemy-backed store.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-conversation-threading-python"
+    },
+    {
+      "folder": "send-sms-notifications-python",
+      "title": "Send SMS Notifications",
+      "description": "Production-ready Flask service that sends SMS notifications, tracks delivery status via webhooks, and exposes a small REST API.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-sms-notifications-python"
+    },
+    {
+      "folder": "sms-marketing-campaign-python",
+      "title": "SMS Marketing Campaign",
+      "description": "Run bulk SMS marketing campaigns with Flask and the Telnyx Messaging API — create campaigns, send rate-limited batches, and track delivery via webhooks.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-marketing-campaign-python"
+    },
+    {
+      "folder": "two-way-sms-chat-nodejs",
+      "title": "Two-Way SMS Chat",
+      "description": "Send and receive SMS messages with Telnyx using Node.js and Express, with signature-verified inbound webhooks and automatic replies.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/two-way-sms-chat-nodejs"
+    },
+    {
+      "folder": "send-mms-picture-message-nodejs",
+      "title": "Send MMS Picture Message (Node.js)",
+      "description": "Send an MMS picture message with media attachments using the Telnyx Messaging API and a Node.js and Express endpoint.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-mms-picture-message-nodejs"
+    },
+    {
+      "folder": "sms-auto-reply-bot-nodejs",
+      "title": "SMS Auto-Reply Bot",
+      "description": "Receive inbound SMS via signed Telnyx webhooks and send automatic replies using Node.js and Express.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-auto-reply-bot-nodejs"
+    },
+    {
+      "folder": "sms-delivery-receipts-nodejs",
+      "title": "SMS Delivery Receipts",
+      "description": "Track SMS delivery status with Telnyx webhooks. Send messages, receive finalized delivery receipts, and look up per-message status.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-delivery-receipts-nodejs"
+    },
+    {
+      "folder": "activate-sim-card-python",
+      "title": "Activate SIM Card",
+      "description": "Activate a SIM card on the Telnyx network.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/activate-sim-card-python"
+    },
+    {
+      "folder": "monitor-iot-data-usage-python",
+      "title": "Monitor IoT Data Usage",
+      "description": "Production-ready Flask application for monitoring SIM card data usage via Telnyx IoT API.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/monitor-iot-data-usage-python"
+    },
+    {
+      "folder": "provision-esim-python",
+      "title": "Provision eSIM",
+      "description": "Provision eSIM profiles over the air.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/provision-esim-python"
+    },
+    {
+      "folder": "track-iot-device-location-python",
+      "title": "Track IoT Device Location",
+      "description": "Production-ready Flask application for device location tracking via Telnyx IoT API.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/track-iot-device-location-python"
+    },
+    {
+      "folder": "activate-sim-card-nodejs",
+      "title": "Activate SIM Card",
+      "description": "Retrieve and activate a Telnyx IoT SIM card by ID using the Telnyx Node.js SDK over an Express API.",
+      "product": "iot",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/activate-sim-card-nodejs"
+    },
+    {
+      "folder": "monitor-iot-data-usage-nodejs",
+      "title": "Monitor IoT Data Usage",
+      "description": "Monitor Telnyx IoT SIM card data usage with an Express server that polls usage on an interval and exposes REST endpoints for per-SIM consumption and threshold alerts.",
+      "product": "iot",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/monitor-iot-data-usage-nodejs"
+    },
+    {
+      "folder": "activate-sim-card-go",
+      "title": "Activate SIM Card",
+      "description": "Activate a Telnyx IoT SIM card over HTTP using the Telnyx Go SDK and Gin.",
+      "product": "iot",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/activate-sim-card-go"
+    },
+    {
+      "folder": "activate-sim-card-csharp",
+      "title": "Activate SIM Card",
+      "description": "Enable (activate) a SIM card on the Telnyx network using C# and ASP.NET.",
+      "product": "iot",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/activate-sim-card-csharp"
+    },
+    {
+      "folder": "activate-sim-card-java",
+      "title": "Activate SIM Card",
+      "description": "Activate a Telnyx IoT SIM card over HTTP using the Telnyx Java SDK and the JDK HttpServer.",
+      "product": "iot",
+      "language": "java",
+      "framework": "jdk-httpserver",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/activate-sim-card-java"
+    },
+    {
+      "folder": "activate-sim-card-php",
+      "title": "Activate SIM Card (PHP)",
+      "description": "Enable (activate) a Telnyx IoT SIM card by ID using the Telnyx PHP SDK over a vanilla PHP front controller.",
+      "product": "iot",
+      "language": "php",
+      "framework": "vanilla",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/activate-sim-card-php"
+    },
+    {
+      "folder": "activate-sim-card-ruby",
+      "title": "Activate SIM Card",
+      "description": "Activate a Telnyx IoT SIM card using Ruby and Sinatra.",
+      "product": "iot",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/activate-sim-card-ruby"
+    },
+    {
+      "folder": "ai-after-hours-emergency-triage-python",
+      "title": "AI After-Hours Emergency Triage",
+      "description": "AI After-Hours Emergency Triage — after-hours calls screened by AI. True emergencies get forwarded to on-call; everything else gets a voicemail + next-day callback promise.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-after-hours-emergency-triage-python"
+    },
+    {
+      "folder": "ai-assistant-knowledge-base-python",
+      "title": "AI Assistant Knowledge Base",
+      "description": "AI Assistant Knowledge Base — AI Assistant with document knowledge base for context-aware Q&A over uploaded documents.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assistant-knowledge-base-python"
+    },
+    {
+      "folder": "ai-assistant-multi-tool-python",
+      "title": "AI Assistant Multi-Tool",
+      "description": "AI Assistant Multi-Tool — AI Assistant with custom function-calling tools for CRM lookup, appointment booking, and order status.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assistant-multi-tool-python"
+    },
+    {
+      "folder": "ai-assistant-phone-setup-python",
+      "title": "AI Assistant Phone Setup",
+      "description": "AI Assistant Phone Setup — create and configure a managed Telnyx AI Assistant and wire it to a phone number.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assistant-phone-setup-python"
+    },
+    {
+      "folder": "ai-audiobook-narrator-python",
+      "title": "AI Audiobook Narrator",
+      "description": "Submit text, AI Inference chunks into chapters with pacing/emotion markup, TTS narrates each chapter with consistent voice, stores final audio in Telnyx Cloud Storage.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-audiobook-narrator-python"
+    },
+    {
+      "folder": "ai-billing-dispute-resolution-agent-python",
+      "title": "AI Billing Dispute Resolution Agent",
+      "description": "AI Billing Dispute Resolution Agent — handles billing questions with account lookup.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-billing-dispute-resolution-agent-python"
+    },
+    {
+      "folder": "ai-call-center-quality-scorer-python",
+      "title": "AI Call Center Quality Scorer",
+      "description": "AI Call Center Quality Scorer — automatically score agent performance from call recordings on compliance, empathy, resolution, and talk-to-listen ratio.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-call-center-quality-scorer-python"
+    },
+    {
+      "folder": "ai-cold-caller-objection-trainer-python",
+      "title": "AI Cold Caller Objection Trainer",
+      "description": "AI Cold Caller Objection Trainer — practice handling sales objections with AI-generated scenarios.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-cold-caller-objection-trainer-python"
+    },
+    {
+      "folder": "ai-competitive-win-loss-call-analyzer-python",
+      "title": "AI Competitive Win/Loss Call Analyzer",
+      "description": "AI Competitive Win/Loss Call Analyzer — analyze recorded sales calls for competitive intelligence.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-competitive-win-loss-call-analyzer-python"
+    },
+    {
+      "folder": "ai-compliance-quiz-phone-python",
+      "title": "AI Compliance Quiz Phone",
+      "description": "AI Compliance Quiz Phone — employees call and take a compliance quiz. AI asks questions, evaluates answers, scores pass/fail, records completion.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-compliance-quiz-phone-python"
+    },
+    {
+      "folder": "ai-conference-moderator-python",
+      "title": "AI Conference Moderator",
+      "description": "AI moderator for multi-party calls. Manages agenda, enforces time limits, tracks speakers, produces structured summary with action items.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-conference-moderator-python"
+    },
+    {
+      "folder": "ai-conference-note-taker-python",
+      "title": "AI Conference Note-Taker",
+      "description": "AI Conference Note-Taker — joins calls, transcribes, extracts action items, sends SMS summaries.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-conference-note-taker-python"
+    },
+    {
+      "folder": "ai-content-translator-python",
+      "title": "AI Content Translator",
+      "description": "Upload any audio (podcast, meeting, lecture), STT transcribes in source language, AI Inference translates, TTS generates audio in target language. Returns translated audio + aligned transcript.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-content-translator-python"
+    },
+    {
+      "folder": "ai-customer-churn-predictor-python",
+      "title": "AI Customer Churn Predictor",
+      "description": "AI Customer Churn Predictor — analyze call/message patterns via Telnyx APIs, AI predicts churn risk and suggests interventions.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-customer-churn-predictor-python"
+    },
+    {
+      "folder": "ai-customer-winback-caller-python",
+      "title": "AI Customer Winback Caller",
+      "description": "AI Customer Winback Caller — AI calls churned customers with personalized re-engagement offers.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-customer-winback-caller-python"
+    },
+    {
+      "folder": "ai-debt-collection-compliance-agent-python",
+      "title": "AI Debt Collection Compliance Agent",
+      "description": "AI Debt Collection Compliance Agent — FDCPA-compliant outbound collection with real-time guardrails.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-debt-collection-compliance-agent-python"
+    },
+    {
+      "folder": "ai-deposition-assistant-python",
+      "title": "AI Deposition Assistant",
+      "description": "AI joins legal deposition calls, produces real-time transcript, flags objectionable questions, tracks exhibits, generates structured deposition summary.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-deposition-assistant-python"
+    },
+    {
+      "folder": "ai-event-rsvp-phone-line-python",
+      "title": "AI Event RSVP Phone Line",
+      "description": "AI Event RSVP Phone Line — call to RSVP for an event. AI collects guest info, dietary restrictions, plus-ones, and confirms the reservation.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-event-rsvp-phone-line-python"
+    },
+    {
+      "folder": "ai-hiring-phone-screen-python",
+      "title": "AI Hiring Phone Screen",
+      "description": "AI Hiring Phone Screen — automated first-round phone screening for job applicants.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-hiring-phone-screen-python"
+    },
+    {
+      "folder": "ai-insurance-claims-intake-voice-python",
+      "title": "AI Insurance Claims Intake",
+      "description": "AI Insurance Claims Intake — voice agent collects claim details, classifies, routes to adjuster.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-insurance-claims-intake-voice-python"
+    },
+    {
+      "folder": "ai-language-learning-phone-tutor-python",
+      "title": "AI Language Learning Phone Tutor",
+      "description": "AI Language Learning Phone Tutor — call a number, practice a foreign language with AI.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-language-learning-phone-tutor-python"
+    },
+    {
+      "folder": "ai-live-call-participant-python",
+      "title": "AI Live Call Participant",
+      "description": "AI joins a live multi-human conference call as an active participant. Listens via media streaming, contributes via TTS, takes notes, responds when addressed by name.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-live-call-participant-python"
+    },
+    {
+      "folder": "ai-medical-appointment-prep-caller-python",
+      "title": "AI Medical Appointment Prep Caller",
+      "description": "AI Medical Appointment Prep Caller — calls patients before appointments to collect intake info.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-medical-appointment-prep-caller-python"
+    },
+    {
+      "folder": "ai-meeting-action-tracker-python",
+      "title": "AI Meeting Action Tracker",
+      "description": "Joins multi-party calls, identifies speakers, extracts action items with owners and deadlines, posts structured notes to Slack.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-meeting-action-tracker-python"
+    },
+    {
+      "folder": "ai-negotiation-practice-phone-python",
+      "title": "AI Negotiation Practice Phone",
+      "description": "AI Negotiation Practice Phone — practice salary negotiations, sales deals, or vendor contracts with an AI that plays the opposing side and scores your technique.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-negotiation-practice-phone-python"
+    },
+    {
+      "folder": "ai-phone-story-hotline-python",
+      "title": "AI Phone Story Hotline",
+      "description": "AI Phone Story Hotline — call a number, choose a genre, and listen to an AI-generated interactive story where your choices shape the narrative.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-phone-story-hotline-python"
+    },
+    {
+      "folder": "ai-phone-tree-builder-from-description-python",
+      "title": "AI Phone Tree Builder",
+      "description": "AI Phone Tree Builder — describe your business in English, AI creates a working phone system.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-phone-tree-builder-from-description-python"
+    },
+    {
+      "folder": "ai-podcast-call-in-show-python",
+      "title": "AI Podcast Call-In Show",
+      "description": "AI Podcast Call-In Show — callers dial in, AI screens and queues them, host manages live.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-podcast-call-in-show-python"
+    },
+    {
+      "folder": "ai-podcast-post-producer-python",
+      "title": "AI Podcast Post-Producer",
+      "description": "AI Podcast Post-Producer — record a podcast over a conference call, then AI generates show notes, timestamps, highlights, and social media clips.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-podcast-post-producer-python"
+    },
+    {
+      "folder": "ai-podcast-producer-python",
+      "title": "AI Podcast Producer",
+      "description": "Record a multi-host podcast via conference call, transcribe each speaker with STT, generate show notes + chapters + social clips via AI Inference, and produce TTS intro/outro bumpers.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-podcast-producer-python"
+    },
+    {
+      "folder": "ai-powered-ivr-replacement-python",
+      "title": "AI-Powered IVR Replacement",
+      "description": "AI-Powered IVR Replacement — natural language routing with A/B testing and structured insights.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-powered-ivr-replacement-python"
+    },
+    {
+      "folder": "ai-price-quote-phone-agent-python",
+      "title": "AI Price Quote Phone Agent",
+      "description": "AI Price Quote Phone Agent — caller describes what they need, AI generates a customized price quote in real time with line items.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-price-quote-phone-agent-python"
+    },
+    {
+      "folder": "ai-property-management-maintenance-line-python",
+      "title": "AI Property Management Maintenance Line",
+      "description": "AI Property Management Maintenance Line — tenants call, AI triages maintenance requests.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-property-management-maintenance-line-python"
+    },
+    {
+      "folder": "ai-real-estate-showing-scheduler-python",
+      "title": "AI Real Estate Showing Scheduler",
+      "description": "AI Real Estate Showing Scheduler — buyers call or text, AI checks availability and books showings.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-real-estate-showing-scheduler-python"
+    },
+    {
+      "folder": "ai-real-time-translation-bridge-python",
+      "title": "AI Real-Time Translation Bridge",
+      "description": "Connect two callers who speak different languages with real-time AI translation on a live phone call. Built with Telnyx Voice Call Control and AI Inference.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-real-time-translation-bridge-python"
+    },
+    {
+      "folder": "ai-receptionist-with-booking-tools-python",
+      "title": "AI Receptionist with Booking Tools",
+      "description": "AI Receptionist with Booking Tools — AI Assistant with tool_use for real calendar booking actions.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-receptionist-with-booking-tools-python"
+    },
+    {
+      "folder": "ai-restaurant-reservation-voice-agent-python",
+      "title": "AI Restaurant Reservation Voice Agent",
+      "description": "AI Restaurant Reservation Voice Agent — handles calls, checks availability, books tables, sends SMS confirmation.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-restaurant-reservation-voice-agent-python"
+    },
+    {
+      "folder": "ai-sales-call-with-live-crm-updates-python",
+      "title": "AI Sales Call with Live CRM Updates",
+      "description": "AI Sales Call with Live CRM Updates — multi-participant call with real-time deal intelligence.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-sales-call-with-live-crm-updates-python"
+    },
+    {
+      "folder": "ai-sales-coach-whisper-python",
+      "title": "AI Sales Coach (Whisper)",
+      "description": "AI coach listens to a live sales call and whispers real-time suggestions to the rep only. Customer never hears the AI. Generates post-call scorecard.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-sales-coach-whisper-python"
+    },
+    {
+      "folder": "ai-sales-demo-booking-agent-python",
+      "title": "AI Sales Demo Booking Agent",
+      "description": "AI Sales Demo Booking Agent — inbound calls, AI qualifies the lead, books a demo on the calendar.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-sales-demo-booking-agent-python"
+    },
+    {
+      "folder": "ai-standup-facilitator-phone-python",
+      "title": "AI Standup Facilitator Phone",
+      "description": "AI Standup Facilitator Phone — team members call in their daily standup update. AI collects what they did, what they're doing, and blockers, then summarizes for the team.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-standup-facilitator-phone-python"
+    },
+    {
+      "folder": "ai-tech-support-voice-agent-python",
+      "title": "AI Tech Support Voice Agent",
+      "description": "IT helpdesk voice agent that answers calls, troubleshoots issues using a knowledge base, and escalates to human support via Telnyx Voice AI and Inference.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-tech-support-voice-agent-python"
+    },
+    {
+      "folder": "ai-video-dubbing-pipeline-python",
+      "title": "AI Video Dubbing Pipeline",
+      "description": "Upload audio, STT transcribes with speaker diarization, AI Inference translates to target language, TTS generates dubbed audio with speaker-matched voices. Full STT-to-TTS pipeline.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-video-dubbing-pipeline-python"
+    },
+    {
+      "folder": "ai-voice-agent-with-function-calling-python",
+      "title": "AI Voice Agent with Function Calling",
+      "description": "AI Voice Agent with Function Calling — voice agent that calls external APIs mid-conversation.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-voice-agent-with-function-calling-python"
+    },
+    {
+      "folder": "ai-voice-memo-to-email-python",
+      "title": "AI Voice Memo to Email",
+      "description": "AI Voice Memo to Email — call a number, dictate a memo, AI cleans it up and sends it as a formatted email via Telnyx.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-voice-memo-to-email-python"
+    },
+    {
+      "folder": "ai-voice-survey-sentiment-tracker-python",
+      "title": "AI Voice Survey Sentiment Tracker",
+      "description": "AI Voice Survey Sentiment Tracker — real-time CSAT scoring from voice tone and word choice.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-voice-survey-sentiment-tracker-python"
+    },
+    {
+      "folder": "ai-voicemail-transcription-forwarding-python",
+      "title": "AI Voicemail Transcription & Forwarding",
+      "description": "AI Voicemail Transcription & Forwarding — voicemail to AI-summarized SMS/email with priority classification.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-voicemail-transcription-forwarding-python"
+    },
+    {
+      "folder": "ai-voiceover-studio-python",
+      "title": "AI Voice-Over Studio",
+      "description": "Upload a script, select voice/style/pacing, AI adds professional direction cues (pauses, emphasis, pacing), TTS renders the voice-over, stores output in Cloud Storage. Supports multiple takes and retakes.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-voiceover-studio-python"
+    },
+    {
+      "folder": "build-voice-ai-agent-nodejs",
+      "title": "Build a Voice AI Agent",
+      "description": "Build a complete voice AI agent with Telnyx — answer inbound calls, transcribe speech, generate replies with Telnyx Inference, and speak them back via Call Control.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-voice-ai-agent-nodejs"
+    },
+    {
+      "folder": "build-voice-ai-agent-python",
+      "title": "Build a complete voice AI agent with Telnyx",
+      "description": "Build a complete voice AI agent with Telnyx — inbound call handling, AI conversation, and call control.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-voice-ai-agent-python"
+    },
+    {
+      "folder": "call-recording-ai-summarizer-python",
+      "title": "Call Recording AI Summarizer",
+      "description": "Call Recording AI Summarizer — record calls, then summarize and extract action items with AI.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-recording-ai-summarizer-python"
+    },
+    {
+      "folder": "click-to-call-webrtc-with-ai-assist-python",
+      "title": "Click-to-Call WebRTC with AI Assist",
+      "description": "Click-to-Call WebRTC with AI Assist — browser-based calling with real-time AI coaching sidebar.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/click-to-call-webrtc-with-ai-assist-python"
+    },
+    {
+      "folder": "compliance-call-recorder-ai-auditor-python",
+      "title": "Compliance Call Recorder + AI Auditor",
+      "description": "Compliance Call Recorder + AI Auditor — auto-record, batch-process with AI, flag violations, create tickets.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/compliance-call-recorder-ai-auditor-python"
+    },
+    {
+      "folder": "conference-call-with-ai-summary-python",
+      "title": "Conference Call with AI Summary",
+      "description": "Conference Call with AI Summary — multi-party conference with transcription and AI post-call summary.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/conference-call-with-ai-summary-python"
+    },
+    {
+      "folder": "fax-to-ai-document-processor-python",
+      "title": "Fax to AI Document Processor",
+      "description": "Fax to AI Document Processor — receive fax, AI extracts data, forwards structured summary.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/fax-to-ai-document-processor-python"
+    },
+    {
+      "folder": "full-stack-ai-contact-center-python",
+      "title": "Full-Stack AI Contact Center",
+      "description": "Full-Stack AI Contact Center — complete contact center: IVR + queue + AI agent assist + recording + live analytics.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/full-stack-ai-contact-center-python"
+    },
+    {
+      "folder": "global-ip-failover-monitor-python",
+      "title": "Global IP Failover Monitor",
+      "description": "Global IP Failover Monitor — monitor Global IP endpoints across regions, auto-failover between healthy endpoints.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/global-ip-failover-monitor-python"
+    },
+    {
+      "folder": "insurance-claims-intake-python",
+      "title": "Insurance Claims Intake",
+      "description": "Policyholder calls, AI collects incident details, accepts photos via MMS, creates claim, assigns adjuster, texts status updates. Adjuster reviews AI-prepared claim.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insurance-claims-intake-python"
+    },
+    {
+      "folder": "maintenance-request-dispatch-python",
+      "title": "Maintenance Request Dispatch",
+      "description": "Tenant texts issue, AI categorizes and estimates cost, auto-dispatches vendor for routine work, manager approves orders over $500 via SMS reply.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/maintenance-request-dispatch-python"
+    },
+    {
+      "folder": "missions-ai-task-runner-python",
+      "title": "Missions AI Task Runner",
+      "description": "Missions AI Task Runner — AI-driven task execution within the Telnyx Missions framework. AI decides next steps based on task results.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/missions-ai-task-runner-python"
+    },
+    {
+      "folder": "multi-channel-ai-helpdesk-with-ticketing-python",
+      "title": "Multi-Channel AI Helpdesk with Ticketing",
+      "description": "Multi-Channel AI Helpdesk with Ticketing — voice + SMS + WhatsApp support with auto-ticket creation.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multi-channel-ai-helpdesk-with-ticketing-python"
+    },
+    {
+      "folder": "multi-party-ai-training-call-python",
+      "title": "Multi-Party AI Training Call",
+      "description": "AI plays customer roles for sales/support practice. Multiple trainees join, AI rotates scenarios and scores each trainee.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multi-party-ai-training-call-python"
+    },
+    {
+      "folder": "omnichannel-ai-receptionist-python",
+      "title": "Omnichannel AI Receptionist",
+      "description": "One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omnichannel-ai-receptionist-python"
+    },
+    {
+      "folder": "policy-renewal-campaign-python",
+      "title": "Policy Renewal Campaign",
+      "description": "Automated multi-channel renewal reminders. 60 days: SMS. 30 days: AI voice call reviewing coverage changes. 7 days: urgent SMS. Agent reviews lapsed policies for win-back.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/policy-renewal-campaign-python"
+    },
+    {
+      "folder": "restaurant-reservation-waitlist-python",
+      "title": "Restaurant Reservation & Waitlist",
+      "description": "AI answers calls, checks table availability, books or adds to waitlist, texts when table is ready. Host reviews large party requests.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/restaurant-reservation-waitlist-python"
+    },
+    {
+      "folder": "run-llm-inference-nodejs",
+      "title": "Run LLM Inference",
+      "description": "Run large language model inference through the Telnyx Inference API using an OpenAI-compatible chat completions interface from Node.js. Works as both an HTTP server and a CLI tool.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/run-llm-inference-nodejs"
+    },
+    {
+      "folder": "run-llm-inference-python",
+      "title": "Run LLM Inference",
+      "description": "Send chat completion requests to the Telnyx Inference API using an OpenAI-compatible interface from Python.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/run-llm-inference-python"
+    },
+    {
+      "folder": "storage-voicemail-archive-python",
+      "title": "Storage Voicemail Archive",
+      "description": "Storage Voicemail Archive — record voicemails to Telnyx Cloud Storage with search.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/storage-voicemail-archive-python"
+    },
+    {
+      "folder": "texml-voicemail-drop-python",
+      "title": "TeXML Voicemail Drop",
+      "description": "Leave pre-recorded voicemails at scale via TeXML.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/texml-voicemail-drop-python"
+    },
+    {
+      "folder": "three-way-ai-interpreter-python",
+      "title": "Three-Way Call with AI Interpreter",
+      "description": "Two humans speak different languages on the same call. AI translates in real-time and speaks the translation to each party.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/three-way-ai-interpreter-python"
+    },
+    {
+      "folder": "video-room-ai-meeting-moderator-python",
+      "title": "Video Room AI Meeting Moderator",
+      "description": "Video Room AI Meeting Moderator — create video rooms with AI-powered agenda tracking and time management.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/video-room-ai-meeting-moderator-python"
+    },
+    {
+      "folder": "video-room-ai-moderator-python",
+      "title": "Video Room AI Moderator",
+      "description": "Video Room AI Moderator — create video rooms with AI-powered content moderation on chat and participant management.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/video-room-ai-moderator-python"
+    },
+    {
+      "folder": "voice-journal-daily-log-python",
+      "title": "Voice Journal Daily Log",
+      "description": "Voice Journal Daily Log — call a number, speak your daily journal entry, AI transcribes and organizes it with mood, topics, and gratitude extraction.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voice-journal-daily-log-python"
+    },
+    {
+      "folder": "warm-transfer-ai-briefing-python",
+      "title": "Warm Transfer with AI Briefing",
+      "description": "When an agent transfers a call, AI summarizes the conversation and briefs the next agent before connecting. No cold handoffs.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/warm-transfer-ai-briefing-python"
+    },
+    {
+      "folder": "webhook-debugger-ai-assistant-python",
+      "title": "Webhook Debugger AI Assistant",
+      "description": "Webhook Debugger AI Assistant — catch, inspect, and debug Telnyx webhooks with AI explanations.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/webhook-debugger-ai-assistant-python"
+    },
+    {
+      "folder": "webrtc-ai-interpreter-live-calls-python",
+      "title": "WebRTC AI Interpreter for Live Calls",
+      "description": "WebRTC AI Interpreter for Live Calls — real-time translation between two callers speaking different languages.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/webrtc-ai-interpreter-live-calls-python"
+    },
+    {
+      "folder": "iot-fleet-alert-escalation-python",
+      "title": "IoT Fleet Alert Escalation",
+      "description": "IoT Fleet Alert Escalation — severity-based routing from IoT sensors to SMS, calls, and multi-party conferences.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/iot-fleet-alert-escalation-python"
+    },
+    {
+      "folder": "iot-panic-button-voice-alert-python",
+      "title": "IoT Panic Button Voice Alert",
+      "description": "IoT Panic Button Voice Alert — IoT device triggers SIM-based alert, system calls emergency contacts with location and status.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/iot-panic-button-voice-alert-python"
+    },
+    {
+      "folder": "iot-smart-building-voice-control-python",
+      "title": "IoT Smart Building Voice Control",
+      "description": "IoT Smart Building Voice Control — call a number to control building systems via AI + IoT SIMs.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/iot-smart-building-voice-control-python"
+    },
+    {
+      "folder": "sim-fleet-data-usage-anomaly-detector-python",
+      "title": "SIM Fleet Data Usage Anomaly Detector",
+      "description": "SIM Fleet Data Usage Anomaly Detector — monitor IoT SIM usage, AI detects anomalies, SMS alerts.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sim-fleet-data-usage-anomaly-detector-python"
+    },
+    {
+      "folder": "voice-activated-iot-command-python",
+      "title": "Voice-Activated IoT Command",
+      "description": "Voice-Activated IoT Command — call a number, speak commands to control IoT devices. AI interprets natural language into device actions dispatched via SIM API.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voice-activated-iot-command-python"
+    },
+    {
+      "folder": "wireless-fleet-activation-portal-python",
+      "title": "Wireless Fleet Activation Portal",
+      "description": "Bulk activate SIMs with status tracking.",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/wireless-fleet-activation-portal-python"
+    },
+    {
+      "folder": "sip-load-balancer-health-check-python",
+      "title": "SIP Load Balancer Health Check",
+      "description": "SIP Load Balancer Health Check — monitor SIP trunk health across multiple endpoints, auto-failover to healthy trunks, track uptime metrics.",
+      "product": "sip",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sip-load-balancer-health-check-python"
+    },
+    {
+      "folder": "sip-trunking-failover-monitor-python",
+      "title": "SIP Trunking Failover Monitor",
+      "description": "SIP Trunking Failover Monitor — health-check SIP connections, auto-failover, SMS alerts.",
+      "product": "sip",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sip-trunking-failover-monitor-python"
+    },
+    {
+      "folder": "abandoned-cart-recovery-python",
+      "title": "Abandoned Cart Recovery",
+      "description": "SMS 1h after abandon with incentive, AI voice call 24h later if no purchase. Integrates with Shopify webhooks and Stripe for discount codes.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/abandoned-cart-recovery-python"
+    },
+    {
+      "folder": "accounting-tax-season-line-python",
+      "title": "Accounting Firm Tax Season Line",
+      "description": "Handles scheduling, document checklist reminders, status updates. AI texts clients with missing doc reminders. CPA reviews readiness before appointments.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/accounting-tax-season-line-python"
+    },
+    {
+      "folder": "after-hours-nurse-triage-python",
+      "title": "After-Hours Nurse Triage",
+      "description": "AI screens symptoms using clinical decision tree, routes urgent to on-call nurse via PagerDuty, queues non-urgent for AM callback. Nurse reviews and overrides AI severity scores.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/after-hours-nurse-triage-python"
+    },
+    {
+      "folder": "ai-appointment-booking-sms-flow-python",
+      "title": "AI Appointment Booking SMS Flow",
+      "description": "AI Appointment Booking SMS Flow — guided SMS booking with available slot selection.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-appointment-booking-sms-flow-python"
+    },
+    {
+      "folder": "ai-appointment-reminder-sms-voice-python",
+      "title": "AI Appointment Reminder",
+      "description": "AI Appointment Reminder — SMS first, voice call for non-responders, AI handles rescheduling.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-appointment-reminder-sms-voice-python"
+    },
+    {
+      "folder": "autonomous-outbound-sales-agent-python",
+      "title": "Autonomous Outbound Sales Agent",
+      "description": "Autonomous Outbound Sales Agent — AI-driven lead qualification, objection handling, and meeting booking.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/autonomous-outbound-sales-agent-python"
+    },
+    {
+      "folder": "billing-anomaly-detector-python",
+      "title": "Billing Anomaly Detector",
+      "description": "Billing Anomaly Detector — monitor usage and billing for anomalies, alert on cost spikes and unusual patterns.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/billing-anomaly-detector-python"
+    },
+    {
+      "folder": "cdr-usage-analytics-dashboard-python",
+      "title": "CDR Usage Analytics Dashboard",
+      "description": "Pull Call Detail Records, build usage analytics with cost breakdowns, peak-hour analysis, and AI-powered insights.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/cdr-usage-analytics-dashboard-python"
+    },
+    {
+      "folder": "cloud-storage-media-cdn-python",
+      "title": "Cloud Storage Media CDN",
+      "description": "Cloud Storage Media CDN — use Telnyx Cloud Storage (S3-compatible) as a CDN for IVR prompts, hold music, and voice assets.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/cloud-storage-media-cdn-python"
+    },
+    {
+      "folder": "e911-address-validator-python",
+      "title": "E911 Address Validator",
+      "description": "Validate and register emergency (E911) addresses for phone numbers via the Telnyx API.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/e911-address-validator-python"
+    },
+    {
+      "folder": "ecommerce-order-status-bot-python",
+      "title": "E-commerce Order Status Bot",
+      "description": "Customers call or text order number, get real-time Shopify tracking. AI detects delivery exceptions and proactively texts customers before they call support.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ecommerce-order-status-bot-python"
+    },
+    {
+      "folder": "edge-compute-webhook-proxy-python",
+      "title": "Edge Compute Webhook Proxy",
+      "description": "Receive Telnyx voice and SMS webhooks at the edge with minimal latency. Validates, enriches with timestamps, HMAC-signs, and forwards to your backend.",
+      "product": "sms",
+      "language": "python",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-compute-webhook-proxy-python"
+    },
+    {
+      "folder": "edge-mcp-server-deploy-python",
+      "title": "MCP Server on Edge Compute",
+      "description": "Deploy an MCP server to Telnyx Edge Compute exposing Telnyx APIs as tools for AI agents. Send SMS, search numbers, run inference.",
+      "product": "sms",
+      "language": "python",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-mcp-server-deploy-python"
+    },
+    {
+      "folder": "elearning-course-narrator-python",
+      "title": "E-Learning Course Narrator",
+      "description": "Upload course content, AI structures into audio modules with pacing cues and quiz prompts, TTS narrates each module, stores in Cloud Storage with a JSON manifest.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/elearning-course-narrator-python"
+    },
+    {
+      "folder": "emergency-mass-notification-system-python",
+      "title": "Emergency Mass Notification System",
+      "description": "Emergency Mass Notification System — SMS + voice calls with delivery tracking and escalation.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/emergency-mass-notification-system-python"
+    },
+    {
+      "folder": "fraud-alert-verification-python",
+      "title": "Fraud Alert & Verification",
+      "description": "Suspicious transaction triggers voice call to customer, verifies via DTMF, blocks or approves in real-time. Fraud team reviews edge cases via Slack.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/fraud-alert-verification-python"
+    },
+    {
+      "folder": "global-lead-response-engine-python",
+      "title": "Global Lead Response Engine",
+      "description": "Global Lead Response Engine — multi-language AI qualification with live transfer and omnichannel follow-up.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/global-lead-response-engine-python"
+    },
+    {
+      "folder": "hosted-messaging-campaign-manager-python",
+      "title": "Hosted Messaging Campaign Manager",
+      "description": "Hosted Messaging Campaign Manager — manage hosted messaging campaigns with subscriber opt-in/out tracking and delivery analytics.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/hosted-messaging-campaign-manager-python"
+    },
+    {
+      "folder": "hotel-guest-services-python",
+      "title": "Hotel Guest Services Line",
+      "description": "Room service, housekeeping, concierge requests via voice or SMS. AI routes and tracks. Staff gets Slack notifications, guest gets SMS when fulfilled.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/hotel-guest-services-python"
+    },
+    {
+      "folder": "interview-screen-scheduler-python",
+      "title": "Interview Screen & Scheduler",
+      "description": "Candidate applies, AI calls for 5-min phone screen, scores answers, books qualified candidates on hiring manager's calendar. Integrates with Greenhouse ATS and Google Calendar.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/interview-screen-scheduler-python"
+    },
+    {
+      "folder": "isv-notification-engine-python",
+      "title": "ISV Notification Engine",
+      "description": "SaaS platform sends alerts via SMS/voice/WhatsApp based on customer preference and urgency. Multi-channel with fallback cascade and delivery tracking.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/isv-notification-engine-python"
+    },
+    {
+      "folder": "ivr-prompt-generator-python",
+      "title": "IVR Prompt Generator",
+      "description": "Generate professional IVR/phone system prompts. AI writes caller-friendly scripts from business descriptions, TTS renders in multiple voices, test via live Telnyx call playback.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ivr-prompt-generator-python"
+    },
+    {
+      "folder": "law-firm-client-intake-python",
+      "title": "Law Firm Client Intake",
+      "description": "AI answers after-hours calls, screens case type, collects facts, runs conflict check, books consultation via Calendly, collects retainer deposit via Stripe.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/law-firm-client-intake-python"
+    },
+    {
+      "folder": "marketplace-comms-bridge-python",
+      "title": "Marketplace Comms Bridge",
+      "description": "Buyer texts about a listing, AI responds with details, facilitates anonymous buyer-seller connection via masked numbers, handles scheduling. Ops reviews flagged conversations.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/marketplace-comms-bridge-python"
+    },
+    {
+      "folder": "media-stream-custom-audio-mixer-python",
+      "title": "Media Stream Custom Audio Mixer",
+      "description": "Media Stream Custom Audio Mixer — mix custom audio into live calls via WebSocket-based media streaming.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/media-stream-custom-audio-mixer-python"
+    },
+    {
+      "folder": "media-stream-live-transcription-python",
+      "title": "Media Stream Live Transcription",
+      "description": "Media Stream Live Transcription — fork call audio to WebSocket for real-time transcription display.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/media-stream-live-transcription-python"
+    },
+    {
+      "folder": "messaging-campaign-ab-test-optimizer-python",
+      "title": "Messaging Campaign A/B Test Optimizer",
+      "description": "Messaging Campaign A/B Test Optimizer — test SMS copy variants, AI picks winners, auto-scales.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/messaging-campaign-ab-test-optimizer-python"
+    },
+    {
+      "folder": "migrate-from-elevenlabs-python",
+      "title": "Migrate from ElevenLabs",
+      "description": "Migrate from ElevenLabs — import ElevenLabs voice configurations to Telnyx TTS with voice mapping and cost comparison.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/migrate-from-elevenlabs-python"
+    },
+    {
+      "folder": "migrate-from-twilio-python",
+      "title": "Migrate from Twilio",
+      "description": "Migrate from Twilio — complete Twilio-to-Telnyx migration tool: numbers, messaging profiles, voice apps, and webhook configs.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/migrate-from-twilio-python"
+    },
+    {
+      "folder": "migrate-from-vapi-python",
+      "title": "Migrate from Vapi",
+      "description": "Migrate from Vapi — import Vapi voice agents to Telnyx AI Assistants with voice, prompt, and tool configuration mapping.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/migrate-from-vapi-python"
+    },
+    {
+      "folder": "missions-workflow-orchestrator-python",
+      "title": "Missions Workflow Orchestrator",
+      "description": "Missions Workflow Orchestrator — create and manage multi-step mission workflows using the Telnyx Missions API.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/missions-workflow-orchestrator-python"
+    },
+    {
+      "folder": "mms-photo-inventory-tracker-python",
+      "title": "MMS Photo Inventory Tracker",
+      "description": "MMS Photo Inventory Tracker — text a photo of inventory items with MMS, AI identifies and catalogs them automatically.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/mms-photo-inventory-tracker-python"
+    },
+    {
+      "folder": "mms-receipt-scanner-expense-tracker-python",
+      "title": "MMS Receipt Scanner & Expense Tracker",
+      "description": "MMS Receipt Scanner & Expense Tracker — text a photo of a receipt, AI extracts data and tracks expenses.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/mms-receipt-scanner-expense-tracker-python"
+    },
+    {
+      "folder": "multi-channel-appointment-confirmation-python",
+      "title": "Multi-Channel Appointment Confirmation",
+      "description": "Multi-Channel Appointment Confirmation — confirm appointments via SMS, voice call, and WhatsApp. Tries SMS first, escalates to voice if no response.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multi-channel-appointment-confirmation-python"
+    },
+    {
+      "folder": "multi-language-customer-survey-python",
+      "title": "Multi-Language Customer Survey",
+      "description": "Multi-Language Customer Survey — outbound voice surveys in the caller's language with AI analysis.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multi-language-customer-survey-python"
+    },
+    {
+      "folder": "patient-appointment-engine-python",
+      "title": "Patient Appointment Engine",
+      "description": "AI answers calls, checks availability, books appointments, collects copay via Stripe, sends SMS confirmation. Staff reviews next-day schedule.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/patient-appointment-engine-python"
+    },
+    {
+      "folder": "payment-reminder-escalation-python",
+      "title": "Payment Reminder Escalation",
+      "description": "Invoice overdue: day 1 SMS, day 7 voice call with payment link, day 14 escalation to collections with full context. Integrates with Stripe/QuickBooks.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/payment-reminder-escalation-python"
+    },
+    {
+      "folder": "podcast-episode-repurposer-python",
+      "title": "Podcast Episode Repurposer",
+      "description": "Upload a recorded episode, STT transcribes, AI Inference extracts key quotes and topics, TTS generates audiogram clips with different voices, SMS distributes clips to subscribers.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/podcast-episode-repurposer-python"
+    },
+    {
+      "folder": "podcast-highlight-clipper-python",
+      "title": "Podcast Highlight Clipper",
+      "description": "Upload audio, STT + AI Inference identifies viral moments with virality scoring, TTS generates teaser intros for each clip, SMS distributes highlights to subscriber list.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/podcast-highlight-clipper-python"
+    },
+    {
+      "folder": "post-service-followup-engine-python",
+      "title": "Post-Service Follow-Up Engine",
+      "description": "After appointment, SMS satisfaction survey. Negative responses trigger AI voice callback to understand the issue, then creates ticket in Jira and alerts manager via Slack.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/post-service-followup-engine-python"
+    },
+    {
+      "folder": "prescription-refill-line-python",
+      "title": "Prescription Refill Line",
+      "description": "Patient calls, AI verifies identity (DOB + last 4 of phone), checks refill eligibility, sends approval to pharmacist via Slack. Pharmacist approves/denies, patient gets SMS.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/prescription-refill-line-python"
+    },
+    {
+      "folder": "programmable-hold-experience-python",
+      "title": "Programmable Hold Experience",
+      "description": "Programmable Hold Experience — custom hold experiences: tips, trivia, estimated wait time, callback offers.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/programmable-hold-experience-python"
+    },
+    {
+      "folder": "rcs-rich-card-product-catalog-python",
+      "title": "RCS Rich Card Product Catalog",
+      "description": "RCS Rich Card Product Catalog — AI-powered product recommendations with rich cards and carousels.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/rcs-rich-card-product-catalog-python"
+    },
+    {
+      "folder": "rent-collection-escalation-python",
+      "title": "Rent Collection Escalation",
+      "description": "Automated multi-channel rent reminders. Day 1: SMS + Stripe payment link. Day 3: voice call. Day 7: late fee notice. Day 14: manager escalation.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/rent-collection-escalation-python"
+    },
+    {
+      "folder": "returns-processor-python",
+      "title": "Returns Processor",
+      "description": "Customer texts photo of defective item via MMS, AI evaluates damage, auto-approves low-value refunds via Stripe, escalates high-value to team lead.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/returns-processor-python"
+    },
+    {
+      "folder": "service-booking-dispatch-python",
+      "title": "Service Booking & Dispatch",
+      "description": "Customer calls HVAC/plumber/electrician, AI checks tech availability, books slot, collects deposit via Stripe, texts confirmation to customer and tech.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/service-booking-dispatch-python"
+    },
+    {
+      "folder": "shift-fill-engine-python",
+      "title": "Shift Fill Engine",
+      "description": "Open shift triggers calls down the availability list. First to confirm gets it, rest are cancelled. Texts confirmation + notifies manager via Slack.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/shift-fill-engine-python"
+    },
+    {
+      "folder": "smart-ivr-ab-tester-python",
+      "title": "Smart IVR A/B Tester",
+      "description": "Smart IVR A/B Tester — run two IVR flows simultaneously and track which converts better.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/smart-ivr-ab-tester-python"
+    },
+    {
+      "folder": "sms-appointment-no-show-predictor-python",
+      "title": "SMS Appointment No-Show Predictor",
+      "description": "SMS Appointment No-Show Predictor — AI predicts no-shows from SMS response patterns, triggers interventions.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-appointment-no-show-predictor-python"
+    },
+    {
+      "folder": "sms-chatbot-with-conversation-memory-python",
+      "title": "SMS Chatbot with Conversation Memory",
+      "description": "SMS Chatbot with Conversation Memory — persistent AI conversations over text with context retention.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-chatbot-with-conversation-memory-python"
+    },
+    {
+      "folder": "sms-drip-campaign-engine-python",
+      "title": "SMS Drip Campaign Engine",
+      "description": "SMS Drip Campaign Engine — multi-step nurture sequences with branch logic and AI personalization.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-drip-campaign-engine-python"
+    },
+    {
+      "folder": "sms-emergency-check-in-python",
+      "title": "SMS Emergency Check-In",
+      "description": "SMS Emergency Check-In — periodic wellness checks via SMS with escalation to emergency contacts.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-emergency-check-in-python"
+    },
+    {
+      "folder": "sms-escape-room-game-python",
+      "title": "SMS Escape Room Game",
+      "description": "SMS Escape Room Game — text-based adventure game over SMS. Solve puzzles, find clues, escape before time runs out.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-escape-room-game-python"
+    },
+    {
+      "folder": "sms-keyword-auto-responder-python",
+      "title": "SMS Keyword Auto Responder",
+      "description": "SMS Keyword Auto-Responder — keyword-triggered responses with match analytics.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-keyword-auto-responder-python"
+    },
+    {
+      "folder": "sms-poll-voting-system-python",
+      "title": "SMS Poll Voting System",
+      "description": "Text-to-vote polling with real-time results.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-poll-voting-system-python"
+    },
+    {
+      "folder": "sms-trivia-game-tournament-python",
+      "title": "SMS Trivia Game Tournament",
+      "description": "SMS Trivia Game Tournament — multi-player trivia via SMS. Players join, answer timed questions, scores tracked on a live leaderboard.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-trivia-game-tournament-python"
+    },
+    {
+      "folder": "toll-free-sms-campaign-manager-python",
+      "title": "Toll-Free SMS Campaign Manager",
+      "description": "Toll-Free SMS Campaign Manager — manage toll-free verification and send compliant campaigns.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/toll-free-sms-campaign-manager-python"
+    },
+    {
+      "folder": "verify-multi-channel-auth-python",
+      "title": "Verify Multi-Channel Auth",
+      "description": "Verify Multi-Channel Auth — multi-channel verification: SMS first, fallback to voice call, then WhatsApp. Cascading 2FA.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/verify-multi-channel-auth-python"
+    },
+    {
+      "folder": "verify-phone-number-otp-flow-python",
+      "title": "Verify Phone Number OTP Flow",
+      "description": "Verify Phone Number OTP Flow — Telnyx Verify API with SMS primary and voice call fallback.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/verify-phone-number-otp-flow-python"
+    },
+    {
+      "folder": "whatsapp-order-tracking-notifications-python",
+      "title": "WhatsApp Order Tracking Notifications",
+      "description": "WhatsApp Order Tracking Notifications — proactive shipping updates and AI-powered order inquiries.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-order-tracking-notifications-python"
+    },
+    {
+      "folder": "whatsapp-sms-bridge-python",
+      "title": "WhatsApp-SMS Bridge",
+      "description": "WhatsApp-SMS Bridge — receive messages on WhatsApp and forward them via SMS, and vice versa. Bidirectional bridge between two messaging channels.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-sms-bridge-python"
+    },
+    {
+      "folder": "white-label-appointment-platform-python",
+      "title": "White-Label Appointment Platform",
+      "description": "Multi-tenant SaaS that gives any service business their own AI phone line with booking, reminders, and calendar sync. Each tenant has own number, greeting, and config.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/white-label-appointment-platform-python"
+    },
+    {
+      "folder": "x402-usdc-account-funder-python",
+      "title": "x402 USDC Account Funder",
+      "description": "X402 USDC Account Funder — fund your Telnyx account with USDC cryptocurrency on the Base blockchain.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/x402-usdc-account-funder-python"
+    },
+    {
+      "folder": "branded-caller-id-manager-python",
+      "title": "Branded Caller ID Manager",
+      "description": "Branded Caller ID Manager — register, manage, and verify branded calling profiles with STIR/SHAKEN attestation for higher answer rates.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/branded-caller-id-manager-python"
+    },
+    {
+      "folder": "bulk-number-validation-cleaner-python",
+      "title": "Bulk Number Validation & Cleaner",
+      "description": "Bulk Number Validation & Cleaner — validate and clean phone number lists via Telnyx Number Lookup API.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/bulk-number-validation-cleaner-python"
+    },
+    {
+      "folder": "call-analytics-dashboard-api-python",
+      "title": "Call Analytics Dashboard API",
+      "description": "Pull call detail records from the Telnyx API and expose call usage analytics through a dashboard API.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-analytics-dashboard-api-python"
+    },
+    {
+      "folder": "call-queue-with-hold-music-python",
+      "title": "Call Queue with Hold Music",
+      "description": "Call Queue with Hold Music — queue callers with position announcements and hold music, route to agents.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-queue-with-hold-music-python"
+    },
+    {
+      "folder": "call-sentiment-live-escalation-python",
+      "title": "Call Sentiment Live Escalation",
+      "description": "Call Sentiment Live Escalation — monitor call transcripts in real-time. When negative sentiment or distress is detected, auto-escalate to a supervisor.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-sentiment-live-escalation-python"
+    },
+    {
+      "folder": "call-whisper-screen-pop-python",
+      "title": "Call Whisper & Screen Pop",
+      "description": "Call Whisper & Screen Pop — whisper caller info to agent before connecting the call.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-whisper-screen-pop-python"
+    },
+    {
+      "folder": "cloud-storage-call-archive-python",
+      "title": "Cloud Storage Call Archive",
+      "description": "Cloud Storage Call Archive — archive call recordings to Telnyx Cloud Storage (S3-compatible) with searchable metadata.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/cloud-storage-call-archive-python"
+    },
+    {
+      "folder": "cnam-caller-id-lookup-enrichment-python",
+      "title": "CNAM Caller ID Lookup Enrichment",
+      "description": "CNAM Caller ID Lookup Enrichment — look up CNAM for inbound callers, enrich CRM records with caller identity.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/cnam-caller-id-lookup-enrichment-python"
+    },
+    {
+      "folder": "commercial-voiceover-generator-python",
+      "title": "Commercial Voice-Over Generator",
+      "description": "Provide product name, target audience, and tone. AI writes 3 script variations with timing marks, TTS renders each in multiple voices, delivers top picks via SMS for client approval.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/commercial-voiceover-generator-python"
+    },
+    {
+      "folder": "conference-live-poll-dtmf-python",
+      "title": "Conference Live Poll via DTMF",
+      "description": "Conference Live Poll via DTMF — host asks a question, all conference participants vote by pressing 1-4, results tallied instantly.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/conference-live-poll-dtmf-python"
+    },
+    {
+      "folder": "deepfake-voice-detector-python",
+      "title": "Deepfake Voice Detector",
+      "description": "Real-time synthetic speech detection on live phone calls. Captures audio via media streaming, extracts acoustic features, scores deepfake probability with AI Inference, alerts security team via Slack.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/deepfake-voice-detector-python"
+    },
+    {
+      "folder": "fax-to-structured-data-pipeline-python",
+      "title": "Fax-to-Structured-Data Pipeline",
+      "description": "Fax-to-Structured-Data Pipeline — receive faxes, AI extracts structured data (invoices, orders, prescriptions) into JSON.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/fax-to-structured-data-pipeline-python"
+    },
+    {
+      "folder": "live-podcast-call-in-python",
+      "title": "Live Podcast Call-In Show",
+      "description": "Hosts on a conference call, listeners call in. AI screens callers via STT, queues approved ones, generates real-time fact-checks for the host, TTS announces topics.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/live-podcast-call-in-python"
+    },
+    {
+      "folder": "media-stream-voice-cloak-python",
+      "title": "Media Stream Voice Cloak",
+      "description": "Media Stream Voice Cloak — real-time voice modification via media streaming API. Apply pitch shift, echo, or anonymization.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/media-stream-voice-cloak-python"
+    },
+    {
+      "folder": "multi-number-identity-router-python",
+      "title": "Multi-Number Identity Router",
+      "description": "Multi-Number Identity Router — route calls based on which number was dialed. Each number maps to a different business identity, greeting, and routing destination.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multi-number-identity-router-python"
+    },
+    {
+      "folder": "multilingual-voiceover-kit-python",
+      "title": "Multilingual Voice-Over Kit",
+      "description": "Submit a script in one language, AI translates to multiple targets preserving tone and timing, TTS renders each language with native-sounding voices. Batch localization for 15 languages.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multilingual-voiceover-kit-python"
+    },
+    {
+      "folder": "number-lookup-fraud-screener-python",
+      "title": "Number Lookup Fraud Screener",
+      "description": "Number Lookup Fraud Screener — screen inbound calls/messages for fraud indicators using number lookup before connecting.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/number-lookup-fraud-screener-python"
+    },
+    {
+      "folder": "number-lookup-lead-enrichment-python",
+      "title": "Number Lookup Lead Enrichment",
+      "description": "Number Lookup Lead Enrichment — CNAM and carrier lookup to qualify and enrich sales leads.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/number-lookup-lead-enrichment-python"
+    },
+    {
+      "folder": "number-porting-status-tracker-python",
+      "title": "Number Porting Status Tracker",
+      "description": "Number Porting Status Tracker — track porting orders with status webhooks and SMS alerts.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/number-porting-status-tracker-python"
+    },
+    {
+      "folder": "number-reputation-monitor-auto-rotate-python",
+      "title": "Number Reputation Monitor",
+      "description": "Number Reputation Monitor — track outbound number reputation, auto-rotate flagged numbers.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/number-reputation-monitor-auto-rotate-python"
+    },
+    {
+      "folder": "number-search-and-purchase-api-python",
+      "title": "Number Search and Purchase API",
+      "description": "Number Search and Purchase API — search, filter, and buy phone numbers programmatically.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/number-search-and-purchase-api-python"
+    },
+    {
+      "folder": "number-warmup-reputation-builder-python",
+      "title": "Number Warmup & Reputation Builder",
+      "description": "Number Warmup & Reputation Builder — gradually ramp SMS volume on new numbers to build carrier reputation and avoid spam flags.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/number-warmup-reputation-builder-python"
+    },
+    {
+      "folder": "porting-loa-automation-python",
+      "title": "Porting LOA Automation",
+      "description": "Porting LOA Automation — automate Letter of Authorization generation and porting order submission.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/porting-loa-automation-python"
+    },
+    {
+      "folder": "porting-order-tracker-dashboard-python",
+      "title": "Porting Order Tracker Dashboard",
+      "description": "Submit, track, and manage number porting orders with SLA monitoring, timeline visualization, and bulk operations.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/porting-order-tracker-dashboard-python"
+    },
+    {
+      "folder": "real-time-call-intelligence-dashboard-python",
+      "title": "Real-Time Call Intelligence Dashboard",
+      "description": "Real-Time Call Intelligence Dashboard — live transcription, sentiment analysis, and competitor detection.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/real-time-call-intelligence-dashboard-python"
+    },
+    {
+      "folder": "smart-number-geo-assignment-python",
+      "title": "Smart Number Geo-Assignment",
+      "description": "Smart Number Geo-Assignment — automatically purchase and assign local numbers based on caller geography to maximize answer rates.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/smart-number-geo-assignment-python"
+    },
+    {
+      "folder": "texml-dynamic-call-router-python",
+      "title": "TeXML Dynamic Call Router",
+      "description": "TeXML Dynamic Call Router — time-of-day and caller-based routing with TeXML responses.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/texml-dynamic-call-router-python"
+    },
+    {
+      "folder": "video-voiceover-replacement-python",
+      "title": "Video Voice-Over Replacement",
+      "description": "Upload audio with existing voice-over. STT extracts the script, AI rewrites/improves it (5 modes: polish, professional, simplify, energize, shorten), TTS re-records with studio quality.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/video-voiceover-replacement-python"
+    },
+    {
+      "folder": "video-webinar-recording-manager-python",
+      "title": "Video Webinar Recording Manager",
+      "description": "Video Webinar Recording Manager — manage video room webinars with automatic recording, transcription, and clip extraction.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/video-webinar-recording-manager-python"
+    },
+    {
+      "folder": "voice-to-slack-bridge-python",
+      "title": "Voice-to-Slack Bridge",
+      "description": "Voice-to-Slack Bridge — call a phone number, speak a message, AI transcribes and posts to Slack with urgency tagging.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voice-to-slack-bridge-python"
+    },
+    {
+      "folder": "voice-verified-identity-2fa-python",
+      "title": "Voice-Verified Identity + 2FA",
+      "description": "Voice-Verified Identity + 2FA — Number Lookup, SMS OTP, and AI-assisted secure transactions.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voice-verified-identity-2fa-python"
+    },
+    {
+      "folder": "voiceover-audition-generator-python",
+      "title": "Voice-Over Audition Generator",
+      "description": "Submit a script, hear it read by every available TTS voice. AI scores and ranks best-fit voices based on content, tone, and audience. SMS delivers top picks to decision-makers.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voiceover-audition-generator-python"
+    },
+    {
+      "folder": "wireguard-private-voice-network-python",
+      "title": "WireGuard Private Voice Network",
+      "description": "WireGuard Private Voice Network — create WireGuard mesh network for private SIP trunking with encrypted voice traffic.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/wireguard-private-voice-network-python"
+    },
+    {
+      "folder": "edge-compliance-monitor-python",
+      "title": "Edge Compliance Monitor",
+      "description": "Real-time compliance checking for regulated call centers at the edge.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-compliance-monitor-python"
+    },
+    {
+      "folder": "edge-fraud-firewall-python",
+      "title": "Edge Fraud Firewall",
+      "description": "Screen every inbound call at the edge.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-fraud-firewall-python"
+    },
+    {
+      "folder": "edge-geo-smart-router-python",
+      "title": "Edge Geo Smart Router",
+      "description": "Route calls by geography at the edge.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-geo-smart-router-python"
+    },
+    {
+      "folder": "edge-ivr-ab-tester-python",
+      "title": "Edge IVR A/B Tester",
+      "description": "A/B test different IVR flows at the edge.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-ivr-ab-tester-python"
+    },
+    {
+      "folder": "edge-merge-ai-receptionist-python",
+      "title": "Edge Merge AI Receptionist",
+      "description": "Edge worker answers every call.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-merge-ai-receptionist-python"
+    },
+    {
+      "folder": "edge-merge-reference-checker-python",
+      "title": "Edge Merge Reference Checker",
+      "description": "ATS application reaches reference-check stage.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-merge-reference-checker-python"
+    },
+    {
+      "folder": "edge-merge-shift-coverage-python",
+      "title": "Edge Merge Shift Coverage",
+      "description": "Manager texts need a closer tonight.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-merge-shift-coverage-python"
+    },
+    {
+      "folder": "edge-number-masking-python",
+      "title": "Edge Number Masking",
+      "description": "Marketplace-style proxy number pool at the edge.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-number-masking-python"
+    },
+    {
+      "folder": "edge-voicemail-to-action-python",
+      "title": "Edge Voicemail to Action",
+      "description": "AI-powered voicemail triage at the edge.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-voicemail-to-action-python"
+    },
+    {
+      "folder": "edge-webhook-aggregator-python",
+      "title": "Edge Webhook Aggregator",
+      "description": "Multi-tenant webhook consolidation at the edge.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-webhook-aggregator-python"
+    },
+    {
+      "folder": "merge-deal-desk-alerts-python",
+      "title": "Merge Deal Desk Alerts",
+      "description": "CRM webhook fires when a deal moves to negotiation or exceeds a revenue threshold.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-deal-desk-alerts-python"
+    },
+    {
+      "folder": "merge-employee-hotline-python",
+      "title": "Merge Employee Hotline",
+      "description": "Employees call and authenticate via caller ID matched against Merge HRIS.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-employee-hotline-python"
+    },
+    {
+      "folder": "merge-employee-onboarding-python",
+      "title": "Merge Employee Onboarding",
+      "description": "New employee webhook from Merge HRIS triggers full provisioning: Telnyx phone number, AI voicemail greeting, welcome SMS with IT setup instructions, and IT ticket via Merge Ticketing.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-employee-onboarding-python"
+    },
+    {
+      "folder": "merge-expense-by-phone-python",
+      "title": "Merge Expense by Phone",
+      "description": "Salesperson calls and dictates an expense.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-expense-by-phone-python"
+    },
+    {
+      "folder": "merge-interview-pipeline-python",
+      "title": "Merge Interview Pipeline",
+      "description": "ATS webhook fires when a new application arrives.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-interview-pipeline-python"
+    },
+    {
+      "folder": "merge-invoice-collector-python",
+      "title": "Merge Invoice Collector",
+      "description": "Pulls overdue invoices from accounting via Merge sorted by amount.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-invoice-collector-python"
+    },
+    {
+      "folder": "merge-pipeline-briefing-python",
+      "title": "Merge Pipeline Briefing",
+      "description": "Morning pipeline briefing.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-pipeline-briefing-python"
+    },
+    {
+      "folder": "merge-recruitment-hotline-python",
+      "title": "Merge Recruitment Hotline",
+      "description": "Job seekers call.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-recruitment-hotline-python"
+    },
+    {
+      "folder": "merge-ticket-escalation-python",
+      "title": "Merge Ticket Escalation",
+      "description": "Critical ticket fires a webhook from Merge Ticketing.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-ticket-escalation-python"
+    }
+  ]
+}

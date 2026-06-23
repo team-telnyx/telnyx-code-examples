@@ -1,7 +1,7 @@
 ---
 name: ai-tech-support-voice-agent
 title: "AI Tech Support Voice Agent"
-description: "Voice application powered by Telnyx AI Inference. Built with Telnyx AI Assistants, AI Inference, Migration, Number Porting."
+description: "IT helpdesk voice agent that answers calls, troubleshoots issues using a knowledge base, and escalates to human support via Telnyx Voice AI and Inference."
 language: python
 framework: flask
 telnyx_products: [Voice AI, AI Inference]
@@ -10,7 +10,7 @@ channel: [voice]
 
 # AI Tech Support Voice Agent — IT helpdesk voice agent with knowledge base.
 
-Voice application powered by Telnyx AI Inference. Built with Telnyx AI Assistants, AI Inference, Migration, Number Porting.
+IT helpdesk voice agent that answers calls, troubleshoots issues using a knowledge base, and escalates to human support via Telnyx Voice AI and Inference.
 
 ## Telnyx API Endpoints Used
 

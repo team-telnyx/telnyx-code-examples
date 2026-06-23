@@ -1,3 +1,12 @@
+---
+name: activate-sim-card
+title: "Activate SIM Card"
+description: "Activate a Telnyx IoT SIM card using Ruby and Sinatra."
+language: ruby
+framework: sinatra
+telnyx_products: [IoT/SIM]
+---
+
 # Activate SIM Card (Ruby)
 
 Activate (enable) a Telnyx IoT SIM card over HTTP using the Telnyx Ruby SDK and Sinatra.
