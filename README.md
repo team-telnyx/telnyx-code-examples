@@ -28,7 +28,7 @@ Notebook-based walkthroughs for Telnyx AI workflows.
 
 | Cookbook collection | Language | Description |
 |---------------------|----------|-------------|
-| [Telnyx Inference Cookbooks](cookbooks/inference/README.md) | Python / Colab | Chat completions, structured JSON extraction, RAG, transcription, and translation with Telnyx AI. |
+| [Telnyx Inference Cookbooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/cookbooks/inference/README.md) | Python / Colab | Chat completions, structured JSON extraction, RAG, transcription, and translation with Telnyx AI. |
 
 ---
 
