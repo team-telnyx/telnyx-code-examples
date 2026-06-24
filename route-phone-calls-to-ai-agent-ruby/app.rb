@@ -7,7 +7,7 @@
 #
 # Telnyx Ruby SDK is v5.x (Stainless rewrite): instance client `Telnyx::Client.new`,
 # call-control commands at `client.calls.actions.<cmd>(call_control_id, ...)`,
-# errors namespaced under `Telnyx::Errors::*`. The legacy `Telnyx.api_key=` /
+# errors namespaced under `Telnyx::Errors::*`. The legacy module-level API key setter /
 # `Telnyx::Call` module API does NOT exist in 5.x.
 #
 # Webhook verification is done natively with the `ed25519` gem. The SDK helper

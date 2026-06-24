@@ -61,7 +61,7 @@ A `before_action` builds a fresh Telnyx client for every request:
 
 ```ruby
 def initialize_client
-  # Initialize client using new pattern — NOT Telnyx.api_key = ...
+  # Initialize client using new pattern — NOT the legacy module-level API key setter
   @client = Telnyx::Client.new(api_key: ENV["TELNYX_API_KEY"])
 end
 ```

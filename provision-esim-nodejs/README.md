@@ -42,17 +42,6 @@ make setup
 make run
 ```
 
-### Option 2: Docker
-
-```bash
-git clone https://github.com/team-telnyx/telnyx-code-examples.git
-cd telnyx-code-examples/provision-esim-nodejs
-cp .env.example .env
-# Edit .env with your credentials
-make docker-build
-make docker-run
-```
-
 ### Option 3: Manual
 
 See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
@@ -89,7 +78,7 @@ app.use((err, req, res, next) => {
   if (err instanceof Telnyx.RateLimitError) {
     return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
   }
-  if (err instanceof Telnyx.APIStatusError) {
+  if (err instanceof Telnyx.APIError) {
     return res.status(err.status_code || 500).json({
       error: err.message,
       status_code: err.status_code,
@@ -453,7 +442,7 @@ app.use((err, req, res, next) => {
   if (err instanceof Telnyx.RateLimitError) {
     return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
   }
-  if (err instanceof Telnyx.APIStatusError) {
+  if (err instanceof Telnyx.APIError) {
     return res.status(err.status_code || 500).json({
       error: err.message,
       status_code: err.status_code,
@@ -496,7 +485,7 @@ Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key
 
 **Q: Can I use this IoT example in production?**
 
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
+Yes. This example includes error handling and environment-based configuration. Review the security and scaling sections before deploying to production.
 
 **Q: What Node.js version do I need?**
 

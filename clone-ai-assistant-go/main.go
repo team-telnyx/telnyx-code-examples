@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/telnyx/telnyx-go"
-	"github.com/telnyx/telnyx-go/option"
+	"github.com/team-telnyx/telnyx-go/v4"
+	"github.com/team-telnyx/telnyx-go/v4/option"
 )
 
 var client *telnyx.Client

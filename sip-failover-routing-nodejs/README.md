@@ -41,17 +41,6 @@ make setup
 make run
 ```
 
-### Option 2: Docker
-
-```bash
-git clone https://github.com/team-telnyx/telnyx-code-examples.git
-cd telnyx-code-examples/sip-failover-routing-nodejs
-cp .env.example .env
-# Edit .env with your credentials
-make docker-build
-make docker-run
-```
-
 ### Option 3: Manual
 
 See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
@@ -215,7 +204,7 @@ app.post("/sip/connections/setup", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded" });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code).json({ error: error.message });
     }
     if (error instanceof Telnyx.APIConnectionError) {
@@ -244,7 +233,7 @@ app.get("/sip/connections", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded" });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code).json({ error: error.message });
     }
     if (error instanceof Telnyx.APIConnectionError) {
@@ -364,7 +353,7 @@ Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key
 
 **Q: Can I use this SIP example in production?**
 
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
+Yes. This example includes error handling and environment-based configuration. Review the security and scaling sections before deploying to production.
 
 **Q: What Node.js version do I need?**
 

@@ -41,17 +41,6 @@ make setup
 make run
 ```
 
-### Option 2: Docker
-
-```bash
-git clone https://github.com/team-telnyx/telnyx-code-examples.git
-cd telnyx-code-examples/receive-mms-webhook-ruby
-cp .env.example .env
-# Edit .env with your credentials
-make docker-build
-make docker-run
-```
-
 ### Option 3: Manual
 
 See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
@@ -67,7 +56,7 @@ require "dotenv/load"
 require "json"
 
 # Initialize Telnyx client with API key from environment
-Telnyx.api_key = ENV["TELNYX_API_KEY"]
+client = Telnyx::Client.new(api_key: ENV["TELNYX_API_KEY"])
 
 # Configure Sinatra
 set :port, 3000
@@ -167,7 +156,7 @@ See [`app.rb`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-example
 | Issue | Problem | Solution |
 |-------|---------|----------|
 | Webhook not receiving events | Your endpoint is configured in the Telnyx Portal but no POST requests arrive. | Verify the webhook URL is publicly accessible and uses HTTPS. Test with `curl -X POST https://your-domain.com/webhooks/message -H "Content-Type: application/json" -d '{"type":"message.received","data":{"id":"test"}}'`. Ensure your Messaging Profile has the webhook URL configured and is subscribed to `message.received` events. Check your firewall and reverse proxy settings if using ngrok. |
-| Authentication Error (401) | The endpoint returns `{"error": "Invalid API key"}` with HTTP 401. | Verify your `TELNYX_API_KEY` in the `.env` file matches the key shown in the [Telnyx Portal](https://portal.telnyx.com). Ensure there are no trailing spaces or quotes. Restart the Sinatra server after updating the `.env` file. The `dotenv/load` require statement must execute before `Telnyx.api_key` is set. |
+| Authentication Error (401) | The endpoint returns `{"error": "Invalid API key"}` with HTTP 401. | Verify your `TELNYX_API_KEY` in the `.env` file matches the key shown in the [Telnyx Portal](https://portal.telnyx.com). Ensure there are no trailing spaces or quotes. Restart the Sinatra server after updating the `.env` file. The `dotenv/load` require statement must execute before the client is initialized. |
 | Media URLs are nil or empty | The webhook payload arrives but `media` array is empty or media URLs are missing. | Confirm the MMS was sent with attachments (not just text). Verify the webhook payload structure matches Telnyx's schema—media items should be nested under `data.media`. Log the full payload with `puts payload.inspect` to debug. Ensure your Telnyx phone number is configured to receive MMS (some regions or number types may not support MMS). |
 | Sinatra server fails to start | You see `Address already in use` or binding errors on port 3000. | Change the port in `app.rb` with `set :port, 3001` or kill the existing process with `lsof -i :3000` and `kill -9 <PID>`. Ensure no other services are using port 3000. If using ngrok, verify the local port matches the one Sinatra is bound to. |
 
@@ -179,7 +168,7 @@ Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key
 
 **Q: Can I use this SMS example in production?**
 
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
+Yes. This example includes error handling and environment-based configuration. Review the security and scaling sections before deploying to production.
 
 **Q: What Ruby version do I need?**
 

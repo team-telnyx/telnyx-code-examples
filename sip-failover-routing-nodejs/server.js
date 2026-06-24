@@ -158,7 +158,7 @@ app.post("/sip/connections/setup", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded" });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code).json({ error: error.message });
     }
     if (error instanceof Telnyx.APIConnectionError) {
@@ -187,7 +187,7 @@ app.get("/sip/connections", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded" });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code).json({ error: error.message });
     }
     if (error instanceof Telnyx.APIConnectionError) {

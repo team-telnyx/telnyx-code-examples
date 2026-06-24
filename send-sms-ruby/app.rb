@@ -25,8 +25,8 @@ class SmsController < ApplicationController
     end
 
     begin
-      # Use client.messages.create() — NOT Telnyx::Message.create()
-      response = @client.messages.create(
+      # Use client.messages.send_() — NOT the legacy module API
+      response = @client.messages.send_(
         from_: from_number,
         to: to_number,
         text: message
@@ -55,7 +55,7 @@ class SmsController < ApplicationController
   private
 
   def initialize_client
-    # Initialize client using new pattern — NOT Telnyx.api_key = ...
+    # Initialize client using new pattern — NOT the legacy module-level API key setter
     @client = Telnyx::Client.new(api_key: ENV["TELNYX_API_KEY"])
   end
 end

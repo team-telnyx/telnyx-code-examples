@@ -42,17 +42,6 @@ make setup
 make run
 ```
 
-### Option 2: Docker
-
-```bash
-git clone https://github.com/team-telnyx/telnyx-code-examples.git
-cd telnyx-code-examples/voice-call-analytics-nodejs
-cp .env.example .env
-# Edit .env with your credentials
-make docker-build
-make docker-run
-```
-
 ### Option 3: Manual
 
 See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
@@ -99,7 +88,7 @@ async function initiateCall(toNumber) {
 
   // Initiate the call using client.calls.dial()
   const response = await client.calls.dial({
-    from_: fromNumber,
+    from: fromNumber,
     to: toNumber,
     connection_id: connectionId,
   });
@@ -271,7 +260,7 @@ app.post("/calls/initiate", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 400).json({
         error: error.message,
         status_code: error.status_code,
@@ -380,7 +369,7 @@ Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key
 
 **Q: Can I use this Voice example in production?**
 
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
+Yes. This example includes error handling and environment-based configuration. Review the security and scaling sections before deploying to production.
 
 **Q: What Node.js version do I need?**
 

@@ -79,7 +79,7 @@ app.post('/lookup', async (req, res) => {
         error: 'Rate limit exceeded. Please slow down.',
       });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 500).json({
         error: error.message,
         status_code: error.status_code,

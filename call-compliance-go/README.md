@@ -42,17 +42,6 @@ make setup
 make run
 ```
 
-### Option 2: Docker
-
-```bash
-git clone https://github.com/team-telnyx/telnyx-code-examples.git
-cd telnyx-code-examples/call-compliance-go
-cp .env.example .env
-# Edit .env with your credentials
-make docker-build
-make docker-run
-```
-
 ### Option 3: Manual
 
 See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
@@ -109,7 +98,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/telnyx/telnyx-go"
+	"github.com/team-telnyx/telnyx-go/v4"
 )
 
 // InitiateCallRequest represents the request body for initiating a call
@@ -343,7 +332,7 @@ Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key
 
 **Q: Can I use this Voice example in production?**
 
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
+Yes. This example includes error handling and environment-based configuration. Review the security and scaling sections before deploying to production.
 
 **Q: What Go version do I need?**
 

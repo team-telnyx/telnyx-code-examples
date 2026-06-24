@@ -41,7 +41,7 @@ async function initiateCall(toNumber) {
 
   // Initiate the call using client.calls.dial()
   const response = await client.calls.dial({
-    from_: fromNumber,
+    from: fromNumber,
     to: toNumber,
     connection_id: connectionId,
   });
@@ -213,7 +213,7 @@ app.post("/calls/initiate", async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 400).json({
         error: error.message,
         status_code: error.status_code,

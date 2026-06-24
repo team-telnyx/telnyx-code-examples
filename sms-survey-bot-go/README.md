@@ -41,17 +41,6 @@ make setup
 make run
 ```
 
-### Option 2: Docker
-
-```bash
-git clone https://github.com/team-telnyx/telnyx-code-examples.git
-cd telnyx-code-examples/sms-survey-bot-go
-cp .env.example .env
-# Edit .env with your credentials
-make docker-build
-make docker-run
-```
-
 ### Option 3: Manual
 
 See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
@@ -66,8 +55,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/telnyx/telnyx-go/v2"
-	"github.com/telnyx/telnyx-go/v2/messaging"
+	"github.com/team-telnyx/telnyx-go/v4/v2"
+	"github.com/team-telnyx/telnyx-go/v4/v2/messaging"
 )
 
 var surveyQuestions = []string{
@@ -165,7 +154,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/telnyx/telnyx-go/v2"
+	"github.com/team-telnyx/telnyx-go/v4/v2"
 )
 
 type StartSurveyRequest struct {
@@ -357,7 +346,7 @@ Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key
 
 **Q: Can I use this SMS example in production?**
 
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
+Yes. This example includes error handling and environment-based configuration. Review the security and scaling sections before deploying to production.
 
 **Q: What Go version do I need?**
 

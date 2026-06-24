@@ -16,7 +16,7 @@ require "dotenv/load"
 # --- Configuration --------------------------------------------------------
 
 # Instantiate the Telnyx client ONCE per process. The 5.x SDK exposes an
-# instance-based API (Telnyx::Client.new), not the legacy Telnyx.api_key= module
+# instance-based API (Telnyx::Client.new), not the legacy module-level API key setter
 # API. The client is thread-safe and owns its own connection pool.
 TELNYX = Telnyx::Client.new(api_key: ENV.fetch("TELNYX_API_KEY", nil))
 

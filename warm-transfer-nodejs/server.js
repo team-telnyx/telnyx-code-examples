@@ -26,7 +26,7 @@ const callState = {};
  */
 async function initiateCall(toNumber) {
   const response = await client.calls.dial({
-    from_: process.env.TELNYX_PHONE_NUMBER,
+    from: process.env.TELNYX_PHONE_NUMBER,
     to: toNumber,
     connection_id: process.env.TELNYX_CONNECTION_ID,
   });

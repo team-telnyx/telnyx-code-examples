@@ -49,7 +49,7 @@ Never commit `.env` — only `.env.example`.
 ## 3. Initialize the client once
 
 The Telnyx 5.x SDK uses an instance client (`Telnyx::Client.new`), not the legacy
-`Telnyx.api_key =` module API. Instantiate it once per process — it is thread-safe
+the legacy module-level API key setter. Instantiate it once per process — it is thread-safe
 and owns its own connection pool.
 
 ```ruby

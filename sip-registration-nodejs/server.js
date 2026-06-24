@@ -30,7 +30,7 @@ async function createSipConnection(connectionName, username, password, endpoint)
   }
 
   // Create SIP connection with credential authentication
-  const response = await client.sipConnections.create({
+  const response = await client.credentialConnections.create({
     connection_name: connectionName,
     outbound_voice_profile_id: null,
     inbound: {
@@ -62,7 +62,7 @@ async function createSipConnection(connectionName, username, password, endpoint)
  * Retrieve an existing SIP connection by ID.
  */
 async function getSipConnection(connectionId) {
-  const response = await client.sipConnections.retrieve(connectionId);
+  const response = await client.credentialConnections.retrieve(connectionId);
 
   return {
     id: response.data.id,
@@ -77,7 +77,7 @@ async function getSipConnection(connectionId) {
  * List all SIP connections.
  */
 async function listSipConnections() {
-  const response = await client.sipConnections.list();
+  const response = await client.credentialConnections.list();
 
   return response.data.map((conn) => ({
     id: conn.id,
@@ -118,7 +118,7 @@ app.post("/sip/connections", async (req, res) => {
         error: "Rate limit exceeded. Please slow down.",
       });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 400).json({
         error: error.message,
         status_code: error.status_code,
@@ -152,7 +152,7 @@ app.get("/sip/connections/:id", async (req, res) => {
     if (error instanceof Telnyx.AuthenticationError) {
       return res.status(401).json({ error: "Invalid API key" });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       if (error.status_code === 404) {
         return res.status(404).json({ error: "SIP connection not found" });
       }
@@ -187,7 +187,7 @@ app.get("/sip/connections", async (req, res) => {
         error: "Rate limit exceeded. Please slow down.",
       });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 400).json({
         error: error.message,
         status_code: error.status_code,

@@ -174,7 +174,7 @@ app.use((err, req, res, next) => {
       .json({ error: "Rate limit exceeded. Please slow down." });
   }
 
-  if (err instanceof Telnyx.APIStatusError) {
+  if (err instanceof Telnyx.APIError) {
     return res.status(err.status_code).json({
       error: err.message,
       status_code: err.status_code,

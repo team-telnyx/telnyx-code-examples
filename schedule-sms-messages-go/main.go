@@ -11,8 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
-	"github.com/telnyx/telnyx-go"
-	"github.com/telnyx/telnyx-go/v2/messaging"
+	"github.com/team-telnyx/telnyx-go/v4"
+	"github.com/team-telnyx/telnyx-go/v4/v2/messaging"
 )
 
 // ScheduledMessage represents an SMS scheduled for future delivery.

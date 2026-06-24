@@ -9,7 +9,7 @@ require "telnyx"
 require "sidekiq"
 
 # Initialize Telnyx client
-Telnyx.api_key = ENV["TELNYX_API_KEY"]
+client = Telnyx::Client.new(api_key: ENV["TELNYX_API_KEY"])
 
 # Configure Sidekiq
 Sidekiq.configure_server do |config|
@@ -35,7 +35,8 @@ class SmsJob
       raise StandardError, "Phone number must be in E.164 format (e.g., +15551234567)"
     end
 
-    response = Telnyx::Message.create(
+    client = Telnyx::Client.new(api_key: ENV["TELNYX_API_KEY"])
+    response = client.messages.send_(
       from: from_number,
       to: to_number,
       text: message_text

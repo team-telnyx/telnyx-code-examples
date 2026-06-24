@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/telnyx/telnyx-go/v2"
+	"github.com/team-telnyx/telnyx-go/v4/v2"
 )
 
 // LoadConfig reads environment variables and initializes the Telnyx client.

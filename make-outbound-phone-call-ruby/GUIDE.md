@@ -67,7 +67,7 @@ CLIENT = Telnyx::Client.new(api_key: API_KEY)
 ```
 
 > The Telnyx Ruby SDK 5.x uses this instance-client API
-> (`Telnyx::Client.new(...)`), not the legacy `Telnyx.api_key = ...` module API.
+> (`Telnyx::Client.new(...)`), not the legacy module-level API key setter.
 
 ### Placing the call
 

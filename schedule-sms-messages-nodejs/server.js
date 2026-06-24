@@ -42,8 +42,8 @@ async function sendSms(toNumber, message) {
     throw new Error('Phone number must be in E.164 format (e.g., +15551234567)');
   }
 
-  const response = await client.messages.create({
-    from_: config.phoneNumber,
+  const response = await client.messages.send({
+    from: config.phoneNumber,
     to: toNumber,
     text: message,
   });
@@ -185,7 +185,7 @@ app.post('/sms/send', async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 500).json({
         error: error.message,
         status_code: error.status_code,

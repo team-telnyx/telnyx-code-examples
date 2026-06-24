@@ -48,7 +48,7 @@ bundle install
 ## 3. Initialize the client
 
 The 5.x SDK uses an **instance** API — `Telnyx::Client.new(...)`, not the legacy
-`Telnyx.api_key = ...` module API. Create the client once per process.
+the legacy module-level API key setter. Create the client once per process.
 
 ```ruby
 require "sinatra"

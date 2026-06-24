@@ -41,17 +41,6 @@ make setup
 make run
 ```
 
-### Option 2: Docker
-
-```bash
-git clone https://github.com/team-telnyx/telnyx-code-examples.git
-cd telnyx-code-examples/sip-registration-nodejs
-cp .env.example .env
-# Edit .env with your credentials
-make docker-build
-make docker-run
-```
-
 ### Option 3: Manual
 
 See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
@@ -87,7 +76,7 @@ async function createSipConnection(connectionName, username, password, endpoint)
   }
 
   // Create SIP connection with credential authentication
-  const response = await client.sipConnections.create({
+  const response = await client.credentialConnections.create({
     connection_name: connectionName,
     outbound_voice_profile_id: null, // Will be set separately if needed
     inbound: {
@@ -119,7 +108,7 @@ async function createSipConnection(connectionName, username, password, endpoint)
  * Retrieve an existing SIP connection by ID.
  */
 async function getSipConnection(connectionId) {
-  const response = await client.sipConnections.retrieve(connectionId);
+  const response = await client.credentialConnections.retrieve(connectionId);
 
   return {
     id: response.data.id,
@@ -134,7 +123,7 @@ async function getSipConnection(connectionId) {
  * List all SIP connections.
  */
 async function listSipConnections() {
-  const response = await client.sipConnections.list();
+  const response = await client.credentialConnections.list();
 
   return response.data.map((conn) => ({
     id: conn.id,
@@ -168,7 +157,7 @@ Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key
 
 **Q: Can I use this SIP example in production?**
 
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
+Yes. This example includes error handling and environment-based configuration. Review the security and scaling sections before deploying to production.
 
 **Q: What Node.js version do I need?**
 

@@ -41,17 +41,6 @@ make setup
 make run
 ```
 
-### Option 2: Docker
-
-```bash
-git clone https://github.com/team-telnyx/telnyx-code-examples.git
-cd telnyx-code-examples/send-sms-notifications-go
-cp .env.example .env
-# Edit .env with your credentials
-make docker-build
-make docker-run
-```
-
 ### Option 3: Manual
 
 See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
@@ -66,8 +55,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/telnyx/telnyx-go/v2"
-	"github.com/telnyx/telnyx-go/v2/messaging"
+	"github.com/team-telnyx/telnyx-go/v4/v2"
+	"github.com/team-telnyx/telnyx-go/v4/v2/messaging"
 )
 
 // NotificationRequest represents an incoming SMS notification request.
@@ -149,7 +138,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/telnyx/telnyx-go/v2"
+	"github.com/team-telnyx/telnyx-go/v4/v2"
 )
 
 func main() {
@@ -227,7 +216,7 @@ See [`main.go`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-exampl
 | Invalid Phone Number Format | You receive a 400 error stating "phone number must be in E.164 format" or a Telnyx API error about invalid destination. | Ensure all phone numbers use E.164 format: start with `+`, followed by country code and number without spaces or dashes. Example: `+15551234567` (US) or `+447700900123` (UK). Update your test curl command to use properly formatted numbers. |
 | Environment Variable Not Set | The application panics with `TELNYX_API_KEY environment variable not set` on startup. | Confirm your `.env` file exists in the same directory as `main.go` and contains the variable. Ensure the file is named exactly `.env` (not `.env.txt` or `env`). The `godotenv.Load()` call must execute before `os.Getenv()` is called—verify this import order in your code. |
 | Port Already in Use | The server fails to start with "address already in use" error. | Change the `PORT` environment variable to an available port (e.g., `PORT=8081`) or kill the process using port 8080. On Linux/macOS, use `lsof -i :8080` to find the process ID and `kill -9 <PID>` to terminate it. |
-| Missing Dependencies | Running `go run` produces "cannot find package" errors. | Ensure all dependencies are installed by running `go mod tidy` and `go get ./...`. Verify your `go.mod` file contains the required packages: `github.com/gin-gonic/gin`, `github.com/telnyx/telnyx-go/v2`, and `github.com/joho/godotenv`. |
+| Missing Dependencies | Running `go run` produces "cannot find package" errors. | Ensure all dependencies are installed by running `go mod tidy` and `go get ./...`. Verify your `go.mod` file contains the required packages: `github.com/gin-gonic/gin`, `github.com/team-telnyx/telnyx-go/v4/v2`, and `github.com/joho/godotenv`. |
 
 ## FAQ
 
@@ -237,7 +226,7 @@ Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key
 
 **Q: Can I use this SMS example in production?**
 
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
+Yes. This example includes error handling and environment-based configuration. Review the security and scaling sections before deploying to production.
 
 **Q: What Go version do I need?**
 

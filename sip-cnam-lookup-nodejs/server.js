@@ -76,7 +76,7 @@ app.post("/cnam/lookup", async (req, res) => {
       });
     }
 
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 500).json({
         error: error.message,
         status_code: error.status_code,

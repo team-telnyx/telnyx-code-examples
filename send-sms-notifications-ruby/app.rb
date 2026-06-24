@@ -7,7 +7,7 @@ require "telnyx"
 require "json"
 
 # Initialize Telnyx client with API key from environment
-Telnyx.api_key = ENV["TELNYX_API_KEY"]
+$client = Telnyx::Client.new(api_key: ENV["TELNYX_API_KEY"])
 
 # Validate required environment variables on startup
 %w[TELNYX_API_KEY TELNYX_PHONE_NUMBER].each do |var|
@@ -27,7 +27,7 @@ def send_notification(to_number, message)
   end
   
   # Create message via Telnyx API
-  response = Telnyx::Message.create(
+  response = $client.messages.send_(
     from: from_number,
     to: to_number,
     text: message

@@ -9,8 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/telnyx/telnyx-go"
-	"github.com/telnyx/telnyx-go/v2/client"
+	"github.com/team-telnyx/telnyx-go/v4"
+	"github.com/team-telnyx/telnyx-go/v4/v2/client"
 )
 
 // WebhookPayload represents the structure of an inbound message webhook.

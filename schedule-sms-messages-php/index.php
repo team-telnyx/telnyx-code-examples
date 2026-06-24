@@ -118,7 +118,7 @@ class SendScheduledSms implements ShouldQueue
         }
 
         try {
-            $response = $client->messages->create([
+            $response = $client->messages->send([
                 'from_' => $fromNumber,
                 'to' => $this->scheduledMessage->to_number,
                 'text' => $this->scheduledMessage->message,

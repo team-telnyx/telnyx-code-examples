@@ -41,17 +41,6 @@ make setup
 make run
 ```
 
-### Option 2: Docker
-
-```bash
-git clone https://github.com/team-telnyx/telnyx-code-examples.git
-cd telnyx-code-examples/send-sms-notifications-nodejs
-cp .env.example .env
-# Edit .env with your credentials
-make docker-build
-make docker-run
-```
-
 ### Option 3: Manual
 
 See the [Implementation Details](#implementation-details) section below for step-by-step instructions.
@@ -85,8 +74,8 @@ async function sendNotification(toNumber, message) {
   }
   
   // Create message via Telnyx API
-  const response = await client.messages.create({
-    from_: fromNumber,
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
   });
@@ -173,7 +162,7 @@ app.post('/notifications/send', async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 500).json({
         error: error.message,
         status_code: error.status_code,
@@ -224,7 +213,7 @@ app.post('/notifications/bulk', async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 500).json({
         error: error.message,
         status_code: error.status_code,
@@ -269,7 +258,7 @@ Yes. Sign up at [portal.telnyx.com](https://portal.telnyx.com) to get an API key
 
 **Q: Can I use this SMS example in production?**
 
-Yes. This example includes error handling, environment-based configuration, and a Dockerfile for containerized deployment. Review the security and scaling sections before deploying to production.
+Yes. This example includes error handling and environment-based configuration. Review the security and scaling sections before deploying to production.
 
 **Q: What Node.js version do I need?**
 

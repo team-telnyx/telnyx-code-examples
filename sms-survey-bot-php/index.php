@@ -27,7 +27,7 @@ class TelnyxSmsService
         }
 
         try {
-            $response = $this->client->messages->create([
+            $response = $this->client->messages->send([
                 'from_' => $this->fromNumber,
                 'to' => $toNumber,
                 'text' => $message,

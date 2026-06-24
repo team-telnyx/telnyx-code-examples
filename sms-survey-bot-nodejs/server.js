@@ -71,8 +71,8 @@ async function startSurvey(toNumber) {
   const firstQuestion = SURVEY_QUESTIONS[0];
 
   // Send first question
-  const response = await client.messages.create({
-    from_: fromNumber,
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: firstQuestion.text,
   });
@@ -124,8 +124,8 @@ async function processSurveyResponse(fromNumber, messageText) {
     // Survey complete
     const completionMessage =
       "Thank you for completing the survey! Your responses have been recorded.";
-    await client.messages.create({
-      from_: process.env.TELNYX_PHONE_NUMBER,
+    await client.messages.send({
+      from: process.env.TELNYX_PHONE_NUMBER,
       to: fromNumberFormatted,
       text: completionMessage,
     });
@@ -145,8 +145,8 @@ async function processSurveyResponse(fromNumber, messageText) {
 
   // Send next question
   const nextQuestion = SURVEY_QUESTIONS[state.currentQuestionIndex];
-  await client.messages.create({
-    from_: process.env.TELNYX_PHONE_NUMBER,
+  await client.messages.send({
+    from: process.env.TELNYX_PHONE_NUMBER,
     to: fromNumberFormatted,
     text: nextQuestion.text,
   });
@@ -205,7 +205,7 @@ app.post("/survey/start", async (req, res) => {
         .status(429)
         .json({ error: "Rate limit exceeded. Please slow down." });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code).json({
         error: error.message,
         status_code: error.status_code,

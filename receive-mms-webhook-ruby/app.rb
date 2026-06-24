@@ -7,7 +7,7 @@ require "dotenv/load"
 require "json"
 
 # Initialize Telnyx client with API key from environment
-Telnyx.api_key = ENV["TELNYX_API_KEY"]
+client = Telnyx::Client.new(api_key: ENV["TELNYX_API_KEY"])
 
 # Configure Sinatra
 set :port, 3000

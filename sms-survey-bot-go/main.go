@@ -10,8 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/telnyx/telnyx-go/v2"
-	"github.com/telnyx/telnyx-go/v2/messaging"
+	"github.com/team-telnyx/telnyx-go/v4/v2"
+	"github.com/team-telnyx/telnyx-go/v4/v2/messaging"
 )
 
 // Configuration and state management

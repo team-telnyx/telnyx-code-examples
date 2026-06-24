@@ -42,8 +42,8 @@ async function sendNotification(toNumber, message) {
   }
   
   // Create message via Telnyx API
-  const response = await client.messages.create({
-    from_: fromNumber,
+  const response = await client.messages.send({
+    from: fromNumber,
     to: toNumber,
     text: message,
   });
@@ -126,7 +126,7 @@ app.post('/notifications/send', async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 500).json({
         error: error.message,
         status_code: error.status_code,
@@ -177,7 +177,7 @@ app.post('/notifications/bulk', async (req, res) => {
     if (error instanceof Telnyx.RateLimitError) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please slow down.' });
     }
-    if (error instanceof Telnyx.APIStatusError) {
+    if (error instanceof Telnyx.APIError) {
       return res.status(error.status_code || 500).json({
         error: error.message,
         status_code: error.status_code,

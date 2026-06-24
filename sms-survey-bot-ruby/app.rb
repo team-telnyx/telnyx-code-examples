@@ -34,7 +34,7 @@ def send_survey_question(client, to_number, question_index)
   question = SURVEY_QUESTIONS[question_index]
   message_text = "Survey Q#{question_index + 1}/#{SURVEY_QUESTIONS.length}: #{question}"
   
-  response = client.messages.create(
+  response = client.messages.send_(
     from_: from_number,
     to: to_number,
     text: message_text

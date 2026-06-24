@@ -11,7 +11,7 @@ set :port, ENV.fetch("PORT", 4567)
 set :bind, "0.0.0.0"
 
 # Initialize Telnyx client with the new SDK pattern
-Telnyx.api_key = ENV["TELNYX_API_KEY"]
+client = Telnyx::Client.new(api_key: ENV["TELNYX_API_KEY"])
 
 # Helper function to retrieve SIM card details with network attachment info
 def get_sim_location(sim_card_id)
