@@ -5,8 +5,6 @@ Reads a TF-generated .md file and produces a self-contained folder with:
 - README.md (AEO-restructured)
 - Code file (app.py / server.js / main.go / app.rb)
 - Dependency file (requirements.txt / package.json / go.mod / Gemfile)
-- Dockerfile
-- Makefile
 - .env.example
 
 Usage:
@@ -301,6 +299,46 @@ def sanitize_code(code: str, language: str) -> str:
     return code
 
 
+def _normalize_sdk_patterns(code: str, language: str) -> str:
+    """Normalize legacy SDK patterns to current API conventions.
+
+    LLM-generated tutorials sometimes use outdated SDK method names or module
+    paths.  This function rewrites known legacy patterns so the generated code
+    compiles / runs against the latest SDK versions.
+    """
+    if language == "go":
+        code = code.replace(
+            "github.com/telnyx/telnyx-go",
+            "github.com/team-telnyx/telnyx-go/v4",
+        )
+
+    elif language == "nodejs":
+        # APIStatusError → APIError
+        code = code.replace("Telnyx.APIStatusError", "Telnyx.APIError")
+        # from_ parameter → from (JS reserved-word workaround no longer needed)
+        code = re.sub(r'\bfrom_:', 'from:', code)
+        code = re.sub(r'\bfrom_,', 'from,', code)
+        # .messages.create( → .messages.send(
+        code = code.replace(".messages.create(", ".messages.send(")
+        # .sipConnections. → .credentialConnections.
+        code = code.replace(".sipConnections.", ".credentialConnections.")
+
+    elif language == "php":
+        code = code.replace("->messages->create(", "->messages->send(")
+
+    elif language == "ruby":
+        # Telnyx.api_key = ... → client = Telnyx::Client.new(api_key: ...)
+        code = re.sub(
+            r'Telnyx\.api_key\s*=\s*(.+)',
+            r'client = Telnyx::Client.new(api_key: \1)',
+            code,
+        )
+        # Telnyx::Message.create( → client.messages.send_(
+        code = code.replace("Telnyx::Message.create(", "client.messages.send_(")
+
+    return code
+
+
 def extract_env_vars(code: str, language: str) -> list[str]:
     """Extract environment variable names from code."""
     env_vars = set()
@@ -384,6 +422,17 @@ def _extract_python_deps(setup: str, framework: str) -> str:
     return "\n".join(sorted(packages)) + "\n"
 
 
+NODEJS_PINNED_VERSIONS = {
+    "telnyx": "^6.83.0",
+    "express": "^5.2.1",
+    "dotenv": "^17.4.2",
+    "body-parser": "^1.20.3",
+    "nodemon": "^3.1.9",
+    "axios": "^1.18.0",
+    "fastify": "^5.3.3",
+}
+
+
 def _extract_nodejs_deps(setup: str, framework: str) -> str:
     """Extract Node.js deps and produce a package.json."""
     packages = {}
@@ -393,15 +442,15 @@ def _extract_nodejs_deps(setup: str, framework: str) -> str:
         line = match.group(1).strip()
         for pkg in line.split():
             if not pkg.startswith("-"):
-                packages[pkg] = "latest"
+                packages[pkg] = NODEJS_PINNED_VERSIONS.get(pkg, "latest")
 
     # Ensure core packages
-    packages["telnyx"] = "latest"
-    packages["dotenv"] = "latest"
+    packages["telnyx"] = NODEJS_PINNED_VERSIONS["telnyx"]
+    packages["dotenv"] = NODEJS_PINNED_VERSIONS["dotenv"]
     if framework in ("express", "Express"):
-        packages["express"] = "latest"
+        packages["express"] = NODEJS_PINNED_VERSIONS["express"]
     elif framework in ("fastify", "Fastify"):
-        packages["fastify"] = "latest"
+        packages["fastify"] = NODEJS_PINNED_VERSIONS["fastify"]
 
     pkg_json = {
         "name": "telnyx-example",
@@ -417,9 +466,16 @@ def _extract_nodejs_deps(setup: str, framework: str) -> str:
     return json.dumps(pkg_json, indent=2) + "\n"
 
 
+GO_PINNED_VERSIONS = {
+    "github.com/team-telnyx/telnyx-go/v4": "v4.80.0",
+    "github.com/gin-gonic/gin": "v1.10.0",
+    "github.com/labstack/echo/v4": "v4.13.3",
+}
+
+
 def _extract_go_deps(setup: str, framework: str) -> str:
     """Produce a go.mod file."""
-    requires = ["github.com/telnyx/telnyx-go"]
+    requires = ["github.com/team-telnyx/telnyx-go/v4"]
     if framework in ("gin", "Gin"):
         requires.append("github.com/gin-gonic/gin")
     elif framework in ("echo", "Echo"):
@@ -427,9 +483,18 @@ def _extract_go_deps(setup: str, framework: str) -> str:
 
     lines = ["module telnyx-example", "", "go 1.22", "", "require ("]
     for req in requires:
-        lines.append(f"\t{req} latest")
+        version = GO_PINNED_VERSIONS.get(req, "v0.0.0")
+        lines.append(f"\t{req} {version}")
     lines.append(")")
     return "\n".join(lines) + "\n"
+
+
+RUBY_PINNED_VERSIONS = {
+    "telnyx": "~> 5.131",
+    "dotenv": "~> 3.1",
+    "sinatra": "~> 4.1",
+    "rails": "~> 7.2",
+}
 
 
 def _extract_ruby_deps(setup: str, framework: str) -> str:
@@ -442,7 +507,11 @@ def _extract_ruby_deps(setup: str, framework: str) -> str:
 
     lines = ['source "https://rubygems.org"', ""]
     for gem in gems:
-        lines.append(f'gem "{gem}"')
+        version = RUBY_PINNED_VERSIONS.get(gem)
+        if version:
+            lines.append(f'gem "{gem}", "{version}"')
+        else:
+            lines.append(f'gem "{gem}"')
     return "\n".join(lines) + "\n"
 
 
@@ -545,220 +614,8 @@ def _extract_csharp_deps(setup: str, framework: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Generators: Dockerfile, Makefile, .env.example
+# Generators: .env.example
 # ---------------------------------------------------------------------------
-
-def generate_dockerfile(language: str, framework: str) -> str:
-    """Generate a language-appropriate Dockerfile."""
-    code_file = LANG_CODE_FILE.get(language, "app.py")
-    port = FRAMEWORK_PORTS.get(framework, 5000)
-
-    if language == "python":
-        dep_file = "requirements.txt"
-        return f"""FROM python:3.12-slim
-
-WORKDIR /app
-
-COPY {dep_file} .
-RUN pip install --no-cache-dir -r {dep_file}
-
-COPY . .
-
-RUN useradd -r appuser && chown -R appuser /app
-USER appuser
-
-EXPOSE {port}
-
-CMD ["python", "{code_file}"]
-"""
-    elif language == "nodejs":
-        return f"""FROM node:20-slim
-
-WORKDIR /app
-
-COPY package.json .
-RUN npm install --production
-
-COPY . .
-
-USER node
-
-EXPOSE {port}
-
-CMD ["node", "{code_file}"]
-"""
-    elif language == "go":
-        return f"""FROM golang:1.22 AS builder
-
-WORKDIR /app
-
-COPY go.mod go.sum* ./
-RUN go mod download
-
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server .
-
-FROM alpine:3.19
-WORKDIR /app
-COPY --from=builder /app/server .
-
-RUN adduser -D appuser
-USER appuser
-
-EXPOSE {port}
-
-CMD ["./server"]
-"""
-    elif language == "ruby":
-        return f"""FROM ruby:3.3-slim
-
-WORKDIR /app
-
-COPY Gemfile Gemfile.lock* ./
-RUN bundle install
-
-COPY . .
-
-RUN useradd -r appuser && chown -R appuser /app
-USER appuser
-
-EXPOSE {port}
-
-CMD ["ruby", "{code_file}"]
-"""
-    elif language == "java":
-        return f"""FROM maven:3.9-eclipse-temurin-17 AS builder
-
-WORKDIR /app
-
-COPY pom.xml .
-RUN mvn dependency:resolve
-
-COPY . .
-RUN mvn compile
-
-FROM eclipse-temurin:17-jre-jammy
-WORKDIR /app
-COPY --from=builder /app .
-
-RUN useradd -r appuser && chown -R appuser /app
-USER appuser
-
-EXPOSE {port}
-
-CMD ["mvn", "exec:java"]
-"""
-    elif language == "php":
-        return f"""FROM php:8.3-cli
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y unzip libsodium-dev \\
-    && docker-php-ext-install sodium \\
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-COPY composer.json .
-RUN composer install --no-dev --optimize-autoloader
-
-COPY . .
-
-RUN useradd -r appuser && chown -R appuser /app
-USER appuser
-
-EXPOSE {port}
-
-CMD ["php", "{code_file}"]
-"""
-    elif language == "csharp":
-        return f"""FROM mcr.microsoft.com/dotnet/sdk:8.0 AS builder
-
-WORKDIR /app
-
-COPY *.csproj .
-RUN dotnet restore
-
-COPY . .
-RUN dotnet publish -c Release -o /app/publish
-
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
-WORKDIR /app
-COPY --from=builder /app/publish .
-
-RUN useradd -r appuser && chown -R appuser /app
-USER appuser
-
-EXPOSE {port}
-
-CMD ["dotnet", "TelnyxExample.dll"]
-"""
-    else:
-        return f"""FROM python:3.12-slim
-WORKDIR /app
-COPY . .
-RUN useradd -r appuser && chown -R appuser /app
-USER appuser
-EXPOSE {port}
-CMD ["python", "{code_file}"]
-"""
-
-
-def generate_makefile(language: str, framework: str) -> str:
-    """Generate a Makefile with standard targets."""
-    code_file = LANG_CODE_FILE.get(language, "app.py")
-
-    if language == "python":
-        setup_cmd = "pip install -r requirements.txt"
-        run_cmd = f"python {code_file}"
-        test_cmd = f"python -m py_compile {code_file}"
-    elif language == "nodejs":
-        setup_cmd = "npm install"
-        run_cmd = f"node {code_file}"
-        test_cmd = f"node --check {code_file}"
-    elif language == "go":
-        setup_cmd = "go mod download"
-        run_cmd = "go run ."
-        test_cmd = "go vet ."
-    elif language == "ruby":
-        setup_cmd = "bundle install"
-        run_cmd = f"ruby {code_file}"
-        test_cmd = f"ruby -c {code_file}"
-    elif language == "java":
-        setup_cmd = "mvn dependency:resolve"
-        run_cmd = "mvn compile exec:java"
-        test_cmd = "mvn compile"
-    elif language == "php":
-        setup_cmd = "composer install"
-        run_cmd = f"php {code_file}"
-        test_cmd = f"php -l {code_file}"
-    elif language == "csharp":
-        setup_cmd = "dotnet restore"
-        run_cmd = "dotnet run"
-        test_cmd = "dotnet build"
-    else:
-        setup_cmd = "echo 'Setup complete'"
-        run_cmd = f"python {code_file}"
-        test_cmd = "echo 'No tests configured'"
-
-    return f""".PHONY: setup run test docker-build docker-run
-
-setup:
-\t{setup_cmd}
-
-run:
-\t{run_cmd}
-
-test:
-\t{test_cmd}
-
-docker-build:
-\tdocker build -t $$(basename $$(pwd)) .
-
-docker-run:
-\tdocker run --env-file .env -p {FRAMEWORK_PORTS.get(framework, 5000)}:{FRAMEWORK_PORTS.get(framework, 5000)} $$(basename $$(pwd))
-"""
-
 
 def generate_env_example(env_vars: list[str]) -> str:
     """Generate .env.example with placeholder values."""
@@ -1021,6 +878,7 @@ def transform(
     # 1. Extract and write code file
     code = extract_complete_code(sections, language)
     code = sanitize_code(code, language)
+    code = _normalize_sdk_patterns(code, language)
     if code:
         (folder_path / code_file).write_text(code + "\n")
     else:
@@ -1035,14 +893,9 @@ def transform(
     env_vars = extract_env_vars(code, language)
     (folder_path / ".env.example").write_text(generate_env_example(env_vars))
 
-    # 4. Generate Dockerfile
-    (folder_path / "Dockerfile").write_text(generate_dockerfile(language, framework))
-
-    # 5. Generate Makefile
-    (folder_path / "Makefile").write_text(generate_makefile(language, framework))
-
-    # 6. Restructure README
+    # 4. Restructure README
     readme = restructure_readme(content, frontmatter, sections, folder_name, code_file)
+    readme = _normalize_sdk_patterns(readme, language)
     (folder_path / "README.md").write_text(readme)
 
     return str(folder_path)

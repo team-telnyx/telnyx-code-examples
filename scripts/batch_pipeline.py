@@ -222,6 +222,57 @@ def run_pipeline(
     }
 
 
+def run_post_processing() -> None:
+    """Run post-generation compliance scripts to fix required files, links, and indexes."""
+    scripts = [
+        ("fix_required_files.py", "Generating API.md / GUIDE.md"),
+        ("rewrite_repo_links.py", "Rewriting in-repo links to absolute URLs"),
+        ("sync_readme.py", "Syncing root README gallery"),
+        ("gen_llms_txt.py", "Regenerating llms.txt"),
+    ]
+
+    print()
+    print("=" * 60)
+    print("Post-generation compliance")
+    print("=" * 60)
+
+    for script, description in scripts:
+        print(f"  {description}...")
+        subprocess.run(  # nosec B603
+            [sys.executable, str(SCRIPTS_DIR / script)],
+            cwd=str(REPO_ROOT),
+            check=True,
+        )
+
+    print("  Post-processing complete.")
+
+
+def run_verify() -> None:
+    """Run CI gate checks and fail-fast if any don't pass."""
+    checks = [
+        ("verify.py", []),
+        ("rewrite_repo_links.py", ["--check"]),
+        ("review/check_pinning.py", []),
+        ("review/check_required_files.py", []),
+        ("review/check_legacy_sdk.py", []),
+    ]
+
+    print()
+    print("=" * 60)
+    print("CI verification")
+    print("=" * 60)
+
+    for script, extra_args in checks:
+        print(f"  Running {script}...")
+        subprocess.run(  # nosec B603
+            [sys.executable, str(SCRIPTS_DIR / script)] + extra_args,
+            cwd=str(REPO_ROOT),
+            check=True,
+        )
+
+    print("  All checks passed.")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Batch pipeline: generate tutorials and transform into AEO folders.",
@@ -251,6 +302,11 @@ def main():
         type=float,
         default=2.0,
         help="Seconds between API calls (default: 2.0)",
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Run CI gate checks after post-processing and fail if any don't pass",
     )
 
     args = parser.parse_args()
@@ -283,6 +339,12 @@ def main():
 
     if summary["failed"] > 0 and not args.dry_run:
         sys.exit(1)
+
+    if not args.dry_run:
+        run_post_processing()
+
+        if args.verify:
+            run_verify()
 
 
 if __name__ == "__main__":
