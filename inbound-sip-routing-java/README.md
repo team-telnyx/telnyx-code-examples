@@ -335,6 +335,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Configure SIP Authentication](/tutorials/sip/java/sip-authentication).
-- [Set Up SIP Trunking](/tutorials/sip/java/sip-trunking-setup).
-- [Implement Failover Routing](/tutorials/sip/java/failover-routing).
+- [Configure SIP Authentication](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/java/sip-authentication).
+- [Set Up SIP Trunking](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/java/sip-trunking-setup).
+- [Implement Failover Routing](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/java/failover-routing).

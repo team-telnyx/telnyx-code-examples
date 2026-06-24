@@ -24,7 +24,7 @@ Telnyx is an **AI Communications Infrastructure** platform that gives developers
 
 - .NET 6.0 or higher installed on your system.
 - A Telnyx account with an active API key from the [Telnyx Portal](https://portal.telnyx.com).
-- An existing AI Assistant ID (create one via the Telnyx Portal or use the [Create AI Assistant](/tutorials/ai/csharp/create-ai-assistant) tutorial).
+- An existing AI Assistant ID (create one via the Telnyx Portal or use the [Create AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/csharp/create-ai-assistant) tutorial).
 - Visual Studio, Visual Studio Code, or another C# IDE.
 - curl or Postman for testing HTTP endpoints.
 
@@ -327,6 +327,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [List AI Assistants](/tutorials/ai/csharp/list-ai-assistants).
-- [Create an AI Assistant](/tutorials/ai/csharp/create-ai-assistant).
-- [Update an AI Assistant](/tutorials/ai/csharp/update-ai-assistant).
+- [List AI Assistants](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/csharp/list-ai-assistants).
+- [Create an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/csharp/create-ai-assistant).
+- [Update an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/csharp/update-ai-assistant).

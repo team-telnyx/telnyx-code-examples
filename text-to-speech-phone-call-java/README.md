@@ -434,6 +434,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Call Webhooks with Java](/tutorials/voice/java/inbound-call-webhook).
-- [Record Calls with Java](/tutorials/voice/java/call-recording).
-- [Transfer Calls with Java](/tutorials/voice/java/call-transfer).
+- [Handle Inbound Call Webhooks with Java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/java/inbound-call-webhook).
+- [Record Calls with Java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/java/call-recording).
+- [Transfer Calls with Java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/java/call-transfer).

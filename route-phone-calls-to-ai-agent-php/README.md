@@ -287,6 +287,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Make an Outbound Call with PHP](/tutorials/voice/php/outbound-call).
-- [Record Phone Calls with PHP](/tutorials/voice/php/call-recording).
-- [Transfer Calls with PHP](/tutorials/voice/php/call-transfer).
+- [Make an Outbound Call with PHP](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/outbound-call).
+- [Record Phone Calls with PHP](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/call-recording).
+- [Transfer Calls with PHP](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/call-transfer).

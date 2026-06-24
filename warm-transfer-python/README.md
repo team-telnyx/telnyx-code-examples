@@ -192,6 +192,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Call Webhooks](/tutorials/voice/python/inbound-call-webhook).
-- [Record Voice Calls](/tutorials/voice/python/call-recording).
-- [Build an Interactive Voice Response Menu](/tutorials/voice/python/ivr-menu).
+- [Handle Inbound Call Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/python/inbound-call-webhook).
+- [Record Voice Calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/python/call-recording).
+- [Build an Interactive Voice Response Menu](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/python/ivr-menu).

@@ -221,6 +221,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Calls with Webhooks](/tutorials/voice/nodejs/inbound-call-webhook).
-- [Record Phone Calls](/tutorials/voice/nodejs/call-recording).
-- [Build an IVR Menu](/tutorials/voice/nodejs/ivr-menu).
+- [Handle Inbound Calls with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/inbound-call-webhook).
+- [Record Phone Calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/call-recording).
+- [Build an IVR Menu](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/ivr-menu).

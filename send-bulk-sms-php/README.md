@@ -419,6 +419,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Receive SMS Webhooks with PHP](/tutorials/sms/php/receive-sms-webhook).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/php/otp-2fa).
-- [Build Two-Way SMS Conversations](/tutorials/sms/php/two-way-sms).
+- [Receive SMS Webhooks with PHP](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/php/receive-sms-webhook).
+- [Implement Two-Factor Authentication with SMS](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/php/otp-2fa).
+- [Build Two-Way SMS Conversations](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/php/two-way-sms).

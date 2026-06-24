@@ -273,6 +273,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Call Webhooks](/tutorials/voice/nodejs/inbound-call-webhook).
-- [Record and Store Call Audio](/tutorials/voice/nodejs/call-recording).
-- [Transfer Calls Between Numbers](/tutorials/voice/nodejs/call-transfer).
+- [Handle Inbound Call Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/inbound-call-webhook).
+- [Record and Store Call Audio](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/call-recording).
+- [Transfer Calls Between Numbers](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/call-transfer).

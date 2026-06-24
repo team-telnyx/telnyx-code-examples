@@ -200,6 +200,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send a Single SMS with Go and Gin](/tutorials/sms/go/send-single-sms).
-- [Send Bulk SMS Messages with Go](/tutorials/sms/go/send-bulk-sms).
-- [Receive SMS Webhooks with Go](/tutorials/sms/go/receive-sms-webhook).
+- [Send a Single SMS with Go and Gin](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/go/send-single-sms).
+- [Send Bulk SMS Messages with Go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/go/send-bulk-sms).
+- [Receive SMS Webhooks with Go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/go/receive-sms-webhook).

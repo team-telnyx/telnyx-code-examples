@@ -134,6 +134,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [List AI Assistants](/tutorials/ai/python/list-ai-assistants).
-- [Update AI Assistant](/tutorials/ai/python/update-ai-assistant).
-- [Chat with AI Assistant](/tutorials/ai/python/chat-with-ai-assistant).
+- [List AI Assistants](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/python/list-ai-assistants).
+- [Update AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/python/update-ai-assistant).
+- [Chat with AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/python/chat-with-ai-assistant).

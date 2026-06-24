@@ -252,6 +252,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Set Up SIP Trunking](/tutorials/sip/ruby/sip-trunking-setup).
-- [Configure SIP Authentication](/tutorials/sip/ruby/sip-authentication).
-- [Implement Failover Routing](/tutorials/sip/ruby/failover-routing).
+- [Set Up SIP Trunking](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/ruby/sip-trunking-setup).
+- [Configure SIP Authentication](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/ruby/sip-authentication).
+- [Implement Failover Routing](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/ruby/failover-routing).

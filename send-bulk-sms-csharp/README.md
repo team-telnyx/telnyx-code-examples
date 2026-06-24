@@ -394,6 +394,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send a Single SMS with C# and ASP.NET](/tutorials/sms/csharp/send-single-sms).
-- [Receive SMS Webhooks with C# and ASP.NET](/tutorials/sms/csharp/receive-sms-webhook).
-- [Implement Two-Factor Authentication with C# and ASP.NET](/tutorials/sms/csharp/otp-2fa).
+- [Send a Single SMS with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/csharp/send-single-sms).
+- [Receive SMS Webhooks with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/csharp/receive-sms-webhook).
+- [Implement Two-Factor Authentication with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/csharp/otp-2fa).

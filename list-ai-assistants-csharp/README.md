@@ -198,6 +198,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Get an AI Assistant](/tutorials/ai/csharp/get-ai-assistant).
-- [Create an AI Assistant](/tutorials/ai/csharp/create-ai-assistant).
-- [Chat with an AI Assistant](/tutorials/ai/csharp/chat-with-ai-assistant).
+- [Get an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/csharp/get-ai-assistant).
+- [Create an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/csharp/create-ai-assistant).
+- [Chat with an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/csharp/chat-with-ai-assistant).

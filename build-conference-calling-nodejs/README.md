@@ -223,6 +223,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Initiate an Outbound Call](/tutorials/voice/nodejs/outbound-call).
-- [Handle Inbound Call Webhooks](/tutorials/voice/nodejs/inbound-call-webhook).
-- [Record and Retrieve Call Recordings](/tutorials/voice/nodejs/call-recording).
+- [Initiate an Outbound Call](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/outbound-call).
+- [Handle Inbound Call Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/inbound-call-webhook).
+- [Record and Retrieve Call Recordings](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/call-recording).

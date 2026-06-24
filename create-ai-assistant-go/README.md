@@ -257,6 +257,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [List AI Assistants](/tutorials/ai/go/list-ai-assistants).
-- [Get an AI Assistant](/tutorials/ai/go/get-ai-assistant).
-- [Chat with an AI Assistant](/tutorials/ai/go/chat-with-ai-assistant).
+- [List AI Assistants](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/go/list-ai-assistants).
+- [Get an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/go/get-ai-assistant).
+- [Chat with an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/go/chat-with-ai-assistant).

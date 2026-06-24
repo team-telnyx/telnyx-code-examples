@@ -191,6 +191,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Inbound Call Webhook with Node.js](/tutorials/voice/nodejs/inbound-call-webhook).
-- [Record Calls with Node.js](/tutorials/voice/nodejs/call-recording).
-- [Build an IVR Menu with Node.js](/tutorials/voice/nodejs/ivr-menu).
+- [Inbound Call Webhook with Node.js](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/inbound-call-webhook).
+- [Record Calls with Node.js](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/call-recording).
+- [Build an IVR Menu with Node.js](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/nodejs/ivr-menu).

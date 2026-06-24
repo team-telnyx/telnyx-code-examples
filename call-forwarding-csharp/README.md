@@ -353,6 +353,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Calls with Webhooks](/tutorials/voice/csharp/inbound-call-webhook).
-- [Record Calls with C# and ASP.NET](/tutorials/voice/csharp/call-recording).
-- [Build an IVR Menu with C# and ASP.NET](/tutorials/voice/csharp/ivr-menu).
+- [Handle Inbound Calls with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/csharp/inbound-call-webhook).
+- [Record Calls with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/csharp/call-recording).
+- [Build an IVR Menu with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/csharp/ivr-menu).

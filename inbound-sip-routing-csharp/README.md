@@ -395,6 +395,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Configure SIP Authentication](/tutorials/sip/csharp/sip-authentication).
-- [Set Up SIP Trunking](/tutorials/sip/csharp/sip-trunking-setup).
-- [Configure Codec Settings](/tutorials/sip/csharp/codec-configuration).
+- [Configure SIP Authentication](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/csharp/sip-authentication).
+- [Set Up SIP Trunking](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/csharp/sip-trunking-setup).
+- [Configure Codec Settings](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/csharp/codec-configuration).

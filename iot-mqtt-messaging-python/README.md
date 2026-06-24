@@ -191,6 +191,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Activate IoT SIM Cards](/tutorials/iot/python/sim-activation).
-- [Monitor Data Usage with Webhooks](/tutorials/iot/python/data-usage-monitoring).
-- [Handle SIM Status Webhooks](/tutorials/iot/python/sim-status-webhook).
+- [Activate IoT SIM Cards](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/python/sim-activation).
+- [Monitor Data Usage with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/python/data-usage-monitoring).
+- [Handle SIM Status Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/python/sim-status-webhook).

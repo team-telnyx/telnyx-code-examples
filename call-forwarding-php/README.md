@@ -445,6 +445,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Calls with Webhooks](/tutorials/voice/php/inbound-call-webhook).
-- [Record Phone Calls](/tutorials/voice/php/call-recording).
-- [Build an IVR Menu System](/tutorials/voice/php/ivr-menu).
+- [Handle Inbound Calls with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/inbound-call-webhook).
+- [Record Phone Calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/call-recording).
+- [Build an IVR Menu System](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/ivr-menu).

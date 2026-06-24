@@ -213,6 +213,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Get an AI Assistant](/tutorials/ai/php/get-ai-assistant).
-- [Create an AI Assistant](/tutorials/ai/php/create-ai-assistant).
-- [Chat with an AI Assistant](/tutorials/ai/php/chat-with-ai-assistant).
+- [Get an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/php/get-ai-assistant).
+- [Create an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/php/create-ai-assistant).
+- [Chat with an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/php/chat-with-ai-assistant).

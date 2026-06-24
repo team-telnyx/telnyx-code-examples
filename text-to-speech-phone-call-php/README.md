@@ -323,6 +323,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Call Webhooks with PHP](/tutorials/voice/php/inbound-call-webhook).
-- [Record Voice Calls with PHP](/tutorials/voice/php/call-recording).
-- [Transfer Calls Between Numbers with PHP](/tutorials/voice/php/call-transfer).
+- [Handle Inbound Call Webhooks with PHP](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/inbound-call-webhook).
+- [Record Voice Calls with PHP](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/call-recording).
+- [Transfer Calls Between Numbers with PHP](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/call-transfer).

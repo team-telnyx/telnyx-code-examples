@@ -457,6 +457,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Set Up SIP Trunking with Telnyx](/tutorials/sip/go/sip-trunking-setup).
-- [Configure SIP Authentication and Security](/tutorials/sip/go/sip-authentication).
-- [Implement Failover Routing for High Availability](/tutorials/sip/go/failover-routing).
+- [Set Up SIP Trunking with Telnyx](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/go/sip-trunking-setup).
+- [Configure SIP Authentication and Security](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/go/sip-authentication).
+- [Implement Failover Routing for High Availability](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/go/failover-routing).

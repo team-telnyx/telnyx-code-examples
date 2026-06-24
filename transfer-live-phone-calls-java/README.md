@@ -331,6 +331,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Receive Inbound Calls with Webhooks](/tutorials/voice/java/inbound-call-webhook).
-- [Record Calls](/tutorials/voice/java/call-recording).
-- [Build an IVR Menu](/tutorials/voice/java/ivr-menu).
+- [Receive Inbound Calls with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/java/inbound-call-webhook).
+- [Record Calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/java/call-recording).
+- [Build an IVR Menu](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/java/ivr-menu).

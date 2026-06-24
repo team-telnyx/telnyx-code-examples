@@ -230,6 +230,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Make an Outbound Call with C#](/tutorials/voice/csharp/outbound-call).
-- [Record Inbound Calls with C#](/tutorials/voice/csharp/call-recording).
-- [Transfer Calls with C#](/tutorials/voice/csharp/call-transfer).
+- [Make an Outbound Call with C#](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/csharp/outbound-call).
+- [Record Inbound Calls with C#](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/csharp/call-recording).
+- [Transfer Calls with C#](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/csharp/call-transfer).

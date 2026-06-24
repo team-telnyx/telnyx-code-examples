@@ -433,6 +433,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Activate SIM Cards Programmatically](/tutorials/iot/php/sim-activation).
-- [Monitor SIM Status Changes with Webhooks](/tutorials/iot/php/sim-status-webhook).
-- [Configure Custom APN Settings](/tutorials/iot/php/apn-configuration).
+- [Activate SIM Cards Programmatically](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/php/sim-activation).
+- [Monitor SIM Status Changes with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/php/sim-status-webhook).
+- [Configure Custom APN Settings](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/php/apn-configuration).

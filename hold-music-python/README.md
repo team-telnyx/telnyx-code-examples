@@ -198,6 +198,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Record Phone Calls with Python](/tutorials/voice/python/call-recording).
-- [Transfer Calls Between Numbers](/tutorials/voice/python/call-transfer).
-- [Build an Interactive Voice Response Menu](/tutorials/voice/python/ivr-menu).
+- [Record Phone Calls with Python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/python/call-recording).
+- [Transfer Calls Between Numbers](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/python/call-transfer).
+- [Build an Interactive Voice Response Menu](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/python/ivr-menu).

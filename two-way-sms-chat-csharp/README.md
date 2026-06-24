@@ -279,6 +279,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send Bulk SMS Messages](/tutorials/sms/csharp/send-bulk-sms).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/csharp/otp-2fa).
-- [Build an SMS Survey Application](/tutorials/sms/csharp/sms-survey).
+- [Send Bulk SMS Messages](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/csharp/send-bulk-sms).
+- [Implement Two-Factor Authentication with SMS](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/csharp/otp-2fa).
+- [Build an SMS Survey Application](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/csharp/sms-survey).

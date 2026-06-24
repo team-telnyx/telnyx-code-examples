@@ -328,6 +328,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Initiate an Outbound Call](/tutorials/voice/java/outbound-call).
-- [Record a Call](/tutorials/voice/java/call-recording).
-- [Transfer a Call](/tutorials/voice/java/call-transfer).
+- [Initiate an Outbound Call](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/java/outbound-call).
+- [Record a Call](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/java/call-recording).
+- [Transfer a Call](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/java/call-transfer).

@@ -295,7 +295,7 @@ See [`main.go`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-exampl
 | Issue | Problem | Solution |
 |-------|---------|----------|
 | Authentication Error (401) | The endpoint returns `{"error": "Invalid API key"}` with HTTP 401. | Verify your `TELNYX_API_KEY` in the `.env` file matches the key shown in the [Telnyx Portal](https://portal.telnyx.com). Ensure there are no trailing spaces or newlines. If the key was regenerated recently, update your environment file and restart the Gin server. Run `echo $TELNYX_API_KEY` to confirm the variable is loaded correctly. |
-| No Assistants Returned | The endpoint returns an empty list `{"data": [], "page_number": 1, "page_size": 10, "total": 0}`. | This is expected if you have not created any AI assistants yet. Create an assistant using the Telnyx Portal or the [Create AI Assistant](/tutorials/ai/go/create-ai-assistant) tutorial, then retry the list endpoint. |
+| No Assistants Returned | The endpoint returns an empty list `{"data": [], "page_number": 1, "page_size": 10, "total": 0}`. | This is expected if you have not created any AI assistants yet. Create an assistant using the Telnyx Portal or the [Create AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/go/create-ai-assistant) tutorial, then retry the list endpoint. |
 | Environment Variable Not Set | The application fails with an error about missing `TELNYX_API_KEY` or returns a 401 error immediately. | Confirm your `.env` file exists in the same directory as `main.go` and contains the variable. Ensure the file is named exactly `.env` (not `.env.txt` or `env`). The `godotenv.Load()` call must execute before `os.Getenv()` is called—verify this import order in your code. Alternatively, set the environment variable directly: `export TELNYX_API_KEY=your_key_here`. |
 | Pagination Not Working | Query parameters like `?page=2` are ignored and always return page 1. | Verify the query parameter names are lowercase: `page` and `page_size`. The code validates that `page > 0` and `0 < page_size <= 100`. If you pass invalid values (e.g., `page=0` or `page_size=200`), they are silently ignored and defaults are used. Check your curl command syntax: `curl "http://localhost:8080/assistants?page=2&page_size=5"` (note the quotes around the URL). |
 | Network Error (503) | The endpoint returns `{"error": "Network error connecting to Telnyx"}` with HTTP 503. | Verify your internet connection is active and you can reach `api.telnyx.com`. Check if your firewall or proxy is blocking outbound HTTPS connections. Ensure the Telnyx API is not experiencing an outage by checking the [Telnyx Status Page](https://status.telnyx.com). |
@@ -332,6 +332,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Get an AI Assistant](/tutorials/ai/go/get-ai-assistant).
-- [Create an AI Assistant](/tutorials/ai/go/create-ai-assistant).
-- [Chat with an AI Assistant](/tutorials/ai/go/chat-with-ai-assistant).
+- [Get an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/go/get-ai-assistant).
+- [Create an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/go/create-ai-assistant).
+- [Chat with an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/go/chat-with-ai-assistant).

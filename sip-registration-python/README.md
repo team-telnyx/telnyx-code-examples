@@ -190,6 +190,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Configure Outbound SIP Calls](/tutorials/sip/python/outbound-sip-call).
-- [Set Up Inbound SIP Routing](/tutorials/sip/python/inbound-sip-routing).
-- [Implement SIP Authentication Methods](/tutorials/sip/python/sip-authentication).
+- [Configure Outbound SIP Calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/python/outbound-sip-call).
+- [Set Up Inbound SIP Routing](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/python/inbound-sip-routing).
+- [Implement SIP Authentication Methods](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/python/sip-authentication).

@@ -456,6 +456,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Calls with Webhooks](/tutorials/voice/csharp/inbound-call-webhook).
-- [Transfer Calls Between Endpoints](/tutorials/voice/csharp/call-transfer).
-- [Record and Store Call Audio](/tutorials/voice/csharp/call-recording).
+- [Handle Inbound Calls with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/csharp/inbound-call-webhook).
+- [Transfer Calls Between Endpoints](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/csharp/call-transfer).
+- [Record and Store Call Audio](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/csharp/call-recording).

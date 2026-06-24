@@ -405,6 +405,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send Bulk SMS Messages](/tutorials/sms/go/send-bulk-sms).
-- [Receive SMS Webhooks with Go](/tutorials/sms/go/receive-sms-webhook).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/go/otp-2fa).
+- [Send Bulk SMS Messages](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/go/send-bulk-sms).
+- [Receive SMS Webhooks with Go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/go/receive-sms-webhook).
+- [Implement Two-Factor Authentication with SMS](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/go/otp-2fa).

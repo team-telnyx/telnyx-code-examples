@@ -244,6 +244,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Call Webhooks with Go](/tutorials/voice/go/inbound-call-webhook).
-- [Record Voice Calls with Go](/tutorials/voice/go/call-recording).
-- [Build an IVR Menu with Go](/tutorials/voice/go/ivr-menu).
+- [Handle Inbound Call Webhooks with Go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/go/inbound-call-webhook).
+- [Record Voice Calls with Go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/go/call-recording).
+- [Build an IVR Menu with Go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/go/ivr-menu).

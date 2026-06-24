@@ -452,6 +452,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Calls with Webhooks](/tutorials/voice/php/inbound-call-webhook).
-- [Transfer Calls Between Numbers](/tutorials/voice/php/call-transfer).
-- [Build an Interactive Voice Response (IVR) Menu](/tutorials/voice/php/ivr-menu).
+- [Handle Inbound Calls with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/inbound-call-webhook).
+- [Transfer Calls Between Numbers](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/call-transfer).
+- [Build an Interactive Voice Response (IVR) Menu](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/php/ivr-menu).

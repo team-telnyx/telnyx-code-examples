@@ -305,6 +305,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Get an AI Assistant](/tutorials/ai/java/get-ai-assistant).
-- [Create an AI Assistant](/tutorials/ai/java/create-ai-assistant).
-- [Chat with an AI Assistant](/tutorials/ai/java/chat-with-ai-assistant).
+- [Get an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/java/get-ai-assistant).
+- [Create an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/java/create-ai-assistant).
+- [Chat with an AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/ai/java/chat-with-ai-assistant).

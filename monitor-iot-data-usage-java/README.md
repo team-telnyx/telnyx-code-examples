@@ -273,6 +273,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Activate SIM Cards with Java](/tutorials/iot/java/sim-activation).
-- [Configure APN Settings for IoT Devices](/tutorials/iot/java/apn-configuration).
-- [Monitor SIM Status Changes with Webhooks](/tutorials/iot/java/sim-status-webhook).
+- [Activate SIM Cards with Java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/java/sim-activation).
+- [Configure APN Settings for IoT Devices](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/java/apn-configuration).
+- [Monitor SIM Status Changes with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/java/sim-status-webhook).

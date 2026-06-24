@@ -306,6 +306,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send a Single SMS with Go and Gin](/tutorials/sms/go/send-single-sms).
-- [Receive SMS Webhooks with Go and Gin](/tutorials/sms/go/receive-sms-webhook).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/go/otp-2fa).
+- [Send a Single SMS with Go and Gin](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/go/send-single-sms).
+- [Receive SMS Webhooks with Go and Gin](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/go/receive-sms-webhook).
+- [Implement Two-Factor Authentication with SMS](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/go/otp-2fa).

@@ -400,6 +400,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Activate SIM Cards with C# and ASP.NET](/tutorials/iot/csharp/sim-activation).
-- [Monitor SIM Status Changes with Webhooks](/tutorials/iot/csharp/sim-status-webhook).
-- [Configure APN Settings for IoT Devices](/tutorials/iot/csharp/apn-configuration).
+- [Activate SIM Cards with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/csharp/sim-activation).
+- [Monitor SIM Status Changes with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/csharp/sim-status-webhook).
+- [Configure APN Settings for IoT Devices](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/iot/csharp/apn-configuration).

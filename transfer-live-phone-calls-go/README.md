@@ -218,6 +218,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Receive Inbound Calls with Webhooks](/tutorials/voice/go/inbound-call-webhook).
-- [Record Calls](/tutorials/voice/go/call-recording).
-- [Build an IVR Menu](/tutorials/voice/go/ivr-menu).
+- [Receive Inbound Calls with Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/go/inbound-call-webhook).
+- [Record Calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/go/call-recording).
+- [Build an IVR Menu](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/go/ivr-menu).

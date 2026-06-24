@@ -230,6 +230,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Make Outbound SIP Calls](/tutorials/sip/go/outbound-sip-call)
-- [Configure Inbound SIP Routing](/tutorials/sip/go/inbound-sip-routing)
-- [Set Up Failover Routing](/tutorials/sip/go/failover-routing)
+- [Make Outbound SIP Calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/go/outbound-sip-call)
+- [Configure Inbound SIP Routing](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/go/inbound-sip-routing)
+- [Set Up Failover Routing](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/go/failover-routing)

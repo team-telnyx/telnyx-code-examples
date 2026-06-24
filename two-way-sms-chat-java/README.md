@@ -336,6 +336,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send Bulk SMS Messages](/tutorials/sms/java/send-bulk-sms).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/java/otp-2fa).
-- [Receive SMS Webhooks with Java](/tutorials/sms/java/receive-sms-webhook).
+- [Send Bulk SMS Messages](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/java/send-bulk-sms).
+- [Implement Two-Factor Authentication with SMS](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/java/otp-2fa).
+- [Receive SMS Webhooks with Java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/java/receive-sms-webhook).

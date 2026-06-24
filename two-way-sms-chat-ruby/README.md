@@ -227,6 +227,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send Bulk SMS Messages](/tutorials/sms/ruby/send-bulk-sms).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/ruby/otp-2fa).
-- [Build an SMS Survey Application](/tutorials/sms/ruby/sms-survey).
+- [Send Bulk SMS Messages](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/ruby/send-bulk-sms).
+- [Implement Two-Factor Authentication with SMS](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/ruby/otp-2fa).
+- [Build an SMS Survey Application](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/ruby/sms-survey).

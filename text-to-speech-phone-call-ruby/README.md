@@ -185,6 +185,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Handle Inbound Call Webhooks with Ruby](/tutorials/voice/ruby/inbound-call-webhook).
-- [Record Voice Calls with Ruby](/tutorials/voice/ruby/call-recording).
-- [Transfer Calls with Ruby](/tutorials/voice/ruby/call-transfer).
+- [Handle Inbound Call Webhooks with Ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/ruby/inbound-call-webhook).
+- [Record Voice Calls with Ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/ruby/call-recording).
+- [Transfer Calls with Ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/ruby/call-transfer).

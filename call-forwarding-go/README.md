@@ -322,6 +322,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Initiate an Outbound Call](/tutorials/voice/go/outbound-call).
-- [Handle Inbound Call Webhooks](/tutorials/voice/go/inbound-call-webhook).
-- [Record and Retrieve Call Recordings](/tutorials/voice/go/call-recording).
+- [Initiate an Outbound Call](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/go/outbound-call).
+- [Handle Inbound Call Webhooks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/go/inbound-call-webhook).
+- [Record and Retrieve Call Recordings](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/voice/go/call-recording).

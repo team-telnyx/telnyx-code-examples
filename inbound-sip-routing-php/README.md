@@ -464,6 +464,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Configure SIP Authentication Methods](/tutorials/sip/php/sip-authentication).
-- [Set Up SIP Trunking with Failover Routing](/tutorials/sip/php/failover-routing).
-- [Make Outbound SIP Calls](/tutorials/sip/php/outbound-sip-call).
+- [Configure SIP Authentication Methods](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/php/sip-authentication).
+- [Set Up SIP Trunking with Failover Routing](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/php/failover-routing).
+- [Make Outbound SIP Calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/php/outbound-sip-call).

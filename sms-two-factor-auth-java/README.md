@@ -398,6 +398,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send a Single SMS with Java and Spring](/tutorials/sms/java/send-single-sms).
-- [Send Bulk SMS Messages with Java and Spring](/tutorials/sms/java/send-bulk-sms).
-- [Receive SMS Webhooks with Java and Spring](/tutorials/sms/java/receive-sms-webhook).
+- [Send a Single SMS with Java and Spring](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/java/send-single-sms).
+- [Send Bulk SMS Messages with Java and Spring](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/java/send-bulk-sms).
+- [Receive SMS Webhooks with Java and Spring](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/java/receive-sms-webhook).

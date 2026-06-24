@@ -343,6 +343,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send Bulk SMS Messages](/tutorials/sms/csharp/send-bulk-sms).
-- [Receive SMS Webhooks with C#](/tutorials/sms/csharp/receive-sms-webhook).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/csharp/otp-2fa).
+- [Send Bulk SMS Messages](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/csharp/send-bulk-sms).
+- [Receive SMS Webhooks with C#](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/csharp/receive-sms-webhook).
+- [Implement Two-Factor Authentication with SMS](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/csharp/otp-2fa).

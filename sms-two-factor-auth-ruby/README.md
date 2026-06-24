@@ -245,6 +245,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Send a Single SMS with Ruby](/tutorials/sms/ruby/send-single-sms).
-- [Receive SMS Webhooks with Ruby](/tutorials/sms/ruby/receive-sms-webhook).
-- [Send Bulk SMS Messages with Ruby](/tutorials/sms/ruby/send-bulk-sms).
+- [Send a Single SMS with Ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/ruby/send-single-sms).
+- [Receive SMS Webhooks with Ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/ruby/receive-sms-webhook).
+- [Send Bulk SMS Messages with Ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/ruby/send-bulk-sms).

@@ -150,6 +150,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Receive SMS Webhooks with Ruby](/tutorials/sms/ruby/receive-sms-webhook).
-- [Send Bulk SMS Messages with Ruby](/tutorials/sms/ruby/send-bulk-sms).
-- [Implement Two-Factor Authentication with SMS](/tutorials/sms/ruby/otp-2fa).
+- [Receive SMS Webhooks with Ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/ruby/receive-sms-webhook).
+- [Send Bulk SMS Messages with Ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/ruby/send-bulk-sms).
+- [Implement Two-Factor Authentication with SMS](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sms/ruby/otp-2fa).

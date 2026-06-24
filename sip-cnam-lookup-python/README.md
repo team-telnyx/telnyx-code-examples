@@ -180,6 +180,6 @@ Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > S
 
 ## Related Examples
 
-- [Set Up SIP Trunking Configuration](/tutorials/sip/python/sip-trunking-setup)
-- [Configure SIP Authentication Methods](/tutorials/sip/python/sip-authentication)
-- [Handle Inbound SIP Call Routing](/tutorials/sip/python/inbound-sip-routing)
+- [Set Up SIP Trunking Configuration](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/python/sip-trunking-setup)
+- [Configure SIP Authentication Methods](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/python/sip-authentication)
+- [Handle Inbound SIP Call Routing](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main//tutorials/sip/python/inbound-sip-routing)
