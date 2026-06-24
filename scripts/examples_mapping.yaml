@@ -1754,3 +1754,611 @@ examples:
     language: python
     framework: flask
     folder: merge-ticket-escalation-python
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Phase 1: Ready TF Tutorials (14 examples)
+  # ─────────────────────────────────────────────────────────────────────
+  - product: ai
+    use_case: chat-with-ai-assistant
+    language: csharp
+    framework: aspnet
+    folder: chat-with-ai-assistant-csharp
+
+  - product: ai
+    use_case: list-ai-assistants
+    language: csharp
+    framework: aspnet
+    folder: list-ai-assistants-csharp
+
+  - product: ai
+    use_case: list-ai-assistants
+    language: php
+    framework: laravel
+    folder: list-ai-assistants-php
+
+  - product: ai
+    use_case: get-ai-assistant
+    language: python
+    framework: flask
+    folder: get-ai-assistant-python
+
+  - product: iot
+    use_case: mqtt-messaging
+    language: python
+    framework: flask
+    folder: iot-mqtt-messaging-python
+
+  - product: sip
+    use_case: sip-registration
+    language: go
+    framework: gin
+    folder: sip-registration-go
+
+  - product: sip
+    use_case: sip-registration
+    language: python
+    framework: flask
+    folder: sip-registration-python
+
+  - product: sip
+    use_case: cnam-lookup
+    language: python
+    framework: flask
+    folder: sip-cnam-lookup-python
+
+  - product: voice
+    use_case: call-analytics
+    language: python
+    framework: flask
+    folder: voice-call-analytics-python
+
+  - product: voice
+    use_case: call-compliance
+    language: python
+    framework: flask
+    folder: call-compliance-python
+
+  - product: voice
+    use_case: hold-music
+    language: python
+    framework: flask
+    folder: hold-music-python
+
+  - product: voice
+    use_case: voicemail
+    language: python
+    framework: flask
+    folder: voicemail-python
+
+  - product: voice
+    use_case: warm-transfer
+    language: python
+    framework: flask
+    folder: warm-transfer-python
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Phase 2, Tier A: Complete full-language sets (2 examples)
+  # ─────────────────────────────────────────────────────────────────────
+  - product: sms
+    use_case: receive-sms-webhook
+    language: go
+    framework: gin
+    folder: receive-sms-webhook-go
+
+  - product: voice
+    use_case: outbound-call
+    language: go
+    framework: gin
+    folder: make-outbound-phone-call-go
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Phase 2, Tier B: Extend python+nodejs use cases (63 examples)
+  # ─────────────────────────────────────────────────────────────────────
+
+  # send-bulk-sms (5)
+  - product: sms
+    use_case: send-bulk-sms
+    language: go
+    framework: gin
+    folder: send-bulk-sms-go
+
+  - product: sms
+    use_case: send-bulk-sms
+    language: ruby
+    framework: sinatra
+    folder: send-bulk-sms-ruby
+
+  - product: sms
+    use_case: send-bulk-sms
+    language: csharp
+    framework: aspnet
+    folder: send-bulk-sms-csharp
+
+  - product: sms
+    use_case: send-bulk-sms
+    language: java
+    framework: spring
+    folder: send-bulk-sms-java
+
+  - product: sms
+    use_case: send-bulk-sms
+    language: php
+    framework: laravel
+    folder: send-bulk-sms-php
+
+  # otp-2fa (5)
+  - product: sms
+    use_case: otp-2fa
+    language: go
+    framework: gin
+    folder: sms-two-factor-auth-go
+
+  - product: sms
+    use_case: otp-2fa
+    language: ruby
+    framework: sinatra
+    folder: sms-two-factor-auth-ruby
+
+  - product: sms
+    use_case: otp-2fa
+    language: csharp
+    framework: aspnet
+    folder: sms-two-factor-auth-csharp
+
+  - product: sms
+    use_case: otp-2fa
+    language: java
+    framework: spring
+    folder: sms-two-factor-auth-java
+
+  - product: sms
+    use_case: otp-2fa
+    language: php
+    framework: laravel
+    folder: sms-two-factor-auth-php
+
+  # mms-send (5)
+  - product: sms
+    use_case: mms-send
+    language: go
+    framework: gin
+    folder: send-mms-picture-message-go
+
+  - product: sms
+    use_case: mms-send
+    language: ruby
+    framework: sinatra
+    folder: send-mms-picture-message-ruby
+
+  - product: sms
+    use_case: mms-send
+    language: csharp
+    framework: aspnet
+    folder: send-mms-picture-message-csharp
+
+  - product: sms
+    use_case: mms-send
+    language: java
+    framework: spring
+    folder: send-mms-picture-message-java
+
+  - product: sms
+    use_case: mms-send
+    language: php
+    framework: laravel
+    folder: send-mms-picture-message-php
+
+  # sms-autoresponder (5)
+  - product: sms
+    use_case: sms-autoresponder
+    language: go
+    framework: gin
+    folder: sms-auto-reply-bot-go
+
+  - product: sms
+    use_case: sms-autoresponder
+    language: ruby
+    framework: sinatra
+    folder: sms-auto-reply-bot-ruby
+
+  - product: sms
+    use_case: sms-autoresponder
+    language: csharp
+    framework: aspnet
+    folder: sms-auto-reply-bot-csharp
+
+  - product: sms
+    use_case: sms-autoresponder
+    language: java
+    framework: spring
+    folder: sms-auto-reply-bot-java
+
+  - product: sms
+    use_case: sms-autoresponder
+    language: php
+    framework: laravel
+    folder: sms-auto-reply-bot-php
+
+  # two-way-sms (5)
+  - product: sms
+    use_case: two-way-sms
+    language: go
+    framework: gin
+    folder: two-way-sms-chat-go
+
+  - product: sms
+    use_case: two-way-sms
+    language: ruby
+    framework: sinatra
+    folder: two-way-sms-chat-ruby
+
+  - product: sms
+    use_case: two-way-sms
+    language: csharp
+    framework: aspnet
+    folder: two-way-sms-chat-csharp
+
+  - product: sms
+    use_case: two-way-sms
+    language: java
+    framework: spring
+    folder: two-way-sms-chat-java
+
+  - product: sms
+    use_case: two-way-sms
+    language: php
+    framework: laravel
+    folder: two-way-sms-chat-php
+
+  # delivery-receipts (5)
+  - product: sms
+    use_case: delivery-receipts
+    language: go
+    framework: gin
+    folder: sms-delivery-receipts-go
+
+  - product: sms
+    use_case: delivery-receipts
+    language: ruby
+    framework: sinatra
+    folder: sms-delivery-receipts-ruby
+
+  - product: sms
+    use_case: delivery-receipts
+    language: csharp
+    framework: aspnet
+    folder: sms-delivery-receipts-csharp
+
+  - product: sms
+    use_case: delivery-receipts
+    language: java
+    framework: spring
+    folder: sms-delivery-receipts-java
+
+  - product: sms
+    use_case: delivery-receipts
+    language: php
+    framework: laravel
+    folder: sms-delivery-receipts-php
+
+  # call-recording (5)
+  - product: voice
+    use_case: call-recording
+    language: go
+    framework: gin
+    folder: record-phone-calls-go
+
+  - product: voice
+    use_case: call-recording
+    language: ruby
+    framework: sinatra
+    folder: record-phone-calls-ruby
+
+  - product: voice
+    use_case: call-recording
+    language: java
+    framework: spring
+    folder: record-phone-calls-java
+
+  - product: voice
+    use_case: call-recording
+    language: php
+    framework: laravel
+    folder: record-phone-calls-php
+
+  # ivr-menu (5)
+  - product: voice
+    use_case: ivr-menu
+    language: go
+    framework: gin
+    folder: build-ivr-phone-menu-go
+
+  - product: voice
+    use_case: ivr-menu
+    language: ruby
+    framework: sinatra
+    folder: build-ivr-phone-menu-ruby
+
+  - product: voice
+    use_case: ivr-menu
+    language: csharp
+    framework: aspnet
+    folder: build-ivr-phone-menu-csharp
+
+  - product: voice
+    use_case: ivr-menu
+    language: php
+    framework: laravel
+    folder: build-ivr-phone-menu-php
+
+  # text-to-speech (5)
+  - product: voice
+    use_case: text-to-speech
+    language: go
+    framework: gin
+    folder: text-to-speech-phone-call-go
+
+  - product: voice
+    use_case: text-to-speech
+    language: ruby
+    framework: sinatra
+    folder: text-to-speech-phone-call-ruby
+
+  - product: voice
+    use_case: text-to-speech
+    language: csharp
+    framework: aspnet
+    folder: text-to-speech-phone-call-csharp
+
+  - product: voice
+    use_case: text-to-speech
+    language: java
+    framework: spring
+    folder: text-to-speech-phone-call-java
+
+  - product: voice
+    use_case: text-to-speech
+    language: php
+    framework: laravel
+    folder: text-to-speech-phone-call-php
+
+  # data-usage-monitoring (5)
+  - product: iot
+    use_case: data-usage-monitoring
+    language: go
+    framework: gin
+    folder: monitor-iot-data-usage-go
+
+  - product: iot
+    use_case: data-usage-monitoring
+    language: ruby
+    framework: sinatra
+    folder: monitor-iot-data-usage-ruby
+
+  - product: iot
+    use_case: data-usage-monitoring
+    language: csharp
+    framework: aspnet
+    folder: monitor-iot-data-usage-csharp
+
+  - product: iot
+    use_case: data-usage-monitoring
+    language: java
+    framework: spring
+    folder: monitor-iot-data-usage-java
+
+  - product: iot
+    use_case: data-usage-monitoring
+    language: php
+    framework: laravel
+    folder: monitor-iot-data-usage-php
+
+  # inbound-sip-routing (5)
+  - product: sip
+    use_case: inbound-sip-routing
+    language: go
+    framework: gin
+    folder: inbound-sip-routing-go
+
+  - product: sip
+    use_case: inbound-sip-routing
+    language: ruby
+    framework: sinatra
+    folder: inbound-sip-routing-ruby
+
+  - product: sip
+    use_case: inbound-sip-routing
+    language: csharp
+    framework: aspnet
+    folder: inbound-sip-routing-csharp
+
+  - product: sip
+    use_case: inbound-sip-routing
+    language: java
+    framework: spring
+    folder: inbound-sip-routing-java
+
+  - product: sip
+    use_case: inbound-sip-routing
+    language: php
+    framework: laravel
+    folder: inbound-sip-routing-php
+
+  # create-ai-assistant (5)
+  - product: ai
+    use_case: create-ai-assistant
+    language: go
+    framework: gin
+    folder: create-ai-assistant-go
+
+  - product: ai
+    use_case: create-ai-assistant
+    language: ruby
+    framework: sinatra
+    folder: create-ai-assistant-ruby
+
+  - product: ai
+    use_case: create-ai-assistant
+    language: csharp
+    framework: aspnet
+    folder: create-ai-assistant-csharp
+
+  - product: ai
+    use_case: create-ai-assistant
+    language: java
+    framework: spring
+    folder: create-ai-assistant-java
+
+  - product: ai
+    use_case: create-ai-assistant
+    language: php
+    framework: laravel
+    folder: create-ai-assistant-php
+
+  # list-ai-assistants (3 — csharp+php in Phase 1)
+  - product: ai
+    use_case: list-ai-assistants
+    language: go
+    framework: gin
+    folder: list-ai-assistants-go
+
+  - product: ai
+    use_case: list-ai-assistants
+    language: ruby
+    framework: sinatra
+    folder: list-ai-assistants-ruby
+
+  - product: ai
+    use_case: list-ai-assistants
+    language: java
+    framework: spring
+    folder: list-ai-assistants-java
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Phase 2, Tier C: Extend python-only use cases (22 examples)
+  # ─────────────────────────────────────────────────────────────────────
+
+  # call-transfer (6)
+  - product: voice
+    use_case: call-transfer
+    language: nodejs
+    framework: express
+    folder: transfer-live-phone-calls-nodejs
+
+  - product: voice
+    use_case: call-transfer
+    language: go
+    framework: gin
+    folder: transfer-live-phone-calls-go
+
+  - product: voice
+    use_case: call-transfer
+    language: ruby
+    framework: sinatra
+    folder: transfer-live-phone-calls-ruby
+
+  - product: voice
+    use_case: call-transfer
+    language: csharp
+    framework: aspnet
+    folder: transfer-live-phone-calls-csharp
+
+  - product: voice
+    use_case: call-transfer
+    language: java
+    framework: spring
+    folder: transfer-live-phone-calls-java
+
+  - product: voice
+    use_case: call-transfer
+    language: php
+    framework: laravel
+    folder: transfer-live-phone-calls-php
+
+  # conference-call (6)
+  - product: voice
+    use_case: conference-call
+    language: nodejs
+    framework: express
+    folder: build-conference-calling-nodejs
+
+  - product: voice
+    use_case: conference-call
+    language: go
+    framework: gin
+    folder: build-conference-calling-go
+
+  - product: voice
+    use_case: conference-call
+    language: ruby
+    framework: sinatra
+    folder: build-conference-calling-ruby
+
+  - product: voice
+    use_case: conference-call
+    language: php
+    framework: laravel
+    folder: build-conference-calling-php
+
+  # call-forwarding (6)
+  - product: voice
+    use_case: call-forwarding
+    language: nodejs
+    framework: express
+    folder: call-forwarding-nodejs
+
+  - product: voice
+    use_case: call-forwarding
+    language: go
+    framework: gin
+    folder: call-forwarding-go
+
+  - product: voice
+    use_case: call-forwarding
+    language: ruby
+    framework: sinatra
+    folder: call-forwarding-ruby
+
+  - product: voice
+    use_case: call-forwarding
+    language: csharp
+    framework: aspnet
+    folder: call-forwarding-csharp
+
+  - product: voice
+    use_case: call-forwarding
+    language: java
+    framework: spring
+    folder: call-forwarding-java
+
+  - product: voice
+    use_case: call-forwarding
+    language: php
+    framework: laravel
+    folder: call-forwarding-php
+
+  # inbound-call-webhook (3 — already have python, nodejs, go, ruby)
+  - product: voice
+    use_case: inbound-call-webhook
+    language: csharp
+    framework: aspnet
+    folder: route-phone-calls-to-ai-agent-csharp
+
+  - product: voice
+    use_case: inbound-call-webhook
+    language: java
+    framework: spring
+    folder: route-phone-calls-to-ai-agent-java
+
+  - product: voice
+    use_case: inbound-call-webhook
+    language: php
+    framework: laravel
+    folder: route-phone-calls-to-ai-agent-php
+
+  # whisper-prompt (1 — already have python)
+  - product: voice
+    use_case: whisper-prompt
+    language: nodejs
+    framework: express
+    folder: call-whisper-monitoring-nodejs

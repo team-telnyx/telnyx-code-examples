@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-06-23T21:53:53Z",
-  "example_count": 291,
+  "generated_at": "2026-06-24T14:49:25Z",
+  "example_count": 387,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -2624,6 +2624,870 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/merge-ticket-escalation-python"
+    },
+    {
+      "folder": "chat-with-ai-assistant-csharp",
+      "title": "Chat With Ai Assistant Csharp",
+      "description": "",
+      "product": "ai",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chat-with-ai-assistant-csharp"
+    },
+    {
+      "folder": "list-ai-assistants-csharp",
+      "title": "List Ai Assistants Csharp",
+      "description": "",
+      "product": "ai",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/list-ai-assistants-csharp"
+    },
+    {
+      "folder": "list-ai-assistants-php",
+      "title": "List Ai Assistants Php",
+      "description": "",
+      "product": "ai",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/list-ai-assistants-php"
+    },
+    {
+      "folder": "get-ai-assistant-python",
+      "title": "Get Ai Assistant Python",
+      "description": "",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/get-ai-assistant-python"
+    },
+    {
+      "folder": "iot-mqtt-messaging-python",
+      "title": "Iot Mqtt Messaging Python",
+      "description": "",
+      "product": "iot",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/iot-mqtt-messaging-python"
+    },
+    {
+      "folder": "sip-registration-go",
+      "title": "Sip Registration Go",
+      "description": "",
+      "product": "sip",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sip-registration-go"
+    },
+    {
+      "folder": "sip-registration-python",
+      "title": "Sip Registration Python",
+      "description": "",
+      "product": "sip",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sip-registration-python"
+    },
+    {
+      "folder": "sip-cnam-lookup-python",
+      "title": "Sip Cnam Lookup Python",
+      "description": "",
+      "product": "sip",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sip-cnam-lookup-python"
+    },
+    {
+      "folder": "voice-call-analytics-python",
+      "title": "Voice Call Analytics Python",
+      "description": "",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voice-call-analytics-python"
+    },
+    {
+      "folder": "call-compliance-python",
+      "title": "Call Compliance Python",
+      "description": "",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-compliance-python"
+    },
+    {
+      "folder": "hold-music-python",
+      "title": "Hold Music Python",
+      "description": "",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/hold-music-python"
+    },
+    {
+      "folder": "voicemail-python",
+      "title": "Voicemail Python",
+      "description": "",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voicemail-python"
+    },
+    {
+      "folder": "warm-transfer-python",
+      "title": "Warm Transfer Python",
+      "description": "",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/warm-transfer-python"
+    },
+    {
+      "folder": "receive-sms-webhook-go",
+      "title": "Receive Sms Webhook Go",
+      "description": "",
+      "product": "sms",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-sms-webhook-go"
+    },
+    {
+      "folder": "make-outbound-phone-call-go",
+      "title": "Make Outbound Phone Call Go",
+      "description": "",
+      "product": "voice",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/make-outbound-phone-call-go"
+    },
+    {
+      "folder": "send-bulk-sms-go",
+      "title": "Send Bulk Sms Go",
+      "description": "",
+      "product": "sms",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-bulk-sms-go"
+    },
+    {
+      "folder": "send-bulk-sms-ruby",
+      "title": "Send Bulk Sms Ruby",
+      "description": "",
+      "product": "sms",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-bulk-sms-ruby"
+    },
+    {
+      "folder": "send-bulk-sms-csharp",
+      "title": "Send Bulk Sms Csharp",
+      "description": "",
+      "product": "sms",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-bulk-sms-csharp"
+    },
+    {
+      "folder": "send-bulk-sms-java",
+      "title": "Send Bulk Sms Java",
+      "description": "",
+      "product": "sms",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-bulk-sms-java"
+    },
+    {
+      "folder": "send-bulk-sms-php",
+      "title": "Send Bulk Sms Php",
+      "description": "",
+      "product": "sms",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-bulk-sms-php"
+    },
+    {
+      "folder": "sms-two-factor-auth-go",
+      "title": "Sms Two Factor Auth Go",
+      "description": "",
+      "product": "sms",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-auth-go"
+    },
+    {
+      "folder": "sms-two-factor-auth-ruby",
+      "title": "Sms Two Factor Auth Ruby",
+      "description": "",
+      "product": "sms",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-auth-ruby"
+    },
+    {
+      "folder": "sms-two-factor-auth-csharp",
+      "title": "Sms Two Factor Auth Csharp",
+      "description": "",
+      "product": "sms",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-auth-csharp"
+    },
+    {
+      "folder": "sms-two-factor-auth-java",
+      "title": "Sms Two Factor Auth Java",
+      "description": "",
+      "product": "sms",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-auth-java"
+    },
+    {
+      "folder": "sms-two-factor-auth-php",
+      "title": "Sms Two Factor Auth Php",
+      "description": "",
+      "product": "sms",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-auth-php"
+    },
+    {
+      "folder": "send-mms-picture-message-go",
+      "title": "Send Mms Picture Message Go",
+      "description": "",
+      "product": "sms",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-mms-picture-message-go"
+    },
+    {
+      "folder": "send-mms-picture-message-ruby",
+      "title": "Send Mms Picture Message Ruby",
+      "description": "",
+      "product": "sms",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-mms-picture-message-ruby"
+    },
+    {
+      "folder": "send-mms-picture-message-csharp",
+      "title": "Send Mms Picture Message Csharp",
+      "description": "",
+      "product": "sms",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-mms-picture-message-csharp"
+    },
+    {
+      "folder": "send-mms-picture-message-java",
+      "title": "Send Mms Picture Message Java",
+      "description": "",
+      "product": "sms",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-mms-picture-message-java"
+    },
+    {
+      "folder": "send-mms-picture-message-php",
+      "title": "Send Mms Picture Message Php",
+      "description": "",
+      "product": "sms",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-mms-picture-message-php"
+    },
+    {
+      "folder": "sms-auto-reply-bot-go",
+      "title": "Sms Auto Reply Bot Go",
+      "description": "",
+      "product": "sms",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-auto-reply-bot-go"
+    },
+    {
+      "folder": "sms-auto-reply-bot-ruby",
+      "title": "Sms Auto Reply Bot Ruby",
+      "description": "",
+      "product": "sms",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-auto-reply-bot-ruby"
+    },
+    {
+      "folder": "sms-auto-reply-bot-csharp",
+      "title": "Sms Auto Reply Bot Csharp",
+      "description": "",
+      "product": "sms",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-auto-reply-bot-csharp"
+    },
+    {
+      "folder": "sms-auto-reply-bot-java",
+      "title": "Sms Auto Reply Bot Java",
+      "description": "",
+      "product": "sms",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-auto-reply-bot-java"
+    },
+    {
+      "folder": "sms-auto-reply-bot-php",
+      "title": "Sms Auto Reply Bot Php",
+      "description": "",
+      "product": "sms",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-auto-reply-bot-php"
+    },
+    {
+      "folder": "two-way-sms-chat-go",
+      "title": "Two Way Sms Chat Go",
+      "description": "",
+      "product": "sms",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/two-way-sms-chat-go"
+    },
+    {
+      "folder": "two-way-sms-chat-ruby",
+      "title": "Two Way Sms Chat Ruby",
+      "description": "",
+      "product": "sms",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/two-way-sms-chat-ruby"
+    },
+    {
+      "folder": "two-way-sms-chat-csharp",
+      "title": "Two Way Sms Chat Csharp",
+      "description": "",
+      "product": "sms",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/two-way-sms-chat-csharp"
+    },
+    {
+      "folder": "two-way-sms-chat-java",
+      "title": "Two Way Sms Chat Java",
+      "description": "",
+      "product": "sms",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/two-way-sms-chat-java"
+    },
+    {
+      "folder": "two-way-sms-chat-php",
+      "title": "Two Way Sms Chat Php",
+      "description": "",
+      "product": "sms",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/two-way-sms-chat-php"
+    },
+    {
+      "folder": "sms-delivery-receipts-go",
+      "title": "Sms Delivery Receipts Go",
+      "description": "",
+      "product": "sms",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-delivery-receipts-go"
+    },
+    {
+      "folder": "sms-delivery-receipts-ruby",
+      "title": "Sms Delivery Receipts Ruby",
+      "description": "",
+      "product": "sms",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-delivery-receipts-ruby"
+    },
+    {
+      "folder": "sms-delivery-receipts-csharp",
+      "title": "Sms Delivery Receipts Csharp",
+      "description": "",
+      "product": "sms",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-delivery-receipts-csharp"
+    },
+    {
+      "folder": "sms-delivery-receipts-java",
+      "title": "Sms Delivery Receipts Java",
+      "description": "",
+      "product": "sms",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-delivery-receipts-java"
+    },
+    {
+      "folder": "sms-delivery-receipts-php",
+      "title": "Sms Delivery Receipts Php",
+      "description": "",
+      "product": "sms",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-delivery-receipts-php"
+    },
+    {
+      "folder": "record-phone-calls-go",
+      "title": "Record Phone Calls Go",
+      "description": "",
+      "product": "voice",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/record-phone-calls-go"
+    },
+    {
+      "folder": "record-phone-calls-ruby",
+      "title": "Record Phone Calls Ruby",
+      "description": "",
+      "product": "voice",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/record-phone-calls-ruby"
+    },
+    {
+      "folder": "record-phone-calls-java",
+      "title": "Record Phone Calls Java",
+      "description": "",
+      "product": "voice",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/record-phone-calls-java"
+    },
+    {
+      "folder": "record-phone-calls-php",
+      "title": "Record Phone Calls Php",
+      "description": "",
+      "product": "voice",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/record-phone-calls-php"
+    },
+    {
+      "folder": "build-ivr-phone-menu-go",
+      "title": "Build Ivr Phone Menu Go",
+      "description": "",
+      "product": "voice",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-ivr-phone-menu-go"
+    },
+    {
+      "folder": "build-ivr-phone-menu-ruby",
+      "title": "Build Ivr Phone Menu Ruby",
+      "description": "",
+      "product": "voice",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-ivr-phone-menu-ruby"
+    },
+    {
+      "folder": "build-ivr-phone-menu-csharp",
+      "title": "Build Ivr Phone Menu Csharp",
+      "description": "",
+      "product": "voice",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-ivr-phone-menu-csharp"
+    },
+    {
+      "folder": "build-ivr-phone-menu-php",
+      "title": "Build Ivr Phone Menu Php",
+      "description": "",
+      "product": "voice",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-ivr-phone-menu-php"
+    },
+    {
+      "folder": "text-to-speech-phone-call-go",
+      "title": "Text To Speech Phone Call Go",
+      "description": "",
+      "product": "voice",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/text-to-speech-phone-call-go"
+    },
+    {
+      "folder": "text-to-speech-phone-call-ruby",
+      "title": "Text To Speech Phone Call Ruby",
+      "description": "",
+      "product": "voice",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/text-to-speech-phone-call-ruby"
+    },
+    {
+      "folder": "text-to-speech-phone-call-csharp",
+      "title": "Text To Speech Phone Call Csharp",
+      "description": "",
+      "product": "voice",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/text-to-speech-phone-call-csharp"
+    },
+    {
+      "folder": "text-to-speech-phone-call-java",
+      "title": "Text To Speech Phone Call Java",
+      "description": "",
+      "product": "voice",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/text-to-speech-phone-call-java"
+    },
+    {
+      "folder": "text-to-speech-phone-call-php",
+      "title": "Text To Speech Phone Call Php",
+      "description": "",
+      "product": "voice",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/text-to-speech-phone-call-php"
+    },
+    {
+      "folder": "monitor-iot-data-usage-go",
+      "title": "Monitor Iot Data Usage Go",
+      "description": "",
+      "product": "iot",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/monitor-iot-data-usage-go"
+    },
+    {
+      "folder": "monitor-iot-data-usage-ruby",
+      "title": "Monitor Iot Data Usage Ruby",
+      "description": "",
+      "product": "iot",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/monitor-iot-data-usage-ruby"
+    },
+    {
+      "folder": "monitor-iot-data-usage-csharp",
+      "title": "Monitor Iot Data Usage Csharp",
+      "description": "",
+      "product": "iot",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/monitor-iot-data-usage-csharp"
+    },
+    {
+      "folder": "monitor-iot-data-usage-java",
+      "title": "Monitor Iot Data Usage Java",
+      "description": "",
+      "product": "iot",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/monitor-iot-data-usage-java"
+    },
+    {
+      "folder": "monitor-iot-data-usage-php",
+      "title": "Monitor Iot Data Usage Php",
+      "description": "",
+      "product": "iot",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/monitor-iot-data-usage-php"
+    },
+    {
+      "folder": "inbound-sip-routing-go",
+      "title": "Inbound Sip Routing Go",
+      "description": "",
+      "product": "sip",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/inbound-sip-routing-go"
+    },
+    {
+      "folder": "inbound-sip-routing-ruby",
+      "title": "Inbound Sip Routing Ruby",
+      "description": "",
+      "product": "sip",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/inbound-sip-routing-ruby"
+    },
+    {
+      "folder": "inbound-sip-routing-csharp",
+      "title": "Inbound Sip Routing Csharp",
+      "description": "",
+      "product": "sip",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/inbound-sip-routing-csharp"
+    },
+    {
+      "folder": "inbound-sip-routing-java",
+      "title": "Inbound Sip Routing Java",
+      "description": "",
+      "product": "sip",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/inbound-sip-routing-java"
+    },
+    {
+      "folder": "inbound-sip-routing-php",
+      "title": "Inbound Sip Routing Php",
+      "description": "",
+      "product": "sip",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/inbound-sip-routing-php"
+    },
+    {
+      "folder": "create-ai-assistant-go",
+      "title": "Create Ai Assistant Go",
+      "description": "",
+      "product": "ai",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/create-ai-assistant-go"
+    },
+    {
+      "folder": "create-ai-assistant-ruby",
+      "title": "Create Ai Assistant Ruby",
+      "description": "",
+      "product": "ai",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/create-ai-assistant-ruby"
+    },
+    {
+      "folder": "create-ai-assistant-csharp",
+      "title": "Create Ai Assistant Csharp",
+      "description": "",
+      "product": "ai",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/create-ai-assistant-csharp"
+    },
+    {
+      "folder": "create-ai-assistant-java",
+      "title": "Create Ai Assistant Java",
+      "description": "",
+      "product": "ai",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/create-ai-assistant-java"
+    },
+    {
+      "folder": "create-ai-assistant-php",
+      "title": "Create Ai Assistant Php",
+      "description": "",
+      "product": "ai",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/create-ai-assistant-php"
+    },
+    {
+      "folder": "list-ai-assistants-go",
+      "title": "List Ai Assistants Go",
+      "description": "",
+      "product": "ai",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/list-ai-assistants-go"
+    },
+    {
+      "folder": "list-ai-assistants-ruby",
+      "title": "List Ai Assistants Ruby",
+      "description": "",
+      "product": "ai",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/list-ai-assistants-ruby"
+    },
+    {
+      "folder": "list-ai-assistants-java",
+      "title": "List Ai Assistants Java",
+      "description": "",
+      "product": "ai",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/list-ai-assistants-java"
+    },
+    {
+      "folder": "transfer-live-phone-calls-nodejs",
+      "title": "Transfer Live Phone Calls Nodejs",
+      "description": "",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/transfer-live-phone-calls-nodejs"
+    },
+    {
+      "folder": "transfer-live-phone-calls-go",
+      "title": "Transfer Live Phone Calls Go",
+      "description": "",
+      "product": "voice",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/transfer-live-phone-calls-go"
+    },
+    {
+      "folder": "transfer-live-phone-calls-ruby",
+      "title": "Transfer Live Phone Calls Ruby",
+      "description": "",
+      "product": "voice",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/transfer-live-phone-calls-ruby"
+    },
+    {
+      "folder": "transfer-live-phone-calls-csharp",
+      "title": "Transfer Live Phone Calls Csharp",
+      "description": "",
+      "product": "voice",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/transfer-live-phone-calls-csharp"
+    },
+    {
+      "folder": "transfer-live-phone-calls-java",
+      "title": "Transfer Live Phone Calls Java",
+      "description": "",
+      "product": "voice",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/transfer-live-phone-calls-java"
+    },
+    {
+      "folder": "transfer-live-phone-calls-php",
+      "title": "Transfer Live Phone Calls Php",
+      "description": "",
+      "product": "voice",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/transfer-live-phone-calls-php"
+    },
+    {
+      "folder": "build-conference-calling-nodejs",
+      "title": "Build Conference Calling Nodejs",
+      "description": "",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-conference-calling-nodejs"
+    },
+    {
+      "folder": "build-conference-calling-go",
+      "title": "Build Conference Calling Go",
+      "description": "",
+      "product": "voice",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-conference-calling-go"
+    },
+    {
+      "folder": "build-conference-calling-ruby",
+      "title": "Build Conference Calling Ruby",
+      "description": "",
+      "product": "voice",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-conference-calling-ruby"
+    },
+    {
+      "folder": "build-conference-calling-php",
+      "title": "Build Conference Calling Php",
+      "description": "",
+      "product": "voice",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-conference-calling-php"
+    },
+    {
+      "folder": "call-forwarding-nodejs",
+      "title": "Call Forwarding Nodejs",
+      "description": "",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-forwarding-nodejs"
+    },
+    {
+      "folder": "call-forwarding-go",
+      "title": "Call Forwarding Go",
+      "description": "",
+      "product": "voice",
+      "language": "go",
+      "framework": "gin",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-forwarding-go"
+    },
+    {
+      "folder": "call-forwarding-ruby",
+      "title": "Call Forwarding Ruby",
+      "description": "",
+      "product": "voice",
+      "language": "ruby",
+      "framework": "sinatra",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-forwarding-ruby"
+    },
+    {
+      "folder": "call-forwarding-csharp",
+      "title": "Call Forwarding Csharp",
+      "description": "",
+      "product": "voice",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-forwarding-csharp"
+    },
+    {
+      "folder": "call-forwarding-java",
+      "title": "Call Forwarding Java",
+      "description": "",
+      "product": "voice",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-forwarding-java"
+    },
+    {
+      "folder": "call-forwarding-php",
+      "title": "Call Forwarding Php",
+      "description": "",
+      "product": "voice",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-forwarding-php"
+    },
+    {
+      "folder": "route-phone-calls-to-ai-agent-csharp",
+      "title": "Route Phone Calls To Ai Agent Csharp",
+      "description": "",
+      "product": "voice",
+      "language": "csharp",
+      "framework": "aspnet",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/route-phone-calls-to-ai-agent-csharp"
+    },
+    {
+      "folder": "route-phone-calls-to-ai-agent-java",
+      "title": "Route Phone Calls To Ai Agent Java",
+      "description": "",
+      "product": "voice",
+      "language": "java",
+      "framework": "spring",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/route-phone-calls-to-ai-agent-java"
+    },
+    {
+      "folder": "route-phone-calls-to-ai-agent-php",
+      "title": "Route Phone Calls To Ai Agent Php",
+      "description": "",
+      "product": "voice",
+      "language": "php",
+      "framework": "laravel",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/route-phone-calls-to-ai-agent-php"
+    },
+    {
+      "folder": "call-whisper-monitoring-nodejs",
+      "title": "Call Whisper Monitoring Nodejs",
+      "description": "",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-whisper-monitoring-nodejs"
     }
   ]
 }

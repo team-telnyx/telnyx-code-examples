@@ -1,0 +1,5 @@
+flask
+paho-mqtt
+python-dotenv
+requests
+telnyx
