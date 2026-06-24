@@ -25,7 +25,7 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
-<summary><h2>Voice AI</h2> <em>(111 examples)</em></summary>
+<summary><h2>Voice AI</h2> <em>(141 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
@@ -45,7 +45,9 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [build-ivr-phone-menu-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-ivr-phone-menu-ruby/README.md) | Ruby | --- |
 | [bulk-number-validation-cleaner-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/bulk-number-validation-cleaner-python/README.md) | Python | Bulk Number Validation & Cleaner - validate and clean phone number lists via Telnyx Number Lookup API. |
 | [call-analytics-dashboard-api-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-analytics-dashboard-api-python/README.md) | Python | Pull call detail records from the Telnyx API and expose call usage analytics through a dashboard API. |
+| [call-compliance-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-compliance-go/README.md) | Go | --- |
 | [call-compliance-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-compliance-python/README.md) | Python | --- |
+| [call-compliance-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-compliance-ruby/README.md) | Ruby | --- |
 | [call-forwarding-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-forwarding-csharp/README.md) | C# | --- |
 | [call-forwarding-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-forwarding-go/README.md) | Go | --- |
 | [call-forwarding-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-forwarding-java/README.md) | Java | --- |
@@ -55,8 +57,13 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [call-forwarding-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-forwarding-ruby/README.md) | Ruby | --- |
 | [call-queue-with-hold-music-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-queue-with-hold-music-python/README.md) | Python | Call Queue with Hold Music - queue callers with position announcements and hold music, route to agents. |
 | [call-sentiment-live-escalation-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-sentiment-live-escalation-python/README.md) | Python | Call Sentiment Live Escalation - monitor call transcripts in real-time. When negative sentiment or distress is detected, auto-escalate to a supervisor. |
+| [call-whisper-monitoring-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-whisper-monitoring-csharp/README.md) | C# | --- |
+| [call-whisper-monitoring-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-whisper-monitoring-go/README.md) | Go | --- |
+| [call-whisper-monitoring-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-whisper-monitoring-java/README.md) | Java | --- |
 | [call-whisper-monitoring-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-whisper-monitoring-nodejs/README.md) | Node.js | --- |
+| [call-whisper-monitoring-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-whisper-monitoring-php/README.md) | PHP | --- |
 | [call-whisper-monitoring-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-whisper-monitoring-python/README.md) | Python | Monitor calls with whisper prompts for agents. |
+| [call-whisper-monitoring-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-whisper-monitoring-ruby/README.md) | Ruby | --- |
 | [call-whisper-screen-pop-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-whisper-screen-pop-python/README.md) | Python | Call Whisper & Screen Pop - whisper caller info to agent before connecting the call. |
 | [cloud-storage-call-archive-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/cloud-storage-call-archive-python/README.md) | Python | Cloud Storage Call Archive - archive call recordings to Telnyx Cloud Storage (S3-compatible) with searchable metadata. |
 | [cnam-caller-id-lookup-enrichment-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/cnam-caller-id-lookup-enrichment-python/README.md) | Python | CNAM Caller ID Lookup Enrichment - look up CNAM for inbound callers, enrich CRM records with caller identity. |
@@ -74,7 +81,13 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [edge-voicemail-to-action-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-voicemail-to-action-python/README.md) | Python | AI-powered voicemail triage at the edge. |
 | [edge-webhook-aggregator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-webhook-aggregator-python/README.md) | Python | Multi-tenant webhook consolidation at the edge. |
 | [fax-to-structured-data-pipeline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/fax-to-structured-data-pipeline-python/README.md) | Python | Fax-to-Structured-Data Pipeline - receive faxes, AI extracts structured data (invoices, orders, prescriptions) into JSON. |
+| [hold-music-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-csharp/README.md) | C# | --- |
+| [hold-music-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-go/README.md) | Go | --- |
+| [hold-music-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-java/README.md) | Java | --- |
+| [hold-music-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-nodejs/README.md) | Node.js | --- |
+| [hold-music-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-php/README.md) | PHP | --- |
 | [hold-music-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-python/README.md) | Python | --- |
+| [hold-music-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-ruby/README.md) | Ruby | --- |
 | [live-podcast-call-in-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/live-podcast-call-in-python/README.md) | Python | Hosts on a conference call, listeners call in. AI screens callers via STT, queues approved ones, generates real-time fact-checks for the host, TTS announces topics. |
 | [make-outbound-phone-call-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-csharp/README.md) | C# | Place an outbound phone call with the Telnyx Call Control API using C# and ASP.NET. |
 | [make-outbound-phone-call-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-go/README.md) | Go | --- |
@@ -103,6 +116,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [porting-loa-automation-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/porting-loa-automation-python/README.md) | Python | Porting LOA Automation - automate Letter of Authorization generation and porting order submission. |
 | [porting-order-tracker-dashboard-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/porting-order-tracker-dashboard-python/README.md) | Python | Submit, track, and manage number porting orders with SLA monitoring, timeline visualization, and bulk operations. |
 | [real-time-call-intelligence-dashboard-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/real-time-call-intelligence-dashboard-python/README.md) | Python | Real-Time Call Intelligence Dashboard - live transcription, sentiment analysis, and competitor detection. |
+| [record-phone-calls-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/record-phone-calls-csharp/README.md) | C# | --- |
 | [record-phone-calls-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/record-phone-calls-go/README.md) | Go | --- |
 | [record-phone-calls-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/record-phone-calls-java/README.md) | Java | --- |
 | [record-phone-calls-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/record-phone-calls-nodejs/README.md) | Node.js | Initiate outbound calls and control call recording using the Telnyx Voice API with Express. Handles call lifecycle webhooks and recording start/stop. |
@@ -134,19 +148,35 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [transfer-live-phone-calls-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/transfer-live-phone-calls-ruby/README.md) | Ruby | --- |
 | [video-voiceover-replacement-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/video-voiceover-replacement-python/README.md) | Python | Upload audio with existing voice-over. STT extracts the script, AI rewrites/improves it (5 modes: polish, professional, simplify, energize, shorten), TTS re-records with studio quality. |
 | [video-webinar-recording-manager-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/video-webinar-recording-manager-python/README.md) | Python | Video Webinar Recording Manager - manage video room webinars with automatic recording, transcription, and clip extraction. |
+| [voice-call-analytics-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-call-analytics-go/README.md) | Go | --- |
+| [voice-call-analytics-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-call-analytics-nodejs/README.md) | Node.js | --- |
+| [voice-call-analytics-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-call-analytics-php/README.md) | PHP | --- |
 | [voice-call-analytics-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-call-analytics-python/README.md) | Python | --- |
+| [voice-call-analytics-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-call-analytics-ruby/README.md) | Ruby | --- |
 | [voice-to-slack-bridge-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-to-slack-bridge-python/README.md) | Python | Voice-to-Slack Bridge - call a phone number, speak a message, AI transcribes and posts to Slack with urgency tagging. |
 | [voice-verified-identity-2fa-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-verified-identity-2fa-python/README.md) | Python | Voice-Verified Identity + 2FA - Number Lookup, SMS OTP, and AI-assisted secure transactions. |
+| [voicemail-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-csharp/README.md) | C# | --- |
+| [voicemail-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-go/README.md) | Go | --- |
+| [voicemail-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-java/README.md) | Java | --- |
+| [voicemail-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-nodejs/README.md) | Node.js | --- |
+| [voicemail-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-php/README.md) | PHP | --- |
 | [voicemail-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-python/README.md) | Python | --- |
+| [voicemail-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-ruby/README.md) | Ruby | --- |
 | [voiceover-audition-generator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voiceover-audition-generator-python/README.md) | Python | Submit a script, hear it read by every available TTS voice. AI scores and ranks best-fit voices based on content, tone, and audience. SMS delivers top picks to decision-makers. |
+| [warm-transfer-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-csharp/README.md) | C# | --- |
+| [warm-transfer-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-go/README.md) | Go | --- |
+| [warm-transfer-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-java/README.md) | Java | --- |
+| [warm-transfer-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-nodejs/README.md) | Node.js | --- |
+| [warm-transfer-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-php/README.md) | PHP | --- |
 | [warm-transfer-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-python/README.md) | Python | --- |
+| [warm-transfer-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-ruby/README.md) | Ruby | --- |
 | [webrtc-browser-calling-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webrtc-browser-calling-python/README.md) | Python | Enable browser-based calling with WebRTC. |
 | [wireguard-private-voice-network-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/wireguard-private-voice-network-python/README.md) | Python | WireGuard Private Voice Network - create WireGuard mesh network for private SIP trunking with encrypted voice traffic. |
 
 </details>
 
 <details open>
-<summary><h2>SMS & MMS</h2> <em>(132 examples)</em></summary>
+<summary><h2>SMS & MMS</h2> <em>(162 examples)</em></summary>
 
 Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/products/sms-api) - build autoresponders, implement 2FA, and manage bulk messaging campaigns.
 
@@ -192,14 +222,26 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [multi-language-customer-survey-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-language-customer-survey-python/README.md) | Python | Multi-Language Customer Survey - outbound voice surveys in the caller's language with AI analysis. |
 | [patient-appointment-engine-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/patient-appointment-engine-python/README.md) | Python | AI answers calls, checks availability, books appointments, collects copay via Stripe, sends SMS confirmation. Staff reviews next-day schedule. |
 | [payment-reminder-escalation-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/payment-reminder-escalation-python/README.md) | Python | Invoice overdue: day 1 SMS, day 7 voice call with payment link, day 14 escalation to collections with full context. Integrates with Stripe/QuickBooks. |
+| [phone-number-lookup-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-number-lookup-csharp/README.md) | C# | --- |
+| [phone-number-lookup-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-number-lookup-go/README.md) | Go | --- |
+| [phone-number-lookup-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-number-lookup-java/README.md) | Java | --- |
+| [phone-number-lookup-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-number-lookup-nodejs/README.md) | Node.js | --- |
+| [phone-number-lookup-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-number-lookup-php/README.md) | PHP | --- |
 | [phone-number-lookup-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-number-lookup-python/README.md) | Python | Look up carrier, line type, and portability data for any phone number using the Telnyx Number Lookup API, with a 24-hour in-memory cache. |
+| [phone-number-lookup-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-number-lookup-ruby/README.md) | Ruby | --- |
 | [podcast-episode-repurposer-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/podcast-episode-repurposer-python/README.md) | Python | Upload a recorded episode, STT transcribes, AI Inference extracts key quotes and topics, TTS generates audiogram clips with different voices, SMS distributes clips to subscribers. |
 | [podcast-highlight-clipper-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/podcast-highlight-clipper-python/README.md) | Python | Upload audio, STT + AI Inference identifies viral moments with virality scoring, TTS generates teaser intros for each clip, SMS distributes highlights to subscriber list. |
 | [post-service-followup-engine-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/post-service-followup-engine-python/README.md) | Python | After appointment, SMS satisfaction survey. Negative responses trigger AI voice callback to understand the issue, then creates ticket in Jira and alerts manager via Slack. |
 | [prescription-refill-line-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/prescription-refill-line-python/README.md) | Python | Patient calls, AI verifies identity (DOB + last 4 of phone), checks refill eligibility, sends approval to pharmacist via Slack. Pharmacist approves/denies, patient gets SMS. |
 | [programmable-hold-experience-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/programmable-hold-experience-python/README.md) | Python | Programmable Hold Experience - custom hold experiences: tips, trivia, estimated wait time, callback offers. |
 | [rcs-rich-card-product-catalog-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/rcs-rich-card-product-catalog-python/README.md) | Python | RCS Rich Card Product Catalog - AI-powered product recommendations with rich cards and carousels. |
+| [receive-mms-webhook-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-mms-webhook-csharp/README.md) | C# | --- |
+| [receive-mms-webhook-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-mms-webhook-go/README.md) | Go | --- |
+| [receive-mms-webhook-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-mms-webhook-java/README.md) | Java | --- |
+| [receive-mms-webhook-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-mms-webhook-nodejs/README.md) | Node.js | --- |
+| [receive-mms-webhook-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-mms-webhook-php/README.md) | PHP | --- |
 | [receive-mms-webhook-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-mms-webhook-python/README.md) | Python | Receive inbound MMS messages with a Telnyx webhook, verify the signature, and download media attachments. |
+| [receive-mms-webhook-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-mms-webhook-ruby/README.md) | Ruby | --- |
 | [receive-sms-webhook-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-csharp/README.md) | C# | Receive inbound SMS via webhook with Ed25519 signature verification using C# and ASP.NET. |
 | [receive-sms-webhook-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-go/README.md) | Go | --- |
 | [receive-sms-webhook-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-java/README.md) | Java | Receive inbound SMS via Telnyx webhooks with a JDK HttpServer, verifying the Ed25519 signature before reading data.payload. |
@@ -209,7 +251,13 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [receive-sms-webhook-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-ruby/README.md) | Ruby | Receive inbound SMS messages via Telnyx webhooks with a Sinatra server, verifying the Telnyx Ed25519 signature before trusting any payload. |
 | [rent-collection-escalation-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/rent-collection-escalation-python/README.md) | Python | Automated multi-channel rent reminders. Day 1: SMS + Stripe payment link. Day 3: voice call. Day 7: late fee notice. Day 14: manager escalation. |
 | [returns-processor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/returns-processor-python/README.md) | Python | Customer texts photo of defective item via MMS, AI evaluates damage, auto-approves low-value refunds via Stripe, escalates high-value to team lead. |
+| [schedule-sms-messages-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/schedule-sms-messages-csharp/README.md) | C# | --- |
+| [schedule-sms-messages-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/schedule-sms-messages-go/README.md) | Go | --- |
+| [schedule-sms-messages-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/schedule-sms-messages-java/README.md) | Java | --- |
+| [schedule-sms-messages-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/schedule-sms-messages-nodejs/README.md) | Node.js | --- |
+| [schedule-sms-messages-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/schedule-sms-messages-php/README.md) | PHP | --- |
 | [schedule-sms-messages-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/schedule-sms-messages-python/README.md) | Python | Schedule SMS messages to be sent at a future time with the Telnyx Messaging API, backed by an APScheduler job store and a Flask job-management API. |
+| [schedule-sms-messages-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/schedule-sms-messages-ruby/README.md) | Ruby | --- |
 | [send-bulk-sms-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-bulk-sms-csharp/README.md) | C# | --- |
 | [send-bulk-sms-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-bulk-sms-go/README.md) | Go | --- |
 | [send-bulk-sms-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-bulk-sms-java/README.md) | Java | --- |
@@ -228,7 +276,13 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [send-sms-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-go/README.md) | Go | Send an SMS message using the Telnyx Messaging API and Go SDK, exposed over a Gin HTTP endpoint. |
 | [send-sms-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-java/README.md) | Java | Send an SMS message using the Telnyx Messaging API and Java SDK, exposed over a JDK HttpServer endpoint. |
 | [send-sms-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-nodejs/README.md) | Node.js | Send an SMS message using the Telnyx Messaging API with a Node.js and Express endpoint. |
+| [send-sms-notifications-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-notifications-csharp/README.md) | C# | --- |
+| [send-sms-notifications-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-notifications-go/README.md) | Go | --- |
+| [send-sms-notifications-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-notifications-java/README.md) | Java | --- |
+| [send-sms-notifications-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-notifications-nodejs/README.md) | Node.js | --- |
+| [send-sms-notifications-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-notifications-php/README.md) | PHP | --- |
 | [send-sms-notifications-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-notifications-python/README.md) | Python | Production-ready Flask service that sends SMS notifications, tracks delivery status via webhooks, and exposes a small REST API. |
+| [send-sms-notifications-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-notifications-ruby/README.md) | Ruby | --- |
 | [send-sms-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-php/README.md) | PHP | Send an SMS message using the Telnyx Messaging API and the Telnyx PHP SDK, exposed through a vanilla PHP front controller. |
 | [send-sms-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-python/README.md) | Python | Send an SMS message using the Telnyx Messaging API. Supports delivery status webhooks. |
 | [send-sms-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-ruby/README.md) | Ruby | Send an SMS message using the Telnyx Messaging API and the Telnyx Ruby SDK, exposed through a Rails controller endpoint. |
@@ -260,7 +314,13 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [sms-marketing-campaign-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-marketing-campaign-python/README.md) | Python | Run bulk SMS marketing campaigns with Flask and the Telnyx Messaging API - create campaigns, send rate-limited batches, and track delivery via webhooks. |
 | [sms-opt-out-management-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-opt-out-management-python/README.md) | Python | Manage SMS opt-out preferences with Telnyx. Auto-handles STOP/UNSUBSCRIBE replies via verified inbound webhooks, blocks messages to opted-out numbers, and keeps an auditable opt-out list in SQLite. |
 | [sms-poll-voting-system-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-poll-voting-system-python/README.md) | Python | Text-to-vote polling with real-time results. |
+| [sms-survey-bot-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-survey-bot-csharp/README.md) | C# | --- |
+| [sms-survey-bot-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-survey-bot-go/README.md) | Go | --- |
+| [sms-survey-bot-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-survey-bot-java/README.md) | Java | --- |
+| [sms-survey-bot-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-survey-bot-nodejs/README.md) | Node.js | --- |
+| [sms-survey-bot-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-survey-bot-php/README.md) | PHP | --- |
 | [sms-survey-bot-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-survey-bot-python/README.md) | Python | Run multi-question SMS surveys over the Telnyx Messaging API. Sends questions, validates inbound replies via signed webhooks, tracks per-participant progress, and exposes results. |
+| [sms-survey-bot-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-survey-bot-ruby/README.md) | Ruby | --- |
 | [sms-trivia-game-tournament-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-trivia-game-tournament-python/README.md) | Python | SMS Trivia Game Tournament - multi-player trivia via SMS. Players join, answer timed questions, scores tracked on a live leaderboard. |
 | [sms-two-factor-auth-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-two-factor-auth-csharp/README.md) | C# | --- |
 | [sms-two-factor-auth-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-two-factor-auth-go/README.md) | Go | --- |
@@ -288,7 +348,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(100 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(106 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -353,7 +413,13 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [chat-with-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-python/README.md) | Python | Send messages to a Telnyx AI Assistant and receive responses. Supports conversation history and streaming. |
 | [chat-with-ai-assistant-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-ruby/README.md) | Ruby | Chat with a Telnyx AI Assistant and maintain conversation context over a production-ready Sinatra endpoint using the Telnyx Ruby SDK. |
 | [click-to-call-webrtc-with-ai-assist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/click-to-call-webrtc-with-ai-assist-python/README.md) | Python | Click-to-Call WebRTC with AI Assist - browser-based calling with real-time AI coaching sidebar. |
+| [clone-ai-assistant-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-csharp/README.md) | C# | --- |
+| [clone-ai-assistant-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-go/README.md) | Go | --- |
+| [clone-ai-assistant-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-java/README.md) | Java | --- |
+| [clone-ai-assistant-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-nodejs/README.md) | Node.js | --- |
+| [clone-ai-assistant-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-php/README.md) | PHP | --- |
 | [clone-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-python/README.md) | Python | Clone an existing AI assistant configuration. |
+| [clone-ai-assistant-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-ruby/README.md) | Ruby | --- |
 | [compliance-call-recorder-ai-auditor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/compliance-call-recorder-ai-auditor-python/README.md) | Python | Compliance Call Recorder + AI Auditor - auto-record, batch-process with AI, flag violations, create tickets. |
 | [conference-call-with-ai-summary-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/conference-call-with-ai-summary-python/README.md) | Python | Conference Call with AI Summary - multi-party conference with transcription and AI post-call summary. |
 | [create-ai-assistant-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-csharp/README.md) | C# | --- |
@@ -398,7 +464,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 </details>
 
 <details open>
-<summary><h2>SIP Trunking</h2> <em>(21 examples)</em></summary>
+<summary><h2>SIP Trunking</h2> <em>(35 examples)</em></summary>
 
 Connect your PBX or SBC to [Telnyx SIP Trunking](https://telnyx.com/products/sip-trunks) - trunk setup, inbound routing, failover, and codec configuration.
 
@@ -419,17 +485,31 @@ Connect your PBX or SBC to [Telnyx SIP Trunking](https://telnyx.com/products/sip
 | [setup-sip-trunk-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-sip-trunk-php/README.md) | PHP | Create, list, and retrieve a Telnyx credential (SIP) connection using the Telnyx PHP SDK over a vanilla PHP front controller. |
 | [setup-sip-trunk-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-sip-trunk-python/README.md) | Python | Provision and configure a SIP trunk connection on Telnyx with codec preferences, authentication, and failover. |
 | [setup-sip-trunk-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-sip-trunk-ruby/README.md) | Ruby | Create, list, and retrieve credential-authenticated SIP connections using the Telnyx SIP Trunking API with Ruby and Sinatra. |
+| [sip-cnam-lookup-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-cnam-lookup-csharp/README.md) | C# | --- |
+| [sip-cnam-lookup-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-cnam-lookup-go/README.md) | Go | --- |
+| [sip-cnam-lookup-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-cnam-lookup-java/README.md) | Java | --- |
+| [sip-cnam-lookup-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-cnam-lookup-nodejs/README.md) | Node.js | --- |
+| [sip-cnam-lookup-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-cnam-lookup-php/README.md) | PHP | --- |
 | [sip-cnam-lookup-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-cnam-lookup-python/README.md) | Python | --- |
+| [sip-cnam-lookup-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-cnam-lookup-ruby/README.md) | Ruby | --- |
+| [sip-failover-routing-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-failover-routing-go/README.md) | Go | --- |
+| [sip-failover-routing-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-failover-routing-nodejs/README.md) | Node.js | --- |
 | [sip-failover-routing-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-failover-routing-python/README.md) | Python | Configure failover routing for SIP connections. |
+| [sip-failover-routing-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-failover-routing-ruby/README.md) | Ruby | --- |
 | [sip-load-balancer-health-check-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-load-balancer-health-check-python/README.md) | Python | SIP Load Balancer Health Check - monitor SIP trunk health across multiple endpoints, auto-failover to healthy trunks, track uptime metrics. |
+| [sip-registration-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-registration-csharp/README.md) | C# | --- |
 | [sip-registration-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-registration-go/README.md) | Go | --- |
+| [sip-registration-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-registration-java/README.md) | Java | --- |
+| [sip-registration-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-registration-nodejs/README.md) | Node.js | --- |
+| [sip-registration-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-registration-php/README.md) | PHP | --- |
 | [sip-registration-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-registration-python/README.md) | Python | --- |
+| [sip-registration-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-registration-ruby/README.md) | Ruby | --- |
 | [sip-trunking-failover-monitor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sip-trunking-failover-monitor-python/README.md) | Python | SIP Trunking Failover Monitor - health-check SIP connections, auto-failover, SMS alerts. |
 
 </details>
 
 <details open>
-<summary><h2>IoT & SIM Management</h2> <em>(23 examples)</em></summary>
+<summary><h2>IoT & SIM Management</h2> <em>(34 examples)</em></summary>
 
 Activate SIM cards, monitor data usage, provision eSIMs, and track device locations with the [Telnyx IoT platform](https://telnyx.com/products/iot-sim-card).
 
@@ -453,9 +533,20 @@ Activate SIM cards, monitor data usage, provision eSIMs, and track device locati
 | [monitor-iot-data-usage-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/monitor-iot-data-usage-php/README.md) | PHP | --- |
 | [monitor-iot-data-usage-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/monitor-iot-data-usage-python/README.md) | Python | Production-ready Flask application for monitoring SIM card data usage via Telnyx IoT API. |
 | [monitor-iot-data-usage-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/monitor-iot-data-usage-ruby/README.md) | Ruby | --- |
+| [provision-esim-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-esim-go/README.md) | Go | --- |
+| [provision-esim-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-esim-java/README.md) | Java | --- |
+| [provision-esim-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-esim-nodejs/README.md) | Node.js | --- |
+| [provision-esim-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-esim-php/README.md) | PHP | --- |
 | [provision-esim-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-esim-python/README.md) | Python | Provision eSIM profiles over the air. |
+| [provision-esim-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-esim-ruby/README.md) | Ruby | --- |
 | [sim-fleet-data-usage-anomaly-detector-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sim-fleet-data-usage-anomaly-detector-python/README.md) | Python | SIM Fleet Data Usage Anomaly Detector - monitor IoT SIM usage, AI detects anomalies, SMS alerts. |
+| [track-iot-device-location-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-csharp/README.md) | C# | --- |
+| [track-iot-device-location-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-go/README.md) | Go | --- |
+| [track-iot-device-location-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-java/README.md) | Java | --- |
+| [track-iot-device-location-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-nodejs/README.md) | Node.js | --- |
+| [track-iot-device-location-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-php/README.md) | PHP | --- |
 | [track-iot-device-location-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-python/README.md) | Python | Production-ready Flask application for device location tracking via Telnyx IoT API. |
+| [track-iot-device-location-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-ruby/README.md) | Ruby | --- |
 | [voice-activated-iot-command-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-activated-iot-command-python/README.md) | Python | Voice-Activated IoT Command - call a number, speak commands to control IoT devices. AI interprets natural language into device actions dispatched via SIM API. |
 | [wireless-fleet-activation-portal-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/wireless-fleet-activation-portal-python/README.md) | Python | Bulk activate SIMs with status tracking. |
 
