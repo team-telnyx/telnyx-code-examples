@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-06-25T14:44:19Z",
-  "example_count": 479,
+  "generated_at": "2026-06-25T16:59:15Z",
+  "example_count": 480,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -104,6 +104,15 @@
       "language": "nodejs",
       "framework": "express",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/route-phone-calls-to-ai-agent-nodejs"
+    },
+    {
+      "folder": "provisional-telnyx-voice-api-agents-nodejs",
+      "title": "Provisional Agents with Telnyx Voice API",
+      "description": "Start one reusable Telnyx AI Assistant on Telnyx Voice API calls with runtime business instructions selected by the called phone number.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/provisional-telnyx-voice-api-agents-nodejs"
     },
     {
       "folder": "make-outbound-phone-call-nodejs",

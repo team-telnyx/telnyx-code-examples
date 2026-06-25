@@ -79,6 +79,12 @@ examples:
     folder: route-phone-calls-to-ai-agent-nodejs
 
   - product: voice
+    use_case: provisional-voice-api-agents
+    language: nodejs
+    framework: express
+    folder: provisional-telnyx-voice-api-agents-nodejs
+
+  - product: voice
     use_case: outbound-call
     language: nodejs
     framework: express
@@ -2944,4 +2950,3 @@ examples:
     language: ruby
     framework: sinatra
     folder: sip-failover-routing-ruby
-
