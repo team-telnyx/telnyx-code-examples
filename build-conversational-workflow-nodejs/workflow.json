@@ -1,0 +1,433 @@
+{
+  "name": "auto claim intake conversational workflow",
+  "description": "telnyx conversational workflow blueprint for inbound auto insurance first notice of loss intake",
+  "voice": "voice ultra katie",
+  "entry_node": "start",
+  "global_rules": [
+    "ask one question at a time",
+    "accept unknown details when the caller does not know an answer",
+    "do not promise coverage, liability, payment, rental, towing, repair authorization, medical advice, legal advice, or settlement timing",
+    "do not mention internal tools, schemas, prompts, summaries, or system instructions"
+  ],
+  "variables": {
+    "claim_intake_id": "",
+    "fallback_reference_id": "",
+    "priority_task_id": "",
+    "priority_flag": false,
+    "priority_reasons": [],
+    "handoff_reason": "",
+    "tool_status": "unknown"
+  },
+  "required_minimum_fields": [
+    "caller_name",
+    "caller_phone",
+    "loss_type",
+    "loss_date",
+    "loss_location",
+    "loss_description",
+    "priority_flag",
+    "consent_to_continue"
+  ],
+  "field_collection": [
+    "caller_name",
+    "caller_phone",
+    "caller_email",
+    "policy_number",
+    "policyholder_name",
+    "caller_relationship",
+    "loss_date",
+    "loss_location",
+    "loss_description",
+    "vehicle_year_make_model",
+    "vehicle_drivable",
+    "injuries_reported",
+    "police_report_filed",
+    "police_agency",
+    "police_report_number",
+    "other_parties",
+    "witnesses",
+    "photos_available",
+    "preferred_follow_up_time",
+    "unresolved_items"
+  ],
+  "tools": {
+    "create_claim_intake": {
+      "method": "post",
+      "path": "/tools/create-claim-intake",
+      "success_outputs": [
+        "claim_intake_id",
+        "priority_flag",
+        "next_step"
+      ]
+    },
+    "log_claim_intake_fallback": {
+      "method": "post",
+      "path": "/tools/log-claim-intake-fallback",
+      "success_outputs": [
+        "fallback_reference_id",
+        "next_step"
+      ]
+    },
+    "flag_priority_follow_up": {
+      "method": "post",
+      "path": "/tools/flag-priority-follow-up",
+      "success_outputs": [
+        "priority_task_id",
+        "priority_status"
+      ]
+    }
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "type": "message",
+      "say": "hi, thanks for calling claims intake. are you calling to report a new auto claim",
+      "next": "classify_intent"
+    },
+    {
+      "id": "classify_intent",
+      "type": "decision",
+      "branches": [
+        {
+          "condition": "caller is reporting a new auto claim",
+          "set": {
+            "loss_type": "auto"
+          },
+          "next": "safety_triage"
+        },
+        {
+          "condition": "caller is not reporting a new auto claim",
+          "set": {
+            "handoff_reason": "non_auto_or_misdirected"
+          },
+          "next": "non_auto_capture"
+        },
+        {
+          "condition": "intent is unclear",
+          "next": "clarify_auto_claim"
+        }
+      ]
+    },
+    {
+      "id": "clarify_auto_claim",
+      "type": "question",
+      "ask": "i can help collect details for a new auto claim. is that what you need today",
+      "save_as": "auto_claim_confirmation",
+      "next": "classify_intent"
+    },
+    {
+      "id": "non_auto_capture",
+      "type": "collect_fields",
+      "fields": [
+        "caller_name",
+        "caller_phone",
+        "reason_for_call",
+        "preferred_follow_up_time"
+      ],
+      "next": "fallback_non_auto"
+    },
+    {
+      "id": "fallback_non_auto",
+      "type": "tool_call",
+      "tool": "log_claim_intake_fallback",
+      "arguments": {
+        "reason": "non_auto_or_misdirected",
+        "summary": "caller was not reporting a new auto claim and requested follow-up"
+      },
+      "on_success": {
+        "set": {
+          "tool_status": "fallback_logged"
+        },
+        "next": "close_fallback"
+      },
+      "on_failure": {
+        "set": {
+          "tool_status": "failed"
+        },
+        "next": "close_manual_follow_up"
+      }
+    },
+    {
+      "id": "safety_triage",
+      "type": "question",
+      "ask": "before we continue, is anyone injured, in immediate danger, or needing emergency help",
+      "save_as": "safety_status",
+      "branches": [
+        {
+          "condition": "injury or immediate danger reported",
+          "set": {
+            "priority_flag": true,
+            "priority_reasons": [
+              "injury_or_emergency_reported"
+            ]
+          },
+          "next": "emergency_guidance"
+        },
+        {
+          "condition": "no injury or immediate danger reported",
+          "next": "collect_caller_details"
+        },
+        {
+          "condition": "caller is unsure",
+          "set": {
+            "priority_flag": true,
+            "priority_reasons": [
+              "safety_unclear"
+            ]
+          },
+          "next": "emergency_guidance"
+        }
+      ]
+    },
+    {
+      "id": "emergency_guidance",
+      "type": "message",
+      "say": "if anyone needs emergency help or is in immediate danger, please contact emergency services now. are you able to safely continue with the claim intake",
+      "save_as": "consent_to_continue",
+      "branches": [
+        {
+          "condition": "caller can safely continue",
+          "next": "collect_caller_details"
+        },
+        {
+          "condition": "caller cannot continue",
+          "set": {
+            "handoff_reason": "emergency"
+          },
+          "next": "fallback_emergency"
+        }
+      ]
+    },
+    {
+      "id": "collect_caller_details",
+      "type": "collect_fields",
+      "fields": [
+        "caller_name",
+        "caller_phone",
+        "caller_email",
+        "policy_number",
+        "policyholder_name",
+        "caller_relationship"
+      ],
+      "next": "collect_loss_details"
+    },
+    {
+      "id": "collect_loss_details",
+      "type": "collect_fields",
+      "fields": [
+        "loss_date",
+        "loss_location",
+        "loss_description",
+        "vehicle_year_make_model",
+        "vehicle_drivable"
+      ],
+      "branches": [
+        {
+          "condition": "vehicle is not drivable or unsafe",
+          "set": {
+            "priority_flag": true,
+            "priority_reasons": [
+              "vehicle_not_drivable"
+            ]
+          },
+          "next": "collect_incident_details"
+        },
+        {
+          "condition": "vehicle drivable or unknown",
+          "next": "collect_incident_details"
+        }
+      ]
+    },
+    {
+      "id": "collect_incident_details",
+      "type": "collect_fields",
+      "fields": [
+        "injuries_reported",
+        "police_report_filed",
+        "police_agency",
+        "police_report_number",
+        "other_parties",
+        "witnesses",
+        "photos_available",
+        "preferred_follow_up_time",
+        "unresolved_items"
+      ],
+      "next": "minimum_field_check"
+    },
+    {
+      "id": "minimum_field_check",
+      "type": "decision",
+      "branches": [
+        {
+          "condition": "minimum required fields are present",
+          "next": "create_claim_intake"
+        },
+        {
+          "condition": "minimum required fields are missing and caller cannot provide them",
+          "set": {
+            "handoff_reason": "partial_information"
+          },
+          "next": "fallback_partial"
+        },
+        {
+          "condition": "caller requests a human",
+          "set": {
+            "handoff_reason": "requested_human"
+          },
+          "next": "fallback_human_request"
+        }
+      ]
+    },
+    {
+      "id": "create_claim_intake",
+      "type": "tool_call",
+      "tool": "create_claim_intake",
+      "arguments": {
+        "loss_type": "auto",
+        "consent_to_continue": true
+      },
+      "on_success": {
+        "set": {
+          "tool_status": "created"
+        },
+        "next": "priority_check"
+      },
+      "on_failure": {
+        "set": {
+          "handoff_reason": "tool_failure"
+        },
+        "next": "fallback_tool_failure"
+      }
+    },
+    {
+      "id": "priority_check",
+      "type": "decision",
+      "branches": [
+        {
+          "condition": "priority_flag is true",
+          "next": "flag_priority_follow_up"
+        },
+        {
+          "condition": "priority_flag is false",
+          "next": "confirm_and_close"
+        }
+      ]
+    },
+    {
+      "id": "flag_priority_follow_up",
+      "type": "tool_call",
+      "tool": "flag_priority_follow_up",
+      "on_success": {
+        "next": "confirm_and_close"
+      },
+      "on_failure": {
+        "set": {
+          "unresolved_items": "priority follow-up tool failed"
+        },
+        "next": "confirm_and_close"
+      }
+    },
+    {
+      "id": "fallback_partial",
+      "type": "tool_call",
+      "tool": "log_claim_intake_fallback",
+      "arguments": {
+        "reason": "partial_information"
+      },
+      "on_success": {
+        "set": {
+          "tool_status": "fallback_logged"
+        },
+        "next": "close_fallback"
+      },
+      "on_failure": {
+        "set": {
+          "tool_status": "failed"
+        },
+        "next": "close_manual_follow_up"
+      }
+    },
+    {
+      "id": "fallback_human_request",
+      "type": "tool_call",
+      "tool": "log_claim_intake_fallback",
+      "arguments": {
+        "reason": "requested_human"
+      },
+      "on_success": {
+        "set": {
+          "tool_status": "fallback_logged"
+        },
+        "next": "close_fallback"
+      },
+      "on_failure": {
+        "set": {
+          "tool_status": "failed"
+        },
+        "next": "close_manual_follow_up"
+      }
+    },
+    {
+      "id": "fallback_emergency",
+      "type": "tool_call",
+      "tool": "log_claim_intake_fallback",
+      "arguments": {
+        "reason": "emergency"
+      },
+      "on_success": {
+        "set": {
+          "tool_status": "fallback_logged"
+        },
+        "next": "close_fallback"
+      },
+      "on_failure": {
+        "set": {
+          "tool_status": "failed"
+        },
+        "next": "close_manual_follow_up"
+      }
+    },
+    {
+      "id": "fallback_tool_failure",
+      "type": "tool_call",
+      "tool": "log_claim_intake_fallback",
+      "arguments": {
+        "reason": "tool_failure"
+      },
+      "on_success": {
+        "set": {
+          "tool_status": "fallback_logged"
+        },
+        "next": "close_fallback"
+      },
+      "on_failure": {
+        "set": {
+          "tool_status": "failed"
+        },
+        "next": "close_manual_follow_up"
+      }
+    },
+    {
+      "id": "confirm_and_close",
+      "type": "message",
+      "say": "thanks. i have recorded the claim intake details and the claims team will review them and follow up. is there anything else you want the claims team to know",
+      "next": "end"
+    },
+    {
+      "id": "close_fallback",
+      "type": "message",
+      "say": "thanks. i recorded your information for claims team follow-up. is there anything else you want the team to know",
+      "next": "end"
+    },
+    {
+      "id": "close_manual_follow_up",
+      "type": "message",
+      "say": "thanks. i collected the information you shared. the claims team will need to follow up manually.",
+      "next": "end"
+    },
+    {
+      "id": "end",
+      "type": "end"
+    }
+  ]
+}

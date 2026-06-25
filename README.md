@@ -25,7 +25,7 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
-<summary><h2>Voice AI</h2> <em>(142 examples)</em></summary>
+<summary><h2>Voice AI</h2> <em>(143 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
@@ -37,6 +37,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [build-conference-calling-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-php/README.md) | PHP | --- |
 | [build-conference-calling-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-python/README.md) | Python | Create multi-party conference calls. |
 | [build-conference-calling-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-ruby/README.md) | Ruby | --- |
+| [build-conversational-workflow-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conversational-workflow-nodejs/README.md) | Node.js | Build a Telnyx Conversational Workflow for inbound auto insurance claim intake with structured branches, backend tools, and priority follow-up. |
 | [build-ivr-phone-menu-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-ivr-phone-menu-csharp/README.md) | C# | --- |
 | [build-ivr-phone-menu-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-ivr-phone-menu-go/README.md) | Go | --- |
 | [build-ivr-phone-menu-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-ivr-phone-menu-nodejs/README.md) | Node.js | Production-ready IVR system using the Telnyx Voice API and Express.js. Answers inbound calls, plays a menu via TTS, collects DTMF input, and routes callers to sales or support. |

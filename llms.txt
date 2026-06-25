@@ -10,6 +10,7 @@
 - [Conference Call with PHP and Laravel](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-php/README.md)
 - [Build Conference Calling](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-python/README.md): Create multi-party conference calls.
 - [Conference Call with Ruby and Sinatra](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-ruby/README.md)
+- [Build a Conversational Workflow](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conversational-workflow-nodejs/README.md): Build a Telnyx Conversational Workflow for inbound auto insurance claim intake with structured branches, backend tools, and priority follow-up.
 - [Ivr Menu with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-ivr-phone-menu-csharp/README.md)
 - [Ivr Menu with Go and Gin](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-ivr-phone-menu-go/README.md)
 - [Build an IVR Phone Menu](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-ivr-phone-menu-nodejs/README.md): Production-ready IVR system using the Telnyx Voice API and Express.js. Answers inbound calls, plays a menu via TTS, collects DTMF input, and routes callers to sales or support.

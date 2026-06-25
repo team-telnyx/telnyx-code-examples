@@ -84,11 +84,11 @@ examples:
     framework: express
     folder: provisional-telnyx-voice-api-agents-nodejs
 
-  - product: ai
-    use_case: outbound-hold-agent
-    language: python
-    framework: fastapi
-    folder: outbound-hold-agent-python
+  - product: voice
+    use_case: conversational-workflow
+    language: nodejs
+    framework: express
+    folder: build-conversational-workflow-nodejs
 
   - product: voice
     use_case: outbound-call
@@ -2968,3 +2968,10 @@ examples:
     language: ruby
     framework: sinatra
     folder: sip-failover-routing-ruby
+
+  # outbound AI voice agent examples
+  - product: ai
+    use_case: outbound-hold-agent
+    language: python
+    framework: fastapi
+    folder: outbound-hold-agent-python
