@@ -146,7 +146,8 @@ def extract_endpoint():
         status = exc.response.status_code if exc.response is not None else 502
         return jsonify({"error": "Telnyx AI Inference request failed.", "status": status}), status
     except RuntimeError as exc:
-        return jsonify({"error": str(exc)}), 500
+        app.logger.exception("Runtime error during /extract request: %s", exc)
+        return jsonify({"error": "An internal error occurred."}), 500
 
 
 @app.route("/sample", methods=["GET"])
