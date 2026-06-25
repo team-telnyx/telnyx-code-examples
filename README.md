@@ -350,7 +350,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(106 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(108 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -404,6 +404,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [ai-voice-survey-sentiment-tracker-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voice-survey-sentiment-tracker-python/README.md) | Python | AI Voice Survey Sentiment Tracker - real-time CSAT scoring from voice tone and word choice. |
 | [ai-voicemail-transcription-forwarding-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voicemail-transcription-forwarding-python/README.md) | Python | AI Voicemail Transcription & Forwarding - voicemail to AI-summarized SMS/email with priority classification. |
 | [ai-voiceover-studio-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voiceover-studio-python/README.md) | Python | Upload a script, select voice/style/pacing, AI adds professional direction cues (pauses, emphasis, pacing), TTS renders the voice-over, stores output in Cloud Storage. Supports multiple takes and retakes. |
+| [build-rag-with-telnyx-inference-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-rag-with-telnyx-inference-python/README.md) | Python | Build a retrieval-augmented generation API with Telnyx embeddings and chat completions. |
 | [build-voice-ai-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-voice-ai-agent-nodejs/README.md) | Node.js | Build a complete voice AI agent with Telnyx - answer inbound calls, transcribe speech, generate replies with Telnyx Inference, and speak them back via Call Control. |
 | [build-voice-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-voice-ai-agent-python/README.md) | Python | Build a complete voice AI agent with Telnyx - inbound call handling, AI conversation, and call control. |
 | [call-recording-ai-summarizer-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-recording-ai-summarizer-python/README.md) | Python | Call Recording AI Summarizer - record calls, then summarize and extract action items with AI. |
@@ -431,6 +432,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [create-ai-assistant-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-php/README.md) | PHP | --- |
 | [create-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-python/README.md) | Python | Create a new Telnyx AI Assistant with a system prompt, model selection, and tool configuration. |
 | [create-ai-assistant-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-ruby/README.md) | Ruby | --- |
+| [extract-structured-json-with-ai-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/extract-structured-json-with-ai-python/README.md) | Python | Extract structured JSON from support tickets, emails, leads, or incident reports with Telnyx AI Inference. |
 | [fax-to-ai-document-processor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/fax-to-ai-document-processor-python/README.md) | Python | Fax to AI Document Processor - receive fax, AI extracts data, forwards structured summary. |
 | [full-stack-ai-contact-center-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/full-stack-ai-contact-center-python/README.md) | Python | Full-Stack AI Contact Center - complete contact center: IVR + queue + AI agent assist + recording + live analytics. |
 | [get-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/get-ai-assistant-python/README.md) | Python | --- |

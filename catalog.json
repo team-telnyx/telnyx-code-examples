@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-06-25T16:59:15Z",
-  "example_count": 480,
+  "generated_at": "2026-06-25T19:24:35Z",
+  "example_count": 482,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -961,6 +961,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-content-translator-python"
     },
     {
+      "folder": "build-rag-with-telnyx-inference-python",
+      "title": "Build RAG with Telnyx Inference",
+      "description": "Build a retrieval-augmented generation API with Telnyx embeddings and chat completions.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-rag-with-telnyx-inference-python"
+    },
+    {
       "folder": "ai-customer-churn-predictor-python",
       "title": "AI Customer Churn Predictor",
       "description": "AI Customer Churn Predictor - analyze call/message patterns via Telnyx APIs, AI predicts churn risk and suggests interventions.",
@@ -1004,6 +1013,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-event-rsvp-phone-line-python"
+    },
+    {
+      "folder": "extract-structured-json-with-ai-python",
+      "title": "Extract Structured JSON with AI",
+      "description": "Extract structured JSON from support tickets, emails, leads, or incident reports with Telnyx AI Inference.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/extract-structured-json-with-ai-python"
     },
     {
       "folder": "ai-hiring-phone-screen-python",
