@@ -215,4 +215,10 @@ See [`API.md`](API.md) for local endpoints exposed by this example.
 
 ## Why Telnyx
 
-Telnyx exposes outbound calling, call-control webhooks, DTMF, AI Assistants, and real-time transcription in one Voice API, so the app can control the full call lifecycle without stitching together separate providers.
+Telnyx is an AI Communications Infrastructure platform that exposes outbound calling, call-control webhooks, DTMF, AI Assistants, and real-time transcription in one Voice API, so the app can control the full call lifecycle without stitching together separate providers.
+
+## Related Examples
+
+- [make-outbound-phone-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-python/README.md) - place an outbound Call Control call.
+- [build-ivr-phone-menu-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-ivr-phone-menu-python/README.md) - build a traditional DTMF IVR.
+- [ai-voice-agent-with-function-calling-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voice-agent-with-function-calling-python/README.md) - add tool calls to an AI voice agent.
