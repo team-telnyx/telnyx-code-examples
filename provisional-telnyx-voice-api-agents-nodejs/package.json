@@ -1,0 +1,20 @@
+{
+  "name": "provisional-telnyx-voice-api-agents-nodejs",
+  "version": "1.0.0",
+  "description": "Telnyx Voice API example for Provisional Agents with call-time AI Assistant configuration.",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "preview": "node server.js --preview",
+    "call": "node server.js --call",
+    "test": "node --check server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1"
+  }
+}

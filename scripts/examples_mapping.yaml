@@ -79,6 +79,18 @@ examples:
     folder: route-phone-calls-to-ai-agent-nodejs
 
   - product: voice
+    use_case: provisional-voice-api-agents
+    language: nodejs
+    framework: express
+    folder: provisional-telnyx-voice-api-agents-nodejs
+
+  - product: ai
+    use_case: outbound-hold-agent
+    language: python
+    framework: fastapi
+    folder: outbound-hold-agent-python
+
+  - product: voice
     use_case: outbound-call
     language: nodejs
     framework: express
@@ -2956,10 +2968,3 @@ examples:
     language: ruby
     framework: sinatra
     folder: sip-failover-routing-ruby
-
-  # outbound AI voice agent examples
-  - product: ai
-    use_case: outbound-hold-agent
-    language: python
-    framework: fastapi
-    folder: outbound-hold-agent-python
