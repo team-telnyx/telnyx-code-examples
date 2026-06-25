@@ -25,7 +25,7 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
-<summary><h2>Voice AI</h2> <em>(142 examples)</em></summary>
+<summary><h2>Voice AI</h2> <em>(143 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
@@ -116,6 +116,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [number-warmup-reputation-builder-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/number-warmup-reputation-builder-python/README.md) | Python | Number Warmup & Reputation Builder - gradually ramp SMS volume on new numbers to build carrier reputation and avoid spam flags. |
 | [porting-loa-automation-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/porting-loa-automation-python/README.md) | Python | Porting LOA Automation - automate Letter of Authorization generation and porting order submission. |
 | [porting-order-tracker-dashboard-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/porting-order-tracker-dashboard-python/README.md) | Python | Submit, track, and manage number porting orders with SLA monitoring, timeline visualization, and bulk operations. |
+| [provisional-telnyx-voice-api-agents-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provisional-telnyx-voice-api-agents-nodejs/README.md) | Node.js | Start one reusable Telnyx AI Assistant on Telnyx Voice API calls with runtime business instructions selected by the called phone number. |
 | [real-time-call-intelligence-dashboard-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/real-time-call-intelligence-dashboard-python/README.md) | Python | Real-Time Call Intelligence Dashboard - live transcription, sentiment analysis, and competitor detection. |
 | [record-phone-calls-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/record-phone-calls-csharp/README.md) | C# | --- |
 | [record-phone-calls-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/record-phone-calls-go/README.md) | Go | --- |

@@ -79,6 +79,12 @@ examples:
     folder: route-phone-calls-to-ai-agent-nodejs
 
   - product: voice
+    use_case: provisional-voice-api-agents
+    language: nodejs
+    framework: express
+    folder: provisional-telnyx-voice-api-agents-nodejs
+
+  - product: voice
     use_case: conversational-workflow
     language: nodejs
     framework: express
