@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-06-25T16:26:24Z",
-  "example_count": 484,
+  "generated_at": "2026-06-25T16:57:03Z",
+  "example_count": 480,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -4318,49 +4318,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sip-failover-routing-ruby"
     },
     {
-      "folder": "ai-assistant-context-handoff-python",
-      "title": "AI Assistant Context Handoff",
-      "description": "Hand off a Telnyx voice call from an IVR navigation assistant to a representative-facing assistant with preserved context.",
+      "folder": "outbound-hold-agent-python",
+      "title": "Outbound Hold-Aware AI Agent",
+      "description": "Call a business, navigate IVRs with a Telnyx AI Assistant, pause the assistant during hold, monitor with transcription, and resume with context when a representative answers.",
       "product": "ai",
       "language": "python",
       "framework": "fastapi",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assistant-context-handoff-python"
-    },
-    {
-      "folder": "ai-ivr-dtmf-tool-python",
-      "title": "AI IVR DTMF Tool",
-      "description": "Use a Telnyx AI Assistant custom tool to navigate IVR menus while your backend sends DTMF with Call Control.",
-      "product": "ai",
-      "language": "python",
-      "framework": "fastapi",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-ivr-dtmf-tool-python"
-    },
-    {
-      "folder": "ai-voice-agent-test-harness-python",
-      "title": "AI Voice Agent Test Harness",
-      "description": "Test a Telnyx outbound AI voice agent against predictable mock IVR scenarios with menu prompts, hold simulation, representative pickup, and call-ending behavior.",
-      "product": "ai",
-      "language": "python",
-      "framework": "fastapi",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-voice-agent-test-harness-python"
-    },
-    {
-      "folder": "hold-aware-ai-assistant-python",
-      "title": "Hold-Aware AI Assistant",
-      "description": "Stop a Telnyx AI Assistant during hold, monitor the call with transcription, and restart the assistant when a representative answers.",
-      "product": "ai",
-      "language": "python",
-      "framework": "fastapi",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/hold-aware-ai-assistant-python"
-    },
-    {
-      "folder": "outbound-ai-assistant-call-python",
-      "title": "Outbound AI Assistant Call",
-      "description": "Place an outbound call with Telnyx Call Control and start a Telnyx AI Assistant when the call is answered.",
-      "product": "ai",
-      "language": "python",
-      "framework": "fastapi",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/outbound-ai-assistant-call-python"
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/outbound-hold-agent-python"
     }
   ]
 }

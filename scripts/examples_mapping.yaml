@@ -2945,33 +2945,9 @@ examples:
     framework: sinatra
     folder: sip-failover-routing-ruby
 
-  # draft AI assistant examples (5)
+  # outbound AI voice agent examples
   - product: ai
-    use_case: ai-assistant-context-handoff
+    use_case: outbound-hold-agent
     language: python
     framework: fastapi
-    folder: ai-assistant-context-handoff-python
-
-  - product: ai
-    use_case: ai-ivr-dtmf-tool
-    language: python
-    framework: fastapi
-    folder: ai-ivr-dtmf-tool-python
-
-  - product: ai
-    use_case: ai-voice-agent-test-harness
-    language: python
-    framework: fastapi
-    folder: ai-voice-agent-test-harness-python
-
-  - product: ai
-    use_case: hold-aware-ai-assistant
-    language: python
-    framework: fastapi
-    folder: hold-aware-ai-assistant-python
-
-  - product: ai
-    use_case: outbound-ai-assistant-call
-    language: python
-    framework: fastapi
-    folder: outbound-ai-assistant-call-python
+    folder: outbound-hold-agent-python

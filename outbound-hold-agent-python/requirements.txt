@@ -1,0 +1,5 @@
+fastapi
+httpx
+pynacl
+python-dotenv
+uvicorn
