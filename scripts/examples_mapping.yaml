@@ -84,6 +84,12 @@ examples:
     framework: express
     folder: provisional-telnyx-voice-api-agents-nodejs
 
+  - product: ai
+    use_case: outbound-hold-agent
+    language: python
+    framework: fastapi
+    folder: outbound-hold-agent-python
+
   - product: voice
     use_case: outbound-call
     language: nodejs
