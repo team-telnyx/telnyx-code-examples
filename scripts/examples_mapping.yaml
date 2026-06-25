@@ -658,6 +658,12 @@ examples:
     folder: ai-content-translator-python
 
   - product: ai
+    use_case: build-rag-with-telnyx-inference
+    language: python
+    framework: flask
+    folder: build-rag-with-telnyx-inference-python
+
+  - product: ai
     use_case: ai-customer-churn-predictor
     language: python
     framework: flask
@@ -686,6 +692,12 @@ examples:
     language: python
     framework: flask
     folder: ai-event-rsvp-phone-line-python
+
+  - product: ai
+    use_case: extract-structured-json-with-ai
+    language: python
+    framework: flask
+    folder: extract-structured-json-with-ai-python
 
   - product: ai
     use_case: ai-hiring-phone-screen
