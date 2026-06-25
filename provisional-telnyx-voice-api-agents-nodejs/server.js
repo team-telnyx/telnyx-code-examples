@@ -12,6 +12,7 @@ require("dotenv").config();
 
 const crypto = require("crypto");
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const fs = require("fs/promises");
 const path = require("path");
 
@@ -32,6 +33,12 @@ const promptTemplatePath = path.join(
   "appointment-scheduling-assistant.md"
 );
 const numberRoutingPath = path.join(projectRoot, "examples", "number-routing.json");
+const webhookRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: parseInt(process.env.WEBHOOK_RATE_LIMIT_PER_MINUTE || "120", 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 async function main() {
   const [command, slug] = process.argv.slice(2);
@@ -50,7 +57,7 @@ async function main() {
 }
 
 function startServer() {
-  app.post("/webhooks/voice", express.raw({ type: "*/*" }), async (req, res) => {
+  app.post("/webhooks/voice", webhookRateLimiter, express.raw({ type: "*/*" }), async (req, res) => {
     const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from("");
 
     if (!verifyTelnyxSignature(rawBody.toString(), req.headers)) {
