@@ -349,7 +349,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(108 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(109 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -449,6 +449,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [multi-channel-ai-helpdesk-with-ticketing-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-channel-ai-helpdesk-with-ticketing-python/README.md) | Python | Multi-Channel AI Helpdesk with Ticketing - voice + SMS + WhatsApp support with auto-ticket creation. |
 | [multi-party-ai-training-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-party-ai-training-call-python/README.md) | Python | AI plays customer roles for sales/support practice. Multiple trainees join, AI rotates scenarios and scores each trainee. |
 | [omnichannel-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-receptionist-python/README.md) | Python | One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference. |
+| [outbound-hold-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/outbound-hold-agent-python/README.md) | Python | Call a business, navigate IVRs with a Telnyx AI Assistant, pause the assistant during hold, monitor with transcription, and resume with context when a representative answers. |
 | [policy-renewal-campaign-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/policy-renewal-campaign-python/README.md) | Python | Automated multi-channel renewal reminders. 60 days: SMS. 30 days: AI voice call reviewing coverage changes. 7 days: urgent SMS. Agent reviews lapsed policies for win-back. |
 | [restaurant-reservation-waitlist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/restaurant-reservation-waitlist-python/README.md) | Python | AI answers calls, checks table availability, books or adds to waitlist, texts when table is ready. Host reviews large party requests. |
 | [run-llm-inference-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/run-llm-inference-nodejs/README.md) | Node.js | Run large language model inference through the Telnyx Inference API using an OpenAI-compatible chat completions interface from Node.js. Works as both an HTTP server and a CLI tool. |

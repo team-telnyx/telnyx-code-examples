@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-06-25T17:34:57Z",
-  "example_count": 481,
+  "generated_at": "2026-06-25T19:24:15Z",
+  "example_count": 482,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -4334,6 +4334,15 @@
       "language": "ruby",
       "framework": "sinatra",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sip-failover-routing-ruby"
+    },
+    {
+      "folder": "outbound-hold-agent-python",
+      "title": "Outbound Hold-Aware AI Agent",
+      "description": "Call a business, navigate IVRs with a Telnyx AI Assistant, pause the assistant during hold, monitor with transcription, and resume with context when a representative answers.",
+      "product": "ai",
+      "language": "python",
+      "framework": "fastapi",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/outbound-hold-agent-python"
     }
   ]
 }

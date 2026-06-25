@@ -2957,3 +2957,9 @@ examples:
     framework: sinatra
     folder: sip-failover-routing-ruby
 
+  # outbound AI voice agent examples
+  - product: ai
+    use_case: outbound-hold-agent
+    language: python
+    framework: fastapi
+    folder: outbound-hold-agent-python
