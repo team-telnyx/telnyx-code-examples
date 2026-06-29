@@ -10,7 +10,28 @@ AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 predictions = []
 
-def call_inference(messages, max_tokens=400):
+def _extract_json(text):
+    if not text:
+        return None
+    s = text.strip()
+    if s.startswith("```"):
+        s = s.split("```", 2)[1]
+        if s.startswith("json"):
+            s = s[4:]
+        s = s.strip()
+    start = s.find("{")
+    end = s.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        s = s[start:end + 1]
+    return s
+
+def parse_json_response(result):
+    payload = _extract_json(result)
+    if not payload:
+        return None
+    return json.loads(payload)
+
+def call_inference(messages, max_tokens=1500):
     resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
         json={"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.2}, timeout=15)
     resp.raise_for_status()
@@ -33,8 +54,10 @@ def predict_churn():
 
 Return JSON: churn_risk (high/medium/low), probability (0.0-1.0), risk_factors (list of strings), recommended_actions (list of specific interventions), urgency (immediate/this_week/this_month), estimated_revenue_at_risk (string)."""
     try:
-        result = call_inference([{"role": "system", "content": "You are a customer success analyst specializing in telecom churn prediction."}, {"role": "user", "content": prompt}])
-        prediction = json.loads(result)
+        result = call_inference([{"role": "system", "content": "You are a customer success analyst specializing in telecom churn prediction. Return only JSON, no prose, no markdown fences."}, {"role": "user", "content": prompt}])
+        prediction = parse_json_response(result)
+        if prediction is None:
+            return jsonify({"raw": result}), 200
         prediction["customer_id"] = customer.get("customer_id", f"CUST-{int(time.time())}")
         prediction["predicted_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ")
         predictions.append(prediction)
@@ -55,7 +78,10 @@ def batch_predict():
     for c in customers[:20]:
         try:
             resp = predict_churn_internal(c)
-            results.append(resp)
+            if resp is None:
+                results.append({"customer_id": c.get("customer_id"), "error": "prediction failed"})
+            else:
+                results.append(resp)
         except Exception:
             results.append({"customer_id": c.get("customer_id"), "error": "prediction failed"})
     high_risk = [r for r in results if r.get("churn_risk") == "high"]
@@ -63,8 +89,8 @@ def batch_predict():
 
 def predict_churn_internal(customer):
     prompt = f"Quick churn assessment. Call trend: {customer.get('call_volumes', [])}. Support tickets: {customer.get('support_tickets', 0)}. Last login: {customer.get('last_login_days', 0)} days ago. Return JSON: churn_risk (high/medium/low), probability (float), top_factor (string)."
-    result = call_inference([{"role": "system", "content": "Churn analyst."}, {"role": "user", "content": prompt}], max_tokens=100)
-    return json.loads(result)
+    result = call_inference([{"role": "system", "content": "Churn analyst. Return only JSON, no prose, no markdown fences."}, {"role": "user", "content": prompt}], max_tokens=800)
+    return parse_json_response(result)
 
 @app.route("/predictions", methods=["GET"])
 def list_predictions():
