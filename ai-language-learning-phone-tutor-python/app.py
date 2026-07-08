@@ -9,8 +9,7 @@ app = Flask(__name__)
 client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"), public_key=os.getenv("TELNYX_PUBLIC_KEY"))
 TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY", "")
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
-AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TUTOR_NUMBER = os.getenv("TUTOR_NUMBER")
+AI_MODEL = os.getenv("AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 active_calls = {}
 
@@ -29,6 +28,7 @@ def _start_ttl_cleanup(*stores, ttl_seconds=3600, interval=300):
 _start_ttl_cleanup(active_calls)
 
 session_history = []
+_start_ttl_cleanup(session_history)
 
 LANGUAGES = {"1": {"name": "Spanish", "code": "es"}, "2": {"name": "French", "code": "fr"}, "3": {"name": "Japanese", "code": "ja"}, "4": {"name": "Mandarin", "code": "zh"}}
 
@@ -36,8 +36,9 @@ def call_inference(messages, max_tokens=200):
     try:
         resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
         json={"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.7}, timeout=15)
-    except Exception as e:
-        app.logger.error("Request failed: %s", e)
+    except requests.exceptions.RequestException as e:
+        app.logger.error("Inference request failed: %s", e)
+        return None
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
 
@@ -60,7 +61,7 @@ def handle_voice():
         active_calls[ccid] = {"caller": p.get("from"), "state": "language_select", "conversation": []}
         client.calls.actions.answer(ccid)
         return jsonify({"status": "answering"}), 200
-    elif event_type == "call.answered":
+    elif event_type == "call.answered" and call:
         client.calls.actions.speak(ccid, payload="Welcome to Language Tutor! Press 1 for Spanish, 2 for French, 3 for Japanese, 4 for Mandarin.", voice="female", language_code="en-US")
         return jsonify({"status": "greeting"}), 200
     elif event_type == "call.speak.ended" and call:
@@ -79,11 +80,15 @@ def handle_voice():
             call["state"] = "tutoring"
             call["conversation"] = [{"role": "system", "content": f"You are a {lang['name']} language tutor. Start with a simple greeting in {lang['name']}, then English translation. Gradually increase difficulty. Correct mistakes gently. Mix {lang['name']} and English. Keep each response short for phone conversation."}]
             intro = call_inference(call["conversation"] + [{"role": "user", "content": "Start the lesson."}])
+            if not intro:
+                intro = "Sorry, I had trouble generating a response. Let's try again."
             call["conversation"].append({"role": "assistant", "content": intro})
             client.calls.actions.speak(ccid, payload=intro, voice="female", language_code="en-US")
         elif call["state"] == "tutoring" and speech:
             call["conversation"].append({"role": "user", "content": speech})
             response = call_inference(call["conversation"])
+            if not response:
+                response = "Sorry, I didn't catch that. Could you repeat what you said?"
             call["conversation"].append({"role": "assistant", "content": response})
             client.calls.actions.speak(ccid, payload=response, voice="female", language_code="en-US")
         else:
