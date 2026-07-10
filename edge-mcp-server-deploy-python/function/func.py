@@ -42,7 +42,7 @@ TOOLS = [
             "type": "object",
             "properties": {
                 "prompt": {"type": "string", "description": "User prompt"},
-                "model": {"type": "string", "description": "Model name", "default": "moonshotai/Kimi-K2.6"},
+                "model": {"type": "string", "description": "Model name", "default": "meta-llama/Llama-3.3-70B-Instruct"},
                 "max_tokens": {"type": "integer", "default": 256},
             },
             "required": ["prompt"],
@@ -62,10 +62,10 @@ TOOLS = [
 
 
 def new():
-    return MCPServer()
+    return Function()
 
 
-class MCPServer:
+class Function:
     def __init__(self):
         self.api_key = os.environ.get("TELNYX_API_KEY", "")
 
@@ -97,7 +97,7 @@ class MCPServer:
             return self._telnyx_request("GET", path)
         elif name == "run_inference":
             return self._telnyx_request("POST", "/ai/chat/completions", {
-                "model": args.get("model", "moonshotai/Kimi-K2.6"),
+                "model": args.get("model", "meta-llama/Llama-3.3-70B-Instruct"),
                 "messages": [{"role": "user", "content": args["prompt"]}],
                 "max_tokens": args.get("max_tokens", 256),
             })
