@@ -154,6 +154,25 @@ def extract_data():
         app.logger.exception("extraction failed")
         return jsonify({"error": "extraction failed"}), 500
 
+@app.route("/extract-pdf", methods=["POST"])
+def extract_pdf():
+    """Upload a local PDF file and run the full extraction pipeline on it."""
+    if "file" not in request.files:
+        return jsonify({"error": "file required (multipart upload)"}), 400
+    file = request.files["file"]
+    if not file.filename:
+        return jsonify({"error": "no filename"}), 400
+    doc_type = request.form.get("type", "auto")
+    pdf_bytes = file.read()
+    text = extract_text_from_pdf(pdf_bytes)
+    if not text:
+        return jsonify({"error": "no text extracted (image-only PDF needs OCR)"}), 422
+    try:
+        return jsonify(run_extraction(text, doc_type)), 200
+    except Exception:
+        app.logger.exception("PDF extraction failed")
+        return jsonify({"error": "extraction failed"}), 500
+
 @app.route("/faxes", methods=["GET"])
 def list_faxes():
     return jsonify({"faxes": fax_queue[-50:]}), 200
