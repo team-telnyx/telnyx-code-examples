@@ -10,11 +10,19 @@ AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 changelogs = {}
 
-def call_inference(messages, max_tokens=800):
+def call_inference(messages, max_tokens=4000):
     resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-        json={"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3}, timeout=20)
+        json={"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3}, timeout=40)
     resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+    content = resp.json()["choices"][0]["message"].get("content")
+    if content is None:
+        raise ValueError("model returned no content (try a larger max_tokens or a non-reasoning model)")
+    content = content.strip()
+    if content.startswith("```"):
+        content = content.split("\n", 1)[1] if "\n" in content else content
+        content = content.rsplit("```", 1)[0]
+        content = content.strip()
+    return content
 
 def build_changelog_prompt(commits, version=None, repo_name=None):
     commit_block = "\n".join(f"- {c}" for c in commits)
@@ -78,7 +86,7 @@ Return JSON: version (string|null), sections (array of {{heading, items[]}}), su
         result = call_inference([
             {"role": "system", "content": "You generate developer-friendly changelogs from git diffs."},
             {"role": "user", "content": prompt},
-        ], max_tokens=600)
+        ], max_tokens=1500)
         changelog = json.loads(result)
         changelog_id = f"cl-{int(time.time())}"
         changelog["id"] = changelog_id
