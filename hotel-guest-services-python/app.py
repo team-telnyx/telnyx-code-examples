@@ -106,6 +106,31 @@ def _post(url: str, body: dict[str, Any], timeout: int = 10) -> dict[str, Any] |
         return None
 
 
+def _validate_ccid(ccid: str) -> str:
+    """Validate Telnyx call_control_id format to prevent SSRF.
+
+    Telnyx call_control_id always looks like ``v3:<base64-ish>``.
+    Reject anything that doesn't match the expected shape so an attacker
+    can't use a forged webhook to point our outbound calls at an
+    arbitrary URL path.
+    """
+    if not ccid or not isinstance(ccid, str):
+        return ""
+    if not re.match(r"^[A-Za-z0-9_\-:]{1,128}$", ccid):
+        app.logger.warning("Rejected malformed call_control_id: %r", ccid)
+        return ""
+    return ccid
+
+
+def _validate_phone(phone: str) -> str:
+    """Validate E.164-ish phone number format to prevent SSRF/HTTP injection."""
+    if not phone or not isinstance(phone, str):
+        return ""
+    if not re.match(r"^\+?[0-9]{1,20}$", phone):
+        return ""
+    return phone
+
+
 def send_sms(to: str, text: str) -> bool:
     if not to:
         return False
@@ -259,7 +284,7 @@ def handle_sms():
     if _already_processed(event_id):
         return jsonify({"status": "duplicate"}), 200
     data = payload.get("data", {}).get("payload", {})
-    sender = data.get("from", {}).get("phone_number", "")
+    sender = _validate_phone(data.get("from", {}).get("phone_number", ""))
     text = data.get("text", "")
     room = room_from_caller(sender)
     guest = ROOMS.get(room, {}).get("guest") if room else None
@@ -281,8 +306,10 @@ def handle_voice():
     data = payload.get("data", {})
     p = data.get("payload", {})
     event = data.get("event_type")
-    ccid = p.get("call_control_id", "")
-    caller = p.get("from", "")
+    ccid = _validate_ccid(p.get("call_control_id", ""))
+    caller = _validate_phone(p.get("from", ""))
+    if not ccid:
+        return jsonify({"error": "invalid call_control_id"}), 400
     calls.setdefault(ccid, {"caller": caller, "room": None, "history": [], "last_seen": time.time()})
     calls[ccid]["last_seen"] = time.time()
 

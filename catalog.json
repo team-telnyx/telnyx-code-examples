@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-14T20:14:19Z",
-  "example_count": 486,
+  "generated_at": "2026-07-14T20:26:03Z",
+  "example_count": 487,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -977,6 +977,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-subscription-cancel-save-retention-agent-python"
+    },
+    {
+      "folder": "conversation-relay-voice-bot-python",
+      "title": "Turn a Text Chatbot Into a Voice Bot With Conversation Relay",
+      "description": "Forward live phone calls to any existing text-in/text-out AI chatbot using Telnyx Conversation Relay — no changes to the bot.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/conversation-relay-voice-bot-python"
     },
     {
       "folder": "build-rag-with-telnyx-inference-python",
