@@ -712,6 +712,12 @@ examples:
     folder: error-explainer-python
 
   - product: ai
+    use_case: sql-natural-language
+    language: python
+    framework: flask
+    folder: sql-natural-language-python
+
+  - product: ai
     use_case: ai-customer-winback-caller
     language: python
     framework: flask

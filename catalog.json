@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-14T21:34:56Z",
-  "example_count": 488,
+  "generated_at": "2026-07-14T21:53:34Z",
+  "example_count": 489,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1022,6 +1022,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/error-explainer-python"
+    },
+    {
+      "folder": "sql-natural-language-python",
+      "title": "AI SQL Natural Language",
+      "description": "AI SQL Natural Language — turn plain-English questions into validated SQL with schema context via Telnyx AI Inference. Includes a sample dataset for live execution.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sql-natural-language-python"
     },
     {
       "folder": "ai-customer-winback-caller-python",
