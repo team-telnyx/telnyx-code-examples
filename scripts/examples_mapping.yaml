@@ -670,6 +670,12 @@ examples:
     folder: ai-content-translator-python
 
   - product: ai
+    use_case: ai-subscription-cancel-save-retention-agent
+    language: python
+    framework: flask
+    folder: ai-subscription-cancel-save-retention-agent-python
+
+  - product: ai
     use_case: build-rag-with-telnyx-inference
     language: python
     framework: flask

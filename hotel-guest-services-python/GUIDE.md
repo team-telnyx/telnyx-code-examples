@@ -1,71 +1,100 @@
-# Build a Hotel Guest Services Line
+# Hotel Guest Services Line — Build Guide
 
-Room service, housekeeping, concierge requests via voice or SMS. AI routes and tracks. Staff gets Slack notifications, guest gets SMS when fulfilled.
+A complete walkthrough of how the hotel concierge voice and SMS agent works,
+from the first webhook event to the SMS that confirms fulfilment.
+
+## What It Does
+
+The Grand Hotel exposes one phone number for guest service. A guest can:
+
+- Call and order room service, request housekeeping, ask the concierge, or report a maintenance issue
+- Text the same number with the same kinds of requests
+
+The app uses Telnyx Voice call control plus Telnyx AI Inference to greet the
+guest, capture their room number, classify their request, log it, alert staff
+on Slack, and confirm by SMS.
 
 ## How It Works
 
 ```
-  Inbound Phone Call
-        │
-        ▼
-  ┌──────────────────┐
-  │ Answer + Greet    │ ── TTS welcome message
-  └────────┬─────────┘
-           │
-           ▼
-  ┌──────────────────┐
-  │ Gather Speech     │ ── STT transcription
-  └────────┬─────────┘
-           │
-           ▼
-  ┌──────────────────┐
-  │ AI Inference      │
-  │ • Classification / triage│
-  │ • Summarization    │
-  └────────┬─────────┘
-           │ ◄──── conversation loop
-           │
-           ├──► SMS notification
-           ├──► Voice response
-           └──► Slack alert
+  Inbound Phone Call or SMS
+            │
+            ▼
+  ┌────────────────────────┐
+  │ Telnyx Voice / SMS     │
+  │ webhook → Flask        │
+  └──────────┬─────────────┘
+             │
+   ┌─────────┴─────────┐
+   │ Caller known?     │
+   │ (caller ID match) │
+   └─────────┬─────────┘
+             │ no
+             ▼
+   ┌─────────────────┐         ┌──────────────┐
+   │ Ask for room #  │ ──────► │ Extract room │
+   └─────────┬───────┘         │ from speech  │
+             │                 └──────┬───────┘
+             │                        │
+             ▼                        ▼
+   ┌────────────────────────────────────────┐
+   │ AI Inference — categorize request     │
+   │ department, urgency, summary, details │
+   └────────────────┬───────────────────────┘
+                    │
+        ┌───────────┼────────────┬───────────┐
+        ▼           ▼            ▼           ▼
+   Room svc   Housekeeping  Concierge   Maintenance
+        │           │            │           │
+        └───────────┴─────┬──────┴───────────┘
+                          │
+                ┌─────────┴──────────┐
+                ▼                    ▼
+        Slack staff alert     SMS confirmation
+                ▼
+        Staff marks complete via API
+                ▼
+        Guest receives SMS
 
-  State: In-memory dict
+  State: In-memory dict (ROOMS, service_requests, calls)
 ```
 
 ## Telnyx Products Used
 
 - **Voice** — programmatic call control with webhooks for every call state change
-- **AI Inference** — LLM inference with OpenAI-compatible API, runs on Telnyx infrastructure
+- **AI Inference** — OpenAI-compatible chat completions used to classify each request
+- **Messaging** — SMS confirmations to the guest and the staff Slack fallback
 
 ## API Endpoints
 
-- **Call Control: Answer**: `POST /v2/calls/{id}/actions/answer` — [API reference](https://developers.telnyx.com/api/call-control/answer-call)
-- **Call Control: Gather (STT/DTMF)**: `POST /v2/calls/{id}/actions/gather_using_speak` — [API reference](https://developers.telnyx.com/api/call-control/gather)
-- **Call Control: Speak (TTS)**: `POST /v2/calls/{id}/actions/speak` — [API reference](https://developers.telnyx.com/api/call-control/speak)
-- **AI Inference**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/api/inference/chat-completions)
+- **Call Control: Answer** — `POST /v2/calls/{id}/actions/answer` — [reference](https://developers.telnyx.com/api/call-control/answer-call)
+- **Call Control: Speak** — `POST /v2/calls/{id}/actions/speak` — [reference](https://developers.telnyx.com/api/call-control/speak)
+- **Call Control: Gather** — `POST /v2/calls/{id}/actions/gather` — [reference](https://developers.telnyx.com/api/call-control/gather)
+- **Messaging: Send** — `POST /v2/messages` — [reference](https://developers.telnyx.com/api/messaging/send-message)
+- **AI Inference: Chat Completions** — `POST /v2/ai/chat/completions` — [reference](https://developers.telnyx.com/api/inference/chat-completions)
 
 ## Webhook Events
 
-Telnyx uses webhooks for call control — you don't poll for state. Each event tells you what happened, and your response tells Telnyx what to do next.
-
 This app handles these webhook events ([Call Control docs](https://developers.telnyx.com/docs/api/v2/call-control)):
-- `call.answered` — Call connected — app begins interaction
-- `call.gather.ended` — Caller input received (speech transcription or DTMF digits)
-- `call.hangup` — Call ended — app cleans up session, triggers post-call processing
-- `call.initiated` — New inbound or outbound call detected
-- `call.speak.ended` — TTS playback finished — app transitions to next action (gather, transfer, etc.)
+
+- `call.initiated` — New inbound call — answer it
+- `call.answered` — Call connected — speak a greeting (with guest name when caller ID matches)
+- `call.speak.ended` — TTS playback finished — start speech gather
+- `call.gather.ended` — Caller speech transcribed — process the request
+- `call.hangup` — Call ended — drop the session
+
+It also handles `message.received` for inbound SMS.
 
 ## Prerequisites
 
 - Python 3.8+
 - [Telnyx account](https://portal.telnyx.com/sign-up) with funded balance
-- [API key](https://portal.telnyx.com/api-keys)
-- [Phone number](https://portal.telnyx.com/numbers/my-numbers) with voice enabled
-- [Call Control Application](https://portal.telnyx.com/call-control/applications) configured with your webhook URL
-- [Phone number](https://portal.telnyx.com/numbers/my-numbers) with messaging enabled
-- [Messaging Profile](https://portal.telnyx.com/messaging/profiles) with webhook URL
-- [Slack incoming webhook](https://api.slack.com/messaging/webhooks) (optional)
-- [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
+- [API key](https://portal.telnyx.com/api-keys) — copy both the API key and the public key
+- [Phone number](https://portal.telnyx.com/numbers/my-numbers) with both voice and SMS enabled
+- [Call Control Application](https://portal.telnyx.com/call-control/applications) pointing at your webhook URL
+- [Messaging Profile](https://portal.telnyx.com/messaging/profiles) pointing at your webhook URL
+- [Slack incoming webhook](https://api.slack.com/messaging/webhooks) (optional but recommended)
+- [ngrok](https://ngrok.com) for exposing your local server
 
 ## Step 1: Set Up the Project
 
@@ -76,85 +105,51 @@ cp .env.example .env
 pip install -r requirements.txt
 ```
 
-Edit `.env` with your Telnyx credentials. Each variable links to where you find it in the [Telnyx Portal](https://portal.telnyx.com).
+Edit `.env` with your Telnyx credentials. The `STAFF_SLACK_WEBHOOK` is optional — leave it blank to skip Slack alerts.
 
 ## Step 2: Understand the Code
 
-Everything lives in `app.py` (125 lines). Here's what each piece does.
+Everything lives in `app.py`. The interesting bits:
 
-### Handling Webhooks
+### Room lookup and capture
 
-This is the core of the app — a state machine driven by Telnyx webhook events. Each event triggers the next step:
+`room_from_caller(phone)` matches the inbound caller ID against the `ROOMS` dict. `extract_room_number(text)` regex-extracts a room number from the caller's first utterance when their caller ID is unknown. Rooms 101 and 205 are seeded for the demo.
 
-**`handle_sms()`** — Processes inbound SMS messages. Parses the customer's reply and routes to the appropriate business logic.
+### `ai_categorize(text)`
 
-- `call.initiated` → call setup in progress
-- `call.answered` → greet the caller with TTS
-- `call.speak.ended` → start gathering input
-- `call.gather.ended` → process the caller's response
+Sends the request to Telnyx AI Inference with a system prompt that constrains the response to JSON with `department`, `urgency`, `summary`, and `details` fields. Falls back to `concierge / normal` if the model returns malformed JSON.
 
-**`handle_voice()`** — The voice webhook handler — the core state machine. Each Telnyx event triggers the next action in the call flow.
+### `detect_urgency(text)`
 
-- `call.initiated` → call setup in progress
-- `call.answered` → greet the caller with TTS
-- `call.speak.ended` → start gathering input
-- `call.gather.ended` → process the caller's response
+Hardcoded phrase list (`fire`, `flood`, `leak`, `locked out`, `gas`, `medical`, `911`) overrides the LLM classification when matched. Urgent requests still get a department-aware Slack alert, just with a `:rotating_light:` prefix.
 
-### Helper Functions
+### `record_request(...)`
 
-- **`send_sms()`** — Sends an SMS via the Telnyx Messaging API. Wraps the `POST /v2/messages` call with error handling.
+Appends to `service_requests`, sends the guest an SMS, and posts a Slack alert (if configured). Idempotent because the webhook handlers dedupe on event ID.
 
-### Business Logic
+### `handle_voice()`
 
-- **`ai_categorize()`** — Sends conversation context to Telnyx AI Inference and returns the model's response. Uses the OpenAI-compatible chat completions endpoint.
-- **`list_requests()`** — Returns all requests with metadata and pagination.
-- **`complete_request()`** — Processes complete request request and returns result.
+State machine driven by Call Control webhooks:
+
+1. `call.initiated` (inbound) → answer the call
+2. `call.answered` → speak a greeting (with guest name when caller ID matches)
+3. `call.speak.ended` → start a speech gather
+4. `call.gather.ended` → if no room yet, ask for it; otherwise classify, log, and confirm by voice
+5. `call.hangup` → drop the session
+
+### `handle_sms()`
+
+Single-step: extract the sender phone, look up the room, classify, log, reply by SMS.
 
 ### All Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/webhooks/sms` | Telnyx webhook handler |
-| `POST` | `/webhooks/voice` | Telnyx webhook handler |
-| `GET` | `/requests` | List Requests |
-| `POST` | `/requests/<int:idx>/complete` | Complete Request |
+| `POST` | `/webhooks/voice` | Telnyx Call Control webhook |
+| `POST` | `/webhooks/sms` | Telnyx Messaging webhook |
+| `GET` | `/requests` | List requests (filter by `department`, `status`) |
+| `POST` | `/requests/<int:idx>/complete` | Mark complete, SMS the guest |
 | `GET` | `/health` | Health check |
-
-The trigger endpoint kicks off the workflow:
-
-```python
-def complete_request(idx):
-    if idx >= len(service_requests): return jsonify({"error":"Not found"}), 404
-    req = service_requests[idx]
-    req["status"] = "completed"
-    req["completed_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ")
-    send_sms(req["phone"], f"The Grand Hotel: Your {req['department'].replace('_',' ')} request has been fulfilled. Need anything else? Just text this number.")
-    return jsonify({"request": req}), 200
-
-@app.route("/health", methods=["GET"])
-def health():
-    return jsonify({"status":"ok","open":sum(1 for r in service_requests if r["status"]=="open")}), 200
-
-```
-
-Helper function that handles the core action:
-
-```python
-def send_sms(to, text):
-    requests.post(f"{API}/messages", headers=headers, json={"from": MAIN_NUMBER, "to": to, "text": text}, timeout=10)
-
-def ai_categorize(text):
-    try:
-        resp = requests.post(INFERENCE_URL, headers=headers,
-            json={"model": AI_MODEL, "messages": [
-                {"role": "system", "content": "Categorize this hotel guest request. Reply JSON: {\"department\": \"room_service|housekeeping|concierge|maintenance\", \"urgency\": \"normal|urgent\", \"summary\": \"brief\"}"},
-                {"role": "user", "content": text}], "max_tokens": 80, "temperature": 0.1}, timeout=15)
-        return json.loads(resp.json()["choices"][0]["message"]["content"].strip().strip("`").replace("json\n",""))
-    except Exception:
-        return {"department": "concierge", "urgency": "normal", "summary": text[:80]}
-
-@app.route("/webhooks/sms", methods=["POST"])
-```
 
 ## Step 3: Run It
 
@@ -173,7 +168,7 @@ ngrok http 5000
 Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 
 - **Call Control Application** → Webhook URL → `https://<id>.ngrok.io/webhooks/voice`
-- **Messaging Profile** → Inbound Webhook → `https://<id>.ngrok.io/webhooks/sms`
+- **Messaging Profile** → Inbound Webhook URL → `https://<id>.ngrok.io/webhooks/sms`
 
 ## Step 4: Test It
 
@@ -183,37 +178,33 @@ Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 curl http://localhost:5000/health
 ```
 
-**Trigger the workflow:**
+**Voice flow:** call the Telnyx number from a phone with caller ID `+15559001234` (room 101) or `+15559005678` (room 205). For an unknown number, say "Room 205 please" when prompted.
 
-```bash
-curl -X POST http://localhost:5000/requests/<int:idx>/complete \
-  -H "Content-Type: application/json" \
-  -d '{
-    "phone": "+12125559999"
-  }'
-```
+**SMS flow:** text the Telnyx number from `+15559001234` or `+15559005678`.
 
-Or call your Telnyx number from any phone to trigger the full voice workflow.
-
-Or text your Telnyx number to trigger the SMS workflow.
-
-**Check results:**
+**Inspect requests:**
 
 ```bash
 curl http://localhost:5000/requests | python3 -m json.tool
 ```
 
+**Complete a request:**
+
+```bash
+curl -X POST http://localhost:5000/requests/0/complete
+```
+
 ## Going to Production
 
-This example uses in-memory storage for simplicity. For production:
+This example uses in-memory storage and a hardcoded room list. For production:
 
-- **Database** — replace the in-memory dict/list with PostgreSQL or Redis
-- **Authentication** — add API key validation on your endpoints
-- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing))
-- **Error recovery** — handle call failures gracefully with retry or SMS fallback
-- **Prompt engineering** — tune the AI prompts for your specific domain and tone
-- **Monitoring** — add structured logging and health check alerts
-- **Rate limiting** — protect your endpoints from abuse
+- **Database** — replace `ROOMS` and `service_requests` with your PMS database (Opera, Mews, Cloudbeds)
+- **Redis** — persist calls and processed-event IDs across restarts with a TTL
+- **Queue** — Celery or RQ for Slack and SMS side effects so webhook responses stay under Telnyx's timeout
+- **Call recording** — set `record_channels: "dual"` on the answer action for QA
+- **Real paging** — map urgent requests to PagerDuty or Opsgenie, not just Slack
+- **Localization** — swap the system prompt and TTS voice per property language
+- **Auth** — add API key validation on the local endpoints before exposing them beyond localhost
 
 ## Run
 
@@ -224,7 +215,7 @@ python app.py
 
 ## Resources
 
-- [Source code and reference](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hotel-guest-services-python/README.md)
+- [Source code and reference](https://github.com/team-telnyx/telnyx-code-examples/tree/main/hotel-guest-services-python)
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Call Control quickstart](https://developers.telnyx.com/docs/voice/call-control)
 - [Messaging quickstart](https://developers.telnyx.com/docs/messaging)

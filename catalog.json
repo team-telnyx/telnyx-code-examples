@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-09T23:42:14Z",
-  "example_count": 485,
+  "generated_at": "2026-07-14T20:14:19Z",
+  "example_count": 486,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -963,11 +963,20 @@
     {
       "folder": "ai-content-translator-python",
       "title": "AI Content Translator",
-      "description": "Upload any audio (podcast, meeting, lecture), STT transcribes in source language, AI Inference translates, TTS generates audio in target language. Returns translated audio + aligned transcript.",
+      "description": "Upload any audio (podcast, meeting, lecture), STT transcribes in source language, AI Inference translates, TTS generates audio in target language. Returns translated transcript and a downloadable dubbed audio file.",
       "product": "ai",
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-content-translator-python"
+    },
+    {
+      "folder": "ai-subscription-cancel-save-retention-agent-python",
+      "title": "AI Subscription Cancel-Save Retention Agent",
+      "description": "Inbound voice agent that handles subscription cancellation requests, classifies the reason with AI, offers one eligible save option, and records saved, cancelled, paused, transferred, or follow-up outcomes.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-subscription-cancel-save-retention-agent-python"
     },
     {
       "folder": "build-rag-with-telnyx-inference-python",
@@ -1800,7 +1809,7 @@
     {
       "folder": "hotel-guest-services-python",
       "title": "Hotel Guest Services Line",
-      "description": "Room service, housekeeping, concierge requests via voice or SMS. AI routes and tracks. Staff gets Slack notifications, guest gets SMS when fulfilled.",
+      "description": "Inbound voice and SMS concierge for hotels. Looks up the room by caller phone, captures the room number when unknown, routes room service, housekeeping, concierge, and maintenance requests, escalates urgent ones to staff, and texts the guest on completion.",
       "product": "sms",
       "language": "python",
       "framework": "flask",
