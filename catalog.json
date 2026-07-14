@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-14T20:22:00Z",
-  "example_count": 486,
+  "generated_at": "2026-07-14T20:38:08Z",
+  "example_count": 487,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -970,6 +970,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-content-translator-python"
     },
     {
+      "folder": "conversation-relay-voice-bot-python",
+      "title": "Turn a Text Chatbot Into a Voice Bot With Conversation Relay",
+      "description": "Forward live phone calls to any existing text-in/text-out AI chatbot using Telnyx Conversation Relay — no changes to the bot.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/conversation-relay-voice-bot-python"
+    },
+    {
       "folder": "build-rag-with-telnyx-inference-python",
       "title": "Build RAG with Telnyx Inference",
       "description": "Build a retrieval-augmented generation API with Telnyx embeddings and chat completions.",
@@ -1809,7 +1818,7 @@
     {
       "folder": "hotel-guest-services-python",
       "title": "Hotel Guest Services Line",
-      "description": "Room service, housekeeping, concierge requests via voice or SMS. AI routes and tracks. Staff gets Slack notifications, guest gets SMS when fulfilled.",
+      "description": "Inbound voice and SMS concierge for hotels. Looks up the room by caller phone, captures the room number when unknown, routes room service, housekeeping, concierge, and maintenance requests, escalates urgent ones to staff, and texts the guest on completion.",
       "product": "sms",
       "language": "python",
       "framework": "flask",

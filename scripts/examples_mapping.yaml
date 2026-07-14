@@ -669,6 +669,12 @@ examples:
     framework: flask
     folder: ai-content-translator-python
 
+  - product: voice
+    use_case: conversation-relay-voice-bot
+    language: python
+    framework: flask
+    folder: conversation-relay-voice-bot-python
+
   - product: ai
     use_case: build-rag-with-telnyx-inference
     language: python

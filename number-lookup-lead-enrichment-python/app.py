@@ -50,7 +50,6 @@ def lookup_number(phone):
 def _lookup_object(value):
     return value if isinstance(value, dict) else {}
 
-def call_inference(messages, max_tokens=200):
 def call_inference(messages, max_tokens=1500):
     resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
         json={"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3}, timeout=15)
@@ -66,11 +65,6 @@ def enrich_lead():
     if not phone:
         return jsonify({"error": "phone_number required"}), 400
     lookup = lookup_number(phone)
-    carrier = _lookup_object(lookup.get("carrier"))
-    cnam = _lookup_object(lookup.get("caller_name"))
-    phone_number = _lookup_object(lookup.get("phone_number"))
-    enrichment = {"phone": phone, "carrier_name": carrier.get("name"), "carrier_type": carrier.get("type"), "caller_name": cnam.get("caller_name"), "line_type": phone_number.get("type"), "country": lookup.get("country_code")}
-    msgs = [{"role": "system", "content": "Score this lead based on phone data. Return JSON: lead_quality (hot/warm/cold), reasoning (string), is_mobile (boolean), is_voip (boolean), recommended_channel (sms/voice/email)."},
     carrier = lookup.get("carrier") or {}
     cnam = lookup.get("caller_name") or {}
     portability = lookup.get("portability") or {}
