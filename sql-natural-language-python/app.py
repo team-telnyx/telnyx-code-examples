@@ -73,8 +73,9 @@ def run_sample_sql(sql):
         columns = [d[0] for d in cursor.description]
         rows = [dict(r) for r in cursor.fetchall()]
         return {"columns": columns, "rows": rows, "row_count": len(rows)}
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        app.logger.exception("sample SQL execution failed")
+        return {"error": "SQL execution failed"}
     finally:
         conn.close()
 
