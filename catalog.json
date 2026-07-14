@@ -3,7 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-14T21:34:56Z",
+  "generated_at": "2026-07-14T21:46:10Z",
   "example_count": 488,
   "examples": [
     {
@@ -963,7 +963,7 @@
     {
       "folder": "ai-content-translator-python",
       "title": "AI Content Translator",
-      "description": "Upload any audio (podcast, meeting, lecture), STT transcribes in source language, AI Inference translates, TTS generates audio in target language. Returns translated audio + aligned transcript.",
+      "description": "Upload any audio (podcast, meeting, lecture), STT transcribes in source language, AI Inference translates, TTS generates audio in target language. Returns translated transcript and a downloadable dubbed audio file.",
       "product": "ai",
       "language": "python",
       "framework": "flask",
