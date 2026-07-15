@@ -31,11 +31,8 @@ _start_ttl_cleanup(active_calls)
 GENRES = {"1": "mystery", "2": "sci-fi", "3": "fantasy", "4": "horror", "5": "romance"}
 
 def call_inference(messages, max_tokens=250):
-    try:
-        resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
+    resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
         json={"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.9}, timeout=20)
-    except Exception as e:
-        app.logger.error("Request failed: %s", e)
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
 
