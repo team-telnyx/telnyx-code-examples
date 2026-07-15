@@ -9,7 +9,7 @@ app = Flask(__name__)
 client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"), public_key=os.getenv("TELNYX_PUBLIC_KEY"))
 TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY", "")
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
-AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
+AI_MODEL = os.getenv("AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
 PRACTICE_NUMBER = os.getenv("PRACTICE_NUMBER")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 active_calls = {}
