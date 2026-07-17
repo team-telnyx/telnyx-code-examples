@@ -616,6 +616,12 @@ examples:
     folder: ai-assistant-phone-setup-python
 
   - product: ai
+    use_case: ai-assistant-filler-messages-demo
+    language: python
+    framework: flask
+    folder: ai-assistant-filler-messages-demo-python
+
+  - product: ai
     use_case: ai-audiobook-narrator
     language: python
     framework: flask
