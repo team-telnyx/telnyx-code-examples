@@ -106,6 +106,8 @@ Everything lives in `app.py` (~100 lines). Here's what each piece does.
 
 ## Step 5: Configure Filler Messages
 
+Filler messages **must be configured through the Mission Control UI**. While `setup.py` sets these values via the API, playback on calls only works when the messages are added through the UI's Filler Messages tab.
+
 In the tool settings, open the **Filler Messages** tab and add:
 
 | Type | Content | Timing |
@@ -113,6 +115,8 @@ In the tool settings, open the **Filler Messages** tab and add:
 | `request_start` | "Let me look that up for you." | immediate |
 | `request_response_delayed` | "Still working on this, one moment please." | 5000ms |
 | `request_response_delayed` | "Almost there, thanks for your patience." | 15000ms |
+
+Also verify the **tool-level timeout** is set to at least **30000ms**. The default (5000ms) is shorter than the webhook delay and will cause the assistant to time out before the webhook responds.
 
 This corresponds to the JSON configuration:
 

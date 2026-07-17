@@ -13,7 +13,8 @@ This script:
 import os, sys, json, requests
 from dotenv import load_dotenv
 
-load_dotenv()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 API_KEY = os.getenv("TELNYX_API_KEY")
 if not API_KEY:
@@ -76,6 +77,7 @@ def main():
             "carrier, tracking number, and estimated delivery date. Be friendly and concise."
         ),
         "model": "anthropic/claude-haiku-4-5",
+        "greeting": "Hello! Thanks for calling. I can help you check the status of your order. Just give me your order number.",
         "enabled_features": ["telephony"],
     })
     # Response is flat (no "data" wrapper)
@@ -87,6 +89,7 @@ def main():
     api("PATCH", f"/ai/assistants/{assistant_id}", {
         "tools": [{
             "type": "webhook",
+            "timeout_ms": 30000,
             "webhook": {
                 "name": "check_order_status",
                 "description": "Check the status of a customer order by order ID. Use this whenever a customer asks about their order.",
@@ -135,11 +138,18 @@ def main():
     print(f"  Webhook URL:   {webhook_url}")
     print(f"  Delay:         {os.getenv('WEBHOOK_DELAY_SECONDS', '12')}s")
     print()
+    print("IMPORTANT: Filler messages must be configured through Mission Control UI.")
+    print("The API sets the values, but playback requires the Mission Control Filler Messages tab.")
+    print(f"  → Go to: https://portal.telnyx.com → AI → Assistants → {assistant_id}")
+    print("  → Open the check_order_status tool → Filler Messages tab")
+    print("  → Add the filler messages listed in the guide")
+    print()
     print("Next steps:")
-    print("  1. Start the webhook server:  python app.py")
-    print("  2. Open the dashboard:        http://localhost:5000")
-    print(f"  3. Call {phone_number}")
-    print('  4. Ask: "What\'s the status of my order 12345?"')
+    print("  1. Configure filler messages in Mission Control (see above)")
+    print("  2. Start the webhook server:  python app.py")
+    print("  3. Open the dashboard:        http://localhost:5000")
+    print(f"  4. Call {phone_number}")
+    print('  5. Ask: "What\'s the status of my order 12345?"')
     print()
     print(f"To clean up later: delete assistant {assistant_id} in Mission Control")
 

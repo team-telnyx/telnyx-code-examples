@@ -146,6 +146,7 @@ curl http://localhost:5000/health
 | No filler messages heard | Filler messages not configured on the tool | Open the tool settings in Mission Control and add filler messages under the Filler Messages tab |
 | Order not found response | Using an order ID not in mock data | Use `12345`, `67890`, or `11111` |
 | `connection refused` | Flask not running or wrong port | Check `PORT` in `.env` and ensure `python app.py` is running |
+| Assistant says it can't find the order | Tool timeout shorter than webhook delay | Set tool `timeout_ms` to at least `30000` in Mission Control or via API |
 
 ## Related Examples
 
