@@ -1,76 +1,141 @@
-## `POST /webhooks/sms`
+# API Reference
 
-Receives Telnyx Messaging webhook events. Called automatically by Telnyx for inbound messages — do not call directly.
+## `GET /`
 
----
-
-**Try it:**
-
-```bash
-curl -X POST http://localhost:5000/webhooks/sms
-```
+Returns the local dashboard for live demo status.
 
 ## `POST /webhooks/voice`
 
-Receives Telnyx Call Control webhook events. Called automatically by Telnyx during calls — do not call directly.
+Receives Telnyx Call Control webhook events. Telnyx calls this endpoint automatically.
 
-### Events Handled
+### Events handled
 
 | Event | Action |
-|-------|--------|
-| `call.initiated` | Call setup started |
-| `call.answered` | Begins interaction (TTS greeting or gather) |
-| `call.speak.ended` | TTS finished — transitions to gather or next step |
-| `call.gather.ended` | Input received — processes customer response |
-| `call.hangup` | Call ended — cleans up session state |
-
----
-
-**Try it:**
-
-```bash
-curl -X POST http://localhost:5000/webhooks/voice
-```
-
-## `GET /requests`
-
-List all requests.
-
-### Response `200`
-
-```json
-{"requests": null}
-```
-
-**Try it:**
-
-```bash
-curl http://localhost:5000/requests
-```
-
----
-
-## `POST /requests/<int:idx>/complete`
-
-Complete request.
+| --- | --- |
+| `call.initiated` | Answers inbound calls. |
+| `call.answered` | Starts the configured Telnyx AI Assistant. |
+| `call.conversation.ended` | Records sanitized activity for the dashboard. |
+| `call.conversation_insights.generated` | Records sanitized activity for the dashboard. |
+| `call.hangup` | Clears local active-call state. |
 
 ### Response `200`
 
 ```json
 {
-  "error": "invalid request body"
+  "status": "ok"
 }
 ```
 
-**Try it:**
+## `POST /webhooks/sms`
 
-```bash
-curl -X POST http://localhost:5000/requests/<int:idx>/complete \
-  -H "Content-Type: application/json" \
-  -d '{"error": "invalid request body"}'
+Receives Telnyx Messaging webhook events. Telnyx calls this endpoint automatically.
+
+The app processes `message.received` events, categorizes the text with Telnyx AI Inference, logs a local request, and sends an SMS confirmation.
+
+### Response `200`
+
+```json
+{
+  "status": "ok",
+  "request": {
+    "id": 0,
+    "room": "205",
+    "guest": "Chen",
+    "phone": "+15559005678",
+    "channel": "sms",
+    "department": "housekeeping",
+    "urgency": "normal",
+    "summary": "extra towels",
+    "original": "room 205 needs extra towels",
+    "status": "open",
+    "created_at": "2026-07-17T21:00:00Z"
+  }
+}
 ```
 
----
+Non-`message.received` events are acknowledged and ignored:
+
+```json
+{
+  "status": "ignored"
+}
+```
+
+## `GET /requests`
+
+Lists locally logged SMS requests.
+
+### Query parameters
+
+| Parameter | Description |
+| --- | --- |
+| `department` | Optional filter: `room_service`, `housekeeping`, `concierge`, or `maintenance`. |
+| `status` | Optional filter: `open` or `completed`. |
+
+### Response `200`
+
+```json
+{
+  "requests": [
+    {
+      "id": 0,
+      "room": "205",
+      "guest": "Chen",
+      "phone": "+15559005678",
+      "channel": "sms",
+      "department": "housekeeping",
+      "urgency": "normal",
+      "summary": "extra towels",
+      "original": "room 205 needs extra towels",
+      "status": "open",
+      "created_at": "2026-07-17T21:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+## `POST /requests/<idx>/complete`
+
+Marks a locally logged SMS request complete and sends a completion SMS to the guest.
+
+### Response `200`
+
+```json
+{
+  "request": {
+    "id": 0,
+    "status": "completed",
+    "completed_at": "2026-07-17T21:05:00Z"
+  }
+}
+```
+
+### Response `404`
+
+```json
+{
+  "error": "not found"
+}
+```
+
+## `GET /events`
+
+Lists sanitized, high-level voice assistant events for the local dashboard. Raw call IDs and webhook payloads are not returned.
+
+### Response `200`
+
+```json
+{
+  "events": [
+    {
+      "type": "conversation ended",
+      "created_at": "2026-07-17T21:10:00Z"
+    }
+  ],
+  "total": 1
+}
+```
 
 ## `GET /health`
 
@@ -81,34 +146,26 @@ Health check and service status.
 ```json
 {
   "status": "ok",
-  "open": "<string>"
+  "assistant_configured": true,
+  "active_calls": 0,
+  "open_requests": 0
 }
 ```
 
-**Try it:**
+## Error Responses
 
-```bash
-curl http://localhost:5000/health
+Invalid webhook signatures return:
+
+```json
+{
+  "error": "invalid signature"
+}
 ```
 
----
-
-## Status Values
-
-Records use these status values: `completed`, `ok`, `open`
-
-## Error Handling
-
-All endpoints return JSON. On error:
+Invalid JSON payloads return:
 
 ```json
 {
   "error": "invalid request body"
 }
 ```
-
-| Status | Meaning |
-|--------|---------|
-| `200` | Success |
-| `400` | Bad request — missing or invalid fields |
-| `500` | Server error |

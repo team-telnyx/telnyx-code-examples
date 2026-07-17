@@ -1773,8 +1773,8 @@
     {
       "folder": "hotel-guest-services-python",
       "title": "Hotel Guest Services Line",
-      "description": "Room service, housekeeping, concierge requests via voice or SMS. AI routes and tracks. Staff gets Slack notifications, guest gets SMS when fulfilled.",
-      "product": "sms",
+      "description": "Hotel guest services line using a Telnyx AI Assistant for voice calls and AI Inference to categorize SMS requests.",
+      "product": "voice",
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/hotel-guest-services-python"
