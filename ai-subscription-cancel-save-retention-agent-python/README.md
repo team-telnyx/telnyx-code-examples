@@ -13,6 +13,8 @@ channel: [voice]
 
 A Flask setup app that creates a managed Telnyx AI Assistant for subscription
 cancel-save conversations and optionally attaches it to a Telnyx phone number.
+It uses Telnyx AI Communications Infrastructure for the phone number,
+telephony connection, speech pipeline, and managed assistant runtime.
 
 The assistant uses a conversational workflow rather than a brittle IVR state
 machine. Callers can speak naturally, go out of order, ask questions, accept or
@@ -27,6 +29,14 @@ decline offers, or ask for a human.
 - Respects direct cancellation requests without repeated pressure
 - Escalates angry callers, legal-risk phrases, fraud, chargebacks, or human requests
 - Optionally assigns a Telnyx phone number to the assistant's telephony app
+
+## Why Telnyx
+
+Telnyx combines programmable phone numbers, voice connectivity, hosted AI
+Assistants, and natural Telnyx Ultra voices in one platform. That lets this
+sample provision a complete phone-based retention agent from code, then receive
+real inbound calls without building a custom speech recognition, turn-taking,
+or text-to-speech pipeline.
 
 ## Telnyx API Endpoints Used
 
@@ -137,6 +147,18 @@ The assistant follows this policy:
 | other | specialist follow-up call |
 
 The assistant makes one offer, then respects the caller's answer.
+
+## Troubleshooting
+
+- `TELNYX_API_KEY is required`: copy `.env.example` to `.env` and add a valid
+  Telnyx API v2 key.
+- `PHONE_NUMBER was not found`: pass the number in E.164 format, such as
+  `+15551234567`, or pass `phone_number_id` directly.
+- The number still reaches another app: run `/assistant/provision` with
+  `phone_number` or `phone_number_id` again so the phone number points at the
+  assistant's telephony app.
+- The assistant voice sounds wrong: set `TTS_VOICE` to a Telnyx voice id. The
+  sample defaults to a Telnyx Ultra voice.
 
 ## Going To Production
 
