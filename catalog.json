@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-18T00:00:00Z",
-  "example_count": 489,
+  "generated_at": "2026-07-18T00:06:01Z",
+  "example_count": 491,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -887,6 +887,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assistant-phone-setup-python"
+    },
+    {
+      "folder": "ai-assistant-filler-messages-demo-python",
+      "title": "AI Assistant Filler Messages Demo",
+      "description": "Webhook server with live split-screen dashboard for demoing AI Assistant filler messages during sync tool calls.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assistant-filler-messages-demo-python"
     },
     {
       "folder": "ai-audiobook-narrator-python",
@@ -1836,8 +1845,8 @@
     {
       "folder": "hotel-guest-services-python",
       "title": "Hotel Guest Services Line",
-      "description": "Inbound voice and SMS concierge for hotels. Looks up the room by caller phone, captures the room number when unknown, routes room service, housekeeping, concierge, and maintenance requests, escalates urgent ones to staff, and texts the guest on completion.",
-      "product": "sms",
+      "description": "Inbound voice and SMS guest services for hotels. Voice calls are handled by a Telnyx AI Assistant, while SMS requests are categorized and tracked by the Flask app.",
+      "product": "voice",
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/hotel-guest-services-python"
@@ -2633,6 +2642,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-webhook-aggregator-python"
+    },
+    {
+      "folder": "edge-ai-assistant-backend-go",
+      "title": "Edge Compute Backend for AI Assistant",
+      "description": "Use a Telnyx Edge Compute function as the backend for AI Assistant dynamic variables and webhook tool calls — no separate server required.",
+      "product": "voice",
+      "language": "go",
+      "framework": "edge-compute",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-ai-assistant-backend-go"
     },
     {
       "folder": "merge-deal-desk-alerts-python",

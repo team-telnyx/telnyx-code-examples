@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filler Messages Demo — Telnyx AI Assistant</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: #0d1117; color: #c9d1d9; height: 100vh; display: flex; flex-direction: column; }
+  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; color: #58a6ff; font-weight: 600; }
+  header h1 span { color: #8b949e; font-weight: 400; }
+  .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb; }
+  .status-badge.active { background: #23883333; color: #3fb950; border-color: #238833; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+  .container { display: flex; flex: 1; overflow: hidden; }
+  .panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .panel:first-child { border-right: 1px solid #30363d; }
+  .panel-header { background: #161b22; padding: 12px 20px; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 8px; }
+  .panel-header h2 { font-size: 14px; font-weight: 600; color: #e6edf3; }
+  .panel-icon { font-size: 16px; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .event { padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; border-left: 3px solid #30363d; background: #161b22; animation: slideIn 0.3s ease-out; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  .event .time { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+  .event .label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .event .detail { font-size: 12px; color: #8b949e; }
+  .event.tool-call { border-left-color: #d29922; }
+  .event.tool-call .label { color: #d29922; }
+  .event.filler { border-left-color: #a371f7; }
+  .event.filler .label { color: #a371f7; }
+  .event.response { border-left-color: #3fb950; }
+  .event.response .label { color: #3fb950; }
+  .event.countdown { border-left-color: #1f6feb; background: transparent; border: none; padding: 4px 16px; margin-bottom: 2px; }
+  .event.countdown .label { color: #58a6ff; font-weight: 400; font-size: 12px; }
+  .event.info { border-left-color: #8b949e; }
+  .event.info .label { color: #8b949e; }
+  .progress-bar { width: 100%; height: 4px; background: #21262d; border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .progress-bar .fill { height: 100%; background: linear-gradient(90deg, #1f6feb, #58a6ff); border-radius: 2px; transition: width 0.5s ease; }
+  pre.json { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; font-size: 12px; overflow-x: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; }
+  .key { color: #7ee787; }
+  .string { color: #a5d6ff; }
+  .number { color: #d2a8ff; }
+  .null { color: #8b949e; }
+  .empty-state { text-align: center; padding: 60px 20px; color: #484f58; }
+  .empty-state p { font-size: 14px; margin-bottom: 8px; }
+  .empty-state code { background: #21262d; padding: 2px 8px; border-radius: 4px; font-size: 13px; color: #8b949e; }
+  .filler-config { margin-top: 16px; padding: 12px; background: #21262d; border-radius: 6px; font-size: 12px; }
+  .filler-config .cfg-title { color: #a371f7; font-weight: 600; margin-bottom: 8px; }
+  .filler-config .cfg-item { color: #8b949e; padding: 2px 0; }
+  .filler-config .cfg-item span { color: #c9d1d9; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Filler Messages Demo <span>— Telnyx AI Assistant</span></h1>
+  <div class="status-badge" id="status">Waiting for call</div>
+</header>
+<div class="container">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-icon">&#128222;</span>
+      <h2>Call Timeline</h2>
+    </div>
+    <div class="panel-body" id="timeline">
+      <div class="empty-state" id="timeline-empty">
+        <p>Waiting for an incoming tool call...</p>
+        <p style="margin-top:12px">Call your AI Assistant and ask:</p>
+        <code>"What's the status of my order 12345?"</code>
+        <div class="filler-config">
+          <div class="cfg-title">Configured Filler Messages</div>
+          {% for f in filler_config %}
+          <div class="cfg-item">
+            {% if f.timing_ms == 0 %}@ start{% else %}@ {{ f.timing_ms // 1000 }}s{% endif %}
+            — <span>"{{ f.content }}"</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-icon">&#128421;</span>
+      <h2>Webhook Server Log</h2>
+    </div>
+    <div class="panel-body" id="serverlog">
+      <div class="empty-state" id="server-empty">
+        <p>No webhook requests yet.</p>
+        <p style="margin-top:8px">Endpoint: <code>POST /webhook/order-status</code></p>
+        <p style="margin-top:4px">Configured delay: <code>{{ delay_seconds }}s</code></p>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const timeline = document.getElementById('timeline');
+const serverlog = document.getElementById('serverlog');
+const statusBadge = document.getElementById('status');
+let timelineEmpty = document.getElementById('timeline-empty');
+let serverEmpty = document.getElementById('server-empty');
+
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString('en-US', {hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit'}) + '.' + String(d.getMilliseconds()).padStart(3,'0');
+}
+
+function syntaxHighlight(obj) {
+  let json = JSON.stringify(obj, null, 2);
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+    let cls = 'number';
+    if (/^"/.test(match)) { cls = /:$/.test(match) ? 'key' : 'string'; }
+    else if (/true|false/.test(match)) cls = 'number';
+    else if (/null/.test(match)) cls = 'null';
+    return '<span class="' + cls + '">' + match + '</span>';
+  });
+}
+
+function addTimeline(cls, label, detail, ts) {
+  if (timelineEmpty) { timelineEmpty.remove(); timelineEmpty = null; }
+  const div = document.createElement('div');
+  div.className = 'event ' + cls;
+  div.innerHTML = '<div class="time">' + fmtTime(ts) + '</div><div class="label">' + label + '</div>' + (detail ? '<div class="detail">' + detail + '</div>' : '');
+  timeline.appendChild(div);
+  timeline.scrollTop = timeline.scrollHeight;
+}
+
+function addServerLog(cls, label, detail, ts, jsonObj) {
+  if (serverEmpty) { serverEmpty.remove(); serverEmpty = null; }
+  const div = document.createElement('div');
+  div.className = 'event ' + cls;
+  let html = '<div class="time">' + fmtTime(ts) + '</div><div class="label">' + label + '</div>';
+  if (detail) html += '<div class="detail">' + detail + '</div>';
+  if (jsonObj) html += '<pre class="json">' + syntaxHighlight(jsonObj) + '</pre>';
+  div.innerHTML = html;
+  serverlog.appendChild(div);
+  serverlog.scrollTop = serverlog.scrollHeight;
+}
+
+let progressDiv = null;
+
+const es = new EventSource('/events');
+
+es.onmessage = function(e) {
+  const d = JSON.parse(e.data);
+  if (d.type === 'connected') {
+    statusBadge.textContent = 'Connected';
+    statusBadge.className = 'status-badge active';
+  }
+};
+
+es.addEventListener('tool_call_received', function(e) {
+  const d = JSON.parse(e.data);
+  statusBadge.textContent = 'Processing webhook';
+  addTimeline('tool-call', 'Tool Call: check_order_status', 'order_id: ' + d.order_id, d.timestamp);
+  addServerLog('tool-call', 'POST /webhook/order-status', 'Received tool call — delaying ' + d.delay_seconds + 's', d.timestamp, d.request_body);
+
+  progressDiv = document.createElement('div');
+  progressDiv.className = 'event countdown';
+  progressDiv.id = 'progress-event';
+  progressDiv.innerHTML = '<div class="label">Delay: 0 / ' + d.delay_seconds + 's</div><div class="progress-bar"><div class="fill" id="progress-fill" style="width:0%"></div></div>';
+  serverlog.appendChild(progressDiv);
+});
+
+es.addEventListener('filler_message', function(e) {
+  const d = JSON.parse(e.data);
+  const when = d.timing_ms === 0 ? 'immediately' : 'at ' + (d.timing_ms / 1000) + 's';
+  addTimeline('filler', 'Filler: "' + d.content + '"', 'Type: ' + d.filler_type + ' — plays ' + when, d.timestamp);
+});
+
+es.addEventListener('countdown', function(e) {
+  const d = JSON.parse(e.data);
+  const pct = Math.round((d.elapsed / d.total) * 100);
+  const fill = document.getElementById('progress-fill');
+  const prog = document.getElementById('progress-event');
+  if (fill) fill.style.width = pct + '%';
+  if (prog) prog.querySelector('.label').textContent = 'Delay: ' + d.elapsed + ' / ' + d.total + 's (' + d.remaining + 's remaining)';
+  if (serverlog) serverlog.scrollTop = serverlog.scrollHeight;
+});
+
+es.addEventListener('response_sent', function(e) {
+  const d = JSON.parse(e.data);
+  statusBadge.textContent = 'Waiting for call';
+  statusBadge.className = 'status-badge';
+  if (progressDiv) { progressDiv.remove(); progressDiv = null; }
+  addTimeline('response', 'Webhook Response Sent', 'order_id: ' + d.order_id + ' — took ' + d.duration_seconds + 's', d.timestamp);
+  addServerLog('response', 'Response 200 OK', 'Returned order status after ' + d.duration_seconds + 's delay', d.timestamp, d.response_body);
+});
+
+es.onerror = function() {
+  statusBadge.textContent = 'Disconnected';
+  statusBadge.className = 'status-badge';
+};
+</script>
+</body>
+</html>

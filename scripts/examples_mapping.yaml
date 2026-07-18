@@ -616,6 +616,12 @@ examples:
     folder: ai-assistant-phone-setup-python
 
   - product: ai
+    use_case: ai-assistant-filler-messages-demo
+    language: python
+    framework: flask
+    folder: ai-assistant-filler-messages-demo-python
+
+  - product: ai
     use_case: ai-audiobook-narrator
     language: python
     framework: flask
@@ -1251,7 +1257,7 @@ examples:
     framework: flask
     folder: hosted-messaging-campaign-manager-python
 
-  - product: sms
+  - product: voice
     use_case: hotel-guest-services
     language: python
     framework: flask
@@ -1775,6 +1781,11 @@ examples:
     language: python
     framework: flask
     folder: edge-webhook-aggregator-python
+  - product: voice
+    use_case: edge-ai-assistant-backend
+    language: go
+    framework: edge-compute
+    folder: edge-ai-assistant-backend-go
   - product: voice
     use_case: merge-deal-desk-alerts
     language: python

@@ -1,59 +1,78 @@
-# Hotel Guest Services Line — API Reference
+# API Reference
 
-This document lists every endpoint exposed by `app.py`, with request and
-response shapes that match the actual implementation.
+## `GET /`
 
-## Webhooks
+Returns the local dashboard for live demo status.
 
-### `POST /webhooks/voice`
+## `POST /webhooks/voice`
 
-Receives [Telnyx Call Control](https://developers.telnyx.com/docs/voice/call-control) webhook events. The handler is idempotent: it deduplicates by the Telnyx event ID for one hour.
+Receives Telnyx Call Control webhook events. Telnyx calls this endpoint automatically.
 
-**Events handled**
+### Events handled
 
-| Event | App behavior |
-|-------|--------------|
-| `call.initiated` (inbound) | Answer the call |
-| `call.answered` | Speak greeting (guest name when caller ID matches a known room) |
-| `call.speak.ended` | Start speech gather |
-| `call.gather.ended` | Extract room number, classify request with AI, record it |
-| `call.hangup` | Drop call session |
+| Event | Action |
+| --- | --- |
+| `call.initiated` | Answers inbound calls. |
+| `call.answered` | Starts the configured Telnyx AI Assistant. |
+| `call.conversation.ended` | Records sanitized activity for the dashboard. |
+| `call.conversation_insights.generated` | Records sanitized activity for the dashboard. |
+| `call.hangup` | Clears local active-call state. |
 
-You cannot usefully curl this endpoint from your terminal — Telnyx delivers events automatically. To test locally, drive it from the [Telnyx Portal](https://portal.telnyx.com) or use [ngrok](https://ngrok.com).
+### Response `200`
 
-```bash
-curl -X POST http://localhost:5000/webhooks/voice
+```json
+{
+  "status": "ok"
+}
 ```
 
-Returns `200 {"status":"ok"}` once verified. Returns `401 {"error":"invalid signature"}` if `TELNYX_PUBLIC_KEY` is set and the signature does not verify.
+## `POST /webhooks/sms`
 
-### `POST /webhooks/sms`
+Receives Telnyx Messaging webhook events. Telnyx calls this endpoint automatically.
 
-Receives [Telnyx Messaging](https://developers.telnyx.com/docs/messaging) webhook events. Deduplicated by event ID.
+The app processes `message.received` events, categorizes the text with Telnyx AI Inference, logs a local request, and sends an SMS confirmation.
 
-```bash
-curl -X POST http://localhost:5000/webhooks/sms
+### Response `200`
+
+```json
+{
+  "status": "ok",
+  "request": {
+    "id": 0,
+    "room": "205",
+    "guest": "Chen",
+    "phone": "+15559005678",
+    "channel": "sms",
+    "department": "housekeeping",
+    "urgency": "normal",
+    "summary": "extra towels",
+    "original": "room 205 needs extra towels",
+    "status": "open",
+    "created_at": "2026-07-17T21:00:00Z"
+  }
+}
 ```
 
-## Local API
+Non-`message.received` events are acknowledged and ignored:
 
-### `GET /requests`
-
-List service requests, optionally filtered.
-
-**Query params**
-
-- `department` — `room_service|housekeeping|concierge|maintenance`
-- `status` — `open|completed`
-
-**Example**
-
-```bash
-curl http://localhost:5000/requests
-curl "http://localhost:5000/requests?department=maintenance&status=open"
+```json
+{
+  "status": "ignored"
+}
 ```
 
-**Response `200`**
+## `GET /requests`
+
+Lists locally logged SMS requests.
+
+### Query parameters
+
+| Parameter | Description |
+| --- | --- |
+| `department` | Optional filter: `room_service`, `housekeeping`, `concierge`, or `maintenance`. |
+| `status` | Optional filter: `open` or `completed`. |
+
+### Response `200`
 
 ```json
 {
@@ -63,99 +82,90 @@ curl "http://localhost:5000/requests?department=maintenance&status=open"
       "room": "205",
       "guest": "Chen",
       "phone": "+15559005678",
-      "channel": "voice",
-      "department": "room_service",
+      "channel": "sms",
+      "department": "housekeeping",
       "urgency": "normal",
-      "summary": "Club sandwich and sparkling water",
-      "details": "One club sandwich and one bottle of sparkling water",
-      "original": "Can I order a club sandwich and sparkling water?",
+      "summary": "extra towels",
+      "original": "room 205 needs extra towels",
       "status": "open",
-      "created_at": "2026-07-14T18:42:00Z"
+      "created_at": "2026-07-17T21:00:00Z"
     }
   ],
   "total": 1
 }
 ```
 
-### `POST /requests/<idx>/complete`
+## `POST /requests/<idx>/complete`
 
-Mark a request complete and send the guest a fulfilment SMS. `idx` is the request id returned by `GET /requests`.
+Marks a locally logged SMS request complete and sends a completion SMS to the guest.
 
-**Example**
-
-```bash
-curl -X POST http://localhost:5000/requests/0/complete
-```
-
-**Response `200`**
+### Response `200`
 
 ```json
 {
   "request": {
     "id": 0,
-    "room": "205",
-    "guest": "Chen",
-    "phone": "+15559005678",
-    "channel": "voice",
-    "department": "room_service",
-    "urgency": "normal",
-    "summary": "Club sandwich and sparkling water",
-    "details": "One club sandwich and one bottle of sparkling water",
-    "original": "Can I order a club sandwich and sparkling water?",
     "status": "completed",
-    "created_at": "2026-07-14T18:42:00Z",
-    "completed_at": "2026-07-14T18:55:12Z"
+    "completed_at": "2026-07-17T21:05:00Z"
   }
 }
 ```
 
-**Response `404`**
+### Response `404`
 
 ```json
-{"error": "not found"}
+{
+  "error": "not found"
+}
 ```
 
-### `GET /health`
+## `GET /events`
 
-**Example**
+Lists sanitized, high-level voice assistant events for the local dashboard. Raw call IDs and webhook payloads are not returned.
 
-```bash
-curl http://localhost:5000/health
+### Response `200`
+
+```json
+{
+  "events": [
+    {
+      "type": "conversation ended",
+      "created_at": "2026-07-17T21:10:00Z"
+    }
+  ],
+  "total": 1
+}
 ```
 
-**Response `200`**
+## `GET /health`
+
+Health check and service status.
+
+### Response `200`
 
 ```json
 {
   "status": "ok",
-  "open_requests": 1,
-  "active_calls": 0
+  "assistant_configured": true,
+  "active_calls": 0,
+  "open_requests": 0
 }
 ```
 
-## Department Values
+## Error Responses
 
-`room_service`, `housekeeping`, `concierge`, `maintenance`.
-
-## Urgency Values
-
-`normal`, `urgent`. Urgent is set when the LLM classifies it that way OR when the caller text matches a hardcoded urgent phrase list (`fire`, `flood`, `leak`, `locked out`, `gas`, `medical`, etc).
-
-## Status Values
-
-`open`, `completed`.
-
-## Error Format
-
-All errors return JSON:
+Invalid webhook signatures return:
 
 ```json
-{"error": "message"}
+{
+  "error": "invalid signature"
+}
 ```
 
-| HTTP status | Meaning |
-|-------------|---------|
-| `200` | Success |
-| `400` | Bad request — missing or invalid body |
-| `401` | Invalid webhook signature |
-| `404` | Request index out of range |
+Invalid JSON payloads return:
+
+```json
+{
+  "error": "invalid request body"
+}
+```
