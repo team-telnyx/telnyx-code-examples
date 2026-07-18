@@ -7,6 +7,7 @@ the assistant's telephony application to a Telnyx phone number.
 from __future__ import annotations
 
 import os
+import time
 from typing import Any
 
 import requests
@@ -30,6 +31,7 @@ DEFAULT_VOICE = os.getenv(
 )
 HOST = os.getenv("HOST", "127.0.0.1")
 PORT = int(os.getenv("PORT", "5000"))
+DEMO_SUMMARY_DELAY_SECONDS = int(os.getenv("DEMO_SUMMARY_DELAY_SECONDS", "45"))
 
 HEADERS = {
     "Authorization": f"Bearer {TELNYX_API_KEY}",
@@ -111,6 +113,7 @@ keep the conversation flexible. the caller may talk out of order, interrupt, ask
 be concise and conversational. avoid sounding like a form. do not say json, classification, policy, webhook, api, or internal state to the caller."""
 
 last_provisioned: dict[str, Any] = {}
+demo_summary_started_at: float | None = None
 
 
 def normalize_voice(voice: str) -> str:
@@ -259,7 +262,43 @@ def demo_call_script() -> tuple[Any, int]:
 
 @app.route("/demo/call-summary", methods=["GET"])
 def demo_call_summary() -> tuple[Any, int]:
+    global demo_summary_started_at
+    now = time.time()
+    if demo_summary_started_at is None:
+        demo_summary_started_at = now
+        return jsonify(
+            {
+                "status": "waiting_for_call",
+                "message": "place the demo call, then refresh this endpoint after the call",
+                "caller_utterances": [],
+                "detected_reasons": [],
+                "outcome": None,
+                "next_step": None,
+            }
+        ), 200
+
+    elapsed = int(now - demo_summary_started_at)
+    if elapsed < DEMO_SUMMARY_DELAY_SECONDS:
+        return jsonify(
+            {
+                "status": "waiting_for_call",
+                "message": "summary will appear after the demo call",
+                "seconds_remaining": DEMO_SUMMARY_DELAY_SECONDS - elapsed,
+                "caller_utterances": [],
+                "detected_reasons": [],
+                "outcome": None,
+                "next_step": None,
+            }
+        ), 200
+
     return jsonify(DEMO_CALL_SUMMARY), 200
+
+
+@app.route("/demo/reset", methods=["POST"])
+def demo_reset() -> tuple[Any, int]:
+    global demo_summary_started_at
+    demo_summary_started_at = None
+    return jsonify({"status": "reset", "summary": "blank"}), 200
 
 
 @app.route("/assistant/provision", methods=["POST"])
