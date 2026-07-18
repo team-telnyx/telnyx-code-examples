@@ -52,7 +52,7 @@ DEMO_CALLER_LINES = [
     "i have an account attached to this phone number.",
     "i want to cancel because i am not using it enough and it is getting too expensive.",
     "mostly price. i like the product, but i do not use it enough to justify the monthly cost.",
-    "yeah, the discount would help. i will keep it if you can apply that.",
+    "yeah, a free month and onboarding call would help. i will keep it if you can apply that.",
 ]
 
 DEMO_CALL_SUMMARY = {
@@ -63,10 +63,10 @@ DEMO_CALL_SUMMARY = {
         "caller_confirmed_account": True,
     },
     "caller_utterances": DEMO_CALLER_LINES,
-    "detected_reasons": ["too_expensive", "not_using"],
+    "detected_reasons": ["not_using", "too_expensive"],
     "save_offer": {
-        "type": "discount",
-        "details": "25 percent off for the next 3 months",
+        "type": "usage_reactivation",
+        "details": "one free month plus an onboarding call",
     },
     "outcome": "saved",
     "next_step": "apply_retention_offer",
@@ -253,6 +253,7 @@ def demo_call_script() -> tuple[Any, int]:
             "caller_lines": DEMO_CALLER_LINES,
             "alternate_endings": {
                 "accept_offer": "yeah, the discount would help. i will keep it if you can apply that.",
+                "accept_onboarding_offer": "yeah, a free month and onboarding call would help. i will keep it if you can apply that.",
                 "decline_offer": "no thanks, please cancel it.",
                 "escalate": "i would rather talk to a person about this.",
             },
