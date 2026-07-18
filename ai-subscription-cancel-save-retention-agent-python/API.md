@@ -1,261 +1,117 @@
-# AI Subscription Cancel-Save Retention Agent — API Reference
+# AI Subscription Cancel-Save Retention Agent - API Reference
 
 Endpoint shapes match the actual `app.py` implementation.
 
-## Webhooks
+## `GET /workflow`
 
-### `POST /webhooks/voice`
-
-Receives [Telnyx Call Control](https://developers.telnyx.com/docs/voice/call-control) webhook events. Deduplicated by Telnyx event ID for one hour.
-
-**Events handled**
-
-| Event | App behavior |
-|-------|--------------|
-| `call.initiated` (inbound) | Answer the call |
-| `call.answered` | Verify customer, greet, ask why cancel |
-| `call.speak.ended` | Start speech gather |
-| `call.gather.ended` | Classify reason or accept/decline offer |
-| `call.hangup` | Finalize open case as `needs_followup` |
-
-You cannot usefully curl this endpoint from your terminal — Telnyx delivers events automatically. To test locally, drive it from the [Telnyx Portal](https://portal.telnyx.com) or expose your server with [ngrok](https://ngrok.com).
+Returns the assistant greeting, instructions, offer policy, and voice id used by
+the sample.
 
 ```bash
-curl -X POST http://localhost:5000/webhooks/voice
+curl http://localhost:5000/workflow
 ```
 
-Returns `200 {"status":"ok"}` once verified. Returns `401 {"error":"invalid signature"}` if `TELNYX_PUBLIC_KEY` is set and the signature does not verify.
+## `POST /assistant/provision`
 
-## Customers
+Creates or updates the subscription cancel-save AI Assistant. If a phone number
+or phone number id is provided, the endpoint also assigns that number to the
+assistant's default telephony application.
 
-### `POST /customers`
-
-Seed or create a customer. Phone number is required and is what the inbound caller ID is matched against.
-
-**Example**
-
-```bash
-curl -X POST http://localhost:5000/customers \
-  -H "Content-Type: application/json" \
-  -d '{
-    "customer_id": "CUST-001",
-    "name": "Jordan",
-    "phone": "+15551112233",
-    "plan": "pro"
-  }'
-```
-
-**Response `201`**
+### Body
 
 ```json
 {
-  "customer": {
-    "customer_id": "CUST-001",
-    "name": "Jordan",
-    "phone": "+15551112233",
-    "plan": "pro",
-    "status": "active",
-    "created_at": "2026-07-14T18:42:00Z"
+  "name": "subscription cancel save retention assistant",
+  "model": "openai/gpt-4o",
+  "assistant_id": "assistant-optional-existing-id",
+  "phone_number": "+15551234567",
+  "phone_number_id": "3000000000000000000"
+}
+```
+
+All fields are optional. Defaults come from `.env` or the constants in
+`app.py`.
+
+### Example
+
+```bash
+curl -X POST http://localhost:5000/assistant/provision \
+  -H "Content-Type: application/json" \
+  -d '{"phone_number":"+15551234567"}'
+```
+
+### Response
+
+```json
+{
+  "assistant": {
+    "id": "assistant-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "name": "subscription cancel save retention assistant",
+    "model": "openai/gpt-4o",
+    "greeting": "hi, thanks for calling. do you already have an account with us, or would you like to create one?",
+    "enabled_features": ["telephony"],
+    "telephony_settings": {
+      "default_texml_app_id": "3000000000000000000"
+    }
+  },
+  "assigned_number": {
+    "phone_number": "+15551234567",
+    "connection_id": "3000000000000000000"
   }
 }
 ```
 
-**Response `400`**
+## `GET /assistant/<assistant_id>`
 
-```json
-{"error": "phone is required"}
-```
-
-**Response `409`**
-
-```json
-{"error": "customer exists"}
-```
-
-### `GET /customers`
-
-List seeded customers.
-
-**Example**
+Fetches one Telnyx AI Assistant.
 
 ```bash
-curl http://localhost:5000/customers
+curl http://localhost:5000/assistant/assistant-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-**Response `200`**
+## `GET /phone-numbers`
 
-```json
-{
-  "customers": [
-    {
-      "customer_id": "CUST-001",
-      "name": "Jordan",
-      "phone": "+15551112233",
-      "plan": "pro",
-      "status": "active",
-      "created_at": "2026-07-14T18:42:00Z"
-    }
-  ],
-  "total": 1
-}
-```
-
-## Retention Cases
-
-### `GET /retention-cases`
-
-List retention cases, newest first. Optional query params: `status` (`open|complete`), `outcome` (`saved|cancelled|paused|transferred|needs_followup`).
-
-**Example**
+Lists Telnyx phone numbers visible to the API key. Use this to find a
+`phone_number_id` before assigning a number.
 
 ```bash
-curl http://localhost:5000/retention-cases
-curl "http://localhost:5000/retention-cases?outcome=saved"
+curl http://localhost:5000/phone-numbers
 ```
 
-**Response `200`**
+## `GET /health`
 
-```json
-{
-  "cases": [
-    {
-      "case_id": "ret-3f2a8c01",
-      "customer_id": "CUST-001",
-      "phone": "+15551112233",
-      "name": "Jordan",
-      "plan": "pro",
-      "status": "complete",
-      "outcome": "saved",
-      "reason": "too_expensive",
-      "offer": "25% off for 3 months",
-      "summary": "Customer says the price has crept up and competitor is cheaper.",
-      "transcript": [
-        {"role": "user", "content": "I want to cancel my subscription."},
-        {"role": "assistant", "content": "Thanks for letting me know..."},
-        {"role": "user", "content": "It's too expensive."},
-        {"role": "user", "content": "Yes, I'll take it."}
-      ],
-      "created_at": "2026-07-14T18:42:00Z",
-      "completed_at": "2026-07-14T18:44:12Z",
-      "accepted_offer": true
-    }
-  ],
-  "total": 1
-}
-```
-
-### `GET /retention-cases/<case_id>`
-
-Get one retention case with full transcript.
-
-**Example**
-
-```bash
-curl http://localhost:5000/retention-cases/ret-3f2a8c01
-```
-
-**Response `200`** — same shape as a single case above.
-
-**Response `404`**
-
-```json
-{"error": "not found"}
-```
-
-### `POST /retention-cases/<case_id>/complete`
-
-Manually finalize a case. Useful for back-office follow-up when a rep closes a case outside the voice flow.
-
-**Body**
-
-```json
-{
-  "outcome": "saved",
-  "accepted_offer": true,
-  "notes": "Closed by rep after 5-min callback"
-}
-```
-
-`outcome` must be one of `saved`, `cancelled`, `paused`, `transferred`, `needs_followup`.
-
-**Example**
-
-```bash
-curl -X POST http://localhost:5000/retention-cases/ret-3f2a8c01/complete \
-  -H "Content-Type: application/json" \
-  -d '{"outcome": "saved", "accepted_offer": true}'
-```
-
-**Response `200`**
-
-```json
-{
-  "case_id": "ret-3f2a8c01",
-  "status": "complete",
-  "outcome": "saved",
-  "accepted_offer": true,
-  "completed_at": "2026-07-14T19:01:42Z"
-}
-```
-
-**Response `400`**
-
-```json
-{"error": "invalid outcome"}
-```
-
-**Response `404`**
-
-```json
-{"error": "case not found"}
-```
-
-## Health
-
-### `GET /health`
-
-**Example**
+Returns local app health and the last assistant id provisioned by this process.
 
 ```bash
 curl http://localhost:5000/health
 ```
 
-**Response `200`**
-
 ```json
 {
   "status": "ok",
-  "active_calls": 0,
-  "open_cases": 1,
-  "customers": 12
+  "assistant_name": "subscription cancel save retention assistant",
+  "last_assistant_id": "assistant-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 }
 ```
 
-## Reason Values
-
-`too_expensive`, `not_using`, `missing_feature`, `support_issue`, `competitor_switch`, `temporary_pause`, `other`.
-
-## Outcome Values
-
-`saved`, `cancelled`, `paused`, `transferred`, `needs_followup`.
-
-## Status Values
-
-`open`, `complete`.
-
 ## Error Format
 
-All errors return JSON:
+Errors return JSON:
 
 ```json
-{"error": "message"}
+{
+  "error": "telnyx request failed",
+  "detail": "..."
+}
 ```
+
+Common statuses:
 
 | HTTP status | Meaning |
 |-------------|---------|
 | `200` | Success |
-| `201` | Created |
-| `400` | Bad request — missing or invalid field |
-| `401` | Invalid webhook signature |
+| `400` | Bad request |
+| `401` | Invalid or missing Telnyx API key |
 | `404` | Resource not found |
-| `409` | Customer already exists |
+| `422` | Invalid Telnyx API payload |
+| `500` | Local setup error |

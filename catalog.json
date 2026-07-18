@@ -3,7 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-17T22:27:07Z",
+  "generated_at": "2026-07-18T00:06:01Z",
   "example_count": 491,
   "examples": [
     {
@@ -990,7 +990,7 @@
     {
       "folder": "ai-subscription-cancel-save-retention-agent-python",
       "title": "AI Subscription Cancel-Save Retention Agent",
-      "description": "Inbound voice agent that handles subscription cancellation requests, classifies the reason with AI, offers one eligible save option, and records saved, cancelled, paused, transferred, or follow-up outcomes.",
+      "description": "Create a Telnyx AI Assistant that handles subscription cancellation calls, offers one eligible save option, and routes cancel, pause, save, follow-up, or escalation outcomes.",
       "product": "ai",
       "language": "python",
       "framework": "flask",

@@ -1,127 +1,89 @@
 ---
 name: ai-subscription-cancel-save-retention-agent
 title: "AI Subscription Cancel-Save Retention Agent"
-description: "Inbound voice agent that handles subscription cancellation requests, classifies the reason with AI, offers one eligible save option, and records saved, cancelled, paused, transferred, or follow-up outcomes."
+description: "Create a Telnyx AI Assistant that handles subscription cancellation calls, offers one eligible save option, and routes cancel, pause, save, follow-up, or escalation outcomes."
 language: python
 framework: flask
-telnyx_products: [Voice, AI Inference, Messaging]
+telnyx_products: [AI Assistants, Voice]
 integrations: []
-channel: [voice, sms]
+channel: [voice]
 ---
 
 # AI Subscription Cancel-Save Retention Agent
 
-A Flask app that handles inbound calls from customers who want to cancel their
-subscription. The agent verifies the customer by caller ID, asks why they
-want to cancel, classifies the reason with Telnyx AI Inference, offers one
-eligible save option, and records the outcome.
+A Flask setup app that creates a managed Telnyx AI Assistant for subscription
+cancel-save conversations and optionally attaches it to a Telnyx phone number.
+It uses Telnyx AI Communications Infrastructure for the phone number,
+telephony connection, speech pipeline, and managed assistant runtime.
 
-The agent is non-manipulative. A direct "cancel now" or a polite refusal
-ends with a graceful cancellation. Temporary situations route to a pause
-offer. Angry customers or requests for a human transfer immediately.
+The assistant uses a conversational workflow rather than a brittle IVR state
+machine. Callers can speak naturally, go out of order, ask questions, accept or
+decline offers, or ask for a human.
 
 ## What It Does
 
-- Answers inbound voice calls and looks up the customer by caller ID
-- Asks the customer why they want to cancel
-- Classifies the reason (`too_expensive`, `not_using`, `missing_feature`, `support_issue`, `competitor_switch`, `temporary_pause`, `other`) with AI Inference
-- Detects urgent phrases (lawyer, sue, fraud, chargeback, BBB) and transfers to a human
-- Offers one save option based on the reason (discount, onboarding call, roadmap note, support callback, comparison call, pause)
-- Records the outcome (`saved`, `cancelled`, `paused`, `transferred`, `needs_followup`) and updates the customer record
-- Handles ambiguous yes/no with a single clarifying prompt instead of looping
-- Tracks call hangups as `needs_followup` so reps can call back
+- Creates or updates a Telnyx AI Assistant with telephony enabled
+- Uses Telnyx Ultra voice for a more natural phone demo
+- Defines a subscription retention workflow in assistant instructions
+- Personalizes one save offer based on cancellation reason
+- Respects direct cancellation requests without repeated pressure
+- Escalates angry callers, legal-risk phrases, fraud, chargebacks, or human requests
+- Optionally assigns a Telnyx phone number to the assistant's telephony app
+
+## Why Telnyx
+
+Telnyx combines programmable phone numbers, voice connectivity, hosted AI
+Assistants, and natural Telnyx Ultra voices in one platform. That lets this
+sample provision a complete phone-based retention agent from code, then receive
+real inbound calls without building a custom speech recognition, turn-taking,
+or text-to-speech pipeline.
 
 ## Telnyx API Endpoints Used
 
-- Call Control: Answer — `POST /v2/calls/{id}/actions/answer` — [reference](https://developers.telnyx.com/api/call-control/answer-call)
-- Call Control: Speak — `POST /v2/calls/{id}/actions/speak` — [reference](https://developers.telnyx.com/api/call-control/speak)
-- Call Control: Gather — `POST /v2/calls/{id}/actions/gather` — [reference](https://developers.telnyx.com/api/call-control/gather)
-- Call Control: Transfer — `POST /v2/calls/{id}/actions/transfer` — [reference](https://developers.telnyx.com/api/call-control/transfer-call)
-- Messaging: Send — `POST /v2/messages` — [reference](https://developers.telnyx.com/api/messaging/send-message)
-- AI Inference: Chat Completions — `POST /v2/ai/chat/completions` — [reference](https://developers.telnyx.com/api/inference/chat-completions)
-
-## Telnyx Webhook Events
-
-- `call.initiated` — New inbound call — answer it
-- `call.answered` — Call connected — verify the customer and greet
-- `call.speak.ended` — TTS playback finished — start speech gather
-- `call.gather.ended` — Caller speech transcribed — classify and respond
-- `call.hangup` — Call ended — finalize case if still open
+- AI Assistants: Create — `POST /v2/ai/assistants` — [reference](https://developers.telnyx.com/api-reference/assistants/create-an-assistant)
+- AI Assistants: Update — `POST /v2/ai/assistants/{assistant_id}` — [reference](https://developers.telnyx.com/api-reference/assistants/update-assistant)
+- AI Assistants: Get — `GET /v2/ai/assistants/{assistant_id}` — [reference](https://developers.telnyx.com/api-reference/assistants/get-assistant)
+- Phone Numbers: List — `GET /v2/phone_numbers`
+- Phone Numbers: Update — `PATCH /v2/phone_numbers/{id}`
 
 ## Architecture
 
-```
-  Inbound Phone Call
-            │
-            ▼
-  ┌──────────────────────────┐
-  │ Answer + verify caller   │ ── lookup customer by phone
-  └────────────┬─────────────┘
-               │
-   ┌───────────┴────────────┐
-   │ Customer on file?      │
-   └───────────┬────────────┘
-        no     │
-        ▼      │ yes
-   Ask for     │
-   phone #     │
-   on file     │
-        │      │
-        │      ▼
-        │  ┌─────────────────────────┐
-        │  │ Ask: why cancel?        │
-        │  └────────────┬────────────┘
-        │               │
-        │               ▼
-        │  ┌─────────────────────────┐
-        │  │ AI Inference: classify  │
-        │  │ reason + sentiment      │
-        │  └────────────┬────────────┘
-        │               │
-        │       ┌───────┼───────┬──────────┐
-        │       ▼       ▼       ▼          ▼
-        │    angry    wants   standard    direct
-        │       │    human   reason     cancel
-        │       │       │       │          │
-        │       ▼       ▼       ▼          ▼
-        │   transfer  transfer offer × 1  cancel
-        │       │       │       │          │
-        │       └───┬───┘       ▼          │
-        │           │       ┌────────────┐ │
-        │           │       │ Yes / No ? │ │
-        │           │       └─────┬──────┘ │
-        │           │         │        │   │
-        │           │         ▼        ▼   │
-        │           │     accept      decline │
-        │           │         │        │   │
-        │           │         ▼        ▼   │
-        │           │   save policy   cancel  │
-        │           │         │        │   │
-        │           ▼         ▼        ▼   ▼
-        │       ┌────────────────────────────┐
-        │       │ Record outcome + customer  │
-        │       │ status update + SMS confirm│
-        │       └────────────────────────────┘
-
-  State: In-memory dict (customers, retention_cases, calls)
+```text
+  developer runs flask setup app
+             |
+             v
+  /assistant/provision
+             |
+             v
+  create or update telnyx ai assistant
+             |
+             v
+  assistant gets a default telephony app
+             |
+             v
+  optional phone number assignment
+             |
+             v
+  caller dials telnyx number
+             |
+             v
+  managed ai assistant handles conversation
 ```
 
 ## Environment Variables
 
 Copy `.env.example` to `.env` and fill in:
 
-| Variable | Type | Example | Required | Description | Where to get it |
-|----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | string | `KEY0123456789ABCDEF` | yes | Telnyx API v2 key | [Portal](https://portal.telnyx.com/api-keys) |
-| `TELNYX_PUBLIC_KEY` | string | `-----BEGIN PUBLIC KEY-----...` | yes | Public key used to verify inbound webhook signatures | [Portal](https://portal.telnyx.com/api-keys) |
-| `MAIN_NUMBER` | string | `+18005551234` | yes | Telnyx phone number (E.164) | [Portal](https://portal.telnyx.com/numbers/my-numbers) |
-| `CONNECTION_ID` | string | `1494404757140276705` | yes | Call Control application ID | [Portal](https://portal.telnyx.com/call-control/applications) |
-| `AI_MODEL` | string | `moonshotai/Kimi-K2.6` | no | Telnyx AI Inference model name | [Docs](https://developers.telnyx.com/docs/inference/models) |
-| `TTS_VOICE` | string | `AWS.Polly.Joanna-Neural` | no | Telnyx Call Control voice | [Docs](https://developers.telnyx.com/docs/voice/call-control/commands/speak) |
-| `TTS_LANGUAGE` | string | `en-US` | no | BCP-47 language tag for TTS | — |
-| `HUMAN_ESCALATION_NUMBER` | string | `+18005559999` | no | Number to transfer angry or human-requesting callers to | [Portal](https://portal.telnyx.com/numbers/my-numbers) |
-| `HOST` | string | `127.0.0.1` | no | Bind host | — |
-| `PORT` | int | `5000` | no | HTTP server port | — |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TELNYX_API_KEY` | yes | Telnyx API v2 key |
+| `ASSISTANT_NAME` | no | Name for the assistant |
+| `AI_MODEL` | no | Assistant model, default `openai/gpt-4o` |
+| `TTS_VOICE` | no | Telnyx voice id |
+| `PHONE_NUMBER` | no | E.164 number to assign |
+| `PHONE_NUMBER_ID` | no | Phone number id to assign |
+| `HOST` | no | Flask bind host |
+| `PORT` | no | Flask port |
 
 ## Setup
 
@@ -129,121 +91,93 @@ Copy `.env.example` to `.env` and fill in:
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/ai-subscription-cancel-save-retention-agent-python
 cp .env.example .env
-# Edit .env with your Telnyx credentials
 pip install -r requirements.txt
 python app.py
 ```
 
 Server starts on `http://localhost:5000`.
 
-### Webhook Configuration
+## Provision The Assistant
 
-1. Expose your local server:
+Create or update the assistant:
 
-   ```bash
-   ngrok http 5000
-   ```
+```bash
+curl -X POST http://localhost:5000/assistant/provision \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
 
-2. Copy the HTTPS URL and configure in [Telnyx Portal](https://portal.telnyx.com):
+Create the assistant and assign a number in the same call:
 
-   - **Call Control Application** → Webhook URL → `https://<id>.ngrok.io/webhooks/voice`
+```bash
+curl -X POST http://localhost:5000/assistant/provision \
+  -H "Content-Type: application/json" \
+  -d '{"phone_number":"+15551234567"}'
+```
 
-3. Verify inbound webhooks are signed — the app validates the Ed25519 signature against `TELNYX_PUBLIC_KEY` on every request.
+You can also pass `phone_number_id` if you already know the Telnyx phone number
+resource id.
 
 ## Demo Flow
 
-1. Start the app.
-2. Seed a customer:
+1. Provision the assistant.
+2. Assign a Telnyx phone number.
+3. Open `/workflow` if you want to show the configured assistant behavior.
+4. Call that number.
+5. Speak naturally:
 
-   ```bash
-   curl -X POST http://localhost:5000/customers \
-     -H "Content-Type: application/json" \
-     -d '{"customer_id": "CUST-001", "name": "Jordan", "phone": "+15551112233", "plan": "pro"}'
-   ```
+```text
+i think i need to cancel. i am barely using this and it is getting expensive.
+```
 
-3. Call the Telnyx number from `+15551112233` (or change the phone in step 2 to match your real caller ID).
-4. Say: "I want to cancel my subscription."
-5. The agent asks why. Say: "It's too expensive."
-6. The agent offers: "Based on what you said, here's one thing I can offer: 25% off for 3 months. Would that change your mind, or would you still like to cancel?"
-7. Say yes or no.
-8. Inspect the outcome:
+6. The assistant asks a natural follow-up or makes one save offer.
+7. Accept, decline, ask for a human, or change your mind.
 
-   ```bash
-   curl http://localhost:5000/retention-cases
-   ```
+## Subscription Workflow
 
-## Cancellation Reasons and Default Offers
+The assistant follows this policy:
 
-| Reason | Offer | Default outcome if accepted |
-|--------|-------|------------------------------|
-| `too_expensive` | 25% off for 3 months | `saved` |
-| `not_using` | Free onboarding call + 1 free month | `saved` |
-| `missing_feature` | Roadmap note + specialist follow-up | `needs_followup` |
-| `support_issue` | Priority support callback | `needs_followup` |
-| `competitor_switch` | 15-minute comparison consultation | `needs_followup` |
-| `temporary_pause` | Pause for up to 60 days, no charge | `paused` |
-| `other` | Specialist follow-up call | `needs_followup` |
+| Reason | Offer |
+|--------|-------|
+| too expensive | 25 percent off for the next 3 months |
+| not using | free onboarding call and one free month |
+| missing feature | product feedback plus specialist follow-up |
+| support issue | priority support callback |
+| competitor switch | short comparison consultation |
+| temporary pause | pause subscription for up to 60 days |
+| other | specialist follow-up call |
 
-## Retention Outcomes
-
-| Outcome | Meaning |
-|---------|---------|
-| `saved` | Customer accepted the offer and stayed |
-| `cancelled` | Customer cancelled (directly or after declining the offer) |
-| `paused` | Customer accepted a pause offer |
-| `transferred` | Customer was transferred to a human (angry or explicitly asked) |
-| `needs_followup` | Open question or hangup; needs human follow-up |
-
-## Edge Cases Handled
-
-- Customer not found by caller ID — agent says so and ends the call
-- Customer already cancelled — agent confirms and asks if anything else is needed
-- Direct cancellation request ("cancel now") — agent cancels without offering
-- Repeated "no" to the offer — agent cancels
-- Ambiguous yes/no — agent asks once for confirmation, no infinite loop
-- AI Inference returns malformed JSON — falls back to `other / neutral` and offers the default follow-up
-- Angry customer or threat of legal action — immediate transfer to human escalation number
-- Caller asks for a human — immediate transfer
-- Hangup before resolution — case finalized as `needs_followup`
-- Duplicate webhook delivery — event IDs are tracked for one hour and deduplicated
-- SMS confirmation send fails — logged but does not block the call
-
-## Going to Production
-
-This example uses in-memory storage and seeded customers. For production:
-
-- **Database** — replace the `customers` and `retention_cases` dicts with your billing-system integration (Stripe, Recurly, Chargebee)
-- **Real customer verification** — replace the `lookup_customer` phone match with an authenticated lookup that asks for a one-time code from the customer's email or app
-- **Consent recording** — add `record_channels: "dual"` to the answer action for compliance audits, with explicit consent at the start of the call
-- **Real offers** — wire the offer text into your billing system so a `saved` outcome actually applies the discount
-- **Pause real billing** — wire `paused` into your billing system to defer the next invoice
-- **Multi-language** — swap the TTS voice and the system prompt per customer's locale
+The assistant makes one offer, then respects the caller's answer.
 
 ## Troubleshooting
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| `401 invalid signature` on webhook | `TELNYX_PUBLIC_KEY` does not match | Copy the public key exactly from [Portal → API Keys](https://portal.telnyx.com/api-keys) |
-| "I don't see your account on this number" | Caller ID didn't match a seeded customer | Seed the customer first with `POST /customers` |
-| AI classification always returns `other` | `AI_MODEL` not available on your account | List models: `curl -H "Authorization: Bearer $TELNYX_API_KEY" https://api.telnyx.com/v2/ai/models`. Common fallbacks: `openai/gpt-4o`, `Qwen/Qwen3-235B-A22B` |
-| Customer stuck in loop | Old version with yes/no regex bug | Update to current `app.py` (yes/no are word-boundary regex matches, one clarification only) |
-| Transfer fails silently | `HUMAN_ESCALATION_NUMBER` not set | Add it to `.env`. Without it, the case is still marked `transferred` for the record |
+- `TELNYX_API_KEY is required`: copy `.env.example` to `.env` and add a valid
+  Telnyx API v2 key.
+- `PHONE_NUMBER was not found`: pass the number in E.164 format, such as
+  `+15551234567`, or pass `phone_number_id` directly.
+- The number still reaches another app: run `/assistant/provision` with
+  `phone_number` or `phone_number_id` again so the phone number points at the
+  assistant's telephony app.
+- The assistant voice sounds wrong: set `TTS_VOICE` to a Telnyx voice id. The
+  sample defaults to a Telnyx Ultra voice.
+
+## Going To Production
+
+- Connect assistant tools to your billing system so accepted offers actually update invoices.
+- Add a tool for cancellation confirmation and account state changes.
+- Add CRM or ticketing tools for `needs_followup` outcomes.
+- Add transfer configuration for live specialist escalation.
+- Add dynamic variables such as `first_name`, `plan`, `monthly_price`, and `renewal_date`.
 
 ## Related Examples
 
-- [AI Customer Winback Caller](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-customer-winback-caller-python/README.md) — outbound variant
-- [AI Customer Churn Predictor](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-customer-churn-predictor-python/README.md) — pre-emptive churn scoring
-- [AI Tech Support Voice Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-tech-support-voice-agent-python/README.md) — pattern reference
-- [AI Receptionist with Booking Tools](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-receptionist-with-booking-tools-python/README.md) — function-calling pattern reference
+- [Create AI Assistant Python](https://github.com/team-telnyx/telnyx-code-examples/tree/main/create-ai-assistant-python)
+- [AI Assistant Phone Setup Python](https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assistant-phone-setup-python)
+- [AI Assistant Multi Tool Python](https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assistant-multi-tool-python)
 
 ## Resources
 
-- [Call Control Guide](https://developers.telnyx.com/docs/voice/call-control)
-- [AI Inference Guide](https://developers.telnyx.com/docs/inference)
-- [Messaging Guide](https://developers.telnyx.com/docs/messaging)
-- [Telnyx Developer Docs](https://developers.telnyx.com)
+- [AI Assistant quickstart](https://developers.telnyx.com/docs/inference/ai-assistants/no-code-voice-assistant)
+- [Conversation workflows](https://developers.telnyx.com/docs/inference/ai-assistants/workflows)
+- [Dynamic variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables)
 - [Telnyx Portal](https://portal.telnyx.com)
-
-## Why Telnyx
-
-Telnyx is an **AI Communications Infrastructure** platform — voice, messaging, SIP, AI inference, and IoT on one private, global network. Co-located voice and inference means the agent's STT, TTS, and LLM calls stay on the same private backbone for sub-second round trips even during a cancel-save conversation that depends on every turn landing fast.
