@@ -122,7 +122,7 @@ resource id.
 
 1. Provision the assistant.
 2. Assign a Telnyx phone number.
-3. Open `/workflow` if you want to show the configured assistant behavior.
+3. Open `/workflow` to show the public demo flow without exposing the full prompt.
 4. Call that number.
 5. Speak naturally:
 
@@ -132,6 +132,10 @@ i think i need to cancel. i am barely using this and it is getting expensive.
 
 6. The assistant asks a natural follow-up or makes one save offer.
 7. Accept, decline, ask for a human, or change your mind.
+8. Open `/demo/call-summary` to show a clean after-call JSON summary.
+
+Use `/demo/call-script` while preparing the recording. It returns the caller
+lines and alternate endings to use on the phone.
 
 ## Subscription Workflow
 

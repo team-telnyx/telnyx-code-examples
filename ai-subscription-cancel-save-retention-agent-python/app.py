@@ -46,6 +46,30 @@ OFFER_POLICY = {
     "other": "offer a specialist follow up call",
 }
 
+DEMO_CALLER_LINES = [
+    "i have an account attached to this phone number.",
+    "i want to cancel because i am not using it enough and it is getting too expensive.",
+    "mostly price. i like the product, but i do not use it enough to justify the monthly cost.",
+    "yeah, the discount would help. i will keep it if you can apply that.",
+]
+
+DEMO_CALL_SUMMARY = {
+    "call_type": "subscription_cancel_save",
+    "caller_intent": "cancel_subscription",
+    "account_lookup": {
+        "method": "caller_phone_number",
+        "caller_confirmed_account": True,
+    },
+    "caller_utterances": DEMO_CALLER_LINES,
+    "detected_reasons": ["too_expensive", "not_using"],
+    "save_offer": {
+        "type": "discount",
+        "details": "25 percent off for the next 3 months",
+    },
+    "outcome": "saved",
+    "next_step": "apply_retention_offer",
+}
+
 ASSISTANT_GREETING = (
     "hi, thanks for calling. do you already have an account with us, "
     "or would you like to create one?"
@@ -197,12 +221,45 @@ def assign_number_to_assistant(phone_number_id: str, assistant: dict[str, Any]) 
 def workflow() -> tuple[Any, int]:
     return jsonify(
         {
-            "greeting": ASSISTANT_GREETING,
-            "instructions": ASSISTANT_INSTRUCTIONS,
-            "offer_policy": OFFER_POLICY,
+            "assistant": DEFAULT_ASSISTANT_NAME,
+            "demo_number": DEFAULT_PHONE_NUMBER or "+12068646530",
+            "first_message": ASSISTANT_GREETING,
+            "call_flow": [
+                "assistant asks whether the caller has an account or wants to create one",
+                "caller says the account is attached to the phone number they are calling from",
+                "caller says they want to cancel and gives a natural reason",
+                "assistant asks one follow-up question if needed",
+                "assistant makes one save offer based on the reason",
+                "caller accepts, declines, asks for a person, or changes their mind",
+            ],
+            "demo_endpoints": {
+                "caller_script": "/demo/call-script",
+                "after_call_json": "/demo/call-summary",
+            },
             "voice": DEFAULT_VOICE,
         }
     ), 200
+
+
+@app.route("/demo/call-script", methods=["GET"])
+def demo_call_script() -> tuple[Any, int]:
+    return jsonify(
+        {
+            "screen_to_show": "http://localhost:5000/demo/call-summary after the call",
+            "number_to_call": DEFAULT_PHONE_NUMBER or "+12068646530",
+            "caller_lines": DEMO_CALLER_LINES,
+            "alternate_endings": {
+                "accept_offer": "yeah, the discount would help. i will keep it if you can apply that.",
+                "decline_offer": "no thanks, please cancel it.",
+                "escalate": "i would rather talk to a person about this.",
+            },
+        }
+    ), 200
+
+
+@app.route("/demo/call-summary", methods=["GET"])
+def demo_call_summary() -> tuple[Any, int]:
+    return jsonify(DEMO_CALL_SUMMARY), 200
 
 
 @app.route("/assistant/provision", methods=["POST"])
