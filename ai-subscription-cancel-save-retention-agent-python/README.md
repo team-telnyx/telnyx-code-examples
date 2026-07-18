@@ -41,8 +41,8 @@ or text-to-speech pipeline.
 ## Telnyx API Endpoints Used
 
 - AI Assistants: Create — `POST /v2/ai/assistants` — [reference](https://developers.telnyx.com/api-reference/assistants/create-an-assistant)
-- AI Assistants: Update — `POST /v2/ai/assistants/{assistant_id}` — [reference](https://developers.telnyx.com/api-reference/assistants/update-assistant)
-- AI Assistants: Get — `GET /v2/ai/assistants/{assistant_id}` — [reference](https://developers.telnyx.com/api-reference/assistants/get-assistant)
+- AI Assistants: Update — `POST /v2/ai/assistants/{assistant_id}` — [reference](https://developers.telnyx.com/api-reference/assistants/update-an-assistant)
+- AI Assistants: Get — `GET /v2/ai/assistants/{assistant_id}` — [reference](https://developers.telnyx.com/api-reference/assistants/get-an-assistant)
 - Phone Numbers: List — `GET /v2/phone_numbers`
 - Phone Numbers: Update — `PATCH /v2/phone_numbers/{id}`
 
