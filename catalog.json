@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-20T19:54:59Z",
-  "example_count": 492,
+  "generated_at": "2026-07-21T18:37:48Z",
+  "example_count": 493,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -122,6 +122,15 @@
       "language": "nodejs",
       "framework": "express",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/build-conversational-workflow-nodejs"
+    },
+    {
+      "folder": "ai-assistant-multiparticipant-calling-nodejs",
+      "title": "AI Assistant Multiparticipant Calling",
+      "description": "Build a Telnyx Voice AI assistant that answers an inbound call, uses a backend tool to dial a second participant, and joins them into the same live AI conversation with ai_assistant_join.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assistant-multiparticipant-calling-nodejs"
     },
     {
       "folder": "make-outbound-phone-call-nodejs",
