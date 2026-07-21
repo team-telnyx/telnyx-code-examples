@@ -91,6 +91,12 @@ examples:
     folder: build-conversational-workflow-nodejs
 
   - product: voice
+    use_case: ai-assistant-multiparticipant-calling
+    language: nodejs
+    framework: express
+    folder: ai-assistant-multiparticipant-calling-nodejs
+
+  - product: voice
     use_case: outbound-call
     language: nodejs
     framework: express

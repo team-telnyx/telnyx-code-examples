@@ -1,0 +1,16 @@
+{
+  "name": "ai-assistant-multiparticipant-calling-nodejs",
+  "version": "1.0.0",
+  "description": "Telnyx AI Assistant multiparticipant calling example with Express.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --check server.js && node validate-example.js",
+    "validate": "node validate-example.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}
