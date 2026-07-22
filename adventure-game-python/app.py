@@ -10,6 +10,7 @@ AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 games = {}
 MAX_HISTORY = 20
+MAX_TURNS = 3
 VALID_GENRES = ["fantasy", "sci-fi", "mystery", "horror", "cyberpunk", "post-apocalyptic"]
 
 def call_inference(messages, max_tokens=4000):
@@ -33,8 +34,7 @@ Rules:
 - Always provide exactly 3 choices the player can pick from next.
 - Track game state: location, health (0-100), inventory, and turn count.
 - The player can find items, take damage, heal, or change location based on choices.
-- Do not kill the player before turn 5. After turn 5, death is possible if the player makes poor choices.
-- The game ends with status "won" when the player completes the main quest, "lost" when health reaches 0, or "escaped" when the player finds an exit.
+- Do not kill the player before turn 3. On turn 3, the game MUST end — resolve the story with status "won" (player succeeded), "lost" (player failed or died), or "escaped" (player found a way out). Do not offer choices on the final turn.
 - Keep the tone consistent with the genre.
 - Return JSON only with this shape:
   {
@@ -43,6 +43,7 @@ Rules:
     "state": {"location": "...", "health": int, "inventory": ["..."], "turn": int},
     "status": "ongoing" | "won" | "lost" | "escaped"
   }
+- On the final turn (turn 3), set "choices" to an empty array and "status" to "won", "lost", or "escaped".
 """
 
 def build_game_prompt(genre, player_name, history, choice_index=None):
@@ -61,7 +62,11 @@ def build_game_prompt(genre, player_name, history, choice_index=None):
         choices = last.get("choices", [])
         if 1 <= choice_index <= len(choices):
             prompt_parts.append(f"\nThe player chose option {choice_index}: {choices[choice_index - 1]}")
-            prompt_parts.append("Continue the story based on this choice. Generate the next scene and 3 new choices.")
+            next_turn = last.get("state", {}).get("turn", 0) + 1
+            if next_turn >= MAX_TURNS:
+                prompt_parts.append(f"This is turn {next_turn} — the FINAL turn. Resolve the story with status \"won\", \"lost\", or \"escaped\". Do not offer choices.")
+            else:
+                prompt_parts.append("Continue the story based on this choice. Generate the next scene and 3 new choices.")
     return "\n".join(prompt_parts)
 
 @app.route("/game/start", methods=["POST"])
@@ -109,6 +114,9 @@ def make_choice(game_id):
         return jsonify({"error": "game not found"}), 404
     if game["current"].get("status", "ongoing") != "ongoing":
         return jsonify({"error": f"game is {game['current']['status']} — start a new game"}), 400
+    current_turn = game["current"].get("state", {}).get("turn", 0)
+    if current_turn >= MAX_TURNS:
+        return jsonify({"error": f"game ended after {MAX_TURNS} turns — start a new game"}), 400
     data = request.get_json() or {}
     choice = data.get("choice")
     if choice is None or not isinstance(choice, int):
