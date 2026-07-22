@@ -856,6 +856,12 @@ examples:
     folder: ai-powered-ivr-replacement-python
 
   - product: ai
+    use_case: ai-pre-visit-clearance-voice-agent
+    language: python
+    framework: flask
+    folder: ai-pre-visit-clearance-voice-agent-python
+
+  - product: ai
     use_case: ai-price-quote-phone-agent
     language: python
     framework: flask

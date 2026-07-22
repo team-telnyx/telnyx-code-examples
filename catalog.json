@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-22T21:52:12Z",
-  "example_count": 496,
+  "generated_at": "2026-07-22T22:34:43Z",
+  "example_count": 497,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1238,6 +1238,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-powered-ivr-replacement-python"
+    },
+    {
+      "folder": "ai-pre-visit-clearance-voice-agent-python",
+      "title": "AI Pre-Visit Clearance Voice Agent",
+      "description": "Inbound voice agent for healthcare pre-visit insurance clearance. Patients call to request prior authorization for a procedure, test, or medication. The agent verifies identity by DOB, collects procedure/provider/insurer, classifies urgency with AI, creates a structured intake ticket for billing staff, and sends an SMS confirmation.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-pre-visit-clearance-voice-agent-python"
     },
     {
       "folder": "ai-price-quote-phone-agent-python",
