@@ -319,6 +319,7 @@
 
 ## AI Assistants
 
+- [AI Adventure Game](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/adventure-game-python/README.md): AI Adventure Game — a text-based choose-your-own-adventure game where every scene and choice is generated in real time by Telnyx AI Inference.
 - [AI After-Hours Emergency Triage](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-after-hours-emergency-triage-python/README.md): AI After-Hours Emergency Triage - after-hours calls screened by AI. True emergencies get forwarded to on-call; everything else gets a voicemail + next-day callback promise.
 - [AI Assistant Filler Messages Demo](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-filler-messages-demo-python/README.md): Webhook server with live split-screen dashboard for demoing AI Assistant filler messages during sync tool calls.
 - [AI Assistant Knowledge Base](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-knowledge-base-python/README.md): AI Assistant Knowledge Base - AI Assistant with document knowledge base for context-aware Q&A over uploaded documents.
