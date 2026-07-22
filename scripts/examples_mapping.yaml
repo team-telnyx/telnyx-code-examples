@@ -736,6 +736,18 @@ examples:
     folder: semantic-search-python
 
   - product: ai
+    use_case: adventure-game
+    language: python
+    framework: flask
+    folder: adventure-game-python
+
+  - product: ai
+    use_case: moderation-classifier
+    language: python
+    framework: flask
+    folder: moderation-classifier-python
+
+  - product: ai
     use_case: ai-customer-winback-caller
     language: python
     framework: flask

@@ -1,0 +1,62 @@
+[
+  {
+    "id": "BLK-001",
+    "text": "Congratulations! You've won a $1000 gift card. Click here to claim your prize now before it expires!",
+    "category": "spam",
+    "added_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "id": "BLK-002",
+    "text": "Make $5000 per week from home! No experience needed. Sign up today for this amazing opportunity.",
+    "category": "spam",
+    "added_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "id": "BLK-003",
+    "text": "You are a worthless loser and nobody likes you. Go away and never come back.",
+    "category": "abuse",
+    "added_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "id": "BLK-004",
+    "text": "You people are all the same, go back to where you came from. We don't want your kind here.",
+    "category": "hate",
+    "added_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "id": "BLK-005",
+    "text": "I know where you live and I'm going to find you. Watch your back.",
+    "category": "harassment",
+    "added_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "id": "BLK-006",
+    "text": "Buy cheap followers and likes! Boost your social media presence instantly. 100% real accounts.",
+    "category": "spam",
+    "added_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "id": "BLK-007",
+    "text": "You're so stupid it's embarrassing. Everyone laughs at you behind your back. Just give up.",
+    "category": "abuse",
+    "added_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "id": "BLK-008",
+    "text": "People like you don't deserve to exist in this country. You're ruining everything.",
+    "category": "hate",
+    "added_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "id": "BLK-009",
+    "text": "I'm going to report your account and get you banned. I'll keep making new accounts to harass you.",
+    "category": "harassment",
+    "added_at": "2025-01-01T00:00:00Z"
+  },
+  {
+    "id": "BLK-010",
+    "text": "FREE iPhone giveaway! Limited time offer. Enter your email and credit card to verify your identity.",
+    "category": "spam",
+    "added_at": "2025-01-01T00:00:00Z"
+  }
+]

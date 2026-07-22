@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-22T18:38:24Z",
-  "example_count": 495,
+  "generated_at": "2026-07-22T22:34:43Z",
+  "example_count": 497,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1058,6 +1058,24 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/semantic-search-python"
+    },
+    {
+      "folder": "adventure-game-python",
+      "title": "AI Adventure Game",
+      "description": "AI Adventure Game — a text-based choose-your-own-adventure game where every scene and choice is generated in real time by Telnyx AI Inference.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/adventure-game-python"
+    },
+    {
+      "folder": "moderation-classifier-python",
+      "title": "AI Moderation Classifier",
+      "description": "AI Moderation Classifier — classify user-generated content as safe/spam/abuse/hate/harassment/self-harm using embeddings pre-filter + LLM judgment via Telnyx AI Inference.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/moderation-classifier-python"
     },
     {
       "folder": "ai-customer-winback-caller-python",
