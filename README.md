@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/team-telnyx-telnyx-code-examples-badge.png)](https://mseep.ai/app/team-telnyx-telnyx-code-examples)
+
 # Telnyx Code Examples - AI Communications Infrastructure
 
 Production-ready code examples for the Telnyx platform. Each example is a self-contained project with working code, documentation, and environment configuration - clone, configure, and run in minutes.
