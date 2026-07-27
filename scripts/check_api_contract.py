@@ -14,9 +14,9 @@ import argparse
 import json
 import re
 import sys
-import urllib.request
 from pathlib import Path
 
+import requests
 import yaml
 
 
@@ -43,12 +43,13 @@ def fetch_openapi_spec(spec_path: str | None = None) -> dict:
             return yaml.safe_load(content)
         return json.loads(content)
 
-    req = urllib.request.Request(  # nosec B310
+    resp = requests.get(
         TELNYX_OPENAPI_URL,
         headers={"Accept": "application/json"},
+        timeout=30,
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
-        return json.loads(resp.read())
+    resp.raise_for_status()
+    return resp.json()
 
 
 def normalize_path(path: str) -> str:
