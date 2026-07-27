@@ -18,23 +18,48 @@ TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY", "")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
+# Telnyx Storage is S3-compatible but uses SEPARATE storage credentials
+# (created in Portal > Storage), not the Telnyx API key.
+STORAGE_ACCESS_KEY = os.getenv("STORAGE_ACCESS_KEY", "")
+STORAGE_SECRET_KEY = os.getenv("STORAGE_SECRET_KEY", "")
 STORAGE_BUCKET = os.getenv("STORAGE_BUCKET", "call-recordings")
+STORAGE_REGION = os.getenv("STORAGE_REGION", "us-east-1")
 HOST = os.getenv("HOST", "127.0.0.1")
 HEADERS = {"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}
 
-s3 = boto3.client("s3", endpoint_url="https://storage.telnyx.com",
-                   aws_access_key_id=TELNYX_API_KEY, aws_secret_access_key=TELNYX_API_KEY)
+if STORAGE_ACCESS_KEY and STORAGE_SECRET_KEY:
+    s3 = boto3.client(
+        "s3",
+        endpoint_url="https://storage.telnyx.com",
+        aws_access_key_id=STORAGE_ACCESS_KEY,
+        aws_secret_access_key=STORAGE_SECRET_KEY,
+        region_name=STORAGE_REGION,
+    )
+else:
+    s3 = None
+    app.logger.warning(
+        "STORAGE_ACCESS_KEY/STORAGE_SECRET_KEY not set — "
+        "call recording archival to Telnyx Storage is disabled."
+    )
 
+# Voice ids follow the <Provider>.<Model>.<VoiceId> format.
+# AWS.Polly neural voices support the languages below; "female"/"male" only
+# work with service_level="basic" (en-US only), so we use explicit voice ids.
 REGION_CONFIG = {
-    "US": {"language": "en-US", "voice": "female", "greeting": "Welcome. How can I help you today?",
-           "requires_consent": False, "record": True},
-    "LATAM": {"language": "es-MX", "voice": "female", "greeting": "Bienvenido. Como puedo ayudarle hoy?",
-              "requires_consent": False, "record": True},
-    "EU": {"language": "en-GB", "voice": "female",
-           "greeting": "This call will be recorded for quality purposes. Press 1 to consent and continue, or press 2 to proceed without recording.",
-           "requires_consent": True, "record": False},
-    "DEFAULT": {"language": "en-US", "voice": "female", "greeting": "Welcome. How can I help you?",
-                "requires_consent": False, "record": True}
+    "US":     {"language": "en-US", "voice": "AWS.Polly.Joanna-Neural",
+               "greeting": "Welcome. How can I help you today?",
+               "requires_consent": False, "record": True},
+    "LATAM":  {"language": "es-MX", "voice": "AWS.Polly.Lupe-Neural",
+               "greeting": "Bienvenido. Como puedo ayudarle hoy?",
+               "requires_consent": False, "record": True},
+    "EU":     {"language": "en-GB", "voice": "AWS.Polly.Amy-Neural",
+               "greeting": "This call will be recorded for quality purposes. "
+                           "Press 1 to consent and continue, or press 2 to "
+                           "proceed without recording.",
+               "requires_consent": True, "record": False},
+    "DEFAULT":{"language": "en-US", "voice": "AWS.Polly.Joanna-Neural",
+               "greeting": "Welcome. How can I help you?",
+               "requires_consent": False, "record": True}
 }
 
 EU_PREFIXES = ["+33", "+34", "+39", "+44", "+49", "+31", "+32", "+43", "+45", "+46", "+47",
@@ -201,16 +226,18 @@ def handle_voice():
     elif event_type == "call.recording.saved":
         recording_url = ep.get("recording_urls", {}).get("mp3")
         session = call_sessions.get(cc_id, {})
-        # recording_url comes from the webhook body — only fetch it (with the API key
-        # attached) if it points at a Telnyx host. Guards against SSRF.
-        if recording_url and is_telnyx_url(recording_url):
-            try:
-                audio = requests.get(recording_url, headers=HEADERS, timeout=30).content
-                region = session.get("region", "unknown")
-                key = f"recordings/{region}/{ep.get('call_session_id', 'unknown')}.mp3"
-                s3.put_object(Bucket=STORAGE_BUCKET, Key=key, Body=audio, ContentType="audio/mpeg")
-            except Exception as e:
-                app.logger.error("Recording archive failed: %s", e)
+        if not (recording_url and is_telnyx_url(recording_url)):
+            return jsonify({"status": "ok"})
+        if s3 is None:
+            app.logger.info("Recording ready at %s but Storage credentials not configured; skipping archival.", recording_url)
+            return jsonify({"status": "ok"})
+        try:
+            audio = requests.get(recording_url, headers=HEADERS, timeout=30).content
+            region = session.get("region", "unknown")
+            key = f"recordings/{region}/{ep.get('call_session_id', 'unknown')}.mp3"
+            s3.put_object(Bucket=STORAGE_BUCKET, Key=key, Body=audio, ContentType="audio/mpeg")
+        except Exception as e:
+            app.logger.error("Recording archive failed: %s", e)
 
     elif event_type == "call.hangup":
         call_sessions.pop(cc_id, None)

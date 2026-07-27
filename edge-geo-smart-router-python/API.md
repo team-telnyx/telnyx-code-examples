@@ -36,12 +36,19 @@ Telnyx webhook handler.
 
 ## `GET /regions`
 
-Regions.
+Returns the per-region routing config (language, voice, recording, consent). `greeting` is omitted.
 
 ### Response `200`
 
 ```json
-{"status": "ok"}
+{
+  "regions": {
+    "US":     {"language": "en-US", "voice": "AWS.Polly.Joanna-Neural", "record": true,  "requires_consent": false},
+    "LATAM":  {"language": "es-MX", "voice": "AWS.Polly.Lupe-Neural",   "record": true,  "requires_consent": false},
+    "EU":     {"language": "en-GB", "voice": "AWS.Polly.Amy-Neural",     "record": false, "requires_consent": true},
+    "DEFAULT":{"language": "en-US", "voice": "AWS.Polly.Joanna-Neural", "record": true,  "requires_consent": false}
+  }
+}
 ```
 
 ### Try it
@@ -54,12 +61,12 @@ curl http://localhost:5000/regions
 
 ## `GET /health`
 
-Health.
+Health check with active call count.
 
 ### Response `200`
 
 ```json
-{"status": "ok"}
+{"status": "ok", "service": "edge-geo-smart-router", "active_calls": 0}
 ```
 
 ### Try it
@@ -79,6 +86,6 @@ curl http://localhost:5000/health
 | Status | Meaning |
 |--------|--------|
 | `200` | Success |
-| `400` | Bad request |
-| `404` | Not found |
+| `400` | Bad request (missing payload, missing `call_control_id`) |
+| `401` | Webhook signature verification failed (`telnyx-signature-ed25519` / `telnyx-timestamp` missing, stale, or invalid) |
 | `500` | Server error |

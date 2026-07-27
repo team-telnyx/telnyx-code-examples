@@ -42,8 +42,16 @@ Copy `.env.example` to `.env` and fill in:
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `KEY0123456789` | **yes** | Telnyx API v2 key | [Portal](https://portal.telnyx.com/api-keys) |
+| `TELNYX_PUBLIC_KEY` | `string` | _(base64 Ed25519)_ | **yes** | Webhook signature verification key | [Portal > Keys & Credentials](https://portal.telnyx.com/api-keys) |
+| `STORAGE_ACCESS_KEY` | `string` | `AKIAIOSFODNN7EXAMPLE` | for recording archival | Telnyx Storage S3 access key (separate from API key) | [Portal > Storage](https://portal.telnyx.com/storage) |
+| `STORAGE_SECRET_KEY` | `string` | _(secret)_ | for recording archival | Telnyx Storage S3 secret key | [Portal > Storage](https://portal.telnyx.com/storage) |
+| `STORAGE_BUCKET` | `string` | `call-recordings` | for recording archival | S3-compatible bucket name | [Portal > Storage](https://portal.telnyx.com/storage) |
+| `STORAGE_REGION` | `string` | `us-east-1` | no | Storage bucket region | [Portal > Storage](https://portal.telnyx.com/storage) |
 | `AI_MODEL` | `string` | `moonshotai/Kimi-K2.6` | no | AI model | [Models](https://developers.telnyx.com/docs/inference/models) |
+| `HOST` | `string` | `127.0.0.1` | no | Server host | -- |
 | `PORT` | `integer` | `5000` | no | Server port | -- |
+
+> **Note on Storage:** Telnyx Storage is S3-compatible but uses its **own** access/secret key pair (created under Portal > Storage > Credentials), not the Telnyx API key. If `STORAGE_ACCESS_KEY` and `STORAGE_SECRET_KEY` are not set, recording archival is gracefully skipped — the app still works for routing, greetings, and AI conversation, but recordings won't be archived to Storage.
 
 ## Setup
 
@@ -65,7 +73,7 @@ python app.py
 
 ### `GET /regions`
 
-Regions.
+Returns the per-region routing config (language, voice, recording, consent).
 
 ```bash
 curl http://localhost:5000/regions
@@ -74,12 +82,19 @@ curl http://localhost:5000/regions
 **Response:**
 
 ```json
-{"status": "ok", "service": "edge-geo-smart-router"}
+{
+  "regions": {
+    "US":     {"language": "en-US", "voice": "AWS.Polly.Joanna-Neural", "record": true,  "requires_consent": false},
+    "LATAM":  {"language": "es-MX", "voice": "AWS.Polly.Lupe-Neural",   "record": true,  "requires_consent": false},
+    "EU":     {"language": "en-GB", "voice": "AWS.Polly.Amy-Neural",     "record": false, "requires_consent": true},
+    "DEFAULT":{"language": "en-US", "voice": "AWS.Polly.Joanna-Neural", "record": true,  "requires_consent": false}
+  }
+}
 ```
 
 ### `GET /health`
 
-Health.
+Health check with active call count.
 
 ```bash
 curl http://localhost:5000/health
@@ -88,7 +103,7 @@ curl http://localhost:5000/health
 **Response:**
 
 ```json
-{"status": "ok", "service": "edge-geo-smart-router"}
+{"status": "ok", "service": "edge-geo-smart-router", "active_calls": 0}
 ```
 
 
@@ -139,7 +154,8 @@ Telnyx sends call events here. Your app processes them and responds with the nex
 | Telnyx never reaches your webhook | Local server not exposed; Webhook URL points at `localhost` | Run `ngrok http 5000` and set the Call Control Application Webhook URL to `https://<id>.ngrok.io/webhooks/voice`. |
 | Inference replies with "I'm having trouble right now" | `TELNYX_API_KEY` invalid/missing or `AI_MODEL` not available | Verify `TELNYX_API_KEY` in `.env`, confirm the `AI_MODEL` slug at [Models](https://developers.telnyx.com/docs/inference/models). |
 | Caller routed to `DEFAULT` instead of expected region | Number not in E.164 form, or its prefix isn't in `EU_PREFIXES` / `LATAM_PREFIXES` | Ensure the `from` number starts with `+<country code>`; add the prefix to the lists in `app.py`. |
-| Recordings not archived | EU caller pressed 2 (no consent), or `recording_url` not on a Telnyx host | EU recording only starts after consent (digit `1`); non-Telnyx URLs are skipped to guard against SSRF. |
+| Recordings not archived | EU caller pressed 2 (no consent), `recording_url` not on a Telnyx host, OR `STORAGE_ACCESS_KEY`/`STORAGE_SECRET_KEY` not set | EU recording only starts after consent (digit `1`); non-Telnyx URLs are skipped (SSRF guard); Storage archival is skipped if Storage credentials are missing — set them in `.env` (these are separate from the Telnyx API key; created under Portal > Storage > Credentials). |
+| `400 invalid voice` / `language` ignored | Voice id is bare (`"female"`) for a non-`en-US` language | Bare `female`/`male` only work with `service_level: "basic"` (en-US). Use a full voice id like `AWS.Polly.Lupe-Neural` for `es-MX` — the defaults in `REGION_CONFIG` already do this. |
 
 ## Related Examples
 

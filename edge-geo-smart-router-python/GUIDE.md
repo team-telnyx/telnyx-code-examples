@@ -46,7 +46,7 @@ Edit `.env` with your credentials.
 
 ## Step 2: Understand the Code
 
-Everything lives in `app.py` (182 lines). Here is what each piece does.
+Everything lives in `app.py` (~250 lines). Here is what each piece does.
 
 
 **`detect_region()`** -- Detect Region.
