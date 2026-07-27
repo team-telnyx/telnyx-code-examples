@@ -3,7 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-22T22:34:43Z",
+  "generated_at": "2026-07-27T11:31:09Z",
   "example_count": 497,
   "examples": [
     {
@@ -1350,7 +1350,7 @@
     {
       "folder": "ai-video-dubbing-pipeline-python",
       "title": "AI Video Dubbing Pipeline",
-      "description": "Upload audio, STT transcribes with speaker diarization, AI Inference translates to target language, TTS generates dubbed audio with speaker-matched voices. Full STT-to-TTS pipeline.",
+      "description": "Upload audio, STT transcribes, AI Inference labels speakers + translates to target language, TTS generates a dubbed audio track with speaker-matched voices. Full STT-to-TTS pipeline.",
       "product": "ai",
       "language": "python",
       "framework": "flask",
