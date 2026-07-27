@@ -73,6 +73,24 @@ bundle install
 ruby app.rb             # starts on http://localhost:3000
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ## API Reference
 
 ### `POST /chat`
@@ -128,6 +146,15 @@ curl http://localhost:3000/health
 | `LoadError: cannot load such file -- standardwebhooks` | `require "telnyx"` transitively requires `standardwebhooks`, which the gem does not declare | Ensure the Gemfile includes `gem "standardwebhooks"` and run `bundle install` |
 | `uninitialized constant Telnyx::Client` | The `telnyx` gem is not installed, or an old 3.x version resolved | Pin `gem "telnyx", "~> 5.131"` and run `bundle install` |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [chat-with-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-python/README.md) - the Python / Flask version of this example
@@ -135,6 +162,14 @@ curl http://localhost:3000/health
 - [create-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-python/README.md) - create an AI Assistant to chat with
 - [list-ai-assistants-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/list-ai-assistants-python/README.md) - list assistants to find an `AI_ASSISTANT_ID`
 - [send-sms-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-ruby/README.md) - send SMS with the Telnyx Ruby SDK
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

@@ -63,6 +63,24 @@ npm install
 node server.js          # starts on http://localhost:3000 (or PORT)
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ## API Reference
 
 ### `POST /sms/send-bulk`
@@ -155,12 +173,31 @@ curl http://localhost:3000/health
 | `TELNYX_PHONE_NUMBER environment variable not set` | `.env` missing or not loaded before `process.env` is read. | Confirm `.env` exists in this folder and is named exactly `.env`; restart `node server.js`. |
 | Some recipients fail while others succeed | One or more entries had an invalid number or were rejected by Telnyx. | Inspect the `failed` array - each entry has the `to`, `index`, and `error`. Re-submit just those recipients. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [send-sms-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-nodejs/README.md) - Send a single SMS with Node.js
 - [receive-sms-webhook-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-nodejs/README.md) - Receive inbound SMS via webhook
 - [sms-two-factor-auth-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-two-factor-auth-nodejs/README.md) - SMS-based 2FA / OTP
 - [send-bulk-sms-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-bulk-sms-python/README.md) - The same bulk-send example in Python
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

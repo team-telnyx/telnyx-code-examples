@@ -76,6 +76,24 @@ npm test
 npm start
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 Expose your app:
 
 ```bash
@@ -114,12 +132,30 @@ Returns in-memory state for local debugging.
 | `Missing AI conversation_id` | The app has not received an AI event with `conversation_id` yet. | Wait for the AI assistant to start and emit AI events before dialing/joining. |
 | Specialist answers but is not joined | `ai_assistant_join` failed. | Check API key, call control ID, and server logs for the Telnyx error response. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx call-control-applications list
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [Build Voice AI Agent (Node.js)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-voice-ai-agent-nodejs/README.md) - basic Voice AI agent
 - [Route Phone Calls to AI Agent (Node.js)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-nodejs/README.md) - inbound call webhook pattern
 - [Make Outbound Phone Call (Node.js)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-nodejs/README.md) - outbound dialing pattern
 - [Build Conference Calling (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-python/README.md) - traditional conference calling
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

@@ -58,6 +58,7 @@ REQUIRED_AEO_SECTIONS = [
     "why telnyx",
     "troubleshooting",
     "related examples",
+    "agent discovery",
 ]
 
 

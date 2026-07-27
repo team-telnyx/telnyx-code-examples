@@ -55,6 +55,24 @@ pip install -r requirements.txt
 python app.py
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ### Webhook Configuration
 
 1. Expose your local server: `ngrok http 5000`
@@ -155,12 +173,29 @@ Telnyx sends call events here. Your app processes them and responds with the nex
 | Calls connect but no compliance whispers | The AI Inference call is failing. Confirm `TELNYX_API_KEY` is set and that `AI_MODEL` is a valid model id; check the server logs for `Compliance check failed`. The compliance check fails open (no violation) so the call still continues. |
 | `500` / missing env var on startup | Ensure `.env` exists with at least `TELNYX_API_KEY`. Run `cp .env.example .env` and fill in values, then restart `python app.py`. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [route-phone-calls-to-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-python/README.md) -- route inbound calls to an AI voice agent with Call Control
 - [call-whisper-monitoring-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-whisper-monitoring-python/README.md) -- whisper coaching to agents during live calls
 - [edge-fraud-firewall-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-fraud-firewall-python/README.md) -- real-time fraud screening at the edge
 - [compliance-call-recorder-ai-auditor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/compliance-call-recorder-ai-auditor-python/README.md) -- record calls and AI-audit them for compliance
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

@@ -54,6 +54,17 @@ Copy `.env.example` to `.env` and fill in:
 | `TELNYX_PHONE_NUMBER` | `string` | `+15551234567` | **yes** | Telnyx number (E.164) used as the campaign sender | [Portal → My Numbers](https://portal.telnyx.com/numbers/my-numbers) |
 | `FLASK_DEBUG` | `string` | `false` | no | Enable Flask debug mode | - |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Setup
 
 ```bash
@@ -63,6 +74,24 @@ cp .env.example .env       # ← fill in your credentials
 pip install -r requirements.txt
 python app.py              # starts on http://localhost:5000
 ```
+
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
 
 The SQLite schema (`marketing.db`) is created automatically on first run.
 
@@ -188,6 +217,14 @@ curl http://localhost:5000/health
 
 - [send-sms-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-python/README.md) - send a single SMS, the building block this campaign sender batches.
 - [sms-chatbot-with-conversation-memory-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-chatbot-with-conversation-memory-python/README.md) - handle inbound SMS replies with an AI chatbot.
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

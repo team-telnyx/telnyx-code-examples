@@ -73,6 +73,24 @@ bundle install
 bundle exec ruby app.rb    # starts on http://localhost:4567
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 > Requires **Ruby 3.2+**. The Telnyx 5.x SDK is a Stainless-generated rewrite and does not support older Ruby versions.
 
 ## API Reference
@@ -119,12 +137,29 @@ Receives SIM status-change webhooks from Telnyx. The handler verifies the Ed2551
 | `{"error": "Invalid webhook signature"}` (HTTP 401) on `/webhooks/sim` | Signature/timestamp missing, stale (>5 min), or `TELNYX_PUBLIC_KEY` unset/wrong | Set `TELNYX_PUBLIC_KEY` to the base64 Ed25519 public key from the Portal and ensure your server clock is correct. |
 | `Bundler::GemRequireError` / unsupported Ruby | Ruby older than 3.2 | Install Ruby 3.2+ (e.g. via `rbenv` or `asdf`) and re-run `bundle install`. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [activate-sim-card-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/activate-sim-card-python/README.md) - Same flow in Python
 - [activate-sim-card-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/activate-sim-card-nodejs/README.md) - Same flow in Node.js
 - [activate-sim-card-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/activate-sim-card-go/README.md) - Same flow in Go
 - [send-sms-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-ruby/README.md) - Send SMS with the Telnyx Ruby SDK
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

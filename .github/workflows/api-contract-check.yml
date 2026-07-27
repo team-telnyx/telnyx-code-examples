@@ -1,0 +1,26 @@
+name: API Contract Check
+
+on:
+  schedule:
+    # Run weekly on Monday at 08:00 UTC
+    - cron: "0 8 * * 1"
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - "**/API.md"
+
+jobs:
+  contract-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Check API contract
+        run: python scripts/check_api_contract.py --verbose

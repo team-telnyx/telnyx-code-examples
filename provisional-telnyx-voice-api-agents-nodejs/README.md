@@ -78,6 +78,24 @@ cp .env.example .env
 npm install
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 Create a generic Telnyx AI Assistant for appointment scheduling. Keep it business-agnostic: model, voice, tools, and stable behavior belong on the base assistant. Clinic names, hours, services, and greetings come from runtime config in this example.
 
 Set the base assistant id in `.env`:
@@ -186,11 +204,31 @@ Response:
 | Call rings forever | Telnyx is not reaching your webhook or the call was not answered | Check the ngrok URL, Voice API application webhook URL, and number assignment |
 | `ai_assistant_start` fails | The call is not answered, assistant id is invalid, or the API key lacks permissions | Confirm `call.answered` arrived, check `BASE_ASSISTANT_ID`, and verify the API key |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx call-control-applications list
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [build-voice-ai-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-voice-ai-agent-nodejs/README.md) - Build a voice AI agent with Telnyx Inference and Call Control
 - [route-phone-calls-to-ai-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-nodejs/README.md) - Receive and answer inbound Voice API calls
 - [create-ai-assistant-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-nodejs/README.md) - Create a reusable AI Assistant
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

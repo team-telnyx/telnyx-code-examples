@@ -105,6 +105,24 @@ pip install -r requirements.txt
 python app.py           # starts on http://localhost:8000
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ### 2. Expose it publicly
 
 Conversation Relay needs a public WebSocket URL. Use ngrok:
@@ -160,10 +178,27 @@ To exercise the full WebSocket path without a real call, you can connect a WebSo
 | `401` from chatbot endpoint | Wrong/missing `CHATBOT_TOKEN` | Verify the bearer token in `.env` |
 | `Invalid model` error | `CHATBOT_MODEL` not recognized | Use `openclaw` for a Clawdbot gateway, or your endpoint's model name |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [AI Language Learning Phone Tutor (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-language-learning-phone-tutor-python/README.md)
 - [AI Audiobook Narrator (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-audiobook-narrator-python/README.md)
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

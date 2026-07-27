@@ -64,6 +64,24 @@ dotnet restore
 dotnet run              # starts on http://localhost:5000 (or the Kestrel default)
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 The app reads `.env` via `DotNetEnv` at startup. Kestrel binds to the default ASP.NET URL (typically `http://localhost:5000`); the startup log prints the exact address. If `TELNYX_API_KEY` is missing, the app fails fast with a clear error before serving requests.
 
 ## API Reference
@@ -130,12 +148,29 @@ Receives inbound Telnyx webhooks, verifies the Ed25519 signature, and reads `dat
 | `500` on `/webhooks/telnyx` | `TELNYX_PUBLIC_KEY` is not set. | Add `TELNYX_PUBLIC_KEY` to `.env` and restart. |
 | `NU1101: unable to find package Telnyx` | Wrong NuGet id. | The package id is `Telnyx.net`, not `Telnyx`. Use `<PackageReference Include="Telnyx.net" Version="3.1.0" />`. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [setup-sip-trunk-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-sip-trunk-python/README.md) - Same SIP trunk setup in Python
 - [setup-sip-trunk-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-sip-trunk-nodejs/README.md) - Same SIP trunk setup in Node.js
 - [setup-sip-trunk-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-sip-trunk-go/README.md) - Same SIP trunk setup in Go
 - [inbound-sip-routing-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/inbound-sip-routing-nodejs/README.md) - Route inbound SIP calls in Node.js
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

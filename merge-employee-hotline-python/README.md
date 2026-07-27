@@ -59,6 +59,24 @@ pip install -r requirements.txt
 python app.py
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ### Webhook Configuration
 
 1. Expose your local server: `ngrok http 5000`
@@ -129,12 +147,29 @@ Telnyx sends call events here. Your app processes them and responds with the nex
 | "Could not verify your identity" for a known employee | Caller ID does not match `personal_phone_number` in Merge, or `MERGE_API_KEY`/`MERGE_ACCOUNT_TOKEN` are unset | Confirm both Merge env vars are set and the employee's phone in the HRIS matches the calling number in E.164 format. |
 | AI replies "I could not process that request right now." | `TELNYX_API_KEY` invalid or `AI_MODEL` unavailable | Verify the API key and that `AI_MODEL` is a valid [Inference model](https://developers.telnyx.com/docs/inference/models). |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [route-phone-calls-to-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-python/README.md) -- route inbound calls into a conversational AI agent
 - [merge-recruitment-hotline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-recruitment-hotline-python/README.md) -- caller-ID auth against Merge ATS for a recruiting line
 - [merge-employee-onboarding-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-employee-onboarding-python/README.md) -- automate onboarding workflows backed by Merge HRIS
 - [edge-merge-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-merge-ai-receptionist-python/README.md) -- AI receptionist combining Telnyx voice with Merge data
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

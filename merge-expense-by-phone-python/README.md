@@ -63,6 +63,24 @@ pip install -r requirements.txt
 python app.py
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ### Webhook Configuration
 
 1. Expose your local server: `ngrok http 5000`
@@ -149,12 +167,32 @@ Telnyx sends call events here. Your app processes them and responds with the nex
 | "I could not extract the expense details" loop | AI Inference call failed or returned no amount | Check `AI_MODEL` is a valid [Inference model](https://developers.telnyx.com/docs/inference/models) and that the key has AI Inference enabled. |
 | Expense not created / no SMS receipt | `MERGE_API_KEY` / `MERGE_ACCOUNT_TOKEN` or `TELNYX_PHONE_NUMBER` missing | Set all three; Merge and receipt failures are logged via `app.logger` but do not interrupt the call. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> telnyx call-control-applications list
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [route-phone-calls-to-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-python/README.md) - Call Control voice flow that routes callers to an AI agent.
 - [ai-sales-call-with-live-crm-updates-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-sales-call-with-live-crm-updates-python/README.md) - voice call that writes structured data back to CRM via Merge.
 - [merge-invoice-collector-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-invoice-collector-python/README.md) - sibling Merge accounting integration over voice.
 - [mms-receipt-scanner-expense-tracker-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/mms-receipt-scanner-expense-tracker-python/README.md) - expense capture from MMS receipt images.
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

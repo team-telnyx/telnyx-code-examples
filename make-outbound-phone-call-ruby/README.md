@@ -71,6 +71,24 @@ bundle install
 ruby app.rb             # starts the Sinatra app on http://localhost:4567
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 `app.rb` exposes `POST /calls/dial` to place a call and `POST /webhooks/voice` to
 receive Ed25519-verified call lifecycle events.
 
@@ -133,6 +151,18 @@ Verifies the Telnyx Ed25519 signature before reading any fields from
 | `LoadError: cannot load such file -- standardwebhooks` | The `standardwebhooks` gem is not installed | Run `bundle install` - `require "telnyx"` loads it at startup even though the SDK does not declare it |
 | `uninitialized constant Telnyx::Client` | The `telnyx` gem is not installed, or Ruby is older than 3.2 | Run `bundle install` on Ruby 3.2+ and restart |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx call-control-applications list
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [make-outbound-phone-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-python/README.md) - Outbound calls with Python / Flask
@@ -140,6 +170,14 @@ Verifies the Telnyx Ed25519 signature before reading any fields from
 - [send-sms-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-ruby/README.md) - Send an SMS with Ruby
 - [activate-sim-card-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/activate-sim-card-ruby/README.md) - Activate an IoT SIM with Ruby
 - [route-phone-calls-to-ai-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-nodejs/README.md) - Route inbound calls to an AI agent
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

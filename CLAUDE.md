@@ -58,10 +58,15 @@ structured sections derived from the code:
 - `## Architecture`
 - `## Environment Variables`
 - `## Setup` (clone, configure `.env`, install deps, run — local commands only, no Docker/`make`)
+  - Must include a `<details><summary>Programmatic / CLI setup</summary>` block after the first bash code block, showing Telnyx CLI provisioning commands
 - `## API Reference`
 - `## Troubleshooting`
+- `## Agent Discovery` — fixed section linking to `llms-full.txt`, `llms.txt`, and the Telnyx CLI (checked by `verify.py`)
 - `## Related Examples`
 - `## Resources`
+
+After the Environment Variables table, every README must include an "Agent / CLI access"
+blockquote with Telnyx CLI commands relevant to that example's env vars (e.g. `telnyx number-orders create` for phone-number vars, `telnyx messaging-profiles create` for messaging profile vars).
 
 `API.md` carries the typed endpoint reference; `GUIDE.md` a standalone tutorial.
 

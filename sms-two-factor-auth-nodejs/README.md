@@ -69,6 +69,24 @@ npm install
 node server.js          # starts on http://localhost:5000 (or $PORT)
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 There are no webhooks to configure - this example only sends outbound SMS and verifies codes against in-memory storage.
 
 ## API Reference
@@ -147,12 +165,31 @@ curl http://localhost:5000/health
 | `{"message": "Too many failed attempts. Request a new OTP."}` | 3 incorrect verification attempts were made for the same OTP. | Request a new OTP via `/auth/request-otp` and try again. |
 | OTP SMS never arrives | `TELNYX_PHONE_NUMBER` is not SMS-enabled, or the account lacks credit. | Confirm the number has messaging enabled in the [Portal](https://portal.telnyx.com) and the account is funded. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [sms-two-factor-auth-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-two-factor-auth-python/README.md) - same OTP 2FA flow in Python
 - [verify-phone-number-otp-flow-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/verify-phone-number-otp-flow-python/README.md) - OTP using the Telnyx Verify API
 - [send-sms-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-nodejs/README.md) - minimal outbound SMS in Node.js
 - [receive-sms-webhook-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-nodejs/README.md) - handle inbound SMS webhooks
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

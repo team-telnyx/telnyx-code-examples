@@ -65,6 +65,24 @@ dotnet restore
 dotnet run              # starts on http://localhost:5000 (or the configured port)
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 > Requires the .NET 8 SDK. `dotnet restore` pulls the pinned `Telnyx.net 3.1.0` and `DotNetEnv 3.1.0` packages.
 
 ## API Reference
@@ -117,12 +135,32 @@ See [`API.md`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-example
 | `401` from `/webhooks/calls` | Signature missing/invalid or timestamp outside the 300s tolerance | Confirm `TELNYX_PUBLIC_KEY` is the base64 public key from your Telnyx account, and that the raw body is read before any parsing. |
 | `package Telnyx not found` during `dotnet restore` | Wrong package id | The NuGet id is `Telnyx.net`, not `Telnyx`. The pinned `.csproj` already uses `Telnyx.net 3.1.0`. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> telnyx call-control-applications list
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [make-outbound-phone-call-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-nodejs/README.md) - Same outbound call flow in Node.js
 - [make-outbound-phone-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-python/README.md) - Same outbound call flow in Python
 - [route-phone-calls-to-ai-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-nodejs/README.md) - Handle inbound calls with webhook-driven routing
 - [record-phone-calls-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/record-phone-calls-nodejs/README.md) - Record outbound calls
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

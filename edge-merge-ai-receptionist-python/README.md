@@ -61,6 +61,24 @@ pip install -r requirements.txt
 python app.py
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ### Webhook Configuration
 
 1. Expose your local server: `ngrok http 5000`
@@ -146,12 +164,31 @@ Telnyx sends call events here. Your app processes them and responds with the nex
 | Calls connect but no one is found / no transfer | `MERGE_API_KEY` or `MERGE_ACCOUNT_TOKEN` missing or unset | Fill both in `.env`; HRIS and CRM lookups silently return no results without a valid Merge key and account token. |
 | Greeting plays but AI briefing is generic | `TELNYX_API_KEY` invalid or `AI_MODEL` not available | Verify the API key in the [Portal](https://portal.telnyx.com/api-keys); inference falls back to "Let me transfer you now." on any error. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [route-phone-calls-to-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-python/README.md) -- core Call Control answer/gather/transfer flow for an AI agent
 - [omnichannel-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-receptionist-python/README.md) -- AI receptionist across voice and messaging channels
 - [edge-merge-reference-checker-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-merge-reference-checker-python/README.md) -- edge worker driving calls against Merge data
 - [merge-employee-hotline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-employee-hotline-python/README.md) -- routes callers to employees pulled from Merge HRIS
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

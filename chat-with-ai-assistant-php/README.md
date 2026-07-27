@@ -64,6 +64,24 @@ composer install
 php -S localhost:8080 index.php   # serves on http://localhost:8080
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 > Requires PHP 8.1+ with the `sodium` extension (bundled in standard PHP 8 builds) for webhook signature verification.
 
 ## API Reference
@@ -117,12 +135,30 @@ See [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/
 | `{"error":"Invalid webhook signature."}` (401) on `/webhooks` | `TELNYX_PUBLIC_KEY` is missing/wrong, or the timestamp is outside the replay window. | Set `TELNYX_PUBLIC_KEY` to your account's base64 Ed25519 public key and ensure server clock is accurate. |
 | `Call to undefined function sodium_crypto_sign_verify_detached()` | PHP built without the `sodium` extension. | Install/enable `ext-sodium` (standard in PHP 8 builds). |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx ai-assistants list
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [create-ai-assistant-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-nodejs/README.md) - Create an AI Assistant to chat with
 - [list-ai-assistants-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/list-ai-assistants-nodejs/README.md) - List assistants to find a `TELNYX_ASSISTANT_ID`
 - [chat-with-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-python/README.md) - The Python version of this example
 - [chat-with-ai-assistant-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-nodejs/README.md) - The Node.js version of this example
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

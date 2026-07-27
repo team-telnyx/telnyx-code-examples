@@ -57,6 +57,24 @@ pip install -r requirements.txt
 python app.py
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ### Webhook Configuration
 
 1. Expose your local server: `ngrok http 5000`
@@ -156,12 +174,32 @@ Telnyx sends call events here. Your app processes them and responds with the nex
 | `Merge GET/POST rejected non-Merge host` in logs | A path resolved off the trusted `api.merge.dev` host | Pass only relative Merge paths (e.g. `/hris/v1/employees/{id}`); the SSRF guard in `_merge_url()` blocks anything else |
 | HRIS webhook returns `404 Employee not found` | `MERGE_API_KEY` / `MERGE_ACCOUNT_TOKEN` wrong, or the `id` in the payload is unknown to Merge | Re-check both Merge credentials and confirm the linked account token matches the HRIS integration |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> telnyx call-control-applications list
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [merge-employee-hotline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-employee-hotline-python/README.md) -- AI phone line backed by Merge HRIS employee data
 - [merge-ticket-escalation-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-ticket-escalation-python/README.md) -- create and escalate tickets via Merge Ticketing
 - [route-phone-calls-to-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-python/README.md) -- route the newly provisioned number to an AI agent
 - [send-sms-notifications-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-notifications-python/README.md) -- standalone outbound SMS notification patterns
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

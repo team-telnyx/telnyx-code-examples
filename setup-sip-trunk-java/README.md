@@ -74,6 +74,24 @@ mvn -q compile                # compile against the Telnyx SDK
 mvn -q exec:java              # starts on http://localhost:8080
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ## API Reference
 
 ### `POST /sip-connections`
@@ -173,12 +191,29 @@ See [`API.md`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-example
 | `KeyFactory.getInstance("Ed25519")` failure (only if you add webhooks) | Running on a JDK older than 15 without an Ed25519 provider. | Use JDK 17+ (the SDK's webhook verification path needs JDK-native Ed25519). |
 | Build cannot resolve `com.telnyx.sdk:telnyx` | The artifactId is `telnyx`, not `telnyx-java`. | Confirm `pom.xml` pins `com.telnyx.sdk:telnyx:6.76.0` and re-run `mvn -q compile`. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [setup-sip-trunk-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-sip-trunk-python/README.md) - same SIP trunk setup in Python/Flask
 - [setup-sip-trunk-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-sip-trunk-nodejs/README.md) - same SIP trunk setup in Node.js/Express
 - [setup-sip-trunk-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-sip-trunk-go/README.md) - same SIP trunk setup in Go/Gin
 - [inbound-sip-routing-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/inbound-sip-routing-nodejs/README.md) - route inbound SIP calls
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

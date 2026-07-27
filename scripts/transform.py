@@ -631,7 +631,11 @@ def generate_env_example(env_vars: list[str]) -> str:
         "PORT": "5000",
     }
 
-    lines = ["# Telnyx API credentials — get yours at https://portal.telnyx.com", ""]
+    lines = [
+        "# Telnyx API credentials — get yours at https://portal.telnyx.com",
+        "# Or provision via CLI: https://developers.telnyx.com/development/cli",
+        "",
+    ]
     for var in env_vars:
         placeholder = placeholders.get(var, f"your_{var.lower()}_here")
         lines.append(f"{var}={placeholder}")
@@ -754,6 +758,91 @@ def _get_version_answer(language: str) -> str:
     return versions.get(language, "See the Prerequisites section.")
 
 
+def build_agent_cli_note(env_vars: list[str]) -> str:
+    """Generate the 'Agent / CLI access' blockquote with relevant CLI commands."""
+    env_cli_map: dict[str, list[str]] = {
+        "TELNYX_PHONE_NUMBER": [
+            "telnyx available-phone-numbers list --country US",
+            "telnyx number-orders create --phone-number +15551234567",
+        ],
+        "MAIN_NUMBER": [
+            "telnyx available-phone-numbers list --country US",
+            "telnyx number-orders create --phone-number +15551234567",
+        ],
+        "TELNYX_FROM_NUMBER": [
+            "telnyx available-phone-numbers list --country US",
+            "telnyx number-orders create --phone-number +15551234567",
+        ],
+        "FROM_NUMBER": [
+            "telnyx available-phone-numbers list --country US",
+            "telnyx number-orders create --phone-number +15551234567",
+        ],
+        "TELNYX_MESSAGING_PROFILE_ID": [
+            "telnyx messaging-profiles create --name my-profile",
+        ],
+        "MESSAGING_PROFILE_ID": [
+            "telnyx messaging-profiles create --name my-profile",
+        ],
+        "TELNYX_CONNECTION_ID": [
+            "telnyx call-control-applications list",
+        ],
+        "CONNECTION_ID": [
+            "telnyx call-control-applications list",
+        ],
+        "TELNYX_SIP_CONNECTION_ID": [
+            "telnyx credential-connections list",
+        ],
+        "TELNYX_SIM_CARD_ID": [
+            "telnyx sim-cards list",
+        ],
+        "SIM_CARD_ID": [
+            "telnyx sim-cards list",
+        ],
+        "TELNYX_ASSISTANT_ID": [
+            "telnyx ai-assistants list",
+        ],
+        "ASSISTANT_ID": [
+            "telnyx ai-assistants list",
+        ],
+    }
+
+    seen: set[str] = set()
+    commands: list[str] = []
+    for var in env_vars:
+        for cmd in env_cli_map.get(var, []):
+            if cmd not in seen:
+                seen.add(cmd)
+                commands.append(cmd)
+
+    lines = [
+        "> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):",
+        ">",
+        "> ```bash",
+        "> telnyx auth login",
+    ]
+    for cmd in commands:
+        lines.append(f"> {cmd}")
+    lines.extend([
+        "> ```",
+        ">",
+        "> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def build_agent_discovery() -> str:
+    """Generate the fixed Agent Discovery section."""
+    return """## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
+"""
+
+
 def build_resources(product: str, language: str) -> str:
     """Generate a Resources section with links to Dev Docs, SDK, and product pages."""
     links = PRODUCT_LINKS.get(product, {})
@@ -786,6 +875,7 @@ def restructure_readme(
     sections: dict,
     folder_name: str,
     code_file: str,
+    env_vars: list[str] | None = None,
 ) -> str:
     """Restructure TF markdown into AEO-formatted README."""
     title = extract_title(content)
@@ -826,6 +916,7 @@ def restructure_readme(
         troubleshooting,
         "",
         build_faq(title, product, language, framework),
+        build_agent_discovery(),
         build_resources(product, language),
         build_related_examples(sections, product, language),
     ]
@@ -894,7 +985,7 @@ def transform(
     (folder_path / ".env.example").write_text(generate_env_example(env_vars))
 
     # 4. Restructure README
-    readme = restructure_readme(content, frontmatter, sections, folder_name, code_file)
+    readme = restructure_readme(content, frontmatter, sections, folder_name, code_file, env_vars)
     readme = _normalize_sdk_patterns(readme, language)
     (folder_path / "README.md").write_text(readme)
 

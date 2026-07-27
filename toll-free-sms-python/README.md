@@ -59,6 +59,16 @@ Copy `.env.example` to `.env` and fill in:
 | `MESSAGING_PROFILE_ID` | `string` | `40000000-0000-0000-0000-000000000000` | no | Messaging Profile to route through | [Portal Profiles](https://portal.telnyx.com/messaging/profiles) |
 | `FLASK_ENV` | `string` | `development` | no | Set to `development` to enable Flask debug | - |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx messaging-profiles create --name my-profile
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Setup
 
 ```bash
@@ -68,6 +78,24 @@ cp .env.example .env    # ← fill in your credentials
 pip install -r requirements.txt
 python app.py           # starts on http://localhost:5000
 ```
+
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
 
 ### Webhook Configuration
 
@@ -185,6 +213,14 @@ call this endpoint yourself - Telnyx posts to it.
 
 - [send-sms-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/send-sms-python/README.md) - Send a single SMS from any Telnyx number
 - [ai-compliance-quiz-phone-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-compliance-quiz-phone-python/README.md) - Signed Telnyx voice webhooks with per-call state
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

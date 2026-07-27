@@ -61,6 +61,24 @@ pip install -r requirements.txt
 python app.py
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ### Webhook Configuration
 
 1. Expose your local server: `ngrok http 5000`
@@ -178,12 +196,32 @@ Telnyx sends call events here. Your app processes them and responds with the nex
 | Webhooks never arrive | Telnyx cannot reach your local server, or the webhook URL is misconfigured | Run `ngrok http 5000` and set the Call Control app webhook URL to `https://<id>.ngrok.io/webhooks/voice`; the app derives the call's `webhook_url` from the request host |
 | `Candidate not found` / `No phone number on file` | `MERGE_API_KEY` / `MERGE_ACCOUNT_TOKEN` wrong, or the candidate record has no phone | Verify the Merge keys at [app.merge.dev](https://app.merge.dev) and that the candidate has a populated phone number before the screen fires |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> telnyx call-control-applications list
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [ai-hiring-phone-screen-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-hiring-phone-screen-python/README.md) - AI-conducted phone screen without the ATS integration
 - [interview-screen-scheduler-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/interview-screen-scheduler-python/README.md) - schedule candidate screens over voice/SMS
 - [merge-recruitment-hotline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-recruitment-hotline-python/README.md) - Merge ATS-backed recruiting hotline
 - [route-phone-calls-to-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-python/README.md) - route inbound calls to an AI voice agent
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

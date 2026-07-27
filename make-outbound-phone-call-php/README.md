@@ -65,6 +65,24 @@ composer install
 php -S localhost:8080 index.php   # starts on http://localhost:8080
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 > Requires PHP 8.1+ with the `sodium` extension (bundled in standard PHP 8 builds) and [Composer](https://getcomposer.org/).
 
 ## API Reference
@@ -120,12 +138,32 @@ See [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/
 | `401 Invalid signature` on webhook | `TELNYX_PUBLIC_KEY` is missing/wrong, or the request was not from Telnyx | Copy the base64 Ed25519 public key from the Portal into `.env`; ensure the raw body is passed unmodified to `unwrap()`. |
 | `Call to undefined function sodium_crypto_sign_verify_detached()` | The `sodium` extension is not enabled | Enable `ext-sodium` (bundled in standard PHP 8 builds; on minimal builds install/enable it). |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> telnyx call-control-applications list
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [make-outbound-phone-call-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-nodejs/README.md) - Same outbound call flow in Node.js
 - [make-outbound-phone-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-python/README.md) - Same outbound call flow in Python
 - [route-phone-calls-to-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-python/README.md) - Handle inbound call webhooks
 - [build-ivr-phone-menu-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-ivr-phone-menu-python/README.md) - Build an IVR menu with Call Control
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

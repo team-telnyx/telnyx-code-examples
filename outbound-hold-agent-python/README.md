@@ -93,6 +93,24 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 Keep `python app.py` running in this terminal. Open a second terminal in the same folder to run the curl commands.
 
 ## Try It Locally
@@ -204,6 +222,26 @@ See [`API.md`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-example
 | DTMF tool is accepted but IVR does not move | Wrong digit or DTMF sent before menu is ready | Confirm the assistant waits for the prompt and sends a valid option. |
 | Representative assistant never starts | No pickup phrase was detected | Tune `REPRESENTATIVE_PHRASES` or trigger `call.unhold`. |
 | Webhook returns 401 | Signature verification failed | Confirm `TELNYX_PUBLIC_KEY` and webhook signature headers. |
+
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx call-control-applications list
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

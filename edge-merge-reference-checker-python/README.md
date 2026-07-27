@@ -62,6 +62,24 @@ pip install -r requirements.txt
 python app.py
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ### Webhook Configuration
 
 1. Expose your local server: `ngrok http 5000`
@@ -179,12 +197,32 @@ Telnyx sends call events here. Your app processes them and responds with the nex
 | No SMS summary to hiring manager | `HIRING_MANAGER_PHONE` not set, or no references completed all questions | Set `HIRING_MANAGER_PHONE` in E.164 format; SMS only fires once every reference finishes the interview |
 | AI score always returns the `3` fallback | AI Inference call failed (bad `TELNYX_API_KEY` or model name) | Verify the API key and that `AI_MODEL` is a valid [Telnyx model](https://developers.telnyx.com/docs/inference/models) |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> telnyx call-control-applications list
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [edge-merge-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-merge-ai-receptionist-python/README.md) - Edge voice + Merge ATS/CRM AI receptionist sibling
 - [edge-merge-shift-coverage-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-merge-shift-coverage-python/README.md) - outbound voice + Merge integration for filling open shifts
 - [ai-hiring-phone-screen-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-hiring-phone-screen-python/README.md) - AI-conducted structured phone screen for candidates
 - [route-phone-calls-to-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-python/README.md) - Call Control patterns for connecting calls to an AI agent
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

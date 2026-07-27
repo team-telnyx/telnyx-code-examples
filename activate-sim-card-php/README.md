@@ -69,6 +69,24 @@ composer install
 php -S localhost:8080 index.php
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 The server listens on `http://localhost:8080`. PHP 8.1+ with the bundled `ext-sodium` is required (used for Ed25519 webhook verification).
 
 ## API Reference
@@ -140,12 +158,29 @@ curl http://localhost:8080/health
 | `{"error": "Network error connecting to Telnyx"}` (503) | The server cannot reach `api.telnyx.com`. | Check connectivity, firewall, and the [Telnyx Status Page](https://status.telnyx.com). |
 | `{"error": "Invalid webhook signature"}` (401) | `TELNYX_PUBLIC_KEY` is missing/wrong, or the request was not signed by Telnyx. | Set the Ed25519 public key from Mission Control and ensure `ext-sodium` is enabled. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [activate-sim-card-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/activate-sim-card-python/README.md) - Same example in Python
 - [activate-sim-card-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/activate-sim-card-nodejs/README.md) - Same example in Node.js
 - [activate-sim-card-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/activate-sim-card-go/README.md) - Same example in Go
 - [monitor-iot-data-usage-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/monitor-iot-data-usage-nodejs/README.md) - Track SIM data usage
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

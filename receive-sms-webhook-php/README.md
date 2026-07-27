@@ -74,6 +74,24 @@ composer install
 php -S localhost:8080 index.php
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 The server listens on `http://localhost:8080`. PHP 8.1+ with the bundled `ext-sodium` is required (used for Ed25519 webhook verification).
 
 To receive real webhooks, expose your local server with a tunnel (for example `ngrok http 8080`) and set the resulting `https://.../webhooks/sms` URL as the webhook on your [Messaging Profile](https://portal.telnyx.com/#/messaging) in the Telnyx Portal.
@@ -126,12 +144,29 @@ See [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/
 | Webhook never fires | The Messaging Profile has no webhook URL, or the URL is not publicly reachable. | Set the `https://.../webhooks/sms` URL on your Messaging Profile and verify your tunnel/server is reachable over HTTPS. |
 | `Class "Sodium..." not found` / verification always fails | PHP was built without `ext-sodium`. | Install/enable the sodium extension (bundled in standard PHP 8 builds). |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [receive-sms-webhook-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-python/README.md) - Same example in Python
 - [receive-sms-webhook-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-nodejs/README.md) - Same example in Node.js
 - [receive-sms-webhook-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-java/README.md) - Same example in Java
 - [receive-sms-webhook-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-csharp/README.md) - Same example in C#
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

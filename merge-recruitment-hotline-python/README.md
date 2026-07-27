@@ -62,6 +62,24 @@ pip install -r requirements.txt
 python app.py
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 ### Webhook Configuration
 
 1. Expose your local server: `ngrok http 5000`
@@ -162,12 +180,32 @@ Telnyx sends call events here. Your app processes them and responds with the nex
 | "I could not find matching positions" for every search | Merge credentials wrong or no `OPEN` jobs in the linked ATS | Confirm `MERGE_API_KEY` and `MERGE_ACCOUNT_TOKEN`, then `curl http://localhost:5000/jobs` to see what the ATS returns. |
 | Application submits but no confirmation SMS arrives | `TELNYX_PHONE_NUMBER` unset, or the number is not SMS-enabled / not on the connection | Set `TELNYX_PHONE_NUMBER` to a messaging-enabled Telnyx number and check the app logs for `Confirmation SMS failed`. |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx available-phone-numbers list --country US
+> telnyx number-orders create --phone-number +15551234567
+> telnyx call-control-applications list
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [merge-interview-pipeline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-interview-pipeline-python/README.md) - voice-driven interview pipeline updates against a Merge ATS.
 - [edge-merge-reference-checker-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-merge-reference-checker-python/README.md) - automated reference checks over Merge for hiring workflows.
 - [route-phone-calls-to-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/route-phone-calls-to-ai-agent-python/README.md) - route inbound Call Control calls into a Telnyx AI voice agent.
 - [ai-phone-story-hotline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-phone-story-hotline-python/README.md) - another inbound voice hotline using gather-using-speak and AI inference.
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 

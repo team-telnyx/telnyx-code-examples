@@ -67,6 +67,24 @@ npm install
 node server.js          # starts on http://localhost:5000 (or PORT)
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision resources
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15551234567
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
+
 On startup the server runs an initial poll, then re-polls every `POLLING_INTERVAL` milliseconds, caching each SIM's data usage in memory.
 
 ## API Reference
@@ -169,12 +187,29 @@ curl http://localhost:5000/health
 | `503 {"error":"Network error connecting to Telnyx"}` | The server can't reach `api.telnyx.com`. | Check connectivity and that a firewall/proxy isn't blocking `api.telnyx.com`. |
 | Connection refused on the port | Server not running. | Run `node server.js`; confirm nothing else uses the port (`PORT`, default `3000`). |
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
+
 ## Related Examples
 
 - [monitor-iot-data-usage-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/monitor-iot-data-usage-python/README.md) - same example in Python
 - [sim-fleet-data-usage-anomaly-detector-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sim-fleet-data-usage-anomaly-detector-python/README.md) - detect anomalous SIM data usage across a fleet
 - [activate-sim-card-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/activate-sim-card-nodejs/README.md) - activate a Telnyx SIM card
 - [track-iot-device-location-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-python/README.md) - locate IoT devices by SIM
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Resources
 
