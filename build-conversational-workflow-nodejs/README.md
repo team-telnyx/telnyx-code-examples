@@ -79,7 +79,7 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | `string` | `KEY_your_telnyx_api_key_here` | no | Telnyx API key for Portal/API automation; the local mock tool server does not call Telnyx directly | [Portal](https://portal.telnyx.com/api-keys) |
+| `TELNYX_API_KEY` | `string` | `KEY_your_telnyx_api_key_here` | no | Telnyx API key for Portal/API automation; the local mock tool server does not call Telnyx directly | [Portal](https://portal.telnyx.com/api-keys) · [CLI: `telnyx auth`](https://developers.telnyx.com/development/cli) |
 | `CLAIM_TOOL_SECRET` | `string` | `dev-secret` | **yes** | Shared secret expected in the `x-tool-secret` header from Telnyx workflow tools | Choose your own value |
 | `PORT` | `number` | `8787` | no | Port the Express tool server listens on | - |
 
@@ -224,6 +224,7 @@ curl http://localhost:8787/health
 
 This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
 
+- **Agent signup**: [telnyx.com/agent-signup](https://telnyx.com/agent-signup) — get a freemium account for programmatic access
 - **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
 - **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
 - **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`

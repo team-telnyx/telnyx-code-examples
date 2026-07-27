@@ -56,8 +56,8 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal](https://portal.telnyx.com/api-keys) |
-| `AI_ASSISTANT_ID` | `string` | `assistant-1234abcd` | **yes** | ID of the AI Assistant to chat with | [Portal](https://portal.telnyx.com/ai/assistants) |
+| `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal](https://portal.telnyx.com/api-keys) · [CLI: `telnyx auth`](https://developers.telnyx.com/development/cli) |
+| `AI_ASSISTANT_ID` | `string` | `assistant-1234abcd` | **yes** | ID of the AI Assistant to chat with | [Portal](https://portal.telnyx.com/ai/assistants) · [CLI: `telnyx ai-assistants`](https://developers.telnyx.com/development/cli) |
 | `TELNYX_PUBLIC_KEY` | `string` | `o2dx...` (base64) | only for webhooks | Ed25519 public key for verifying inbound webhooks | [Portal - Keys & Credentials](https://portal.telnyx.com) |
 | `PORT` | `number` | `3000` | no | Port the server listens on (defaults to `3000`) | - |
 
@@ -167,6 +167,7 @@ curl http://localhost:3000/health
 
 This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
 
+- **Agent signup**: [telnyx.com/agent-signup](https://telnyx.com/agent-signup) — get a freemium account for programmatic access
 - **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
 - **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
 - **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`

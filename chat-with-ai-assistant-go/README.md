@@ -54,7 +54,7 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | `string` | `KEY_your_telnyx_api_key_here` | **yes** | Telnyx API v2 key used to authenticate AI assistant requests | [Portal](https://portal.telnyx.com/api-keys) |
+| `TELNYX_API_KEY` | `string` | `KEY_your_telnyx_api_key_here` | **yes** | Telnyx API v2 key used to authenticate AI assistant requests | [Portal](https://portal.telnyx.com/api-keys) · [CLI: `telnyx auth`](https://developers.telnyx.com/development/cli) |
 | `TELNYX_ASSISTANT_ID` | `string` | `assistant-abc123` | **yes** | ID of the AI assistant to chat with | [AI Assistants](https://portal.telnyx.com/#/ai/assistants) |
 | `PORT` | `string` | `8080` | no | Port the Gin server listens on. Defaults to `8080` when unset | - |
 
@@ -172,6 +172,7 @@ curl -X POST http://localhost:8080/chat \
 
 This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
 
+- **Agent signup**: [telnyx.com/agent-signup](https://telnyx.com/agent-signup) — get a freemium account for programmatic access
 - **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
 - **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
 - **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`

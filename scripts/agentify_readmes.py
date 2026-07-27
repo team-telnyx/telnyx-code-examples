@@ -81,6 +81,27 @@ SENTINEL_CLI_BLOCKQUOTE = "Agent / CLI access"
 SENTINEL_AGENT_DISCOVERY = "## Agent Discovery"
 SENTINEL_CLI_SETUP = "Programmatic / CLI setup"
 
+# ---------------------------------------------------------------------------
+# Portal → CLI link mapping for env var tables
+# ---------------------------------------------------------------------------
+
+CLI_DOCS_URL = "https://developers.telnyx.com/development/cli"
+
+PORTAL_TO_CLI: dict[str, str] = {
+    "portal.telnyx.com/api-keys": "[CLI: `telnyx auth`]({cli})",
+    "portal.telnyx.com/app/api-keys": "[CLI: `telnyx auth`]({cli})",
+    "portal.telnyx.com/#/app/account/keys": "[CLI: `telnyx auth`]({cli})",
+    "portal.telnyx.com/numbers": "[CLI: `telnyx number-orders`]({cli})",
+    "portal.telnyx.com/numbers/my-numbers": "[CLI: `telnyx number-orders`]({cli})",
+    "portal.telnyx.com/call-control": "[CLI: `telnyx call-control-applications`]({cli})",
+    "portal.telnyx.com/call-control/applications": "[CLI: `telnyx call-control-applications`]({cli})",
+    "portal.telnyx.com/messaging/profiles": "[CLI: `telnyx messaging-profiles`]({cli})",
+    "portal.telnyx.com/verify/profiles": "[CLI: `telnyx verify-profiles`]({cli})",
+    "portal.telnyx.com/ai/assistants": "[CLI: `telnyx ai-assistants`]({cli})",
+    "portal.telnyx.com/#/ai/assistants": "[CLI: `telnyx ai-assistants`]({cli})",
+    "portal.telnyx.com/storage": "[CLI: `telnyx storage`]({cli})",
+}
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -156,9 +177,61 @@ def build_agent_discovery() -> str:
 
 This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
 
+- **Agent signup**: [telnyx.com/agent-signup](https://telnyx.com/agent-signup) — get a freemium account for programmatic access
 - **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
 - **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
 - **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`"""
+
+
+def rewrite_env_var_portal_links(readme: str) -> str:
+    """Append CLI alternatives alongside Portal links in env var table rows.
+
+    Idempotent — skips rows that already contain a CLI link.
+    """
+    def replace_portal_link(match: re.Match) -> str:
+        full = match.group(0)
+        # Already has a CLI link appended — skip
+        if "CLI" in full.split("|")[-2] if full.count("|") > 1 else "":
+            return full
+
+        for portal_path, cli_template in PORTAL_TO_CLI.items():
+            if portal_path in full:
+                cli_link = cli_template.format(cli=CLI_DOCS_URL)
+                portal_link_match = re.search(
+                    r"\[Portal\]\(https://portal\.telnyx\.com/[^)]*\)", full
+                )
+                if portal_link_match and cli_link not in full:
+                    old_link = portal_link_match.group(0)
+                    new_link = f"{old_link} · {cli_link}"
+                    return full.replace(old_link, new_link)
+        return full
+
+    # Only rewrite lines inside the env var table (lines starting with |)
+    lines = readme.split("\n")
+    in_env_section = False
+    result = []
+
+    for line in lines:
+        if re.match(r"^## Environment Variables\b", line):
+            in_env_section = True
+        elif re.match(r"^## ", line) and in_env_section:
+            in_env_section = False
+
+        if in_env_section and line.startswith("|") and "Portal" in line and "CLI" not in line:
+            for portal_path, cli_template in PORTAL_TO_CLI.items():
+                if portal_path in line:
+                    cli_link = cli_template.format(cli=CLI_DOCS_URL)
+                    portal_match = re.search(
+                        r"\[Portal\]\(https://portal\.telnyx\.com/[^)]*\)", line
+                    )
+                    if portal_match:
+                        old_link = portal_match.group(0)
+                        line = line.replace(old_link, f"{old_link} · {cli_link}")
+                    break  # One rewrite per row
+
+        result.append(line)
+
+    return "\n".join(result)
 
 
 # ---------------------------------------------------------------------------
@@ -220,11 +293,15 @@ def insert_cli_setup_details(readme: str) -> str:
 
 
 def insert_agent_discovery(readme: str) -> str:
-    """Insert ## Agent Discovery section before ## Resources (or at end)."""
-    if SENTINEL_AGENT_DISCOVERY in readme:
-        return readme
-
+    """Insert or replace ## Agent Discovery section before ## Resources (or at end)."""
     discovery = build_agent_discovery()
+
+    # If section already exists, replace it in-place
+    if SENTINEL_AGENT_DISCOVERY in readme:
+        # Match from "## Agent Discovery" to the next H2 or end of file
+        pattern = r"^## Agent Discovery\b.*?(?=^## |\Z)"
+        replaced = re.sub(pattern, discovery + "\n\n", readme, count=1, flags=re.MULTILINE | re.DOTALL)
+        return replaced
 
     # Try to insert before ## Resources
     resources_match = re.search(r"^## Resources\b", readme, re.MULTILINE)
@@ -262,7 +339,12 @@ def agentify_readme(readme_path: Path, dry_run: bool = False) -> tuple[bool, lis
 
     new = insert_agent_discovery(result)
     if new != result:
-        changes.append("Added Agent Discovery section")
+        changes.append("Added/updated Agent Discovery section")
+        result = new
+
+    new = rewrite_env_var_portal_links(result)
+    if new != result:
+        changes.append("Added CLI alternatives to Portal links in env var table")
         result = new
 
     if result != original and not dry_run:

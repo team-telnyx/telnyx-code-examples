@@ -55,10 +55,10 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | `string` | `KEY_your_telnyx_api_key_here` | **yes** | Telnyx API key | [Portal](https://portal.telnyx.com/api-keys) |
+| `TELNYX_API_KEY` | `string` | `KEY_your_telnyx_api_key_here` | **yes** | Telnyx API key | [Portal](https://portal.telnyx.com/api-keys) · [CLI: `telnyx auth`](https://developers.telnyx.com/development/cli) |
 | `TELNYX_PUBLIC_KEY` | `string` | `-----BEGIN PUBLIC KEY-----...` | no | Public key for webhook signature verification in production | [Portal](https://portal.telnyx.com) |
 | `CONNECTION_ID` | `string` | `1234567890` | **yes** | Programmable Voice / Voice API application connection ID | [Portal](https://portal.telnyx.com) |
-| `TELNYX_NUMBER` | `string` | `+13125550001` | **yes** | Telnyx number assigned to the Voice API application | [Portal](https://portal.telnyx.com/numbers/my-numbers) |
+| `TELNYX_NUMBER` | `string` | `+13125550001` | **yes** | Telnyx number assigned to the Voice API application | [Portal](https://portal.telnyx.com/numbers/my-numbers) · [CLI: `telnyx number-orders`](https://developers.telnyx.com/development/cli) |
 | `SPECIALIST_NUMBER` | `string` | `+13125550002` | **yes** | Human specialist phone number to dial | Your phone |
 | `PUBLIC_URL` | `string` | `https://example.ngrok-free.app` | **yes** | Public HTTPS URL for your local app | ngrok or another tunnel |
 | `PORT` | `number` | `8787` | no | Local server port | - |
@@ -153,6 +153,7 @@ Returns in-memory state for local debugging.
 
 This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
 
+- **Agent signup**: [telnyx.com/agent-signup](https://telnyx.com/agent-signup) — get a freemium account for programmatic access
 - **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
 - **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
 - **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`

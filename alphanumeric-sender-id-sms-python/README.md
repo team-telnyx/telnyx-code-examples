@@ -52,7 +52,7 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal](https://portal.telnyx.com/api-keys) |
+| `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal](https://portal.telnyx.com/api-keys) · [CLI: `telnyx auth`](https://developers.telnyx.com/development/cli) |
 | `TELNYX_MESSAGING_PROFILE_ID` | `string` | `40000000-0000-0000-0000-000000000000` | **yes** | Messaging Profile UUID configured for alphanumeric sending | [Portal → Messaging → Profiles](https://portal.telnyx.com/messaging/profiles) |
 | `ALPHANUMERIC_SENDER_ID` | `string` | `ACME Corp` | no | Default sender ID (1–11 alphanumeric chars); used when the request omits `sender_id` | - |
 | `FLASK_DEBUG` | `string` | `false` | no | Flask debug flag | - |
@@ -162,6 +162,7 @@ curl -X POST http://localhost:5000/sms/validate-sender-id \
 
 This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
 
+- **Agent signup**: [telnyx.com/agent-signup](https://telnyx.com/agent-signup) — get a freemium account for programmatic access
 - **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
 - **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
 - **Telnyx CLI**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
