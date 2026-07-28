@@ -16,6 +16,17 @@ CONNECTION_ID = os.getenv("CONNECTION_ID")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 bridges = {}
 
+LANG_CODES = {
+    "english": "en-US", "spanish": "es-US", "french": "fr-FR",
+    "german": "de-DE", "italian": "it-IT", "portuguese": "pt-BR",
+    "hindi": "hi-IN", "arabic": "ar-SA", "chinese": "zh-CN",
+    "japanese": "ja-JP", "korean": "ko-KR", "russian": "ru-RU",
+}
+
+def lang_code(lang):
+    """Map a language name to a BCP-47 code for TTS/STT."""
+    return LANG_CODES.get(lang.lower(), "en-US")
+
 def _start_ttl_cleanup(*stores, ttl_seconds=3600, interval=300):
     def _cleanup():
         while True:
@@ -92,7 +103,9 @@ def handle_voice():
             bridge["state"] = "active"
         return jsonify({"status": "ok"}), 200
     elif event_type == "call.speak.ended" and bridge:
-        client.calls.actions.gather(ccid, input_type="speech", end_silence_timeout_secs=2, timeout_secs=15, language_code="en-US")
+        my_side = "a" if ccid == bridge["ccids"].get("a") else "b"
+        my_lang = lang_code(bridge[f"lang_{my_side}"])
+        client.calls.actions.gather(ccid, input_type="speech", end_silence_timeout_secs=2, timeout_secs=15, language_code=my_lang)
         return jsonify({"status": "listening"}), 200
     elif event_type == "call.gather.ended" and bridge:
         speech = p.get("speech", {}).get("result", "")
@@ -102,8 +115,8 @@ def handle_voice():
             other_ccid = bridge["ccids"].get("b" if side == "a" else "a")
             translated = translate(speech, from_lang, to_lang)
             if other_ccid:
-                client.calls.actions.speak(other_ccid, payload=translated, voice="female", language_code="en-US")
-            client.calls.actions.gather(ccid, input_type="speech", end_silence_timeout_secs=2, timeout_secs=15, language_code="en-US")
+                client.calls.actions.speak(other_ccid, payload=translated, voice="female", language_code=lang_code(to_lang))
+            client.calls.actions.gather(ccid, input_type="speech", end_silence_timeout_secs=2, timeout_secs=15, language_code=lang_code(bridge[f"lang_{side}"]))
         return jsonify({"status": "translated"}), 200
     elif event_type == "call.hangup" and bridge:
         other_side = "b" if side == "a" else "a"

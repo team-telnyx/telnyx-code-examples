@@ -30,7 +30,7 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 ## Architecture
 
 ```
-  Inbound Phone Call
+  Outbound Call to Caller A
         │
         ▼
   ┌──────────────────┐
@@ -39,7 +39,7 @@ This app handles these webhook events ([Call Control docs](https://developers.te
            │
            ▼
   ┌──────────────────┐
-  │ Gather Speech     │ ── STT transcription
+  │ Gather Speech     │ ── STT transcription (caller's language)
   └────────┬─────────┘
            │
            ▼
@@ -50,7 +50,7 @@ This app handles these webhook events ([Call Control docs](https://developers.te
            │ ◄──── conversation loop
            │
            ▼
-     JSON response
+  TTS to other caller (target language)
 ```
 
 ## Environment Variables
@@ -60,8 +60,9 @@ Copy `.env.example` to `.env` and fill in:
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal](https://portal.telnyx.com/api-keys) · [CLI: `telnyx auth`](https://developers.telnyx.com/development/cli) |
+| `TELNYX_PUBLIC_KEY` | `string` | `-----BEGIN PUBLIC KEY-----...` | **yes** | Telnyx public key for webhook signature verification | [Portal](https://portal.telnyx.com/api-keys) · [CLI: `telnyx auth`](https://developers.telnyx.com/development/cli) |
 | `AI_MODEL` | `string` | `moonshotai/Kimi-K2.6` | no | Telnyx AI Inference model name | [Portal](https://developers.telnyx.com/docs/inference/models) |
-| `BRIDGE_NUMBER` | `string` | `your_value` | **yes** | Bridge number | - |
+| `BRIDGE_NUMBER` | `string` | `+13125550000` | **yes** | Telnyx phone number to call from | [Portal](https://portal.telnyx.com/numbers) · [CLI: `telnyx number-orders`](https://developers.telnyx.com/development/cli) |
 | `CONNECTION_ID` | `string` | `1494404757140276705` | **yes** | Call Control connection/app ID | [Portal](https://portal.telnyx.com/call-control/applications) · [CLI: `telnyx call-control-applications`](https://developers.telnyx.com/development/cli) |
 | `PORT` | `integer` | `5000` | no | HTTP server port | - |
 
@@ -109,27 +110,26 @@ For full API discovery, point your agent at [`llms-full.txt`](https://developers
 
 ### `POST /bridge`
 
-Triggers bridge
+Triggers a new translation bridge by calling both parties.
 
 ```bash
 curl -X POST http://localhost:5000/bridge \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{"number_a": "+13125550001", "lang_a": "English", "number_b": "+5215550002", "lang_b": "Spanish"}'
 ```
 
 **Response:**
 
 ```json
 {
-  "id": "item-1750280400",
-  "status": "created",
-  "created_at": "2026-07-15T14:30:00Z"
+  "bridge_id": "BR-1754020800",
+  "status": "calling_a"
 }
 ```
 
 ### `GET /bridges`
 
-Returns bridges
+Returns all active and recent bridges.
 
 ```bash
 curl http://localhost:5000/bridges
@@ -139,19 +139,18 @@ curl http://localhost:5000/bridges
 
 ```json
 {
-  "items": [
-    {
-      "id": "item-001",
-      "status": "active",
-      "created_at": "2026-07-15T14:30:00Z"
+  "bridges": {
+    "BR-1754020800": {
+      "state": "active",
+      "languages": "English<>Spanish"
     }
-  ]
+  }
 }
 ```
 
 ### `GET /health`
 
-Returns health
+Returns service health and active bridge count.
 
 ```bash
 curl http://localhost:5000/health
@@ -162,9 +161,7 @@ curl http://localhost:5000/health
 ```json
 {
   "status": "ok",
-  "uptime_seconds": 3842,
-  "active_sessions": 2,
-  "version": "1.0.0"
+  "active_bridges": 1
 }
 ```
 
