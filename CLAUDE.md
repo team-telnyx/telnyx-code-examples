@@ -61,7 +61,7 @@ structured sections derived from the code:
   - Must include a `<details><summary>Programmatic / CLI setup</summary>` block after the first bash code block, showing Telnyx CLI provisioning commands
 - `## API Reference`
 - `## Troubleshooting`
-- `## Agent Discovery` — fixed section linking to `llms-full.txt`, `llms.txt`, and the Telnyx CLI (checked by `verify.py`)
+- `## Agent Discovery` — fixed section linking to agent signup, Agent CLI (`team-telnyx/ai`), agent skills, `llms-full.txt`, `llms.txt`, and the Telnyx CLI (human + agent) (checked by `verify.py`)
 - `## Related Examples`
 - `## Resources`
 
