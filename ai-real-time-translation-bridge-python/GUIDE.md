@@ -63,7 +63,7 @@ Edit `.env` with your Telnyx credentials. Each variable links to where you find 
 
 ## Step 2: Understand the Code
 
-Everything lives in `app.py` (128 lines). Here's what each piece does.
+Everything lives in `app.py` (141 lines). Here's what each piece does.
 
 ### Starting the Workflow
 
