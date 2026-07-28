@@ -16,7 +16,7 @@ client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
 
 def get_assistant_details(assistant_id: str) -> dict:
     """Retrieve full details of an assistant for inspection before cloning."""
-    response = client.ai_assistants.retrieve(assistant_id)
+    response = client.ai.assistants.retrieve(assistant_id)
     
     # Extract serializable data — SDK objects are NOT JSON-serializable
     return {
@@ -36,7 +36,7 @@ def clone_assistant(source_assistant_id: str, new_name: str = None, new_instruct
         raise ValueError("source_assistant_id is required")
     
     # Retrieve source assistant to validate it exists
-    source = client.ai_assistants.retrieve(source_assistant_id)
+    source = client.ai.assistants.retrieve(source_assistant_id)
     
     # Use provided overrides or fall back to source values
     clone_name = new_name if new_name else f"{source.data.name} (Clone)"
@@ -58,7 +58,7 @@ def clone_assistant(source_assistant_id: str, new_name: str = None, new_instruct
         clone_params["enabled_features"] = source.data.enabled_features
     
     # Create the cloned assistant
-    response = client.ai_assistants.create(**clone_params)
+    response = client.ai.assistants.create(**clone_params)
     
     # Extract serializable data
     return {

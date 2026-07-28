@@ -140,7 +140,7 @@ def handle_voice():
     if event_type == "call.answered" and meeting:
         meeting["status"] = "recording"
         # Start real-time transcription
-        client.calls.actions.transcription_start(call_control_id, language="en")
+        client.calls.actions.start_transcription(call_control_id, language="en")
         return jsonify({"status": "transcribing"}), 200
 
     elif event_type == "call.transcription" and meeting:

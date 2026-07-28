@@ -72,7 +72,7 @@ def send_tollfree_sms(to_number: str, message: str, messaging_profile_id: str = 
         if messaging_profile_id:
             create_params["messaging_profile_id"] = messaging_profile_id
 
-        response = client.messages.create(**create_params)
+        response = client.messages.send(**create_params)
 
         # Extract serializable data — SDK objects are NOT JSON-serializable
         message_id = response.data.id

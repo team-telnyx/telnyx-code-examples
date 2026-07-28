@@ -80,7 +80,7 @@ def handle_voice():
     if event_type == "call.answered" and call:
         name = call["candidate"].get("name", "")
         client.calls.actions.speak(ccid, payload=f"Hi {name}, thanks for taking the time to chat! I'm going to ask you a few questions about your background. Ready to get started?", voice="female", language_code="en-US")
-        client.calls.actions.record_start(ccid, format="mp3", channels="dual")
+        client.calls.actions.start_recording(ccid, format="mp3", channels="dual")
         return jsonify({"status": "greeting"}), 200
     elif event_type == "call.speak.ended" and call:
         client.calls.actions.gather(ccid, input_type="speech", end_silence_timeout_secs=3, timeout_secs=30, language_code="en-US")

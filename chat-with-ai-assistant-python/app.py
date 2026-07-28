@@ -22,8 +22,8 @@ def chat_with_assistant(assistant_id: str, user_message: str) -> dict:
     if not user_message or not user_message.strip():
         raise ValueError("Message cannot be empty")
     
-    # Use client.ai_assistants.chat() to send a message to the assistant
-    response = client.ai_assistants.chat(
+    # Use client.ai.assistants.chat() to send a message to the assistant
+    response = client.ai.assistants.chat(
         assistant_id=assistant_id,
         messages=[
             {

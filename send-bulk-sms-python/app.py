@@ -45,7 +45,7 @@ def send_single_sms(to_number: str, message: str) -> Dict[str, Any]:
     if not validate_phone_number(to_number):
         raise ValueError(f"Invalid phone number format: {to_number}. Use E.164 format (e.g., +15551234567)")
     
-    response = client.messages.create(
+    response = client.messages.send(
         from_=TELNYX_PHONE_NUMBER,
         to=to_number,
         text=message,

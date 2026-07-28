@@ -146,7 +146,7 @@ def send_message_to_contact(to_number: str, body: str) -> dict:
     
     conversation_id = get_or_create_conversation(to_number)
     
-    response = client.messages.create(
+    response = client.messages.send(
         from_=from_number,
         to=to_number,
         text=body,

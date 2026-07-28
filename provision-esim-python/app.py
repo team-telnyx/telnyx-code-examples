@@ -50,7 +50,7 @@ def create_esim_profile(client, device_name: str, sim_card_group_id: str) -> dic
 
 def activate_esim_profile(client, sim_card_id: str) -> dict:
     """Activate an eSIM profile for network connectivity."""
-    response = client.sim_cards.activate(sim_card_id)
+    response = client.sim_cards.actions.enable(sim_card_id)
     
     return {
         "id": response.data.id,

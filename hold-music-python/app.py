@@ -42,7 +42,7 @@ def start_hold_music(call_control_id: str) -> dict:
     # Use a royalty-free hold music URL or upload your own audio file
     hold_music_url = "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav"
     
-    response = client.calls.actions.playback_start(
+    response = client.calls.actions.start_playback(
         call_control_id,
         audio_url=hold_music_url,
         loop=True,  # Loop the audio continuously
@@ -64,7 +64,7 @@ def stop_hold_music(call_control_id: str) -> dict:
         raise ValueError("Call not found")
     
     # Stop the current playback
-    client.calls.actions.playback_stop(call_control_id)
+    client.calls.actions.stop_playback(call_control_id)
     
     active_calls[call_control_id]["on_hold"] = False
     

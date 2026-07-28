@@ -54,8 +54,8 @@ def send_mms(to_number: str, message: str, media_urls: list) -> dict:
         if not validate_media_url(url):
             raise ValueError(f"Invalid media URL format: {url}")
     
-    # Use client.messages.create() with media_urls parameter for MMS
-    response = client.messages.create(
+    # Use client.messages.send() with media_urls parameter for MMS
+    response = client.messages.send(
         from_=from_number,
         to=to_number,
         text=message,

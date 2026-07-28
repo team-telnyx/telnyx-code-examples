@@ -76,8 +76,8 @@ def handle_voice():
         client.calls.actions.speak(ccid, payload="Hi, I'm not available right now. Please leave a message after the beep and I'll get back to you.", voice="female", language_code="en-US")
         return jsonify({"status": "greeting"}), 200
     elif event_type == "call.speak.ended":
-        client.calls.actions.record_start(ccid, format="mp3", channels="single", play_beep=True)
-        client.calls.actions.transcription_start(ccid, language="en")
+        client.calls.actions.start_recording(ccid, format="mp3", channels="single", play_beep=True)
+        client.calls.actions.start_transcription(ccid, language="en")
         return jsonify({"status": "recording"}), 200
     elif event_type == "call.transcription":
         text = p.get("transcription_data", {}).get("transcript", "")

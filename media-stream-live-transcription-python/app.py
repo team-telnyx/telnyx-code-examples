@@ -49,7 +49,7 @@ def handle_voice():
         client.calls.actions.answer(ccid)
         return jsonify({"status": "answering"}), 200
     elif event_type == "call.answered":
-        client.calls.actions.transcription_start(ccid, language="en")
+        client.calls.actions.start_transcription(ccid, language="en")
         client.calls.actions.speak(ccid, payload="This call is being transcribed in real time. Go ahead and speak.", voice="female", language_code="en-US")
         return jsonify({"status": "streaming"}), 200
     elif event_type == "call.transcription":

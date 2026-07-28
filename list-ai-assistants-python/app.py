@@ -16,7 +16,7 @@ client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
 
 def fetch_assistants() -> list[dict]:
     """Retrieve all AI Assistants and return JSON-serializable data."""
-    response = client.ai_assistants.list()
+    response = client.ai.assistants.list()
 
     # SDK objects are NOT JSON-serializable — always unpack to plain dicts
     return [
@@ -44,15 +44,17 @@ def list_assistants():
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
+        return jsonify(
+            {"error": "API request failed", "status_code": e.status_code}
+        ), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
-
 
 
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"}), 200
+
 
 if __name__ == "__main__":
     app.run(debug=False, port=5000)

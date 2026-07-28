@@ -126,7 +126,7 @@ def handle_voice():
         return jsonify({"status": "answering"}), 200
 
     elif event_type == "call.answered":
-        client.calls.actions.transcription_start(call_control_id, language="en")
+        client.calls.actions.start_transcription(call_control_id, language="en")
         return jsonify({"status": "transcribing"}), 200
 
     elif event_type == "call.transcription":

@@ -33,7 +33,7 @@ def send_sms(to_number: str, message: str) -> dict:
     if not to_number.startswith("+"):
         raise ValueError("Phone number must be in E.164 format")
     
-    response = client.messages.create(
+    response = client.messages.send(
         from_=from_number,
         to=to_number,
         text=message,

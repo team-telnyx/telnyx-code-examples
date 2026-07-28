@@ -72,7 +72,7 @@ def handle_voice():
                 hold["offered_callback"] = True
                 client.calls.actions.speak(ccid, payload="You've been waiting a while. Press 9 and we'll call you back when an agent is free.", voice="female", language_code="en-US")
             elif HOLD_MUSIC_URL:
-                client.calls.actions.playback_start(ccid, audio_url=HOLD_MUSIC_URL)
+                client.calls.actions.start_playback(ccid, audio_url=HOLD_MUSIC_URL)
             else:
                 tip = secrets.choice(TIPS + TRIVIA)
                 hold["tip_idx"] += 1

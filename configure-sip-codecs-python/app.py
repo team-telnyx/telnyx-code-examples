@@ -61,7 +61,7 @@ def create_sip_connection_with_codecs(
         normalized_codecs.append(codec_map[codec])
     
     # Create SIP connection with codec preferences
-    response = client.sip_connections.create(
+    response = client.credential_connections.create(
         connection_name=name,
         outbound_voice_profile_id=None,
         inbound_sip_credentials=[
@@ -101,7 +101,7 @@ def get_sip_connection_codecs(connection_id: str) -> dict:
     Returns:
         Dictionary with connection details and current codec settings.
     """
-    response = client.sip_connections.retrieve(connection_id)
+    response = client.credential_connections.retrieve(connection_id)
     
     # Extract codec configuration from the response
     codecs = []
@@ -129,7 +129,7 @@ def list_sip_connections() -> list:
     Returns:
         List of dictionaries containing connection details.
     """
-    response = client.sip_connections.list()
+    response = client.credential_connections.list()
     
     connections = []
     for conn in response.data:

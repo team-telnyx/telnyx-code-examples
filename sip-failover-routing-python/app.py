@@ -35,7 +35,7 @@ sip_endpoints = {
 
 def create_sip_connection(name: str, endpoint_ip: str, endpoint_port: int) -> dict:
     """Create a SIP connection via Telnyx API."""
-    response = client.sip_connections.create(
+    response = client.credential_connections.create(
         connection_name=name,
         outbound_voice_profile_id=None,
         inbound_sip_credentials=[
@@ -57,7 +57,7 @@ def create_sip_connection(name: str, endpoint_ip: str, endpoint_port: int) -> di
 
 def list_sip_connections() -> list:
     """Retrieve all SIP connections from Telnyx."""
-    response = client.sip_connections.list()
+    response = client.credential_connections.list()
     
     # Extract serializable data from list
     return [
@@ -72,7 +72,7 @@ def list_sip_connections() -> list:
 
 def get_sip_connection(connection_id: str) -> dict:
     """Retrieve a specific SIP connection by ID."""
-    response = client.sip_connections.retrieve(connection_id)
+    response = client.credential_connections.retrieve(connection_id)
     
     # Extract serializable data
     return {

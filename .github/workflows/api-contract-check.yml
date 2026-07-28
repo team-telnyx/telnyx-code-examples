@@ -8,6 +8,9 @@ on:
   pull_request:
     paths:
       - "**/API.md"
+      - "**/app.py"
+      - "scripts/check_sdk_calls.py"
+      - ".github/workflows/api-contract-check.yml"
 
 permissions:
   contents: read
@@ -27,3 +30,46 @@ jobs:
 
       - name: Check API contract
         run: python scripts/check_api_contract.py --verbose
+
+  sdk-call-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0  # need full history for diff against base
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install telnyx SDK
+        run: pip install telnyx
+
+      - name: Check SDK calls (changed files only)
+        run: |
+          # Determine the base branch for diffing
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="origin/${{ github.base_ref }}"
+          else
+            # Scheduled/manual runs — check everything
+            BASE=""
+          fi
+
+          if [ -n "$BASE" ]; then
+            # Ratchet mode: only check app.py files changed in this PR
+            git fetch origin "$GITHUB_BASE_REF" --depth=1 2>/dev/null || true
+            CHANGED=$(git diff --name-only --diff-filter=AM "$BASE...HEAD" -- '**/app.py' | sed 's|/app.py$||' | sort -u)
+            if [ -z "$CHANGED" ]; then
+              echo "No app.py files changed in this PR — skipping SDK call check."
+              exit 0
+            fi
+            echo "Checking changed examples:"
+            echo "$CHANGED"
+            echo ""
+            for folder in $CHANGED; do
+              python scripts/check_sdk_calls.py --only "$folder" --verbose
+            done
+          else
+            # Full check — catches all violations (scheduled/manual runs)
+            python scripts/check_sdk_calls.py
+          fi

@@ -77,7 +77,7 @@ def send_sms_with_alphanumeric_id(
         raise ValueError("TELNYX_MESSAGING_PROFILE_ID environment variable not set")
     
     # Create message with alphanumeric sender ID
-    response = client.messages.create(
+    response = client.messages.send(
         from_=sender_id,
         to=to_number,
         text=message,

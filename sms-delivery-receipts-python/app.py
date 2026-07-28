@@ -78,7 +78,7 @@ def send_sms_with_tracking(to_number: str, message: str) -> dict:
         raise ValueError("Phone number must be in E.164 format (e.g., +15551234567)")
     
     # Send message via Telnyx API
-    response = client.messages.create(
+    response = client.messages.send(
         from_=from_number,
         to=to_number,
         text=message,

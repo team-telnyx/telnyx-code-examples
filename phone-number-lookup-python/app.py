@@ -54,16 +54,16 @@ def lookup_phone_number(phone_number: str) -> dict:
     # Validate E.164 format
     if not phone_number.startswith("+"):
         raise ValueError("Phone number must be in E.164 format (e.g., +15551234567)")
-    
+
     # Check cache first
     cached_result = get_cached_lookup(phone_number)
     if cached_result:
         cached_result["from_cache"] = True
         return cached_result
-    
+
     # Call Telnyx Number Lookup API
     response = client.number_lookup.retrieve(phone_number)
-    
+
     # Extract serializable data from SDK response
     lookup_data = {
         "phone_number": response.data.phone_number,
@@ -72,18 +72,30 @@ def lookup_phone_number(phone_number: str) -> dict:
             "name": response.data.carrier.name if response.data.carrier else None,
             "type": response.data.carrier.type if response.data.carrier else None,
         },
-        "line_type": response.data.line_type,
-        "number_type": response.data.number_type,
+        # line_type and ported_status live on DataPortability, not on Data
         "portability": {
-            "status": response.data.portability.status if response.data.portability else None,
-            "last_checked_at": response.data.portability.last_checked_at if response.data.portability else None,
+            "line_type": response.data.portability.line_type
+            if response.data.portability
+            else None,
+            "ported_status": response.data.portability.ported_status
+            if response.data.portability
+            else None,
+            "spid_carrier_name": response.data.portability.spid_carrier_name
+            if response.data.portability
+            else None,
+            "city": response.data.portability.city
+            if response.data.portability
+            else None,
+            "state": response.data.portability.state
+            if response.data.portability
+            else None,
         },
         "from_cache": False,
     }
-    
+
     # Cache the result
     cache_lookup_result(phone_number, lookup_data)
-    
+
     return lookup_data
 
 
@@ -91,25 +103,27 @@ def lookup_phone_number(phone_number: str) -> dict:
 def lookup_endpoint():
     """HTTP endpoint to perform number lookup."""
     data = request.get_json()
-    
+
     if not data:
         return jsonify({"error": "Request body required"}), 400
-    
+
     phone_number = data.get("phone_number")
-    
+
     if not phone_number:
         return jsonify({"error": "Missing required field: 'phone_number'"}), 400
-    
+
     try:
         result = lookup_phone_number(phone_number)
         return jsonify(result), 200
-        
+
     except telnyx.AuthenticationError:
         return jsonify({"error": "Invalid API key"}), 401
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
+        return jsonify(
+            {"error": "API request failed", "status_code": e.status_code}
+        ), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
     except ValueError:
@@ -121,17 +135,19 @@ def lookup_get_endpoint(phone_number: str):
     """HTTP GET endpoint to perform number lookup via URL parameter."""
     if not phone_number:
         return jsonify({"error": "Phone number required in URL path"}), 400
-    
+
     try:
         result = lookup_phone_number(phone_number)
         return jsonify(result), 200
-        
+
     except telnyx.AuthenticationError:
         return jsonify({"error": "Invalid API key"}), 401
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
+        return jsonify(
+            {"error": "API request failed", "status_code": e.status_code}
+        ), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
     except ValueError:
@@ -141,10 +157,12 @@ def lookup_get_endpoint(phone_number: str):
 @app.route("/cache/stats", methods=["GET"])
 def cache_stats_endpoint():
     """Return cache statistics for monitoring."""
-    return jsonify({
-        "cache_size": len(lookup_cache),
-        "cached_numbers": list(lookup_cache.keys()),
-    }), 200
+    return jsonify(
+        {
+            "cache_size": len(lookup_cache),
+            "cached_numbers": list(lookup_cache.keys()),
+        }
+    ), 200
 
 
 if __name__ == "__main__":

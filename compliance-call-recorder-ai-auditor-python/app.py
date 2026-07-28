@@ -177,8 +177,8 @@ def handle_voice():
     elif event_type == "call.answered":
         if call_control_id in call_records:
             # Start recording and transcription
-            client.calls.actions.record_start(call_control_id, format="mp3", channels="dual")
-            client.calls.actions.transcription_start(call_control_id, language="en")
+            client.calls.actions.start_recording(call_control_id, format="mp3", channels="dual")
+            client.calls.actions.start_transcription(call_control_id, language="en")
         return jsonify({"status": "recording"}), 200
 
     elif event_type == "call.transcription":

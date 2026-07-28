@@ -57,7 +57,7 @@ def start_survey(to_number: str) -> dict:
     
     # Send the first question
     first_question = SURVEY_QUESTIONS[0]
-    response = client.messages.create(
+    response = client.messages.send(
         from_=TELNYX_PHONE_NUMBER,
         to=to_number,
         text=first_question["text"],
@@ -93,7 +93,7 @@ def process_survey_response(from_number: str, message_text: str) -> dict:
     
     # Validate response against allowed options
     if message_text.strip() not in current_question["valid_responses"]:
-        response = client.messages.create(
+        response = client.messages.send(
             from_=TELNYX_PHONE_NUMBER,
             to=from_number,
             text=f"Invalid response. {current_question['text']}",
@@ -118,7 +118,7 @@ def process_survey_response(from_number: str, message_text: str) -> dict:
             f"Thank you for completing the survey! Your responses have been recorded. "
             f"Total questions answered: {len(participant_state['responses'])}"
         )
-        response = client.messages.create(
+        response = client.messages.send(
             from_=TELNYX_PHONE_NUMBER,
             to=from_number,
             text=completion_message,
@@ -135,7 +135,7 @@ def process_survey_response(from_number: str, message_text: str) -> dict:
     next_question = SURVEY_QUESTIONS[next_q_index]
     participant_state["current_question"] = next_q_index
     
-    response = client.messages.create(
+    response = client.messages.send(
         from_=TELNYX_PHONE_NUMBER,
         to=from_number,
         text=next_question["text"],

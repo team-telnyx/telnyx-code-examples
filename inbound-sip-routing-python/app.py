@@ -51,7 +51,7 @@ def create_sip_connection(name: str, sip_uri: str, username: str = None, passwor
             "sip_password": ""
         })
     
-    response = client.sip_connections.create(**connection_params)
+    response = client.credential_connections.create(**connection_params)
     
     # Extract serializable data from SDK response
     return {
@@ -66,7 +66,7 @@ def create_sip_connection(name: str, sip_uri: str, username: str = None, passwor
 
 def list_sip_connections() -> list:
     """Retrieve all SIP connections with routing information."""
-    response = client.sip_connections.list()
+    response = client.credential_connections.list()
     
     return [
         {
@@ -83,7 +83,7 @@ def list_sip_connections() -> list:
 
 def get_sip_connection(connection_id: str) -> dict:
     """Retrieve detailed information about a specific SIP connection."""
-    response = client.sip_connections.retrieve(connection_id)
+    response = client.credential_connections.retrieve(connection_id)
     
     return {
         "id": response.data.id,

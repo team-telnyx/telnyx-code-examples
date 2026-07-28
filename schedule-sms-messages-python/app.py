@@ -39,7 +39,7 @@ def send_scheduled_sms(job_id: str, to_number: str, message: str) -> None:
     from_number = os.getenv("TELNYX_PHONE_NUMBER")
     
     try:
-        response = client.messages.create(
+        response = client.messages.send(
             from_=from_number,
             to=to_number,
             text=message,

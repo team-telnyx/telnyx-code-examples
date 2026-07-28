@@ -37,7 +37,7 @@ def handle_voice():
         client.calls.actions.answer(ccid)
         return jsonify({"status": "answering"}), 200
     elif event_type == "call.answered":
-        client.calls.actions.record_start(ccid, format="mp3", channels="dual")
+        client.calls.actions.start_recording(ccid, format="mp3", channels="dual")
         client.calls.actions.speak(ccid, payload="Podcast recording started. Speak naturally. The recording will be processed when the call ends.", voice="female", language_code="en-US")
         return jsonify({"status": "recording"}), 200
     elif event_type == "call.recording.saved":

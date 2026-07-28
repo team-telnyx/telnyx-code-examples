@@ -85,7 +85,7 @@ def send_sms_message(to_number: str, message: str, campaign_id: str = None) -> d
         raise ValueError(f"Invalid phone number format: {to_number}. Use E.164 format.")
     
     # Create message with optional campaign tracking
-    response = client.messages.create(
+    response = client.messages.send(
         from_=from_number,
         to=to_number,
         text=message,

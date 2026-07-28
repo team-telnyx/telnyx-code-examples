@@ -150,7 +150,7 @@ def send_sms(to_number: str, message: str) -> dict:
         raise ValueError(f"Recipient {to_number} has opted out of SMS messages")
     
     # Send message via Telnyx
-    response = client.messages.create(
+    response = client.messages.send(
         from_=from_number,
         to=to_number,
         text=message,

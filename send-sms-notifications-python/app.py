@@ -102,7 +102,7 @@ def send_notification(recipient: str, message: str, notification_type: str = "al
     notification.id = notification_counter
     
     try:
-        response = client.messages.create(
+        response = client.messages.send(
             from_=from_number,
             to=recipient,
             text=message,

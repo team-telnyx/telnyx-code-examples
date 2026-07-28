@@ -88,7 +88,7 @@ def handle_voice():
         debtor = call["debtor"]
         greeting = f"Hello, this is a call from ABC Collections regarding an outstanding balance. This is an attempt to collect a debt and any information obtained will be used for that purpose. Am I speaking with {debtor.get('name', 'the account holder')}?"
         client.calls.actions.speak(ccid, payload=greeting, voice="female", language_code="en-US")
-        client.calls.actions.record_start(ccid, format="mp3", channels="dual")
+        client.calls.actions.start_recording(ccid, format="mp3", channels="dual")
         call["conversation"].append({"role": "assistant", "content": greeting})
         return jsonify({"status": "greeting"}), 200
     elif event_type == "call.speak.ended" and call:

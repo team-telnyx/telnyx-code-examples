@@ -61,7 +61,7 @@ def send_auto_reply(to_number: str, message: str) -> dict:
     if not from_number:
         raise ValueError("TELNYX_PHONE_NUMBER environment variable not set")
     
-    response = client.messages.create(
+    response = client.messages.send(
         from_=from_number,
         to=to_number,
         text=message,

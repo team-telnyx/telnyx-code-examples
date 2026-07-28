@@ -50,8 +50,8 @@ def update_assistant(
     if not update_params:
         raise ValueError("At least one field must be provided for update")
     
-    # Use client.ai_assistants.update() — NOT client.ai_assistants.update()
-    response = client.ai_assistants.update(assistant_id, **update_params)
+    # Use client.ai.assistants.update() — NOT client.ai.assistants.update()
+    response = client.ai.assistants.update(assistant_id, **update_params)
     
     # Extract serializable data — SDK objects are NOT JSON-serializable
     return {

@@ -136,7 +136,7 @@ def handle_voice_webhook():
     # --- Call answered: start transcription + AI listening ---
     elif event_type == "call.answered":
         # Start transcription to capture the conversation
-        client.calls.actions.transcription_start(
+        client.calls.actions.start_transcription(
             call_control_id,
             language="en",
         )

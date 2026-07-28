@@ -42,7 +42,7 @@ def send_shortcode_sms(to_number: str, message: str) -> dict:
         raise ValueError("Message exceeds maximum length (1600 characters)")
     
     # Send message using shortcode as from_number
-    response = client.messages.create(
+    response = client.messages.send(
         from_=TELNYX_SHORTCODE,
         to=to_number,
         text=message,

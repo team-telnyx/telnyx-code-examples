@@ -59,7 +59,7 @@ def handle_voice():
         client.calls.actions.speak(ccid, payload="Please leave your message after the beep.", voice="female", language_code="en-US")
         return jsonify({"status": "greeting"}), 200
     elif event_type == "call.speak.ended":
-        client.calls.actions.record_start(ccid, format="mp3", channels="single", play_beep=True, max_length_secs=120)
+        client.calls.actions.start_recording(ccid, format="mp3", channels="single", play_beep=True, max_length_secs=120)
         return jsonify({"status": "recording"}), 200
     elif event_type == "call.recording.saved":
         recording_url = p.get("recording_urls", {}).get("mp3", "")

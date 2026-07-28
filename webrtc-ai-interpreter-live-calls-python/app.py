@@ -72,7 +72,7 @@ def handle_voice():
         client.calls.actions.speak(ccid, payload="AI interpreter connected. I will translate between English and Spanish. Go ahead and speak.", voice="female", language_code="en-US")
         return jsonify({"status": "ready"}), 200
     elif event_type == "call.speak.ended" and call:
-        client.calls.actions.transcription_start(ccid, language="en")
+        client.calls.actions.start_transcription(ccid, language="en")
         return jsonify({"status": "listening"}), 200
     elif event_type == "call.transcription" and call:
         text = p.get("transcription_data", {}).get("transcript", "")

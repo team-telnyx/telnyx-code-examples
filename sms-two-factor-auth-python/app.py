@@ -58,7 +58,7 @@ def send_otp_sms(phone_number: str, otp_code: str) -> dict:
     
     message_text = f"Your verification code is: {otp_code}. Valid for {OTP_EXPIRY_SECONDS // 60} minutes."
     
-    response = client.messages.create(
+    response = client.messages.send(
         from_=from_number,
         to=phone_number,
         text=message_text,

@@ -70,7 +70,7 @@ def handle_voice():
     elif event_type == "call.speak.ended":
         call = active_calls.get(ccid)
         if call and call.get("state") == "holding":
-            client.calls.actions.playback_start(ccid, audio_url="https://file-examples.com/storage/fedc3e8bdb6832b296ac7cc/2017/11/file_example_MP3_700KB.mp3", loop="infinity")
+            client.calls.actions.start_playback(ccid, audio_url="https://file-examples.com/storage/fedc3e8bdb6832b296ac7cc/2017/11/file_example_MP3_700KB.mp3", loop="infinity")
         elif call and call.get("state") == "connecting":
             agent_num = get_available_agent() or (AGENT_NUMBERS[0] if AGENT_NUMBERS else "")
             if agent_num:

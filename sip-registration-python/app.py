@@ -20,7 +20,7 @@ def create_sip_connection(connection_name: str, username: str, password: str) ->
         raise ValueError("Connection name, username, and password are required")
     
     # Create SIP connection with credential authentication
-    response = client.sip_connections.create(
+    response = client.credential_connections.create(
         connection_name=connection_name,
         user_name=username,
         password=password,
@@ -58,7 +58,7 @@ def create_sip_connection(connection_name: str, username: str, password: str) ->
 
 def get_sip_connection(connection_id: str) -> dict:
     """Retrieve SIP connection details by ID."""
-    response = client.sip_connections.retrieve(connection_id)
+    response = client.credential_connections.retrieve(connection_id)
     
     return {
         "id": response.data.id,
@@ -74,7 +74,7 @@ def get_sip_connection(connection_id: str) -> dict:
 
 def list_sip_connections() -> list:
     """List all SIP connections for the account."""
-    response = client.sip_connections.list()
+    response = client.credential_connections.list()
     
     return [
         {

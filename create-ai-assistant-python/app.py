@@ -14,29 +14,36 @@ app = Flask(__name__)
 client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"))
 
 
-def create_ai_assistant(name: str, instructions: str, model: str = "meta-llama/Meta-Llama-3.1-70B-Instruct", enabled_features: list = None) -> dict:
+def create_ai_assistant(
+    name: str,
+    instructions: str,
+    model: str = "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    enabled_features: list = None,
+) -> dict:
     """Create AI assistant via Telnyx and return JSON-serializable response data."""
     if not name or not instructions:
         raise ValueError("Name and instructions are required")
-    
+
     # Default to messaging if no features specified
     if enabled_features is None:
         enabled_features = ["messaging"]
-    
+
     # Validate enabled features
     valid_features = ["messaging", "telephony"]
     for feature in enabled_features:
         if feature not in valid_features:
-            raise ValueError(f"Invalid feature: {feature}. Must be one of: {valid_features}")
-    
-    # Use client.ai_assistants.create() — NOT client.ai_assistants.create()
-    response = client.ai_assistants.create(
+            raise ValueError(
+                f"Invalid feature: {feature}. Must be one of: {valid_features}"
+            )
+
+    # Use client.ai.assistants.create() — NOT client.ai.assistants.create()
+    response = client.ai.assistants.create(
         name=name,
         instructions=instructions,
         model=model,
         enabled_features=enabled_features,
     )
-    
+
     # Extract serializable data — SDK objects are NOT JSON-serializable
     return {
         "id": response.data.id,
@@ -54,38 +61,42 @@ def create_assistant_endpoint():
     data = request.get_json()
     if not data:
         return jsonify({"error": "invalid request body"}), 400
-    
+
     if not data:
         return jsonify({"error": "Request body required"}), 400
-    
+
     name = data.get("name")
     instructions = data.get("instructions")
     model = data.get("model", "meta-llama/Meta-Llama-3.1-70B-Instruct")
     enabled_features = data.get("enabled_features", ["messaging"])
-    
+
     if not name or not instructions:
-        return jsonify({"error": "Missing required fields: 'name' and 'instructions'"}), 400
-    
+        return jsonify(
+            {"error": "Missing required fields: 'name' and 'instructions'"}
+        ), 400
+
     try:
         result = create_ai_assistant(name, instructions, model, enabled_features)
         return jsonify(result), 201
-        
+
     except telnyx.AuthenticationError:
         return jsonify({"error": "Invalid API key"}), 401
     except telnyx.RateLimitError:
         return jsonify({"error": "Rate limit exceeded. Please slow down."}), 429
     except telnyx.APIStatusError as e:
-        return jsonify({"error": "API request failed", "status_code": e.status_code}), e.status_code
+        return jsonify(
+            {"error": "API request failed", "status_code": e.status_code}
+        ), e.status_code
     except telnyx.APIConnectionError:
         return jsonify({"error": "Network error connecting to Telnyx"}), 503
     except ValueError as e:
         return jsonify({"error": "Invalid request"}), 400
 
 
-
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"}), 200
+
 
 if __name__ == "__main__":
     app.run(debug=False, port=5000)

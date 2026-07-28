@@ -101,7 +101,7 @@ def queue_message(to_number: str, message: str, metadata: dict = None) -> dict:
 
 def send_queued_message(queue_item: dict) -> dict:
     """Send a single message from the queue via Telnyx API."""
-    response = client.messages.create(
+    response = client.messages.send(
         from_=Config.TELNYX_LONG_CODE,
         to=queue_item["to"],
         text=queue_item["text"],
@@ -161,7 +161,7 @@ def send_sms_endpoint():
         return jsonify({"error": "Missing required fields: 'to' and 'message'"}), 400
     
     try:
-        response = client.messages.create(
+        response = client.messages.send(
             from_=Config.TELNYX_LONG_CODE,
             to=to_number,
             text=message,

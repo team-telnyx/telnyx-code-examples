@@ -180,7 +180,7 @@ def check_health(sim_card_id: str):
 def activate_sim(sim_card_id: str):
     """Activate a SIM card."""
     try:
-        response = client.sim_cards.activate(sim_card_id)
+        response = client.sim_cards.actions.enable(sim_card_id)
         
         return jsonify({
             "id": response.data.id,

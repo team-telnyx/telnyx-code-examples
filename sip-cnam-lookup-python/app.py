@@ -56,7 +56,7 @@ def lookup_cnam(phone_number: str) -> dict:
 
 def get_sip_connections() -> list:
     """Retrieve SIP connections for reference."""
-    response = client.sip_connections.list()
+    response = client.credential_connections.list()
     return [
         {
             "id": c.id,

@@ -19,8 +19,8 @@ def get_assistant(assistant_id: str) -> dict:
     if not assistant_id or not assistant_id.strip():
         raise ValueError("Assistant ID is required")
     
-    # Use client.ai_assistants.retrieve() — NOT client.ai_assistants.retrieve()
-    response = client.ai_assistants.retrieve(assistant_id)
+    # Use client.ai.assistants.retrieve() — NOT client.ai.assistants.retrieve()
+    response = client.ai.assistants.retrieve(assistant_id)
     
     # Extract serializable data — SDK objects are NOT JSON-serializable
     return {
