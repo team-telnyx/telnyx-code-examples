@@ -78,11 +78,11 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
     code_file = LANG_CODE_FILE.get(language, "app.py")
     dep_file = LANG_DEP_FILE.get(language, "requirements.txt")
 
-    # Edge Compute examples ship a func.toml + function/ package instead of a single
-    # app.py — treat func.toml as the code file for them.
-    is_edge = (folder_path / "func.toml").exists()
+    # Edge Compute examples ship a func.toml (functions) or telnyx.toml (stateful
+    # actors) instead of a single app.py — treat either as the code file.
+    is_edge = (folder_path / "func.toml").exists() or (folder_path / "telnyx.toml").exists()
     if is_edge:
-        code_file = "func.toml"
+        code_file = "telnyx.toml" if (folder_path / "telnyx.toml").exists() else "func.toml"
 
     # --- File existence checks ---
     required_files = [
@@ -189,13 +189,13 @@ def verify_root_readme(mapping: list[dict], verbose: bool = False) -> list[str]:
 
 
 def find_example_folders() -> set:
-    """Scan the repo for example folders (any dir with a known code file or func.toml)."""
+    """Scan the repo for example folders (any dir with a known code file, func.toml, or telnyx.toml)."""
     code_files = set(LANG_CODE_FILE.values())
     found = set()
     for path in REPO_ROOT.iterdir():
         if not path.is_dir() or path.name.startswith(".") or path.name in ("scripts", "workstreams"):
             continue
-        if any((path / cf).exists() for cf in code_files) or (path / "func.toml").exists():
+        if any((path / cf).exists() for cf in code_files) or (path / "func.toml").exists() or (path / "telnyx.toml").exists():
             found.add(path.name)
     return found
 

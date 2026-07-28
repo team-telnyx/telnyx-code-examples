@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-27T11:51:30Z",
-  "example_count": 497,
+  "generated_at": "2026-07-28T00:16:36Z",
+  "example_count": 498,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1076,6 +1076,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/moderation-classifier-python"
+    },
+    {
+      "folder": "edge-robo-call-screener-typescript",
+      "title": "Edge Robo-Call Screener",
+      "description": "Inbound call screener on Telnyx Edge Compute Stateful Actors — answers, asks a question, AI judges if it's a robocall, hangs up on robocalls and forwards legitimate callers.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-robo-call-screener-typescript"
     },
     {
       "folder": "ai-customer-winback-caller-python",
