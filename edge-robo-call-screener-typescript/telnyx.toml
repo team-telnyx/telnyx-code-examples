@@ -1,0 +1,17 @@
+name = "edge-robo-call-screener"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "CALL_SCREENER"
+type = "CallScreener"
+
+[edge_compute]
+func_name = "edge-robo-call-screener"
+
+[env_vars]
+AI_MODEL = "moonshotai/Kimi-K2.6"
+# Secrets (set via CLI):
+#   telnyx-edge secrets add TELNYX_API_KEY <key>
+#   telnyx-edge secrets add TELNYX_PHONE_NUMBER <e164>
+#   telnyx-edge secrets add FORWARD_TO_NUMBER <e164>

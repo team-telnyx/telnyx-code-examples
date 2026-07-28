@@ -1,0 +1,17 @@
+{
+  "name": "edge-robo-call-screener",
+  "version": "1.0.0",
+  "description": "Inbound call screener on Telnyx Edge Compute — answers, asks a question, AI judges if it's a robocall, hangs up on robocalls and forwards legitimate callers.",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.8.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "license": "MIT"
+}

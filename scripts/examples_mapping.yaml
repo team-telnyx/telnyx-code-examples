@@ -747,6 +747,12 @@ examples:
     framework: flask
     folder: moderation-classifier-python
 
+  - product: voice
+    use_case: robo-call-screener
+    language: nodejs
+    framework: edge
+    folder: edge-robo-call-screener-typescript
+
   - product: ai
     use_case: ai-customer-winback-caller
     language: python
