@@ -5,7 +5,7 @@ Connect two callers who speak different languages on the same phone call. Your a
 ## How It Works
 
 ```
-  Inbound Phone Call
+  Outbound Call to Caller A
         │
         ▼
   ┌──────────────────┐
@@ -14,7 +14,7 @@ Connect two callers who speak different languages on the same phone call. Your a
            │
            ▼
   ┌──────────────────┐
-  │ Gather Speech     │ ── STT transcription
+  │ Gather Speech     │ ── STT transcription (caller's language)
   └────────┬─────────┘
            │
            ▼
@@ -25,7 +25,7 @@ Connect two callers who speak different languages on the same phone call. Your a
            │ ◄──── conversation loop
            │
            ▼
-     JSON response
+  TTS to other caller (target language)
 ```
 
 ## API Endpoints
@@ -63,7 +63,7 @@ Edit `.env` with your Telnyx credentials. Each variable links to where you find 
 
 ## Step 2: Understand the Code
 
-Everything lives in `app.py` (100 lines). Here's what each piece does.
+Everything lives in `app.py` (128 lines). Here's what each piece does.
 
 ### Starting the Workflow
 
@@ -77,7 +77,7 @@ data = request.get_json()
     try:
         resp = requests.post("https://api.telnyx.com/v2/calls", headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
             json={"to": data["number_a"], "from": BRIDGE_NUMBER, "connection_id": CONNECTION_ID,
-                "client_state": json.dumps({"bid": bid, "side": "a"}).encode().hex()}, timeout=10)
+                "client_state": base64.b64encode(json.dumps({"bid": bid, "side": "a"}).encode()).decode()}, timeout=10)
 ```
 
 ### Handling Webhooks
@@ -116,13 +116,16 @@ Server starts on `http://localhost:5000`.
 curl http://localhost:5000/health
 ```
 
-**Trigger the workflow:**
+**Trigger the bridge:**
 
 ```bash
 curl -X POST http://localhost:5000/bridge \
   -H "Content-Type: application/json" \
   -d '{
-    "phone": "+12125559999"
+    "number_a": "+13125550001",
+    "lang_a": "English",
+    "number_b": "+5215550002",
+    "lang_b": "Spanish"
   }'
 ```
 
