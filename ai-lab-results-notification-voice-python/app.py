@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HIPAA-aware lab results notification voice assistant."""
+"""Lab results notification voice assistant for HIPAA-compliant workflows."""
 
 from __future__ import annotations
 
@@ -392,7 +392,7 @@ DASHBOARD_TEMPLATE = """
 
       <div class="stack">
         <div class="panel">
-          <h2>HIPAA-Aware Safeguards</h2>
+          <h2>HIPAA Compliance Safeguards</h2>
           <ul class="small">
             {% for item in safeguards %}
             <li>{{ item }}</li>

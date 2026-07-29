@@ -1,4 +1,4 @@
-# Build A HIPAA-Aware Lab Results Voice Assistant
+# Build A HIPAA-Compliant Lab Results Voice Assistant
 
 This guide walks through the direct Telnyx AI Assistant flow for the lab results assistant.
 
@@ -56,6 +56,6 @@ curl -X POST http://localhost:5000/tools/get_latest_lab_result \
   -d '{"patient_id":"pat_1002"}'
 ```
 
-## HIPAA Focus
+## HIPAA Compliance Focus
 
 The sample keeps the assistant from reading results until identity verification succeeds. It also avoids sending lab values over SMS, masks identifiers in operational state, and records compact audit events instead of raw call transcripts.

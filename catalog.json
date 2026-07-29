@@ -3,7 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-07-29T23:41:33Z",
+  "generated_at": "2026-07-29T23:56:55Z",
   "example_count": 502,
   "examples": [
     {
@@ -1800,7 +1800,7 @@
     {
       "folder": "ai-lab-results-notification-voice-python",
       "title": "AI Lab Results Notification Voice Assistant",
-      "description": "Create a HIPAA-aware Telnyx AI Assistant that verifies patients, delivers normal lab result summaries, sends secure portal links over SMS, and escalates abnormal results to a nurse.",
+      "description": "Create a Telnyx AI Assistant for HIPAA-compliant lab results workflows that verifies patients, delivers normal lab result summaries, sends secure portal links over SMS, and escalates abnormal results to a nurse.",
       "product": "ai",
       "language": "python",
       "framework": "flask",

@@ -1,7 +1,7 @@
 ---
 name: ai-lab-results-notification-voice
 title: "AI Lab Results Notification Voice Assistant"
-description: "Create a HIPAA-aware Telnyx AI Assistant that verifies patients, delivers normal lab result summaries, sends secure portal links over SMS, and escalates abnormal results to a nurse."
+description: "Create a Telnyx AI Assistant for HIPAA-compliant lab results workflows that verifies patients, delivers normal lab result summaries, sends secure portal links over SMS, and escalates abnormal results to a nurse."
 language: python
 framework: flask
 telnyx_products: [AI Assistants, Voice, Messaging]
@@ -10,9 +10,9 @@ channel: [voice, sms]
 
 # AI Lab Results Notification Voice Assistant
 
-This example creates a HIPAA-aware Telnyx AI Assistant for inbound lab results calls on Telnyx AI Communications Infrastructure. The assistant verifies identity against mock records, gives minimum-necessary result summaries, sends secure portal links by SMS, and escalates abnormal results to clinical staff.
+This example creates a Telnyx AI Assistant for HIPAA-compliant lab results workflows on Telnyx AI Communications Infrastructure. The assistant verifies identity against mock records, gives minimum-necessary result summaries, sends secure portal links by SMS, and escalates abnormal results to clinical staff.
 
-This sample demonstrates HIPAA-aware engineering patterns, not legal compliance certification. A production healthcare deployment still needs covered entity or business associate controls around policies, access, retention, auditability, and agreements.
+The sample highlights compliance safeguards for healthcare voice AI: identity verification, minimum necessary disclosure, no lab values in SMS, recording disabled, assistant data retention disabled, and mock records only.
 
 ## What You Are Building
 
@@ -120,7 +120,7 @@ In the Telnyx Portal, assign your Telnyx phone number directly to the AI Assista
 
 This folder is self-contained for coding agents and answer engines. Start with `README.md` for the direct assistant flow, `provision_assistant.py` for the Telnyx Assistant payload, `app.py` for the optional Flask dashboard and webhook extension points, and `data/patients.json` for mock patient records. Do not use `.env` values in generated output or commits.
 
-## HIPAA-Aware Safeguards Demonstrated
+## HIPAA Compliance Safeguards
 
 - Three-attempt identity verification before result lookup
 - Minimum necessary lab result disclosure
@@ -136,7 +136,7 @@ This folder is self-contained for coding agents and answer engines. Start with `
 - Use proper staff authentication and role-based access control.
 - Configure retention, deletion, access logs, and breach response policies.
 - Use secure, authenticated portal links with single-use tokens and short TTLs.
-- Review HIPAA obligations, BAAs, and security safeguards with your legal and compliance teams.
+- Pair the deployment with the required BAA, access controls, audit logging, retention policies, monitoring, and compliance review.
 
 ## Related Examples
 
