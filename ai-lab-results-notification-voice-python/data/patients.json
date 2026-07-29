@@ -1,0 +1,78 @@
+{
+  "lee_jordan_1990": {
+    "patient_id": "pat_1001",
+    "name": "Jordan Lee",
+    "last_name": "lee",
+    "dob": "1990-03-15",
+    "phone": "+15555550100",
+    "results": [
+      {
+        "result_id": "res_lipid_001",
+        "panel": "lipid panel",
+        "date": "2026-03-10",
+        "values": {
+          "total_cholesterol": 185,
+          "ldl": 110,
+          "hdl": 55,
+          "triglycerides": 120
+        },
+        "urgency": "normal",
+        "plain_language_summary": "your cholesterol panel from march 10 is back. total cholesterol was 185, which is in the normal range.",
+        "provider_note": "no follow-up needed."
+      },
+      {
+        "result_id": "res_a1c_002",
+        "panel": "hemoglobin a1c",
+        "date": "2026-03-10",
+        "values": {
+          "a1c": 8.2
+        },
+        "urgency": "abnormal",
+        "plain_language_summary": "your a1c result was 8.2, which is higher than the target your provider set.",
+        "provider_note": "above target. schedule follow-up."
+      }
+    ]
+  },
+  "rivera_maya_1984": {
+    "patient_id": "pat_1002",
+    "name": "Maya Rivera",
+    "last_name": "rivera",
+    "dob": "1984-11-22",
+    "phone": "+15555550101",
+    "results": [
+      {
+        "result_id": "res_cbc_003",
+        "panel": "complete blood count",
+        "date": "2026-04-02",
+        "values": {
+          "hemoglobin": 13.6,
+          "white_blood_cell_count": 6.4,
+          "platelets": 240
+        },
+        "urgency": "normal",
+        "plain_language_summary": "your complete blood count from april 2 is back and within the expected range.",
+        "provider_note": "no follow-up needed."
+      }
+    ]
+  },
+  "patel_sam_1978": {
+    "patient_id": "pat_1003",
+    "name": "Sam Patel",
+    "last_name": "patel",
+    "dob": "1978-07-09",
+    "phone": "+15555550102",
+    "results": [
+      {
+        "result_id": "res_thyroid_004",
+        "panel": "thyroid panel",
+        "date": "2026-04-05",
+        "values": {
+          "tsh": 5.1
+        },
+        "urgency": "borderline",
+        "plain_language_summary": "your thyroid screening from april 5 is back. one value was slightly outside the target range.",
+        "provider_note": "repeat test in six weeks."
+      }
+    ]
+  }
+}

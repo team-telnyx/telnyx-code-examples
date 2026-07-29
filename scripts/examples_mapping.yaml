@@ -1227,6 +1227,12 @@ examples:
     framework: flask
     folder: ai-prescription-refill-intake-voice-assistant-python
 
+  - product: ai
+    use_case: ai-lab-results-notification-voice
+    language: python
+    framework: flask
+    folder: ai-lab-results-notification-voice-python
+
   - product: sms
     use_case: ai-appointment-booking-sms-flow
     language: python

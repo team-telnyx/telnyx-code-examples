@@ -1,0 +1,4 @@
+flask==3.1.1
+requests==2.32.3
+python-dotenv==1.1.0
+telnyx>=4.0.0
