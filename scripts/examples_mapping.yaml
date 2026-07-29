@@ -778,6 +778,12 @@ examples:
     folder: ai-debt-collection-compliance-agent-python
 
   - product: ai
+    use_case: ai-pci-protected-payment-collection
+    language: python
+    framework: flask
+    folder: ai-pci-protected-payment-collection-python
+
+  - product: ai
     use_case: ai-deposition-assistant
     language: python
     framework: flask

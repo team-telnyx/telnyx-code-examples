@@ -1,0 +1,20 @@
+{
+  "acct_1042": {
+    "id": "acct_1042",
+    "name": "Jordan Lee",
+    "dob": "1990-03-15",
+    "phone_on_file": "+15555550100",
+    "balance_usd": "342.50",
+    "days_past_due": 45,
+    "last_payment": "2026-01-15"
+  },
+  "acct_2048": {
+    "id": "acct_2048",
+    "name": "Casey Morgan",
+    "dob": "1987-08-22",
+    "phone_on_file": "+15555550101",
+    "balance_usd": "180.00",
+    "days_past_due": 21,
+    "last_payment": "2026-02-28"
+  }
+}
