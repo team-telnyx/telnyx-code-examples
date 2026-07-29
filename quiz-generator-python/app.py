@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""AI Quiz Generator — turn any article into a multiple-choice quiz with answer key and explanations via Telnyx AI Inference."""
-import os, json, time, requests
+"""AI Quiz Generator — turn any article, URL, or text into a multiple-choice quiz with answer key and explanations via Telnyx AI Inference."""
+import os, json, time, re, requests
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 load_dotenv()
@@ -10,9 +10,25 @@ AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 quizzes = {}
 
+def fetch_url_text(url):
+    """Fetch a URL and extract plain text. Strips HTML tags, handles markdown, gists, and raw text."""
+    try:
+        resp = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+        resp.raise_for_status()
+        content_type = resp.headers.get("Content-Type", "")
+        text = resp.text
+        if "html" in content_type.lower() or text.strip().lower().startswith("<!doctype") or text.strip().startswith("<html"):
+            text = re.sub(r"<script[^>]*>.*?</script>", "", text, flags=re.DOTALL | re.IGNORECASE)
+            text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL | re.IGNORECASE)
+            text = re.sub(r"<[^>]+>", " ", text)
+            text = re.sub(r"\s+", " ", text).strip()
+        return text
+    except Exception as e:
+        raise ValueError(f"failed to fetch URL: {e}")
+
 def call_inference(messages, max_tokens=6000):
     resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-        json={"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.4}, timeout=90)
+        json={"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.4}, timeout=120)
     resp.raise_for_status()
     content = resp.json()["choices"][0]["message"].get("content")
     if content is None:
@@ -61,8 +77,18 @@ def generate_quiz():
     if not data:
         return jsonify({"error": "invalid request body"}), 400
     text = data.get("text", "").strip()
-    if not text:
-        return jsonify({"error": "text field is required"}), 400
+    url = data.get("url", "").strip()
+    if not text and not url:
+        return jsonify({"error": "either text or url field is required"}), 400
+    source = "text"
+    if url and not text:
+        try:
+            text = fetch_url_text(url)
+            source = url
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+    if not text or len(text) < 50:
+        return jsonify({"error": "text is too short to generate a quiz (minimum 50 characters)"}), 400
     num_questions = data.get("num_questions", 5)
     if num_questions < 1 or num_questions > 20:
         return jsonify({"error": "num_questions must be between 1 and 20"}), 400
@@ -82,6 +108,7 @@ def generate_quiz():
         quiz["difficulty"] = difficulty
         quiz["generated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ")
         quiz["text_length"] = len(text)
+        quiz["source"] = source
         quizzes[quiz_id] = quiz
         return jsonify(quiz), 201
     except json.JSONDecodeError:
