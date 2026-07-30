@@ -16,4 +16,4 @@ The demo dashboard is intentionally sanitized. It shows that payment collection 
 
 ## Demo Completion
 
-Pay over Voice emits progress and completion webhooks when the IVR flow finishes. The sample also includes `record_secure_payment_complete`, a second assistant tool that writes a PCI-safe completion marker into Conversation Analysis without exposing card details.
+Pay over Voice emits progress and completion webhooks when the IVR flow finishes. The sample also includes `record_secure_payment_complete`, a second assistant tool that writes a PCI-safe completion marker into Conversation Analysis without exposing card details. The app returns `409` from that tool until Telnyx has sent a payment completion event, so the marker cannot be used as proof that payment completed by itself.

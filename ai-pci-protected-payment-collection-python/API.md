@@ -36,7 +36,7 @@ The endpoint accepts the optional `X-Demo-Tool-Secret` header when `TOOL_SECRET`
 
 ## `POST /tools/record-payment-complete`
 
-Assistant webhook tool that records a sanitized completion marker for Conversation Analysis and the local dashboard.
+Assistant webhook tool that records a sanitized completion marker for Conversation Analysis and the local dashboard. This endpoint returns `409` until Telnyx has sent a `call.payment.completed` or `call_payment_completed` event for the call.
 
 ### Response
 

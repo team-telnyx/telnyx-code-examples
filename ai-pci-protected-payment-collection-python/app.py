@@ -141,6 +141,12 @@ def _validate_call_control_id(call_control_id: str) -> str:
     return ""
 
 
+def phone_from_payload(value: Any) -> str:
+    if isinstance(value, dict):
+        value = value.get("phone_number") or value.get("number") or value.get("sip_uri") or ""
+    return str(value or "")
+
+
 def _telnyx_post(path: str, body: dict[str, Any], timeout: int = 15) -> dict[str, Any] | None:
     if not TELNYX_API_KEY:
         app.logger.error("TELNYX_API_KEY is required before calling Telnyx")
@@ -148,20 +154,22 @@ def _telnyx_post(path: str, body: dict[str, Any], timeout: int = 15) -> dict[str
     url = f"{API}{path}"
     try:
         response = requests.post(url, headers=HEADERS, json=body, timeout=timeout)
-        call_match = re.search(r"/calls/([^/]+)/", path)
+        call_match = re.search(r"/calls/([^/]+)(?:/|$)", path)
         call_control_id = call_match.group(1) if call_match else None
+        event_path = re.sub(r"/calls/([^/]+)", "/calls/current", path)
         if response.status_code >= 400:
             app.logger.error("Telnyx command failed: %s -> %s", url, response.text[:800])
-            event("telnyx command failed", f"{path} -> {response.status_code}: {response.text[:220]}", call_control_id)
+            event("telnyx command failed", f"{event_path} -> {response.status_code}: {response.text[:220]}", call_control_id)
         response.raise_for_status()
         result = response.json()
-        event("telnyx command sent", f"{path} -> {response.status_code}", call_control_id)
+        event("telnyx command sent", f"{event_path} -> {response.status_code}", call_control_id)
         return result
     except Exception as exc:
         app.logger.error("Telnyx command error: %s -> %s", url, exc)
-        call_match = re.search(r"/calls/([^/]+)/", path)
+        call_match = re.search(r"/calls/([^/]+)(?:/|$)", path)
         call_control_id = call_match.group(1) if call_match else None
-        event("telnyx command error", f"{path}: {exc}", call_control_id)
+        event_path = re.sub(r"/calls/([^/]+)", "/calls/current", path)
+        event("telnyx command error", f"{event_path}: {exc}", call_control_id)
         return None
 
 
@@ -201,23 +209,35 @@ def start_pay_session(
             "plan_summary": plan_summary,
             "demo": "ai-pci-protected-payment-collection-python",
         },
-        "prompts": {
-            "payment-card-number": "please enter your card number now using the keypad.",
-            "expiration-date": "please enter the expiration date as four digits, month first. for example, zero eight two seven for august twenty twenty seven.",
-            "postal-code": "please enter your billing zip code using the keypad.",
-            "security-code": "please enter the three digit security code from the back of your card.",
-        },
+        "max_attempts": 3,
+        "timeout_millis": 10000,
+        "inter_digit_timeout_millis": 5000,
         "client_state": encode_state({"call_control_id": call_control_id, "phase": "pay"}),
     }
-    response = _telnyx_post(f"/calls/{call_control_id}/actions/pay", body)
+    response = None
+    last_error = ""
+    for path in (f"/calls/{call_control_id}/pay", f"/calls/{call_control_id}/actions/pay"):
+        url = f"{API}{path}"
+        try:
+            telnyx_response = requests.post(url, headers=HEADERS, json=body, timeout=15)
+            if telnyx_response.status_code < 400:
+                response = telnyx_response.json()
+                event_path = re.sub(r"/calls/([^/]+)", "/calls/current", path)
+                event("telnyx command sent", f"{event_path} -> {telnyx_response.status_code}", call_control_id)
+                break
+            last_error = f"{telnyx_response.status_code}: {telnyx_response.text[:220]}"
+        except Exception as exc:
+            last_error = str(exc)
     if response:
         event("pci pause", "pay over voice started; telnyx now masks recording, transcription, assistant audio, and dtmf logging.", call_control_id)
         active_calls.setdefault(call_control_id, {"last_seen": time.time(), "history": []})
         active_calls[call_control_id]["step"] = "pay"
         active_calls[call_control_id]["payment_started_at"] = now_iso()
+        active_calls[call_control_id]["payment_completed_by_telnyx"] = False
         active_calls[call_control_id]["plan_summary"] = plan_summary
         active_calls[call_control_id]["first_charge"] = str(amount.quantize(Decimal("0.01")))
         return True
+    event("telnyx command failed", f"/calls/current/pay: {last_error}", call_control_id)
     return False
 
 
@@ -302,6 +322,21 @@ def active_call_id_from_request(body: dict[str, Any]) -> str:
     return active[0][0]
 
 
+def latest_call_id_from_request(body: dict[str, Any]) -> str:
+    explicit = _validate_call_control_id(str(body.get("call_control_id") or ""))
+    if explicit:
+        return explicit
+    active = [
+        (call_control_id, call)
+        for call_control_id, call in active_calls.items()
+        if call.get("step") != "hangup"
+    ]
+    if not active:
+        return ""
+    active.sort(key=lambda item: item[1].get("last_seen", 0), reverse=True)
+    return active[0][0]
+
+
 @app.route("/webhooks/voice", methods=["POST"])
 def handle_voice() -> tuple[Any, int]:
     if not _verify_webhook():
@@ -360,6 +395,7 @@ def handle_voice() -> tuple[Any, int]:
         status = payment_values.get("status") or payment_values.get("result") or "completed"
         call["step"] = "paid"
         call["payment_status"] = status
+        call["payment_completed_by_telnyx"] = True
         completed_sessions.append(
             {
                 "time": now_iso(),
@@ -400,10 +436,20 @@ def tool_record_payment_complete() -> tuple[Any, int]:
     if not _verify_tool_request():
         return jsonify({"ok": False, "error": "unauthorized tool request"}), 401
     body = request.get_json(silent=True) or {}
-    call_control_id = active_call_id_from_request(body)
+    call_control_id = latest_call_id_from_request(body)
     call = active_calls.get(call_control_id, {}) if call_control_id else {}
     plan_summary = str(body.get("plan_summary") or call.get("plan_summary") or "payment plan").lower()
     status = str(body.get("status") or "completed").lower()
+    if not call.get("payment_completed_by_telnyx"):
+        event("secure payment pending", "assistant checked completion before telnyx sent a payment completion event.", call_control_id)
+        return jsonify(
+            {
+                "ok": False,
+                "secure_payment_event": "pending",
+                "message": "do not say the payment is complete yet. wait for telnyx pay over voice to finish and send a payment completion event.",
+                "plan_summary": plan_summary,
+            }
+        ), 409
     if call_control_id:
         call["step"] = "paid"
         call["payment_status"] = status
@@ -435,6 +481,7 @@ def tool_start_secure_payment() -> tuple[Any, int]:
         return jsonify({"ok": False, "error": "unauthorized tool request"}), 401
     body = request.get_json(silent=True) or {}
     call_control_id = active_call_id_from_request(body)
+    event("secure payment tool requested", "assistant requested telnyx pay over voice.", call_control_id or None)
     if not call_control_id:
         return jsonify({"ok": False, "error": "no active call found"}), 400
 
@@ -459,7 +506,9 @@ def tool_start_secure_payment() -> tuple[Any, int]:
         customer_id=str(customer["id"]),
     )
     if not started:
+        event("pay over voice failed", "telnyx did not accept the protected payment command.", call_control_id)
         return jsonify({"ok": False, "error": "could not start telnyx pay over voice"}), 502
+    event("pay over voice started", "telnyx accepted the protected keypad payment command.", call_control_id)
 
     return jsonify(
         {
@@ -582,7 +631,7 @@ def dashboard() -> str:
         <div class="step" id="s-assistant"><div class="dot">2</div><div>assistant started</div></div>
         <div class="step" id="s-tool"><div class="dot">3</div><div>secure payment tool called</div></div>
         <div class="step" id="s-pay"><div class="dot">4</div><div>pay over voice started</div></div>
-        <div class="step" id="s-complete"><div class="dot">5</div><div>secure payment completion recorded</div></div>
+        <div class="step" id="s-complete"><div class="dot">5</div><div>payment event received</div></div>
       </div>
     </section>
     <section>
@@ -610,9 +659,9 @@ def dashboard() -> str:
       const items = events.events || [];
       const hasCall = items.some(e => e.label === 'call started' || e.detail === 'call.answered');
       const hasAssistant = items.some(e => e.label === 'assistant started' || e.detail === 'call.conversation.messages_added');
-      const hasTool = items.some(e => e.label === 'pci pause' || e.detail.includes('/actions/pay'));
+      const hasTool = items.some(e => e.label === 'secure payment tool requested' || e.label === 'pci pause' || e.detail.includes('/pay'));
       const hasPay = items.some(e => e.label === 'pci pause' || e.label === 'payment progress' || e.label === 'payment complete');
-      const hasComplete = items.some(e => e.label === 'payment complete' || e.label === 'secure payment complete');
+      const hasComplete = items.some(e => e.label === 'payment progress' || e.label === 'payment complete' || e.label === 'secure payment complete');
       const progress = [hasCall, hasAssistant, hasTool, hasPay, hasComplete].filter(Boolean).length;
       document.getElementById('clock').textContent = new Date().toLocaleTimeString();
       document.getElementById('status').textContent = health.status;

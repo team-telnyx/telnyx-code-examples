@@ -19,7 +19,7 @@ The important PCI point is that the app does **not** gather card digits itself. 
 The assistant uses two webhook tools:
 
 - `start_secure_payment` starts Telnyx Pay over Voice after the caller agrees to a payment plan.
-- `record_secure_payment_complete` records a sanitized completion marker that is visible in Conversation Analysis without exposing card details.
+- `record_secure_payment_complete` records a sanitized completion marker only after Telnyx sends a Pay over Voice completion event.
 
 ## Telnyx DevDocs Used
 
@@ -35,10 +35,10 @@ The assistant uses two webhook tools:
 4. The assistant verifies DOB and negotiates the payment plan naturally.
 5. Caller confirms consent to secure card collection.
 6. The assistant calls the `start_secure_payment` webhook tool.
-7. The Flask tool starts `POST /v2/calls/{call_control_id}/actions/pay`.
+7. The Flask tool starts `POST /v2/calls/{call_control_id}/pay` on the active call.
 8. Telnyx Pay over Voice collects card number, expiration, zip, and security code.
 9. Telnyx sends payment progress/completed webhooks to the app.
-10. The assistant calls `record_secure_payment_complete` to create a PCI-safe completion marker for the portal and dashboard.
+10. After Telnyx sends a payment completion event, the assistant can call `record_secure_payment_complete` to create a PCI-safe completion marker for the portal and dashboard.
 
 ## Setup
 
@@ -225,6 +225,7 @@ This demo is designed to show a compliant architecture pattern, not to certify y
 - If the assistant does not answer, confirm `TELNYX_ASSISTANT_ID` is set and the Voice API application webhook points to `/webhooks/voice`.
 - If the assistant tool fails with `unauthorized tool request`, make sure `TOOL_SECRET` in `.env` matches the value used by `provision_assistant.py`.
 - If Pay over Voice does not start, confirm `PAY_CONNECTOR_NAME` matches the connector created by `provision_assistant.py`.
+- If Pay starts but no progress or completion events appear, confirm the Pay Connector endpoint is reachable at `/webhooks/payment-processor` and returns either `charge_id` or `token_id` with empty `error_code`.
 - If card digits appear in your app logs, stop and review the integration. This sample should only log sanitized payment status, masked payment fields, or assistant tool markers.
 
 ## Related Examples
