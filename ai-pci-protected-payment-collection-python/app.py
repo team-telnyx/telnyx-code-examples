@@ -197,47 +197,25 @@ def start_pay_session(
     plan_summary: str,
     customer_id: str = "acct_1042",
 ) -> bool:
+    pay_amount = str(amount.quantize(Decimal("0.01")))
     body = {
         "connector_name": PAY_CONNECTOR_NAME,
-        "amount": str(amount.quantize(Decimal("0.01"))),
+        "amount": pay_amount,
         "currency": "USD",
         "payment_method": "credit-card",
-        "transaction_type": "charge",
         "description": PAYMENT_DESCRIPTION,
-        "metadata": {
-            "customer_id": customer_id,
-            "plan_summary": plan_summary,
-            "demo": "ai-pci-protected-payment-collection-python",
-        },
-        "max_attempts": 3,
-        "timeout_millis": 10000,
-        "inter_digit_timeout_millis": 5000,
-        "client_state": encode_state({"call_control_id": call_control_id, "phase": "pay"}),
     }
-    response = None
-    last_error = ""
-    for path in (f"/calls/{call_control_id}/pay", f"/calls/{call_control_id}/actions/pay"):
-        url = f"{API}{path}"
-        try:
-            telnyx_response = requests.post(url, headers=HEADERS, json=body, timeout=15)
-            if telnyx_response.status_code < 400:
-                response = telnyx_response.json()
-                event_path = re.sub(r"/calls/([^/]+)", "/calls/current", path)
-                event("telnyx command sent", f"{event_path} -> {telnyx_response.status_code}", call_control_id)
-                break
-            last_error = f"{telnyx_response.status_code}: {telnyx_response.text[:220]}"
-        except Exception as exc:
-            last_error = str(exc)
+    response = _telnyx_post(f"/calls/{call_control_id}/pay", body)
     if response:
-        event("pci pause", "pay over voice started; telnyx now masks recording, transcription, assistant audio, and dtmf logging.", call_control_id)
+        event("pci pause", "pay over voice started with the telnyx docs-minimum request; telnyx now masks recording, transcription, assistant audio, and dtmf logging.", call_control_id)
         active_calls.setdefault(call_control_id, {"last_seen": time.time(), "history": []})
         active_calls[call_control_id]["step"] = "pay"
         active_calls[call_control_id]["payment_started_at"] = now_iso()
         active_calls[call_control_id]["payment_completed_by_telnyx"] = False
         active_calls[call_control_id]["plan_summary"] = plan_summary
-        active_calls[call_control_id]["first_charge"] = str(amount.quantize(Decimal("0.01")))
+        active_calls[call_control_id]["customer_id"] = customer_id
+        active_calls[call_control_id]["first_charge"] = pay_amount
         return True
-    event("telnyx command failed", f"/calls/current/pay: {last_error}", call_control_id)
     return False
 
 
