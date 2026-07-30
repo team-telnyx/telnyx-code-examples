@@ -334,7 +334,8 @@ def handle_voice() -> tuple[Any, int]:
 
     event("webhook received", event_type or "unknown", call_control_id)
 
-    if call_control_id:
+    post_call_events = {"call.analyzed", "call.recording.saved", "call.conversation_insights.generated"}
+    if call_control_id and (call_control_id in active_calls or event_type not in post_call_events):
         active_calls.setdefault(call_control_id, {"last_seen": time.time(), "history": []})
         active_calls[call_control_id]["last_seen"] = time.time()
 
