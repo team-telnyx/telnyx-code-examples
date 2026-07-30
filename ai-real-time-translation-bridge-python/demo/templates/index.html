@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Translation Bridge — Live Demo</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d0f; --surface: #16161a; --surface-2: #1c1c21; --border: #2a2a31;
+  --text: #e8e8eb; --text-dim: #8b8b93; --text-faint: #5a5a62;
+  --accent: #e5484d; --accent-hover: #f56065;
+  --green: #10b981; --green-bg: rgba(16,185,129,.12);
+  --blue: #3b82f6; --blue-bg: rgba(59,130,246,.12);
+  --amber: #f59e0b; --amber-bg: rgba(245,158,11,.12);
+  --radius: 12px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+}
+html { font-size: 15px; }
+body {
+  font-family: var(--sans); line-height: 1.5; min-height: 100vh;
+  background: var(--bg); color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  display: flex; flex-direction: column;
+}
+/* Header */
+.header {
+  padding: 18px 28px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+.header-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 600; font-size: 17px; letter-spacing: -0.01em;
+}
+.header-mark {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), #ff7a45);
+  display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 14px;
+}
+.header-sub { color: var(--text-dim); font-weight: 400; font-size: 14px; }
+.header-spacer { flex: 1; }
+.header-badge {
+  font-size: 12px; padding: 5px 12px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text-dim);
+}
+.header-badge.live { color: var(--green); border-color: color-mix(in srgb, var(--green) 30%, var(--border)); }
+.header-badge.warn { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 30%, var(--border)); }
+
+/* Main layout */
+.main { flex: 1; display: flex; flex-direction: column; max-width: 1100px; width: 100%; margin: 0 auto; padding: 24px 28px; }
+
+/* Language bar */
+.lang-bar {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+}
+.lang-side { display: flex; align-items: center; gap: 8px; }
+.lang-flag { font-size: 28px; line-height: 1; }
+.lang-name { font-weight: 600; font-size: 16px; }
+.lang-select {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: 5px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; font-family: var(--sans);
+}
+.lang-select:focus { outline: none; border-color: var(--accent); }
+.lang-arrow {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  color: var(--text-faint); font-size: 13px; font-family: var(--mono);
+}
+.lang-arrow-line {
+  flex: 1; height: 1px; background: var(--border);
+}
+
+/* Chat panels */
+.chat-area {
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 0;
+  flex: 1; min-height: 0;
+}
+.panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.panel-header {
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 8px;
+}
+.panel-header .dot { width: 7px; height: 7px; border-radius: 50%; }
+.panel-a .dot { background: var(--blue); }
+.panel-b .dot { background: var(--green); }
+.panel-header .role { font-weight: 600; color: var(--text); }
+.panel-messages {
+  flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  min-height: 280px; max-height: 420px;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.panel-messages::-webkit-scrollbar { width: 6px; }
+.panel-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.panel-messages::-webkit-scrollbar-track { background: transparent; }
+
+/* Messages */
+.msg {
+  max-width: 85%; padding: 10px 14px; border-radius: 14px;
+  font-size: 14px; line-height: 1.45; word-wrap: break-word;
+  animation: msg-in .25s ease;
+}
+@keyframes msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.msg.spoken {
+  align-self: flex-start;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.msg.translated {
+  align-self: flex-end;
+  background: var(--blue-bg); border: 1px solid color-mix(in srgb, var(--blue) 20%, var(--border));
+  color: var(--text);
+}
+.panel-b .msg.translated {
+  background: var(--green-bg); border-color: color-mix(in srgb, var(--green) 20%, var(--border));
+}
+.msg .msg-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-faint); margin-bottom: 3px; font-weight: 600;
+}
+.msg .msg-text { white-space: pre-wrap; }
+.msg.loading {
+  align-self: flex-end; color: var(--text-dim); font-style: italic;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.typing-dots::after { content: ""; animation: dots 1.4s steps(4) infinite; }
+@keyframes dots {
+  0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } 100% { content: ""; }
+}
+
+/* Pipeline column */
+.pipeline {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 0 16px; gap: 0;
+}
+.pipeline-step {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 4px; opacity: 0.35; transition: opacity .3s;
+}
+.pipeline-step.active { opacity: 1; }
+.pipeline-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: grid; place-items: center; font-size: 16px;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.pipeline-step.active .pipeline-icon {
+  background: var(--accent); border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.pipeline-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-faint); font-weight: 600; white-space: nowrap;
+}
+.pipeline-step.active .pipeline-label { color: var(--accent); }
+.pipeline-connector {
+  width: 2px; height: 20px; background: var(--border);
+  transition: background .3s;
+}
+.pipeline-connector.active { background: var(--accent); }
+
+/* Input row */
+.input-row {
+  display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--border);
+}
+.input-row input {
+  flex: 1; background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  padding: 9px 14px; border-radius: 10px; font-size: 14px; font-family: var(--sans);
+  transition: border-color .15s;
+}
+.input-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+.input-row input::placeholder { color: var(--text-faint); }
+.input-row button {
+  background: var(--accent); border: none; color: #fff;
+  padding: 9px 18px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background .15s; font-family: var(--sans);
+}
+.input-row button:hover { background: var(--accent-hover); }
+.input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Status bar */
+.status-bar {
+  text-align: center; padding: 10px; font-size: 13px; color: var(--text-dim);
+  min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.status-bar .pulse {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Conversation controls */
+.controls {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.controls-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); }
+.clear-btn {
+  background: none; border: 1px solid var(--border); color: var(--text-dim);
+  padding: 5px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  transition: all .15s; font-family: var(--sans);
+}
+.clear-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* No API key warning */
+.warning-box {
+  background: var(--amber-bg); border: 1px solid color-mix(in srgb, var(--amber) 30%, var(--border));
+  border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.warning-box .warning-icon { font-size: 20px; }
+.warning-box .warning-text { font-size: 14px; color: var(--text-dim); }
+.warning-box code { font-family: var(--mono); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+
+/* Footer */
+.footer {
+  text-align: center; padding: 14px; font-size: 12px; color: var(--text-faint);
+  border-top: 1px solid var(--border);
+}
+.footer a { color: var(--text-dim); }
+.footer a:hover { color: var(--accent); }
+
+/* Responsive */
+@media (max-width: 700px) {
+  .chat-area { grid-template-columns: 1fr; gap: 12px; }
+  .pipeline { flex-direction: row; padding: 10px 0; }
+  .pipeline-connector { width: 20px; height: 2px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <div class="header-mark">T</div>
+    <span>AI Translation Bridge</span>
+    <span class="header-sub">/ Live Demo</span>
+  </div>
+  <div class="header-spacer"></div>
+  <div class="header-badge {{ 'live' if api_key_set else 'warn' }}">
+    {{ '● AI Inference connected' if api_key_set else '● API key required' }}
+  </div>
+</div>
+
+{% if not api_key_set %}
+<div style="max-width:1100px;width:100%;margin:0 auto;padding:20px 28px 0;">
+  <div class="warning-box">
+    <span class="warning-icon">⚠</span>
+    <span class="warning-text">
+      Set <code>TELNYX_API_KEY</code> in <code>demo/.env</code> to enable live translation via Telnyx AI Inference.
+      Without it, the demo won't translate.
+    </span>
+  </div>
+</div>
+{% endif %}
+
+<div class="main">
+  <!-- Language bar -->
+  <div class="lang-bar">
+    <div class="lang-side">
+      <span class="lang-flag" id="flagA">🇬🇧</span>
+      <select class="lang-select" id="langA" onchange="updateLang('A')">
+        {% for name, code in languages.items() %}
+        <option value="{{ name }}" data-code="{{ code }}">{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="lang-arrow">
+      <div class="lang-arrow-line"></div>
+      <span>⇄</span>
+      <div class="lang-arrow-line"></div>
+    </div>
+    <div class="lang-side">
+      <span class="lang-flag" id="flagB">🇪🇸</span>
+      <select class="lang-select" id="langB" onchange="updateLang('B')">
+        {% for name, code in languages.items() %}
+        <option value="{{ name }}" data-code="{{ code }}" {{ 'selected' if name == 'Spanish' else '' }}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <span class="controls-title">Live Conversation</span>
+    <button class="clear-btn" onclick="clearChat()">Clear conversation</button>
+  </div>
+
+  <!-- Chat panels -->
+  <div class="chat-area">
+    <!-- Caller A -->
+    <div class="panel panel-a">
+      <div class="panel-header">
+        <span class="dot"></span>
+        <span class="role" id="roleA">Caller A</span>
+        <span id="langLabelA">English (en-US)</span>
+      </div>
+      <div class="panel-messages" id="messagesA"></div>
+      <div class="input-row">
+        <input type="text" id="inputA" placeholder="Type as Caller A..." onkeydown="if(event.key==='Enter')sendMessage('A')"
+               autocomplete="off" />
+        <button onclick="sendMessage('A')">Send</button>
+      </div>
+    </div>
+
+    <!-- Pipeline visualization -->
+    <div class="pipeline" id="pipeline">
+      <div class="pipeline-step" data-step="1">
+        <div class="pipeline-icon">🎤</div>
+        <div class="pipeline-label">Speech</div>
+      </div>
+      <div class="pipeline-connector" data-conn="1"></div>
+      <div class="pipeline-step" data-step="2">
+        <div class="pipeline-icon">📝</div>
+        <div class="pipeline-label">STT</div>
+      </div>
+      <div class="pipeline-connector" data-conn="2"></div>
+      <div class="pipeline-step" data-step="3">
+        <div class="pipeline-icon">⚡</div>
+        <div class="pipeline-label">AI Translate</div>
+      </div>
+      <div class="pipeline-connector" data-conn="3"></div>
+      <div class="pipeline-step" data-step="4">
+        <div class="pipeline-icon">🔊</div>
+        <div class="pipeline-label">TTS</div>
+      </div>
+    </div>
+
+    <!-- Caller B -->
+    <div class="panel panel-b">
+      <div class="panel-header">
+        <span class="dot"></span>
+        <span class="role" id="roleB">Caller B</span>
+        <span id="langLabelB">Spanish (es-US)</span>
+      </div>
+      <div class="panel-messages" id="messagesB"></div>
+      <div class="input-row">
+        <input type="text" id="inputB" placeholder="Type as Caller B..." onkeydown="if(event.key==='Enter')sendMessage('B')"
+               autocomplete="off" />
+        <button onclick="sendMessage('B')">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="statusBar">
+    <span class="pulse"></span>
+    <span>Translation bridge ready — type a message to start</span>
+  </div>
+</div>
+
+<div class="footer">
+  Powered by <a href="https://developers.telnyx.com/docs/inference" target="_blank" rel="noopener">Telnyx AI Inference</a> &amp;
+  <a href="https://developers.telnyx.com/docs/voice/call-control" target="_blank" rel="noopener">Voice Call Control</a> ·
+  <a href="https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-real-time-translation-bridge-python" target="_blank" rel="noopener">Full code sample</a>
+</div>
+
+<script>
+var LANG_FLAGS = {
+  English: "🇬🇧", Spanish: "🇪🇸", French: "🇫🇷", German: "🇩🇪",
+  Italian: "🇮🇹", Portuguese: "🇧🇷", Hindi: "🇮🇳", Arabic: "🇸🇦",
+  Chinese: "🇨🇳", Japanese: "🇯🇵", Korean: "🇰🇷", Russian: "🇷🇺"
+};
+var LANG_CODES = {
+  English: "en-US", Spanish: "es-US", French: "fr-FR", German: "de-DE",
+  Italian: "it-IT", Portuguese: "pt-BR", Hindi: "hi-IN", Arabic: "ar-SA",
+  Chinese: "zh-CN", Japanese: "ja-JP", Korean: "ko-KR", Russian: "ru-RU"
+};
+var busy = false;
+
+function updateLang(side) {
+  var sel = document.getElementById('lang' + side);
+  var name = sel.value;
+  var code = sel.selectedOptions[0].dataset.code;
+  document.getElementById('flag' + side).textContent = LANG_FLAGS[name] || "🌐";
+  document.getElementById('langLabel' + side).textContent = name + " (" + (code || LANG_CODES[name]) + ")";
+  // Set A default to English, B default to Spanish on initial load
+  if (side === 'A') { document.getElementById('langA').value = name; }
+}
+
+// Initialize
+document.getElementById('langA').value = 'English';
+updateLang('A');
+updateLang('B');
+
+function addMessage(panelId, text, type, label) {
+  var panel = document.getElementById(panelId);
+  var div = document.createElement('div');
+  div.className = 'msg ' + type;
+  if (label) {
+    div.innerHTML = '<div class="msg-label">' + escapeHtml(label) + '</div>';
+  }
+  var span = document.createElement('span');
+  span.className = 'msg-text';
+  span.textContent = text;
+  div.appendChild(span);
+  panel.appendChild(div);
+  panel.scrollTop = panel.scrollHeight;
+  return div;
+}
+
+function escapeHtml(s) {
+  if (!s) return "";
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+  });
+}
+
+function setPipelineStep(step) {
+  var steps = document.querySelectorAll('.pipeline-step');
+  var conns = document.querySelectorAll('.pipeline-connector');
+  steps.forEach(function(s) { s.classList.remove('active'); });
+  conns.forEach(function(c) { c.classList.remove('active'); });
+  for (var i = 1; i <= step; i++) {
+    var el = document.querySelector('.pipeline-step[data-step="' + i + '"]');
+    if (el) el.classList.add('active');
+    if (i > 1) {
+      var conn = document.querySelector('.pipeline-connector[data-conn="' + (i - 1) + '"]');
+      if (conn) conn.classList.add('active');
+    }
+  }
+}
+
+function resetPipeline() {
+  document.querySelectorAll('.pipeline-step').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelectorAll('.pipeline-connector').forEach(function(c) { c.classList.remove('active'); });
+}
+
+function setStatus(text, pulse) {
+  var bar = document.getElementById('statusBar');
+  bar.innerHTML = (pulse ? '<span class="pulse"></span>' : '') + '<span>' + escapeHtml(text) + '</span>';
+}
+
+async function sendMessage(side) {
+  if (busy) return;
+  var inputId = 'input' + side;
+  var input = document.getElementById(inputId);
+  var text = input.value.trim();
+  if (!text) return;
+
+  var langA = document.getElementById('langA').value;
+  var langB = document.getElementById('langB').value;
+  var fromLang = side === 'A' ? langA : langB;
+  var toLang = side === 'A' ? langB : langA;
+  var fromPanel = side === 'A' ? 'messagesA' : 'messagesB';
+  var toPanel = side === 'A' ? 'messagesB' : 'messagesA';
+
+  // Show spoken message in sender's panel
+  addMessage(fromPanel, text, 'spoken', fromLang);
+
+  // Clear input
+  input.value = '';
+  busy = true;
+
+  // Animate pipeline: Speech → STT
+  setPipelineStep(1);
+  setStatus('Transcribing speech (' + fromLang + ')...', true);
+  await sleep(250);
+  setPipelineStep(2);
+  await sleep(300);
+
+  // AI Translate
+  setStatus('Translating via Telnyx AI Inference...', true);
+  setPipelineStep(3);
+
+  // Show loading in receiver panel
+  var loadingMsg = addMessage(toPanel, 'translating', 'loading', '');
+  loadingMsg.classList.add('typing-dots');
+
+  try {
+    var resp = await fetch('/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text, from_lang: fromLang, to_lang: toLang })
+    });
+    var data = await resp.json();
+    loadingMsg.remove();
+
+    if (data.error) {
+      setStatus('Error: ' + data.error, false);
+      resetPipeline();
+      addMessage(toPanel, '⚠ ' + data.error, 'spoken', 'Error');
+    } else {
+      // TTS step
+      setPipelineStep(4);
+      setStatus('Speaking translation (' + toLang + ')...', true);
+      await sleep(400);
+
+      // Show translated message
+      addMessage(toPanel, data.translated, 'translated', toLang);
+      setStatus('Translation delivered — ' + fromLang + ' → ' + toLang, true);
+
+      await sleep(600);
+      resetPipeline();
+      setStatus('Translation bridge ready — type a message to continue', true);
+    }
+  } catch (err) {
+    loadingMsg.remove();
+    setStatus('Network error: ' + err.message, false);
+    resetPipeline();
+  }
+
+  busy = false;
+  // Focus the other input for natural conversation flow
+  var otherInput = document.getElementById(side === 'A' ? 'inputB' : 'inputA');
+  otherInput.focus();
+}
+
+function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+function clearChat() {
+  document.getElementById('messagesA').innerHTML = '';
+  document.getElementById('messagesB').innerHTML = '';
+  resetPipeline();
+  setStatus('Translation bridge ready — type a message to start', true);
+}
+</script>
+</body>
+</html>
