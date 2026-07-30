@@ -95,9 +95,11 @@ def translate():
             "to_code": LANG_CODES.get(to_lang, "es-US"),
         })
     except requests.exceptions.HTTPError as e:
-        return jsonify({"error": f"AI Inference error: {e}"}), 502
+        print(f"AI Inference HTTP error: {e}", flush=True)
+        return jsonify({"error": "AI Inference request failed"}), 502
     except Exception as e:
-        return jsonify({"error": f"Translation failed: {e}"}), 500
+        print(f"Translation error: {e}", flush=True)
+        return jsonify({"error": "Translation failed"}), 500
 
 
 @app.route("/health")

@@ -16,7 +16,7 @@ Get an API key at https://portal.telnyx.com/#/app/ai/keys.
 
 - Two chat panels (Caller A / Caller B) with language selectors
 - Live pipeline animation: Speech → STT → AI Translate → TTS
-- Real translation via Telnyx AI Inference (model: `moonshotai/Kimi-K2.6`)
+- Real translation via Telnyx AI Inference (model: `zai-org/GLM-5.1-FP8`)
 - 12 languages: English, Spanish, French, German, Italian, Portuguese, Hindi, Arabic, Chinese, Japanese, Korean, Russian
 
 ## How it maps to the phone-call sample
