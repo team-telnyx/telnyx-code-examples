@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Voice Memo to Email — Live Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: #0d1117; color: #c9d1d9; height: 100vh; display: flex; flex-direction: column; }
+  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; color: #58a6ff; font-weight: 600; }
+  header h1 span { color: #8b949e; font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb; }
+  .status-badge.active { background: #23883333; color: #3fb950; border-color: #238833; animation: pulse 2s infinite; }
+  .status-badge.processing { background: #a371f733; color: #a371f7; border-color: #a371f7; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+  .memo-count { font-size: 13px; color: #8b949e; }
+  .memo-count strong { color: #e6edf3; }
+  .container { display: flex; flex: 1; overflow: hidden; }
+  .panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .panel:first-child { border-right: 1px solid #30363d; }
+  .panel-header { background: #161b22; padding: 12px 20px; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 8px; }
+  .panel-header h2 { font-size: 14px; font-weight: 600; color: #e6edf3; }
+  .panel-icon { font-size: 16px; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .event { padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; border-left: 3px solid #30363d; background: #161b22; animation: slideIn 0.3s ease-out; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  .event .time { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+  .event .label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .event .detail { font-size: 12px; color: #8b949e; word-break: break-word; }
+  .event.initiated { border-left-color: #58a6ff; }
+  .event.initiated .label { color: #58a6ff; }
+  .event.answered { border-left-color: #58a6ff; }
+  .event.answered .label { color: #58a6ff; }
+  .event.recording { border-left-color: #d29922; }
+  .event.recording .label { color: #d29922; }
+  .event.transcribed { border-left-color: #d29922; }
+  .event.transcribed .label { color: #d29922; }
+  .event.processing { border-left-color: #a371f7; }
+  .event.processing .label { color: #a371f7; }
+  .event.processing .label::after { content: ' ⏳'; }
+  .event.memo-saved { border-left-color: #3fb950; }
+  .event.memo-saved .label { color: #3fb950; }
+  .event.email-sent { border-left-color: #3fb950; }
+  .event.email-sent .label { color: #3fb950; }
+  .event.ai-failed { border-left-color: #f85149; }
+  .event.ai-failed .label { color: #f85149; }
+  .event.hangup { border-left-color: #8b949e; }
+  .event.hangup .label { color: #8b949e; }
+  .memo-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; animation: slideIn 0.4s ease-out; }
+  .memo-card .caller { font-size: 11px; color: #8b949e; margin-bottom: 8px; }
+  .memo-card .subject { font-size: 16px; font-weight: 600; color: #e6edf3; margin-bottom: 10px; line-height: 1.4; }
+  .memo-card .body { font-size: 13px; color: #c9d1d9; line-height: 1.6; white-space: pre-wrap; margin-bottom: 12px; }
+  .memo-card .action-items { background: #21262d; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; }
+  .memo-card .action-items .ai-label { font-size: 11px; color: #a371f7; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .memo-card .action-items ul { list-style: none; padding: 0; }
+  .memo-card .action-items li { font-size: 12px; color: #c9d1d9; padding: 3px 0; padding-left: 20px; position: relative; }
+  .memo-card .action-items li::before { content: '☐'; position: absolute; left: 0; color: #3fb950; }
+  .memo-card details { margin-top: 8px; }
+  .memo-card summary { font-size: 11px; color: #8b949e; cursor: pointer; user-select: none; }
+  .memo-card summary:hover { color: #58a6ff; }
+  .memo-card .raw { font-size: 12px; color: #8b949e; background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 10px; margin-top: 8px; white-space: pre-wrap; line-height: 1.5; font-style: italic; }
+  .memo-card .timestamp { font-size: 10px; color: #484f58; margin-top: 10px; text-align: right; }
+  .empty-state { text-align: center; padding: 60px 20px; color: #484f58; }
+  .empty-state p { font-size: 14px; margin-bottom: 8px; }
+  .empty-state code { background: #21262d; padding: 2px 8px; border-radius: 4px; font-size: 13px; color: #8b949e; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #a371f7; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .footer-hint { background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; font-size: 11px; color: #484f58; text-align: center; }
+  .footer-hint a { color: #58a6ff; text-decoration: none; }
+  .footer-hint a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Voice Memo to Email <span>— Live Demo</span></h1>
+  <div class="header-right">
+    <div class="memo-count"><strong id="count">0</strong> memo(s)</div>
+    <div class="status-badge" id="status">Waiting for call</div>
+  </div>
+</header>
+<div class="container">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-icon">&#128222;</span>
+      <h2>Call Timeline</h2>
+    </div>
+    <div class="panel-body" id="timeline">
+      <div class="empty-state" id="timeline-empty">
+        <p>Waiting for an incoming call...</p>
+        <p style="margin-top:12px">Dial your Telnyx number to start the demo.</p>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-icon">&#128232;</span>
+      <h2>Memo Inbox</h2>
+    </div>
+    <div class="panel-body" id="inbox">
+      <div class="empty-state" id="inbox-empty">
+        <p>No memos yet.</p>
+        <p style="margin-top:8px">Call the number, dictate a memo, press #.</p>
+        <p style="margin-top:8px">The AI-cleaned email will appear here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="footer-hint">
+  Streaming via <code>/stream</code> (SSE) · Browse all memos at <a href="/memos" target="_blank">/memos</a> · Health at <a href="/health" target="_blank">/health</a>
+</div>
+<script>
+const timeline = document.getElementById('timeline');
+const inbox = document.getElementById('inbox');
+const statusBadge = document.getElementById('status');
+const countEl = document.getElementById('count');
+let timelineEmpty = document.getElementById('timeline-empty');
+let inboxEmpty = document.getElementById('inbox-empty');
+let memoCount = 0;
+
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString('en-US', {hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+function setStatus(text, cls) {
+  statusBadge.textContent = text;
+  statusBadge.className = 'status-badge' + (cls ? ' ' + cls : '');
+}
+
+function removeTimelineEmpty() {
+  if (timelineEmpty) { timelineEmpty.remove(); timelineEmpty = null; }
+}
+
+function removeInboxEmpty() {
+  if (inboxEmpty) { inboxEmpty.remove(); inboxEmpty = null; }
+}
+
+function addEvent(type, label, detail, ts) {
+  removeTimelineEmpty();
+  const cls = type.replace(/[._]/g, '-');
+  const div = document.createElement('div');
+  div.className = 'event ' + cls;
+  div.innerHTML = '<div class="time">' + fmtTime(ts) + '</div>' +
+                  '<div class="label">' + label + '</div>' +
+                  (detail ? '<div class="detail">' + detail + '</div>' : '');
+  timeline.appendChild(div);
+  timeline.scrollTop = timeline.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderMemo(memo) {
+  removeInboxEmpty();
+  memoCount++;
+  countEl.textContent = memoCount;
+  const card = document.createElement('div');
+  card.className = 'memo-card';
+  const caller = memo.caller ? escapeHtml(memo.caller) : 'unknown';
+  const subject = escapeHtml(memo.subject || 'Voice Memo');
+  const body = escapeHtml(memo.body || memo.raw || '');
+  const ts = escapeHtml(memo.timestamp || '');
+  let actionsHtml = '';
+  if (Array.isArray(memo.action_items) && memo.action_items.length) {
+    actionsHtml = '<div class="action-items"><div class="ai-label">Action Items</div><ul>' +
+      memo.action_items.map(a => '<li>' + escapeHtml(a) + '</li>').join('') + '</ul></div>';
+  }
+  const rawHtml = memo.raw ? '<details><summary>Show raw transcript</summary><div class="raw">' + escapeHtml(memo.raw) + '</div></details>' : '';
+  card.innerHTML = '<div class="caller">From: ' + caller + '</div>' +
+                    '<div class="subject">' + subject + '</div>' +
+                    '<div class="body">' + body + '</div>' +
+                    actionsHtml + rawHtml +
+                    '<div class="timestamp">' + ts + '</div>';
+  inbox.appendChild(card);
+  inbox.scrollTop = inbox.scrollHeight;
+}
+
+const handlers = {
+  'call.initiated': e => { setStatus('Call active', 'active'); addEvent(e.type, '📞 Incoming call', 'From ' + (e.data.caller || 'unknown'), e.ts); },
+  'call.answered': e => addEvent(e.type, 'Greeting playing', 'Voice memo. Speak after the tone. Press # when done.', e.ts),
+  'call.recording': e => addEvent(e.type, '🎙️ Recording', 'Listening for speech…', e.ts),
+  'call.transcribed': e => addEvent(e.type, 'Transcribed', '"' + (e.data.raw_text || '').slice(0, 120) + (e.data.raw_text && e.data.raw_text.length > 120 ? '…' : '') + '"', e.ts),
+  'ai.processing': e => addEvent(e.type, '🧠 AI processing', 'Model: ' + (e.data.model || 'unknown'), e.ts),
+  'memo.saved': e => renderMemo(e.data),
+  'email.sent': e => addEvent(e.type, '📧 Email sent', 'To ' + (e.data.to || '') + ' — "' + (e.data.subject || '') + '"', e.ts),
+  'ai.failed': e => addEvent(e.type, '⚠️ AI failed', 'Saved raw memo. Error: ' + (e.data.error || '').slice(0, 80), e.ts),
+  'call.hangup': e => { setStatus('Waiting for call', ''); addEvent(e.type, 'Call ended', '', e.ts); }
+};
+
+const es = new EventSource('/stream');
+es.onmessage = function(ev) {
+  try {
+    const evt = JSON.parse(ev.data);
+    const handler = handlers[evt.type];
+    if (handler) handler(evt);
+  } catch (err) {
+    console.error('SSE parse error:', err, ev.data);
+  }
+};
+es.onerror = function() {
+  setStatus('Reconnecting…', '');
+};
+es.onopen = function() {
+  if (statusBadge.textContent === 'Reconnecting…') setStatus('Waiting for call', '');
+};
+
+fetch('/health').then(r => r.json()).then(h => {
+  if (typeof h.memos === 'number') {
+    memoCount = h.memos;
+    countEl.textContent = memoCount;
+    if (memoCount === 0) return;
+  }
+}).catch(() => {});
+</script>
+</body>
+</html>
