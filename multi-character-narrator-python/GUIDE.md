@@ -1,6 +1,6 @@
 # Build a Multi-Character Narrator with Telnyx Ultra TTS
 
-Paste a dialogue script with speaker labels, assign each speaker a distinct Telnyx Ultra voice, render every line in parallel, and stitch the per-line audio into one continuous MP3. Pure TTS, no phone, no webhook, no Cloud Storage.
+Try every Telnyx Ultra voice in one scene. Paste a dialogue script, assign each character a distinct Ultra voice and an SSML emotion, render every line in parallel, and hear all the voices in context in one stitched MP3.
 
 ## How It Works
 
@@ -14,13 +14,15 @@ Paste a dialogue script with speaker labels, assign each speaker a distinct Teln
            │
            ▼
   ┌──────────────────────┐
-  │ Map speaker → voice  │  (4 pre-built Telnyx Ultra voices, overridable)
+  │ Map speaker → voice  │  (8 curated Telnyx Ultra voices, overridable)
+  │ Map speaker → emotion │  (20 Ultra SSML emotions, overridable)
   └────────┬─────────────┘
            │
            ▼
   ┌──────────────────────┐
   │ Parallel TTS fan-out │  ThreadPoolExecutor, one POST per line
-  │ N Ultra REST calls   │  measure TTFB per line (binary_output stream)
+  │ N Ultra REST calls   │  text_type=ssml, output_type=binary_output
+  │                      │  <emotion value="..." /> wrapping when set
   └────────┬─────────────┘
            │
            ▼
@@ -34,12 +36,12 @@ Paste a dialogue script with speaker labels, assign each speaker a distinct Teln
 
 ## Telnyx Products Used
 
-- **Text-to-Speech (Ultra)** — sub-100ms TTFB, 36 languages, REST-only on the public WebSocket. The Ultra provider exposes pre-built voices in the `Telnyx.Ultra.<voice_id>` format. This example uses four of them in parallel and stitches the result.
+- **Text-to-Speech (Ultra)** — sub-100ms TTFB, 700+ voices, 36 languages, REST-only. The app uses inline SSML emotion tags (`<emotion value="..." />`) with `text_type: ssml` to apply per-character emotions.
 
 ## API Endpoints
 
 - **Text-to-Speech (Ultra, REST)**: `POST /v2/text-to-speech/speech` — [API reference](https://developers.telnyx.com/api/inference/generate-speech-from-text)
-- **Voices API** (optional, for enumerating available Ultra voices): `GET /v2/text-to-speech/voices` — returns all voices across providers; filter to `provider == "telnyx"` and `id | startswith("Telnyx.Ultra.")` for Ultra only. Voice IDs are UUIDs (e.g. `Telnyx.Ultra.01eaafa9-308a-4276-a017-6ab0cf061b1f`).
+- **Voices API** (optional, for enumerating Ultra voices): `GET /v2/text-to-speech/voices` — returns all 4,000+ voices across providers; filter to `provider == "telnyx"` and `id | startswith("Telnyx.Ultra.")` for Ultra only. Voice IDs are UUIDs (e.g. `Telnyx.Ultra.01eaafa9-308a-4276-a017-6ab0cf061b1f`).
 
 ## Prerequisites
 
@@ -66,35 +68,48 @@ pip install -r requirements.txt
 
 ```bash
 python app.py
-# * Running on http://127.0.0.1:5000
+# * Running on http://127.0.0.1:5050
 ```
 
-## Step 4 — Render a scene
+The app defaults to port 5050 to avoid conflicts with macOS AirPlay Receiver on port 5000. Override with `PORT=xxxx python app.py`.
+
+## Step 4 — Open the browser UI
+
+Open `http://127.0.0.1:5050/` in your browser. The default Julius Caesar script is pre-loaded. The browser UI lets you:
+
+- Pick a Telnyx Ultra voice for each character from 8 curated voices
+- Pick an SSML emotion for each character from 20 Ultra emotions
+- Click Preview to hear any voice with any emotion before rendering
+- Click Render scene to fan out parallel TTS calls and stitch the result
+- Play the stitched MP3 inline
+
+## Step 5 — Render a scene via curl
 
 ```bash
-curl -X POST http://localhost:5000/narrate \
+curl -X POST http://localhost:5050/narrate \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Scene 1 — Coffee Shop",
-    "script": "Narrator: The coffee shop buzzed with morning chatter.\nBob: Did you see the news?\nAlice: I did. Wild, right?\nCarol: We should talk about it."
+    "script": "Narrator: The coffee shop buzzed with morning chatter.\nBob: Did you see the news?\nAlice: I did. Wild, right?\nCarol: We should talk about it later.",
+    "emotions": {"Bob": "excited", "Alice": "calm"}
   }'
 ```
 
 The response includes `per_line_ttfb_ms` so you can see the per-line time-to-first-byte of each Ultra REST call. Successful lines are stitched in script order.
 
-## Step 5 — Stream the audio
+## Step 6 — Stream the audio
 
 ```bash
-curl -o scene.mp3 http://localhost:5000/audio/<project_id>.mp3
+curl -o scene.mp3 http://localhost:5050/audio/<project_id>.mp3
 afplay scene.mp3   # or open scene.mp3
 ```
 
-## Step 6 — Override the default voice map
+## Step 7 — Override the default voice and emotion maps
 
-The default map assigns four pre-built Ultra voices to four common speaker labels. Override per request:
+The default map assigns eight curated Ultra voices to four common speaker labels. Override per request:
 
 ```bash
-curl -X POST http://localhost:5000/narrate \
+curl -X POST http://localhost:5050/narrate \
   -H "Content-Type: application/json" \
   -d '{
     "script": "Narrator: Hello.\nDragon: Roar!\nKnight: Have at thee!",
@@ -102,6 +117,10 @@ curl -X POST http://localhost:5000/narrate \
       "Narrator": "Telnyx.Ultra.01eaafa9-308a-4276-a017-6ab0cf061b1f",
       "Dragon": "Telnyx.Ultra.00967b2f-88a6-4a31-8153-110a92134b9f",
       "Knight": "Telnyx.Ultra.00a77add-48d5-4ef6-8157-71e5437b282d"
+    },
+    "emotions": {
+      "Dragon": "angry",
+      "Knight": "confident"
     }
   }'
 ```
@@ -114,11 +133,13 @@ curl -H "Authorization: Bearer $TELNYX_API_KEY" \
   | jq '.voices[] | select(.provider == "telnyx" and (.id | startswith("Telnyx.Ultra.")))'
 ```
 
-Ultra voice IDs are UUIDs (e.g. `Telnyx.Ultra.01eaafa9-308a-4276-a017-6ab0cf061b1f` for "Clara - Instructor"), not short display names. The voices API returns all 4,000+ voices across providers — filter on `provider == "telnyx"` and `id | startswith("Telnyx.Ultra.")` to see only Telnyx Ultra voices.
+Ultra voice IDs are UUIDs (e.g. `Telnyx.Ultra.01eaafa9-308a-4276-a017-6ab0cf061b1f` for Clara), not short display names. The voices API returns all 4,000+ voices across providers — filter on `provider == "telnyx"` and `id | startswith("Telnyx.Ultra.")` to see only Telnyx Ultra voices.
 
 ## Notes and caveats
 
 - **Ultra is REST-only.** A 403 on `wss://api.telnyx.com/v2/text-to-speech/speech` is intentional. Use the REST endpoint.
+- **Ultra voice IDs are UUIDs.** Short names like `Telnyx.Ultra.Clara` return 400 on the REST endpoint. Use the full UUID from `GET /v2/text-to-speech/voices`.
+- **SSML emotions are Ultra-specific syntax.** `<emotion value="..." />` is not standard W3C SSML; AWS Polly and Azure use different SSML (`<speak><prosody ...>`). Use the Ultra-specific syntax for Ultra voices.
 - **MP3 stitching is byte-wise.** Per-line MP3 frames from Ultra share a format, so concatenation produces a valid MP3. For mixed providers or sample rates, re-encode with `ffmpeg` before stitching.
 - **Concurrency is capped at 8.** Scripts with more than 8 lines are queued through the pool. Raise `MAX_WORKERS` in `app.py` if you need more parallelism and your TTS quota allows it.
 - **In-memory store with 1-hour TTL.** Rendered audio is held in process memory and expires after one hour. Use a database or Cloud Storage for production.
@@ -126,6 +147,7 @@ Ultra voice IDs are UUIDs (e.g. `Telnyx.Ultra.01eaafa9-308a-4276-a017-6ab0cf061b
 
 ## Next steps
 
-- Add a browser UI that lets users paste a script and play the stitched result inline. The `/narrate` and `/audio/<id>.mp3` endpoints are sufficient for this — no extra backend code is needed.
+- Add more voices from the 700+ Ultra voices available via the Voices API. Swap any of the 8 curated UUIDs for a different one.
+- Add more languages. Ultra covers 36 languages. The same script-render-stitch pipeline works for any of them via `language_boost`.
 - Replace the in-memory store with Telnyx Cloud Storage and serve presigned URLs, mirroring [`ai-voiceover-studio-python`](https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-voiceover-studio-python).
-- Add SSML emotion tags per line for character expression. See [Ultra SSML emotions](https://developers.telnyx.com/docs/voice/tts/providers/telnyx/ultra#ssml-emotions).
+- Add more sample scripts — audiobook chapters, podcast intros, e-learning role-plays, game cinematics.
