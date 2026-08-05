@@ -4,7 +4,7 @@ title: "AI Voice Memo to Email"
 description: "AI Voice Memo to Email - call a number, dictate a memo, AI cleans it up and sends it as a formatted email via Telnyx."
 language: python
 framework: flask
-telnyx_products: [Voice AI, SMS/MMS, AI Inference, Call Recording]
+telnyx_products: [Voice AI, AI Inference, Messaging]
 channel: [voice]
 ---
 
@@ -22,11 +22,10 @@ AI Voice Memo to Email - call a number, dictate a memo, AI cleans it up and send
 This app handles these webhook events ([Call Control docs](https://developers.telnyx.com/docs/api/v2/call-control)) ([Messaging docs](https://developers.telnyx.com/docs/api/v2/messaging)):
 
 - `call.answered` - Call connected - app begins interaction
-- `call.gather.ended` - Caller input received (speech transcription or DTMF digits)
-- `call.hangup` - Call ended - app cleans up session, triggers post-call processing
+- `call.gather.ended` - Caller speech received (transcription)
+- `call.hangup` - Call ended - app cleans up session
 - `call.initiated` - New inbound or outbound call detected
-- `call.speak.ended` - TTS playback finished - app transitions to next action (gather, transfer, etc.)
-- `message.received` - Inbound SMS/MMS received
+- `call.speak.ended` - TTS playback finished - app transitions to next action (gather)
 
 ## External Service Integrations
 
@@ -44,7 +43,7 @@ This app handles these webhook events ([Call Control docs](https://developers.te
            │
            ▼
   ┌──────────────────┐
-  │ Gather DTMF      │ ── caller presses keys
+  │ Gather Speech    │ ── caller dictates memo
   └────────┬─────────┘
            │
            ▼

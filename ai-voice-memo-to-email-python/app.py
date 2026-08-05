@@ -66,7 +66,7 @@ def call_inference(messages, max_tokens=400):
 def send_email(to, subject, body):
     try:
         requests.post("https://api.telnyx.com/v2/messages", headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            json={"from": {"email_address": f"memo@{MEMO_NUMBER.replace('+','', timeout=10)}.telnyx.com"} if MEMO_NUMBER else {"email_address": "memo@telnyx.com"},
+            json={"from": {"email_address": f"memo@{MEMO_NUMBER.replace('+', '')}.telnyx.com"} if MEMO_NUMBER else {"email_address": "memo@telnyx.com"},
                 "to": [{"email_address": to}], "subject": subject, "body": body, "type": "email"}, timeout=15)
     except Exception as e:
         app.logger.error("Email send failed (expected - may need Telnyx email setup): %s", e)

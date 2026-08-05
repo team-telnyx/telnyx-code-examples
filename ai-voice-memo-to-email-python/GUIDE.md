@@ -14,7 +14,7 @@ AI Voice Memo to Email — call a number, dictate a memo, AI cleans it up and se
            │
            ▼
   ┌──────────────────┐
-  │ Gather DTMF      │ ── caller presses keys
+  │ Gather Speech    │ ── caller dictates memo
   └────────┬─────────┘
            │
            ▼
@@ -30,8 +30,9 @@ AI Voice Memo to Email — call a number, dictate a memo, AI cleans it up and se
 
 ## Telnyx Products Used
 
-- **SMS/MMS** — send and receive messages with delivery receipts
+- **Call Control** — answer calls, play TTS, gather speech, and hang up via webhook-driven state machine
 - **AI Inference** — LLM inference with OpenAI-compatible API, runs on Telnyx infrastructure
+- **Messaging** — send formatted memos as emails via the Telnyx Messaging API
 
 ## API Endpoints
 
@@ -42,13 +43,12 @@ AI Voice Memo to Email — call a number, dictate a memo, AI cleans it up and se
 
 Telnyx uses webhooks for call control — you don't poll for state. Each event tells you what happened, and your response tells Telnyx what to do next.
 
-This app handles these webhook events ([Call Control docs](https://developers.telnyx.com/docs/api/v2/call-control)) ([Messaging docs](https://developers.telnyx.com/docs/api/v2/messaging)):
-- `call.answered` — Call connected — app begins interaction
-- `call.gather.ended` — Caller input received (speech transcription or DTMF digits)
-- `call.hangup` — Call ended — app cleans up session, triggers post-call processing
+This app handles these webhook events ([Call Control docs](https://developers.telnyx.com/docs/api/v2/call-control)):
 - `call.initiated` — New inbound or outbound call detected
-- `call.speak.ended` — TTS playback finished — app transitions to next action (gather, transfer, etc.)
-- `message.received` — Inbound SMS/MMS received
+- `call.answered` — Call connected — app begins interaction
+- `call.speak.ended` — TTS playback finished — app transitions to next action (gather)
+- `call.gather.ended` — Caller speech received (transcription)
+- `call.hangup` — Call ended — app cleans up session
 
 ## Prerequisites
 
@@ -57,8 +57,6 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 - [API key](https://portal.telnyx.com/api-keys)
 - [Phone number](https://portal.telnyx.com/numbers/my-numbers) with voice enabled
 - [Call Control Application](https://portal.telnyx.com/call-control/applications) configured with your webhook URL
-- [Phone number](https://portal.telnyx.com/numbers/my-numbers) with messaging enabled
-- [Messaging Profile](https://portal.telnyx.com/messaging/profiles) with webhook URL
 - [ngrok](https://ngrok.com) for exposing your local server to Telnyx webhooks
 
 ## Step 1: Set Up the Project
@@ -95,6 +93,8 @@ This is the core of the app — a state machine driven by Telnyx webhook events.
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/webhooks/voice` | Telnyx webhook handler |
+| `GET` | `/` | Live dashboard (call timeline + memo inbox) |
+| `GET` | `/stream` | Server-Sent Events stream for real-time dashboard updates |
 | `GET` | `/memos` | List Memos |
 | `GET` | `/health` | Health check |
 
@@ -102,8 +102,10 @@ The webhook handler is the core state machine. Each Telnyx event triggers the ne
 
 ```python
     data = payload.get("data", {})
-    if event_type == "call.initiated" and data.get("direction") == "incoming":
-        active_calls[ccid] = {"caller": data.get("from"), "raw_text": [], "start": time.time()}
+    p = data.get("payload", {})
+    ccid = p.get("call_control_id")
+    if event_type == "call.initiated" and p.get("direction") == "incoming":
+        active_calls[ccid] = {"caller": p.get("from"), "raw_text": [], "start": time.time()}
         client.calls.actions.answer(ccid)
         return jsonify({"status": "answering"}), 200
     elif event_type == "call.answered":
@@ -114,7 +116,7 @@ The webhook handler is the core state machine. Each Telnyx event triggers the ne
         return jsonify({"status": "recording"}), 200
     elif event_type == "call.gather.ended":
         call = active_calls.get(ccid)
-        speech = data.get("speech", {}).get("result", "")
+        speech = p.get("speech", {}).get("result", "")
 ```
 
 The inference helper sends conversation context to Telnyx AI and returns the response:
@@ -129,7 +131,7 @@ def call_inference(messages, max_tokens=400):
 def send_email(to, subject, body):
     try:
         requests.post("https://api.telnyx.com/v2/messages", headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            json={"from": {"email_address": f"memo@{MEMO_NUMBER.replace('+','', timeout=10)}.telnyx.com"} if MEMO_NUMBER else {"email_address": "memo@telnyx.com"},
+            json={"from": {"email_address": f"memo@{MEMO_NUMBER.replace('+', '')}.telnyx.com"} if MEMO_NUMBER else {"email_address": "memo@telnyx.com"},
                 "to": [{"email_address": to}], "subject": subject, "body": body, "type": "email"}, timeout=15)
     except Exception as e:
         app.logger.error("Email send failed (expected - may need Telnyx email setup): %s", e)
@@ -152,7 +154,6 @@ ngrok http 5000
 Copy the HTTPS URL and set it in the [Telnyx Portal](https://portal.telnyx.com):
 
 - **Call Control Application** → Webhook URL → `https://<id>.ngrok.io/webhooks/voice`
-- **Messaging Profile** → Inbound Webhook → `https://<id>.ngrok.io/webhooks/sms`
 
 ## Step 4: Test It
 
@@ -164,13 +165,15 @@ curl http://localhost:5000/health
 
 Or call your Telnyx number from any phone to trigger the full voice workflow.
 
-Or text your Telnyx number to trigger the SMS workflow.
-
 **Check results:**
 
 ```bash
 curl http://localhost:5000/memos | python3 -m json.tool
 ```
+
+**View the live dashboard:**
+
+Open `http://localhost:5000` in your browser to see the call timeline and memo inbox update in real time as calls come in.
 
 ## Going to Production
 
