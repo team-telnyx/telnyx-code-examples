@@ -2,56 +2,37 @@
 """Click-to-Call WebRTC with AI Assist — browser-based calling with real-time AI coaching sidebar."""
 import os, json, time, requests
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template
 load_dotenv()
 app = Flask(__name__)
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-WEBRTC_CREDENTIAL_ID = os.getenv("WEBRTC_CREDENTIAL_ID")
+WEBRTC_CONNECTION_ID = os.getenv("WEBRTC_CONNECTION_ID", "2739968971418633255")
+CALLER_NUMBER = os.getenv("CALLER_NUMBER", "+16188939137")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
-
-CLICK_TO_CALL_HTML = """<!DOCTYPE html>
-<html><head><title>Click to Call</title>
-<style>
-body{font-family:system-ui;margin:2rem;background:#111;color:#eee}
-.panel{display:flex;gap:2rem} .call-panel,.ai-panel{flex:1;border:1px solid #333;padding:1rem;border-radius:8px}
-button{background:#22c55e;color:white;border:none;padding:0.8rem 1.5rem;border-radius:6px;cursor:pointer;font-size:1rem}
-button:hover{background:#16a34a} button.end{background:#ef4444} input{padding:0.5rem;width:200px;border-radius:4px;border:1px solid #555;background:#222;color:#eee}
-.coaching{background:#1a1a2e;padding:0.5rem;margin:0.3rem 0;border-radius:4px;border-left:3px solid #22c55e}
-</style></head><body>
-<h1>Click to Call with AI Assist</h1>
-<div class="panel">
-<div class="call-panel">
-<h2>Call</h2>
-<input type="tel" id="number" placeholder="+1234567890">
-<button onclick="startCall()">Call</button>
-<button class="end" onclick="endCall()">Hang Up</button>
-<p id="status">Ready</p>
-</div>
-<div class="ai-panel">
-<h2>AI Coaching</h2>
-<div id="coaching">AI suggestions will appear here during the call...</div>
-</div></div>
-<script>
-function startCall(){document.getElementById('status').textContent='Calling...';}
-function endCall(){document.getElementById('status').textContent='Ended';}
-</script></body></html>"""
 
 @app.route("/")
 def index():
-    return render_template_string(CLICK_TO_CALL_HTML)
+    return render_template("index.html")
 
 @app.route("/webrtc/token", methods=["POST"])
 def get_token():
     try:
-        resp = requests.post("https://api.telnyx.com/v2/telephony_credentials", headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            json={"connection_id": os.getenv("CONNECTION_ID", timeout=10)}, timeout=10)
+        resp = requests.post("https://api.telnyx.com/v2/telephony_credentials",
+            headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
+            json={"connection_id": WEBRTC_CONNECTION_ID, "expires_at": "2027-01-01T00:00:00Z"},
+            timeout=10)
         if resp.ok:
-            return jsonify(resp.json().get("data", {})), 200
-    except Exception:
+            data = resp.json().get("data", {})
+            return jsonify({
+                "sip_username": data.get("sip_username", ""),
+                "sip_password": data.get("sip_password", ""),
+                "caller_number": CALLER_NUMBER
+            }), 200
+        return jsonify({"error": "Telnyx API error", "status": resp.status_code}), 502
+    except Exception as e:
         app.logger.exception("Failed to create WebRTC telephony credential")
-        return jsonify({"error": "internal error"}), 500
-    return jsonify({"error": "Failed to create credential"}), 500
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/coaching", methods=["POST"])
 def get_coaching():
@@ -59,17 +40,28 @@ def get_coaching():
     if not data:
         return jsonify({"error": "invalid request body"}), 400
     transcript = data.get("transcript", "")
-    msgs = [{"role": "system", "content": "You are a real-time sales coach. Based on the call transcript, give one actionable coaching tip. Be specific and brief."},
-        {"role": "user", "content": transcript}]
-    resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-        json={"model": AI_MODEL, "messages": msgs, "max_tokens": 100, "temperature": 0.5}, timeout=10)
-    resp.raise_for_status()
-    tip = resp.json()["choices"][0]["message"]["content"]
-    return jsonify({"coaching_tip": tip}), 200
+    if len(transcript) < 20:
+        return jsonify({"error": "transcript too short"}), 400
+    msgs = [
+        {"role": "system", "content": "You are a real-time sales coach listening to a phone call. Based on the transcript excerpt, give ONE actionable coaching tip. Be specific, brief (2 sentences max), and practical. Focus on tone, clarity, objection handling, or next steps."},
+        {"role": "user", "content": transcript[-500:]}
+    ]
+    try:
+        resp = requests.post(INFERENCE_URL,
+            headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
+            json={"model": AI_MODEL, "messages": msgs, "max_tokens": 150, "temperature": 0.5},
+            timeout=15)
+        resp.raise_for_status()
+        tip = resp.json()["choices"][0]["message"]["content"]
+        return jsonify({"coaching_tip": tip}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "ok", "uptime_seconds": int(time.time() - START_TIME)}), 200
+
+START_TIME = time.time()
 
 if __name__ == "__main__":
     app.run(debug=False, host=os.getenv("HOST", "127.0.0.1"), port=int(os.getenv("PORT", "5000")))

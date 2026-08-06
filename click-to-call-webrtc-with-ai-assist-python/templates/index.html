@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Click-to-Call WebRTC with AI Assist</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0e8; min-height: 100vh; padding: 2rem; }
+    h1 { font-size: 1.6rem; margin-bottom: 1.5rem; color: #fff; }
+    .panel { display: flex; gap: 1.5rem; max-width: 1100px; margin: 0 auto; }
+    .call-panel, .ai-panel { flex: 1; border: 1px solid #2a2a3e; border-radius: 12px; padding: 1.5rem; background: #161628; }
+    .call-panel h2, .ai-panel h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #8b8bf0; }
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 1rem; }
+    .status-badge.idle { background: #2a2a3e; color: #888; }
+    .status-badge.connecting { background: #3a3a1e; color: #ffd700; }
+    .status-badge.active { background: #1e3a1e; color: #22c55e; }
+    .status-badge.ended { background: #3a1e1e; color: #ef4444; }
+    .input-group { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    input[type="tel"] { flex: 1; padding: 0.7rem; border-radius: 8px; border: 1px solid #333; background: #1a1a2e; color: #eee; font-size: 1rem; }
+    input[type="tel"]:focus { outline: none; border-color: #6366f1; }
+    button { padding: 0.7rem 1.5rem; border-radius: 8px; border: none; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.2s; }
+    .btn-call { background: #22c55e; color: white; }
+    .btn-call:hover { background: #16a34a; }
+    .btn-hangup { background: #ef4444; color: white; }
+    .btn-hangup:hover { background: #dc2626; }
+    .btn-call:disabled, .btn-hangup:disabled { opacity: 0.4; cursor: not-allowed; }
+    .timer { font-size: 1.3rem; font-family: 'SF Mono', monospace; color: #aaa; margin: 0.5rem 0; }
+    .transcript { margin-top: 1rem; padding: 0.8rem; background: #1a1a2e; border-radius: 8px; font-size: 0.85rem; color: #aaa; min-height: 60px; max-height: 120px; overflow-y: auto; }
+    .transcript .interim { color: #666; font-style: italic; }
+    .coaching-tip { background: #1a1a3e; padding: 0.8rem; margin: 0.5rem 0; border-radius: 8px; border-left: 3px solid #8b8bf0; font-size: 0.9rem; line-height: 1.4; animation: slideIn 0.3s ease; }
+    .coaching-tip .timestamp { color: #666; font-size: 0.75rem; margin-bottom: 0.3rem; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .ai-panel { max-height: 600px; overflow-y: auto; }
+    #coaching-log:empty::before { content: 'AI coaching tips will appear here during the call...'; color: #555; display: block; padding-top: 2rem; text-align: center; }
+    .error-msg { color: #ef4444; font-size: 0.85rem; margin-top: 0.5rem; }
+    .hint { color: #555; font-size: 0.8rem; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Click-to-Call WebRTC with AI Assist</h1>
+  <div class="panel">
+    <div class="call-panel">
+      <h2>Call</h2>
+      <div id="status-badge" class="status-badge idle">Idle</div>
+      <div class="input-group">
+        <input type="tel" id="number" placeholder="+1234567890" value="+31626781895">
+        <button class="btn-call" id="btn-call" onclick="startCall()">Call</button>
+        <button class="btn-hangup" id="btn-hangup" onclick="endCall()" disabled>Hang Up</button>
+      </div>
+      <div class="timer" id="timer">00:00</div>
+      <div class="transcript" id="transcript"><span class="interim">Live transcript will appear here...</span></div>
+      <p class="hint">Uses your microphone — allow browser permission. AI coaching analyzes speech in real-time.</p>
+      <div class="error-msg" id="error"></div>
+      <audio id="remoteMedia" autoplay="true"></audio>
+    </div>
+    <div class="ai-panel">
+      <h2>AI Coaching</h2>
+      <div id="coaching-log"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { TelnyxRTC } from 'https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2/+esm';
+
+    let client = null;
+    let activeCall = null;
+    let callTimer = null;
+    let callStartTime = null;
+    let recognition = null;
+    let transcriptText = '';
+    let interimText = '';
+    let coachingInterval = null;
+
+    const statusBadge = document.getElementById('status-badge');
+    const btnCall = document.getElementById('btn-call');
+    const btnHangup = document.getElementById('btn-hangup');
+    const timerEl = document.getElementById('timer');
+    const transcriptEl = document.getElementById('transcript');
+    const errorEl = document.getElementById('error');
+    const coachingLog = document.getElementById('coaching-log');
+
+    function setStatus(state, label) {
+      statusBadge.className = 'status-badge ' + state;
+      statusBadge.textContent = label;
+    }
+
+    function formatTime(ms) {
+      const s = Math.floor(ms / 1000);
+      return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    }
+
+    function startTimer() {
+      callStartTime = Date.now();
+      callTimer = setInterval(() => { timerEl.textContent = formatTime(Date.now() - callStartTime); }, 1000);
+    }
+
+    function stopTimer() {
+      if (callTimer) { clearInterval(callTimer); callTimer = null; }
+      timerEl.textContent = '00:00';
+    }
+
+    function startSpeechRecognition() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { errorEl.textContent = 'Speech recognition not supported — use Chrome or Safari'; return; }
+      recognition = new SR();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      recognition.onresult = (event) => {
+        interimText = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) { transcriptText += t + ' '; }
+          else { interimText += t; }
+        }
+        transcriptEl.innerHTML = transcriptText + '<span class="interim">' + interimText + '</span>';
+        transcriptEl.scrollTop = transcriptEl.scrollHeight;
+      };
+      recognition.onerror = (e) => { if (e.error !== 'no-speech') errorEl.textContent = 'Speech: ' + e.error; };
+      recognition.onend = () => { if (activeCall) try { recognition.start(); } catch(e) {} };
+      try { recognition.start(); } catch(e) {}
+    }
+
+    function stopSpeechRecognition() {
+      if (recognition) { recognition.onend = null; recognition.stop(); recognition = null; }
+      transcriptText = ''; interimText = '';
+    }
+
+    async function fetchCoaching() {
+      if (!transcriptText.trim() || transcriptText.length < 20) return;
+      try {
+        const resp = await fetch('/coaching', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ transcript: transcriptText.slice(-500) })
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.coaching_tip) {
+          const tip = document.createElement('div');
+          tip.className = 'coaching-tip';
+          tip.innerHTML = '<div class="timestamp">' + new Date().toLocaleTimeString() + '</div>' + data.coaching_tip;
+          coachingLog.prepend(tip);
+        }
+      } catch(e) {}
+    }
+
+    async function startCall() {
+      errorEl.textContent = '';
+      const destNumber = document.getElementById('number').value.trim();
+      if (!destNumber) { errorEl.textContent = 'Enter a phone number'; return; }
+      btnCall.disabled = true;
+      setStatus('connecting', 'Connecting...');
+
+      try {
+        const resp = await fetch('/webrtc/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        if (!resp.ok) throw new Error('Token request failed');
+        const cred = await resp.json();
+
+        client = new TelnyxRTC({ login: cred.sip_username, password: cred.sip_password });
+        client.remoteElement = 'remoteMedia';
+
+        client.on('telnyx.ready', () => {
+          setStatus('connecting', 'Dialing...');
+          activeCall = client.newCall({ destinationNumber: destNumber, callerNumber: cred.caller_number || '+13125551234' });
+        });
+        client.on('telnyx.error', (err) => { errorEl.textContent = 'WebRTC: ' + (err.message || JSON.stringify(err)); setStatus('ended', 'Error'); btnCall.disabled = false; });
+        client.on('telnyx.notification', (notif) => {
+          if (notif.type === 'callUpdate' && notif.call) {
+            activeCall = notif.call;
+            if (activeCall.state === 'active') {
+              setStatus('active', 'On Call');
+              btnHangup.disabled = false;
+              startTimer();
+              startSpeechRecognition();
+              coachingInterval = setInterval(fetchCoaching, 8000);
+            } else if (activeCall.state === 'hangup' || activeCall.state === 'destroy') {
+              endCall();
+            }
+          }
+        });
+        client.connect();
+      } catch(e) {
+        errorEl.textContent = 'Failed to start: ' + e.message;
+        setStatus('idle', 'Idle');
+        btnCall.disabled = false;
+      }
+    }
+
+    function endCall() {
+      if (activeCall) { try { activeCall.hangup(); } catch(e) {} activeCall = null; }
+      if (client) { try { client.disconnect(); } catch(e) {} client = null; }
+      if (coachingInterval) { clearInterval(coachingInterval); coachingInterval = null; }
+      stopTimer();
+      stopSpeechRecognition();
+      setStatus('ended', 'Ended');
+      btnCall.disabled = false;
+      btnHangup.disabled = true;
+    }
+
+    window.startCall = startCall;
+    window.endCall = endCall;
+  </script>
+</body>
+</html>
