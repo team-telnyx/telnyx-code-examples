@@ -8,7 +8,7 @@ app = Flask(__name__)
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 AI_MODEL = os.getenv("AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
 WEBRTC_CONNECTION_ID = os.getenv("WEBRTC_CONNECTION_ID", "")
-CALLER_NUMBER = os.getenv("CALLER_NUMBER", "+16188939137")
+CALLER_NUMBER = os.getenv("CALLER_NUMBER", "+15551234567")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 
 @app.route("/")
