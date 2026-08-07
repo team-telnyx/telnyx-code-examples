@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify, Response, render_template
 import threading, time as _ttl_time
 load_dotenv()
 app = Flask(__name__)
-client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"), public_key=os.getenv("TELNYX_PUBLIC_KEY"))
+client = telnyx.Telnyx(api_key=os.getenv("TELNYX_API_KEY"), public_key=os.getenv("TELNYX_PUBLIC_KEY"), base_url="https://api.telnyx.com/v2")
 TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY", "")
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 AI_MODEL = os.getenv("AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
@@ -14,9 +14,8 @@ AGENT_NUMBER = os.getenv("AGENT_NUMBER")
 CONNECTION_ID = os.getenv("CONNECTION_ID")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 active_calls = {}
-conversations = []  # completed conversation logs for dashboard history
+conversations = []
 
-# --- Live dashboard event bus (Server-Sent Events) ---
 event_subscribers = []
 _event_seq = 0
 _event_lock = threading.Lock()
@@ -73,11 +72,7 @@ def execute_function(name, args):
 
 def call_inference(messages, max_tokens=200, ccid=None):
     payload = {"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.5, "tools": TOOLS}
-    try:
-        resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}, json=payload, timeout=30)
-    except Exception as e:
-        app.logger.error("Request failed: %s", e)
-        raise
+    resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}, json=payload, timeout=30)
     resp.raise_for_status()
     choice = resp.json()["choices"][0]
     msg = choice["message"]
@@ -95,9 +90,23 @@ def call_inference(messages, max_tokens=200, ccid=None):
 
 SYSTEM_PROMPT = "You are a helpful voice assistant with access to real-time tools. You can check weather, look up orders, and check account balances. Use tools when the user asks. Keep voice responses under 2 sentences."
 
+GREETING = "Hi! I can check weather, look up orders, or check your account balance. What do you need?"
+REPROMPT = "I didn't catch that. What can I help with?"
+ERROR_MSG = "Sorry, I had an issue. Please try again."
+
+def speak(ccid, text):
+    client.calls.actions.speak(ccid, payload=text, voice="female", language="en-US")
+
+def gather_speech(ccid):
+    client.calls.actions.gather(ccid, extra_body={
+        "input_type": "speech",
+        "end_silence_timeout_secs": 2,
+        "timeout_secs": 15,
+        "language_code": "en-US",
+    })
+
 @app.route("/webhooks/voice", methods=["POST"])
 def handle_voice():
-    # Verify the Telnyx Ed25519 signature before trusting the event.
     try:
         client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
     except Exception:
@@ -116,18 +125,18 @@ def handle_voice():
         client.calls.actions.answer(ccid)
         return jsonify({"status": "answering"}), 200
     elif event_type == "call.answered":
-        emit_event("call.answered", {"call_control_id": ccid, "greeting": "Hi! I can check weather, look up orders, or check your account balance. What do you need?"})
-        client.calls.actions.speak(ccid, payload="Hi! I can check weather, look up orders, or check your account balance. What do you need?", voice="female", language_code="en-US")
+        emit_event("call.answered", {"call_control_id": ccid, "greeting": GREETING})
+        speak(ccid, GREETING)
         return jsonify({"status": "greeting"}), 200
     elif event_type == "call.speak.ended" and call:
         emit_event("call.listening", {"call_control_id": ccid, "message": "Gathering speech — waiting for caller"})
-        client.calls.actions.gather(ccid, input_type="speech", end_silence_timeout_secs=2, timeout_secs=15, language_code="en-US")
+        gather_speech(ccid)
         return jsonify({"status": "listening"}), 200
     elif event_type == "call.gather.ended" and call:
         speech = p.get("speech", {}).get("result", "")
         if not speech:
             emit_event("call.reprompting", {"call_control_id": ccid, "message": "No speech detected — reprompting"})
-            client.calls.actions.speak(ccid, payload="I didn't catch that. What can I help with?", voice="female", language_code="en-US")
+            speak(ccid, REPROMPT)
             return jsonify({"status": "reprompting"}), 200
         emit_event("call.transcribed", {"call_control_id": ccid, "speech": speech})
         call["conversation"].append({"role": "user", "content": speech})
@@ -136,10 +145,10 @@ def handle_voice():
             response = call_inference(call["conversation"], ccid=ccid)
             call["conversation"].append({"role": "assistant", "content": response})
             emit_event("ai.responded", {"call_control_id": ccid, "response": response})
-            client.calls.actions.speak(ccid, payload=response, voice="female", language_code="en-US")
+            speak(ccid, response)
         except Exception as e:
             emit_event("ai.failed", {"call_control_id": ccid, "error": str(e)})
-            client.calls.actions.speak(ccid, payload="Sorry, I had an issue. Please try again.", voice="female", language_code="en-US")
+            speak(ccid, ERROR_MSG)
         return jsonify({"status": "responding"}), 200
     elif event_type == "call.hangup":
         if call:
