@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Voice Agent with Function Calling — Live Demo</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: #0d1117; color: #c9d1d9; height: 100vh; display: flex; flex-direction: column; }
+  header { background: #161b22; border-bottom: 1px solid #30363d; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; color: #58a6ff; font-weight: 600; }
+  header h1 span { color: #8b949e; font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .status-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb; }
+  .status-badge.active { background: #23883333; color: #3fb950; border-color: #238833; animation: pulse 2s infinite; }
+  .status-badge.processing { background: #a371f733; color: #a371f7; border-color: #a371f7; animation: pulse 1s infinite; }
+  .status-badge.listening { background: #d2992233; color: #d29922; border-color: #d29922; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+  .call-count { font-size: 13px; color: #8b949e; }
+  .call-count strong { color: #e6edf3; }
+  .container { display: flex; flex: 1; overflow: hidden; }
+  .panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .panel:first-child { border-right: 1px solid #30363d; }
+  .panel-header { background: #161b22; padding: 12px 20px; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 8px; }
+  .panel-header h2 { font-size: 14px; font-weight: 600; color: #e6edf3; }
+  .panel-icon { font-size: 16px; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .event { padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; border-left: 3px solid #30363d; background: #161b22; animation: slideIn 0.3s ease-out; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  .event .time { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+  .event .label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .event .detail { font-size: 12px; color: #8b949e; word-break: break-word; }
+  .event.initiated { border-left-color: #58a6ff; }
+  .event.initiated .label { color: #58a6ff; }
+  .event.answered { border-left-color: #58a6ff; }
+  .event.answered .label { color: #58a6ff; }
+  .event.listening { border-left-color: #d29922; }
+  .event.listening .label { color: #d29922; }
+  .event.transcribed { border-left-color: #d29922; }
+  .event.transcribed .label { color: #d29922; }
+  .event.processing { border-left-color: #a371f7; }
+  .event.processing .label { color: #a371f7; }
+  .event.processing .label::after { content: ' ⏳'; }
+  .event.function-called { border-left-color: #f0883e; }
+  .event.function-called .label { color: #f0883e; }
+  .event.function-result { border-left-color: #f0883e; }
+  .event.function-result .label { color: #f0883e; }
+  .event.ai-responded { border-left-color: #3fb950; }
+  .event.ai-responded .label { color: #3fb950; }
+  .event.ai-failed { border-left-color: #f85149; }
+  .event.ai-failed .label { color: #f85149; }
+  .event.reprompting { border-left-color: #d29922; }
+  .event.reprompting .label { color: #d29922; }
+  .event.hangup { border-left-color: #8b949e; }
+  .event.hangup .label { color: #8b949e; }
+
+  /* Conversation panel */
+  .conv-turn { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; animation: slideIn 0.4s ease-out; }
+  .conv-turn .role { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 8px; }
+  .conv-turn.user { border-left: 3px solid #58a6ff; }
+  .conv-turn.user .role { color: #58a6ff; }
+  .conv-turn.assistant { border-left: 3px solid #3fb950; }
+  .conv-turn.assistant .role { color: #3fb950; }
+  .conv-turn .content { font-size: 13px; color: #c9d1d9; line-height: 1.6; }
+
+  /* Tool call card inside conversation flow */
+  .tool-card { background: #21262d; border: 1px solid #f0883e44; border-radius: 8px; padding: 12px 16px; margin: 8px 0; }
+  .tool-card .tool-header { font-size: 11px; color: #f0883e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .tool-card .tool-args { font-size: 12px; color: #8b949e; margin-bottom: 8px; }
+  .tool-card .tool-args code { background: #0d1117; padding: 2px 6px; border-radius: 4px; color: #c9d1d9; }
+  .tool-card .tool-result { font-size: 12px; color: #c9d1d9; background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 8px 12px; white-space: pre-wrap; line-height: 1.5; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: #484f58; }
+  .empty-state p { font-size: 14px; margin-bottom: 8px; }
+  .empty-state code { background: #21262d; padding: 2px 8px; border-radius: 4px; font-size: 13px; color: #8b949e; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #a371f7; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .footer-hint { background: #161b22; border-top: 1px solid #30363d; padding: 8px 20px; font-size: 11px; color: #484f58; text-align: center; }
+  .footer-hint a { color: #58a6ff; text-decoration: none; }
+  .footer-hint a:hover { text-decoration: underline; }
+  .ccid-tag { font-size: 10px; color: #484f58; margin-top: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Voice Agent with Function Calling <span>— Live Demo</span></h1>
+  <div class="header-right">
+    <div class="call-count"><strong id="count">0</strong> call(s)</div>
+    <div class="status-badge" id="status">Waiting for call</div>
+  </div>
+</header>
+<div class="container">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-icon">📋</span>
+      <h2>Call Timeline</h2>
+    </div>
+    <div class="panel-body" id="timeline">
+      <div class="empty-state" id="timeline-empty">
+        <p>No calls yet.</p>
+        <p style="margin-top:8px">Call your Telnyx number to see the agent in action.</p>
+        <p style="margin-top:8px">Events appear here in real time.</p>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-icon">💬</span>
+      <h2>Conversation</h2>
+    </div>
+    <div class="panel-body" id="conversation">
+      <div class="empty-state" id="conv-empty">
+        <p>Live conversation will appear here.</p>
+        <p style="margin-top:8px">The agent can call tools mid-conversation:</p>
+        <p style="margin-top:4px"><code>check_weather</code> · <code>lookup_order</code> · <code>check_account_balance</code></p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="footer-hint">
+  Streaming via <code>/stream</code> (SSE) · Browse past calls at <a href="/conversations" target="_blank">/conversations</a> · Health at <a href="/health" target="_blank">/health</a>
+</div>
+<script>
+const timeline = document.getElementById('timeline');
+const conversation = document.getElementById('conversation');
+const statusBadge = document.getElementById('status');
+const countEl = document.getElementById('count');
+let timelineEmpty = document.getElementById('timeline-empty');
+let convEmpty = document.getElementById('conv-empty');
+let callCount = 0;
+let activeCalls = {}; // ccid -> {turns: [], pendingTool: null}
+
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString('en-US', {hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+function setStatus(text, cls) {
+  statusBadge.textContent = text;
+  statusBadge.className = 'status-badge' + (cls ? ' ' + cls : '');
+}
+
+function removeTimelineEmpty() {
+  if (timelineEmpty) { timelineEmpty.remove(); timelineEmpty = null; }
+}
+
+function removeConvEmpty() {
+  if (convEmpty) { convEmpty.remove(); convEmpty = null; }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function addEvent(type, label, detail, ts, ccid) {
+  removeTimelineEmpty();
+  const cls = type.replace(/[._]/g, '-');
+  const div = document.createElement('div');
+  div.className = 'event ' + cls;
+  div.innerHTML = '<div class="time">' + fmtTime(ts) + '</div>' +
+                  '<div class="label">' + label + '</div>' +
+                  (detail ? '<div class="detail">' + detail + '</div>' : '') +
+                  (ccid ? '<div class="ccid-tag">' + ccid.substring(0, 20) + '…</div>' : '');
+  timeline.appendChild(div);
+  timeline.scrollTop = timeline.scrollHeight;
+}
+
+function addUserTurn(ccid, text) {
+  removeConvEmpty();
+  const div = document.createElement('div');
+  div.className = 'conv-turn user';
+  div.innerHTML = '<div class="role">👤 Caller</div><div class="content">' + escapeHtml(text) + '</div>';
+  div.dataset.ccid = ccid;
+  div.dataset.turn = 'user';
+  conversation.appendChild(div);
+  conversation.scrollTop = conversation.scrollHeight;
+}
+
+function addAssistantTurn(ccid, text) {
+  removeConvEmpty();
+  const div = document.createElement('div');
+  div.className = 'conv-turn assistant';
+  div.innerHTML = '<div class="role">🤖 Agent</div><div class="content">' + escapeHtml(text) + '</div>';
+  div.dataset.ccid = ccid;
+  div.dataset.turn = 'assistant';
+  conversation.appendChild(div);
+  conversation.scrollTop = conversation.scrollHeight;
+}
+
+function addToolCard(ccid, fnName, args, result) {
+  removeConvEmpty();
+  const div = document.createElement('div');
+  div.className = 'conv-turn';
+  div.style.borderLeft = '3px solid #f0883e';
+  div.dataset.ccid = ccid;
+  div.dataset.turn = 'tool';
+  let argsHtml = '';
+  for (const [k, v] of Object.entries(args || {})) {
+    argsHtml += '<code>' + escapeHtml(k) + '</code>: ' + escapeHtml(String(v)) + '  ';
+  }
+  const resultStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+  div.innerHTML = '<div class="tool-card">' +
+    '<div class="tool-header">🔧 ' + escapeHtml(fnName) + '</div>' +
+    '<div class="tool-args">' + argsHtml + '</div>' +
+    '<div class="tool-result">' + escapeHtml(resultStr) + '</div>' +
+  '</div>';
+  conversation.appendChild(div);
+  conversation.scrollTop = conversation.scrollHeight;
+}
+
+const handlers = {
+  'call.initiated': e => {
+    callCount++; countEl.textContent = callCount;
+    const ccid = e.data.call_control_id;
+    activeCalls[ccid] = {turns: []};
+    setStatus('Call active', 'active');
+    addEvent(e.type, '📞 Incoming call', 'From ' + (e.data.caller || 'unknown'), e.ts, ccid);
+  },
+  'call.answered': e => addEvent(e.type, '👋 Greeting', e.data.greeting || '', e.ts, e.data.call_control_id),
+  'call.listening': e => { setStatus('Listening', 'listening'); addEvent(e.type, '👂 Listening', e.data.message || '', e.ts, e.data.call_control_id); },
+  'call.transcribed': e => {
+    addEvent(e.type, '💬 Transcribed', '"' + (e.data.speech || '').slice(0, 120) + (e.data.speech && e.data.speech.length > 120 ? '…' : '') + '"', e.ts, e.data.call_control_id);
+    addUserTurn(e.data.call_control_id, e.data.speech || '');
+  },
+  'ai.processing': e => { setStatus('AI thinking', 'processing'); addEvent(e.type, '🧠 AI processing', 'Model: ' + (e.data.model || 'unknown'), e.ts, e.data.call_control_id); },
+  'function.called': e => {
+    addEvent(e.type, '🔧 Function called', e.data.function + '(' + JSON.stringify(e.data.arguments) + ')', e.ts, e.data.call_control_id);
+    // store pending tool — result handler will complete the card
+    const ccid = e.data.call_control_id;
+    if (activeCalls[ccid]) activeCalls[ccid].pendingTool = {name: e.data.function, args: e.data.arguments};
+  },
+  'function.result': e => {
+    addEvent(e.type, '✅ Function result', e.data.function + ' → ' + JSON.stringify(e.data.result).slice(0, 100), e.ts, e.data.call_control_id);
+    const ccid = e.data.call_control_id;
+    const pending = activeCalls[ccid] && activeCalls[ccid].pendingTool;
+    addToolCard(ccid, (pending && pending.name) || e.data.function, (pending && pending.args) || {}, e.data.result);
+    if (activeCalls[ccid]) activeCalls[ccid].pendingTool = null;
+  },
+  'ai.responded': e => {
+    setStatus('Call active', 'active');
+    addEvent(e.type, '🤖 Agent response', '"' + (e.data.response || '').slice(0, 120) + (e.data.response && e.data.response.length > 120 ? '…' : '') + '"', e.ts, e.data.call_control_id);
+    addAssistantTurn(e.data.call_control_id, e.data.response || '');
+  },
+  'ai.failed': e => addEvent(e.type, '⚠️ AI failed', (e.data.error || '').slice(0, 80), e.ts, e.data.call_control_id),
+  'call.reprompting': e => addEvent(e.type, '🔄 Reprompting', e.data.message || '', e.ts, e.data.call_control_id),
+  'call.hangup': e => {
+    const ccid = e.data.call_control_id;
+    delete activeCalls[ccid];
+    setStatus('Waiting for call', '');
+    addEvent(e.type, 'Call ended', '', e.ts, ccid);
+  },
+  'conversation.replay': e => {
+    // replay a past conversation from history
+    const conv = e.data;
+    if (conv.conversation) {
+      for (const turn of conv.conversation) {
+        if (turn.role === 'user') addUserTurn('replay', turn.content);
+        else if (turn.role === 'assistant') addAssistantTurn('replay', turn.content);
+      }
+    }
+  }
+};
+
+const es = new EventSource('/stream');
+es.onmessage = function(ev) {
+  try {
+    const evt = JSON.parse(ev.data);
+    const handler = handlers[evt.type];
+    if (handler) handler(evt);
+  } catch (err) {
+    console.error('SSE parse error:', err, ev.data);
+  }
+};
+es.onerror = function() { setStatus('Reconnecting…', ''); };
+es.onopen = function() {
+  if (statusBadge.textContent === 'Reconnecting…') setStatus('Waiting for call', '');
+};
+
+fetch('/health').then(r => r.json()).then(h => {
+  if (typeof h.conversations === 'number') {
+    callCount = h.conversations;
+    countEl.textContent = callCount;
+  }
+}).catch(() => {});
+</script>
+</body>
+</html>
