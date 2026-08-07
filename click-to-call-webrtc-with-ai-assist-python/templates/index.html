@@ -108,6 +108,7 @@
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
+      recognition.onstart = () => { console.log('[SR] started'); };
       recognition.onresult = (event) => {
         interimText = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -117,10 +118,20 @@
         }
         transcriptEl.innerHTML = transcriptText + '<span class="interim">' + interimText + '</span>';
         transcriptEl.scrollTop = transcriptEl.scrollHeight;
+        console.log('[SR] transcript length:', transcriptText.length, '| interim:', interimText.length);
       };
-      recognition.onerror = (e) => { if (e.error !== 'no-speech') errorEl.textContent = 'Speech: ' + e.error; };
-      recognition.onend = () => { if (activeCall) try { recognition.start(); } catch(e) {} };
-      try { recognition.start(); } catch(e) {}
+      recognition.onerror = (e) => {
+        console.error('[SR] error:', e.error);
+        errorEl.textContent = 'Speech: ' + e.error;
+      };
+      recognition.onend = () => {
+        console.log('[SR] ended, activeCall=', !!activeCall);
+        if (activeCall) try { recognition.start(); } catch(e) { console.error('[SR] restart failed:', e); }
+      };
+      try {
+        recognition.start();
+        console.log('[SR] start() called');
+      } catch(e) { console.error('[SR] start() exception:', e); errorEl.textContent = 'Speech start failed: ' + e.message; }
     }
 
     function stopSpeechRecognition() {
@@ -129,21 +140,27 @@
     }
 
     async function fetchCoaching() {
-      if (!transcriptText.trim() || transcriptText.length < 20) return;
+      const combined = (transcriptText + interimText).trim();
+      console.log('[coaching] tick, transcript length:', transcriptText.length, '| interim:', interimText.length, '| combined:', combined.length);
+      if (!combined || combined.length < 20) {
+        console.log('[coaching] skipped — transcript too short');
+        return;
+      }
       try {
         const resp = await fetch('/coaching', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transcript: transcriptText.slice(-500) })
+          body: JSON.stringify({ transcript: combined.slice(-500) })
         });
-        if (!resp.ok) return;
+        if (!resp.ok) { console.error('[coaching] HTTP', resp.status); return; }
         const data = await resp.json();
+        console.log('[coaching] response:', data);
         if (data.coaching_tip) {
           const tip = document.createElement('div');
           tip.className = 'coaching-tip';
           tip.innerHTML = '<div class="timestamp">' + new Date().toLocaleTimeString() + '</div>' + data.coaching_tip;
           coachingLog.prepend(tip);
         }
-      } catch(e) {}
+      } catch(e) { console.error('[coaching] error:', e); }
     }
 
     async function startCall() {
@@ -166,8 +183,15 @@
           setStatus('connecting', 'Dialing...');
           activeCall = client.newCall({ destinationNumber: destNumber, callerNumber: cred.caller_number || '+13125551234' });
         });
-        client.on('telnyx.error', (err) => { errorEl.textContent = 'WebRTC: ' + (err.message || JSON.stringify(err)); setStatus('ended', 'Error'); btnCall.disabled = false; });
+        client.on('telnyx.error', (err) => {
+          const errObj = err && err.error ? err.error : err;
+          if (errObj && errObj.fatal === false) return; // swallow non-fatal (BYE_SEND_FAILED etc.)
+          errorEl.textContent = 'WebRTC: ' + (err.message || errObj.message || JSON.stringify(err));
+          setStatus('ended', 'Error');
+          btnCall.disabled = false;
+        });
         client.on('telnyx.notification', (notif) => {
+          console.log('[notif] type:', notif.type, '| call state:', notif.call ? notif.call.state : 'N/A');
           if (notif.type === 'callUpdate' && notif.call) {
             activeCall = notif.call;
             if (activeCall.state === 'active') {
@@ -175,7 +199,8 @@
               btnHangup.disabled = false;
               startTimer();
               startSpeechRecognition();
-              coachingInterval = setInterval(fetchCoaching, 8000);
+              coachingInterval = setInterval(fetchCoaching, 5000);
+              console.log('[call] active — coaching interval started');
             } else if (activeCall.state === 'hangup' || activeCall.state === 'destroy') {
               endCall();
             }
