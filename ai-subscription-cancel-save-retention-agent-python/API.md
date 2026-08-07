@@ -4,11 +4,57 @@ Endpoint shapes match the actual `app.py` implementation.
 
 ## `GET /workflow`
 
-Returns the assistant greeting, instructions, offer policy, and voice id used by
-the sample.
+Returns a demo-safe overview of the assistant flow without exposing the full
+assistant prompt.
 
 ```bash
 curl http://localhost:5000/workflow
+```
+
+## `GET /demo/call-script`
+
+Returns the caller lines to use when recording the demo.
+
+```bash
+curl http://localhost:5000/demo/call-script
+```
+
+```json
+{
+  "number_to_call": "+12068646530",
+  "caller_lines": [
+    "i have an account attached to this phone number.",
+    "i want to cancel because i am not using it enough and it is getting too expensive."
+  ],
+  "alternate_endings": {
+    "accept_offer": "yeah, the discount would help. i will keep it if you can apply that.",
+    "decline_offer": "no thanks, please cancel it.",
+    "escalate": "i would rather talk to a person about this."
+  }
+}
+```
+
+## `GET /demo/call-summary`
+
+Returns a polished after-call JSON summary for screen recording. This endpoint
+is intentionally deterministic so the demo has a clean ending screen.
+
+```bash
+curl http://localhost:5000/demo/call-summary
+```
+
+```json
+{
+  "call_type": "subscription_cancel_save",
+  "caller_intent": "cancel_subscription",
+  "caller_utterances": [
+    "i have an account attached to this phone number.",
+    "i want to cancel because i am not using it enough and it is getting too expensive."
+  ],
+  "detected_reasons": ["too_expensive", "not_using"],
+  "outcome": "saved",
+  "next_step": "apply_retention_offer"
+}
 ```
 
 ## `POST /assistant/provision`
