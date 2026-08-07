@@ -6,8 +6,8 @@ from flask import Flask, request, jsonify, render_template
 load_dotenv()
 app = Flask(__name__)
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
-AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-WEBRTC_CONNECTION_ID = os.getenv("WEBRTC_CONNECTION_ID", "2739968971418633255")
+AI_MODEL = os.getenv("AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
+WEBRTC_CONNECTION_ID = os.getenv("WEBRTC_CONNECTION_ID", "")
 CALLER_NUMBER = os.getenv("CALLER_NUMBER", "+16188939137")
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 
@@ -49,10 +49,11 @@ def get_coaching():
     try:
         resp = requests.post(INFERENCE_URL,
             headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            json={"model": AI_MODEL, "messages": msgs, "max_tokens": 150, "temperature": 0.5},
-            timeout=15)
+            json={"model": AI_MODEL, "messages": msgs, "max_tokens": 200, "temperature": 0.5},
+            timeout=30)
         resp.raise_for_status()
-        tip = resp.json()["choices"][0]["message"]["content"]
+        msg = resp.json()["choices"][0]["message"]
+        tip = msg.get("content") or msg.get("reasoning", "")
         return jsonify({"coaching_tip": tip}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

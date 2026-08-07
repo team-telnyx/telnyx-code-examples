@@ -71,6 +71,7 @@
     let transcriptText = '';
     let interimText = '';
     let coachingInterval = null;
+    let callEnding = false;
 
     const statusBadge = document.getElementById('status-badge');
     const btnCall = document.getElementById('btn-call');
@@ -146,6 +147,7 @@
     }
 
     async function startCall() {
+      callEnding = false;
       errorEl.textContent = '';
       const destNumber = document.getElementById('number').value.trim();
       if (!destNumber) { errorEl.textContent = 'Enter a phone number'; return; }
@@ -188,6 +190,8 @@
     }
 
     function endCall() {
+      if (callEnding) return;
+      callEnding = true;
       if (activeCall) { try { activeCall.hangup(); } catch(e) {} activeCall = null; }
       if (client) { try { client.disconnect(); } catch(e) {} client = null; }
       if (coachingInterval) { clearInterval(coachingInterval); coachingInterval = null; }
