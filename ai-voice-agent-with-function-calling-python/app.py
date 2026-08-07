@@ -70,8 +70,12 @@ def execute_function(name, args):
         return json.dumps({"account_id": args.get("account_id"), "balance": "$1,234.56", "due_date": "July 1"})
     return json.dumps({"error": "Unknown function"})
 
-def call_inference(messages, max_tokens=200, ccid=None):
-    payload = {"model": AI_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.5, "tools": TOOLS}
+def call_inference(messages, ccid=None, tools=None):
+    if tools is None:
+        tools = TOOLS
+    payload = {"model": AI_MODEL, "messages": messages, "temperature": 0.5}
+    if tools:
+        payload["tools"] = tools
     resp = requests.post(INFERENCE_URL, headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}, json=payload, timeout=30)
     resp.raise_for_status()
     choice = resp.json()["choices"][0]
@@ -85,7 +89,8 @@ def call_inference(messages, max_tokens=200, ccid=None):
             emit_event("function.result", {"call_control_id": ccid, "function": fn["name"], "result": json.loads(result)})
             messages.append(msg)
             messages.append({"role": "tool", "tool_call_id": tc["id"], "content": result})
-        return call_inference(messages, max_tokens, ccid)
+        # Recurse WITHOUT tools so the model must produce a final spoken answer (prevents duplicate tool calls).
+        return call_inference(messages, ccid, tools=[])
     return msg["content"]
 
 SYSTEM_PROMPT = "You are a helpful voice assistant with access to real-time tools. You can check weather, look up orders, and check account balances. Use tools when the user asks. Keep voice responses under 2 sentences."
@@ -98,18 +103,26 @@ def speak(ccid, text):
     client.calls.actions.speak(ccid, payload=text, voice="female", language="en-US")
 
 def gather_speech(ccid):
-    client.calls.actions.gather(ccid, extra_body={
-        "input_type": "speech",
-        "end_silence_timeout_secs": 2,
-        "timeout_secs": 15,
-        "language_code": "en-US",
-    })
+    client.calls.actions.gather_using_ai(ccid, parameters={
+        "type": "object",
+        "properties": {
+            "utterance": {
+                "type": "string",
+                "description": "The caller's spoken response, transcribed verbatim.",
+            }
+        },
+        "required": ["utterance"],
+    }, assistant={
+        "model": AI_MODEL,
+        "instructions": "You are a one-turn speech capture component. Capture exactly what the caller says in the utterance field. Do not ask follow-up questions or give advice.",
+    }, transcription={"language": "en"}, user_response_timeout_ms=15000)
 
 @app.route("/webhooks/voice", methods=["POST"])
 def handle_voice():
     try:
         client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
-    except Exception:
+    except Exception as e:
+        emit_event("webhook.rejected", {"error": str(e)})
         return jsonify({"error": "invalid signature"}), 401
     payload = request.get_json()
     if not payload:
@@ -132,8 +145,16 @@ def handle_voice():
         emit_event("call.listening", {"call_control_id": ccid, "message": "Gathering speech — waiting for caller"})
         gather_speech(ccid)
         return jsonify({"status": "listening"}), 200
-    elif event_type == "call.gather.ended" and call:
-        speech = p.get("speech", {}).get("result", "")
+    elif event_type == "call.ai_gather.ended" and call:
+        result = p.get("result", {})
+        if isinstance(result, dict) and result.get("utterance"):
+            speech = str(result["utterance"]).strip()
+        else:
+            speech = ""
+            for msg in reversed(p.get("message_history") or []):
+                if msg.get("role") == "user" and msg.get("content"):
+                    speech = str(msg["content"]).strip()
+                    break
         if not speech:
             emit_event("call.reprompting", {"call_control_id": ccid, "message": "No speech detected — reprompting"})
             speak(ccid, REPROMPT)
