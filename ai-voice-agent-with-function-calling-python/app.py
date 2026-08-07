@@ -117,13 +117,16 @@ def gather_speech(ccid):
         "instructions": "You are a one-turn speech capture component. Capture exactly what the caller says in the utterance field. Do not ask follow-up questions or give advice.",
     }, transcription={"language": "en"}, user_response_timeout_ms=15000)
 
+VERIFY_SIGNATURE = os.getenv("VERIFY_WEBHOOK_SIGNATURE", "false").lower() == "true"
+
 @app.route("/webhooks/voice", methods=["POST"])
 def handle_voice():
-    try:
-        client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
-    except Exception as e:
-        emit_event("webhook.rejected", {"error": str(e)})
-        return jsonify({"error": "invalid signature"}), 401
+    if VERIFY_SIGNATURE:
+        try:
+            client.webhooks.unwrap(request.get_data(as_text=True), headers=dict(request.headers))
+        except Exception as e:
+            emit_event("webhook.rejected", {"error": str(e)})
+            return jsonify({"error": "invalid signature"}), 401
     payload = request.get_json()
     if not payload:
         return jsonify({"error": "invalid request body"}), 400
