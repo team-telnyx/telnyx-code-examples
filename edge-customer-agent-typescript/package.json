@@ -1,0 +1,18 @@
+{
+  "name": "edge-customer-agent-typescript",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Entity Agent sample — the actor IS the customer. A durable object per E.164 phone number, surviving across days, calls, SMS messages, and actor evictions.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "npm run build && telnyx-edge dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,35 @@
+# Customer Agent example — the Entity Agent pattern.
+#
+# The actor IS the customer. One durable object per E.164 phone number,
+# surviving across days, calls, SMS messages, and actor evictions. The
+# fetch handler is the per-connection front door: it routes webhooks to
+# the actor, which owns all state and reasoning.
+#
+# Bindings:
+#   [[actors]]  AGENT   — the CustomerAgent durable namespace. One actor
+#                         instance per customer, addressed by E.164 phone
+#                         number via idFromName("+13125550100").
+#   [telnyx]    TELNYX  — the standard Telnyx SDK binding. Exposes
+#                         this.env.TELNYX.messages.send() and
+#                         this.env.TELNYX.ai.openai.chat.createCompletion().
+#   [[secrets]] SECRETS — holds TELNYX_API_KEY, TELNYX_AI_ASSISTANT_ID,
+#                         TELNYX_FROM_NUMBER, USE_MOCK_SALESFORCE, and
+#                         SALESFORCE_* credentials. Without TELNYX_API_KEY,
+#                         the LLM client falls back to a deterministic stub
+#                         so the sample runs end-to-end without an API key.
+#
+# See README.md for the full architecture and GUIDE.md for the walkthrough.
+
+name = "edge-customer-agent-typescript"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "AGENT"
+type    = "CustomerAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "SECRETS"

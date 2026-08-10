@@ -1938,6 +1938,11 @@ examples:
     framework: edge-compute
     folder: edge-ai-assistant-backend-go
   - product: voice
+    use_case: edge-customer-agent
+    language: typescript
+    framework: edge-compute
+    folder: edge-customer-agent-typescript
+  - product: voice
     use_case: merge-deal-desk-alerts
     language: python
     framework: flask

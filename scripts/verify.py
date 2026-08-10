@@ -40,6 +40,7 @@ LANG_CODE_FILE = {
     "php": "index.php",
     "java": "Application.java",
     "csharp": "Program.cs",
+    "typescript": "src/index.ts",  # Agent SDK examples ship an ESM entry point under src/
 }
 
 LANG_DEP_FILE = {
@@ -50,6 +51,7 @@ LANG_DEP_FILE = {
     "php": "composer.json",
     "java": "pom.xml",
     "csharp": "*.csproj",  # name varies per project; matched as a glob
+    "typescript": "package.json",
 }
 
 # Sections required on every example README. Kept to the set common to both the
@@ -81,9 +83,13 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
 
     # Edge Compute examples ship a func.toml (functions) or telnyx.toml (stateful
     # actors) instead of a single app.py — treat either as the code file.
-    is_edge = (folder_path / "func.toml").exists() or (folder_path / "telnyx.toml").exists()
+    is_edge = (folder_path / "func.toml").exists() or (
+        folder_path / "telnyx.toml"
+    ).exists()
     if is_edge:
-        code_file = "telnyx.toml" if (folder_path / "telnyx.toml").exists() else "func.toml"
+        code_file = (
+            "telnyx.toml" if (folder_path / "telnyx.toml").exists() else "func.toml"
+        )
 
     # --- File existence checks ---
     required_files = [
@@ -110,7 +116,9 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
     # --- Check for committed .env files ---
     env_file = folder_path / ".env"
     if env_file.exists():
-        errors.append("SECURITY: .env file found (only .env.example should be committed)")
+        errors.append(
+            "SECURITY: .env file found (only .env.example should be committed)"
+        )
 
     # --- README checks ---
     readme_path = folder_path / "README.md"
@@ -140,7 +148,9 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
                     timeout=10,
                 )
                 if result.returncode != 0:
-                    errors.append(f"Python syntax error in {code_file}: {result.stderr[:200]}")
+                    errors.append(
+                        f"Python syntax error in {code_file}: {result.stderr[:200]}"
+                    )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 pass
 
@@ -153,7 +163,9 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
                     timeout=10,
                 )
                 if result.returncode != 0:
-                    errors.append(f"Node.js syntax error in {code_file}: {result.stderr[:200]}")
+                    errors.append(
+                        f"Node.js syntax error in {code_file}: {result.stderr[:200]}"
+                    )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 pass
 
@@ -194,9 +206,17 @@ def find_example_folders() -> set:
     code_files = set(LANG_CODE_FILE.values())
     found = set()
     for path in REPO_ROOT.iterdir():
-        if not path.is_dir() or path.name.startswith(".") or path.name in ("scripts", "workstreams"):
+        if (
+            not path.is_dir()
+            or path.name.startswith(".")
+            or path.name in ("scripts", "workstreams")
+        ):
             continue
-        if any((path / cf).exists() for cf in code_files) or (path / "func.toml").exists() or (path / "telnyx.toml").exists():
+        if (
+            any((path / cf).exists() for cf in code_files)
+            or (path / "func.toml").exists()
+            or (path / "telnyx.toml").exists()
+        ):
             found.add(path.name)
     return found
 
@@ -286,7 +306,8 @@ def main():
         description="Verify AEO example folders meet quality requirements.",
     )
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Show detailed error messages",
     )
