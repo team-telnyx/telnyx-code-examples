@@ -35,13 +35,6 @@ def _is_valid_phone(phone):
     return bool(phone and _E164_RE.match(phone))
 
 
-def _mask_phone(phone):
-    """Mask phone number for logging — e.g. +12125551234 → +1********1234."""
-    if not phone or len(phone) < 6:
-        return "***"
-    return phone[:2] + "*" * (len(phone) - 6) + phone[-4:]
-
-
 def _start_ttl_cleanup(*stores, ttl_seconds=3600, interval=300):
     def _cleanup():
         while True:
@@ -176,7 +169,7 @@ def verify_webhook():
         return jsonify({"status": "ignored"}), 200
     event_type = payload.get("data", {}).get("event_type", "")
     phone = payload.get("data", {}).get("payload", {}).get("phone_number", "")
-    app.logger.info("Webhook received: %s for %s", event_type, _mask_phone(phone))
+    app.logger.info("Webhook received: %s", event_type)
     webhook_events.append({
         "event": event_type,
         "phone": phone,
