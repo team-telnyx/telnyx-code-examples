@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """WhatsApp Verify OTP — Send and verify one-time passwords via WhatsApp using the Telnyx Verify API."""
 import os
+import re
 import time
 import requests
 from dotenv import load_dotenv
@@ -25,6 +26,20 @@ verifications = {}
 webhook_events = []
 
 API_BASE = "https://api.telnyx.com/v2"
+
+_E164_RE = re.compile(r"^\+[1-9]\d{6,14}$")
+
+
+def _is_valid_phone(phone):
+    """Validate E.164 phone number to prevent SSRF via URL injection."""
+    return bool(phone and _E164_RE.match(phone))
+
+
+def _mask_phone(phone):
+    """Mask phone number for logging — e.g. +12125551234 → +1********1234."""
+    if not phone or len(phone) < 6:
+        return "***"
+    return phone[:2] + "*" * (len(phone) - 6) + phone[-4:]
 
 
 def _start_ttl_cleanup(*stores, ttl_seconds=3600, interval=300):
@@ -76,6 +91,8 @@ def start_verification():
     phone = data.get("phone_number")
     if not phone:
         return jsonify({"error": "phone_number required"}), 400
+    if not _is_valid_phone(phone):
+        return jsonify({"error": "phone_number must be E.164 format (e.g. +12125551234)"}), 400
     if not TELNYX_API_KEY or not VERIFY_PROFILE_ID:
         return jsonify({"error": "server not configured — set TELNYX_API_KEY and VERIFY_PROFILE_ID"}), 500
     try:
@@ -116,6 +133,8 @@ def check_verification():
     code = data.get("code")
     if not phone or not code:
         return jsonify({"error": "phone_number and code required"}), 400
+    if not _is_valid_phone(phone):
+        return jsonify({"error": "phone_number must be E.164 format (e.g. +12125551234)"}), 400
     if not TELNYX_API_KEY or not VERIFY_PROFILE_ID:
         return jsonify({"error": "server not configured — set TELNYX_API_KEY and VERIFY_PROFILE_ID"}), 500
     try:
@@ -157,7 +176,7 @@ def verify_webhook():
         return jsonify({"status": "ignored"}), 200
     event_type = payload.get("data", {}).get("event_type", "")
     phone = payload.get("data", {}).get("payload", {}).get("phone_number", "")
-    app.logger.info("Webhook received: %s for %s", event_type, phone)
+    app.logger.info("Webhook received: %s for %s", event_type, _mask_phone(phone))
     webhook_events.append({
         "event": event_type,
         "phone": phone,
