@@ -64,7 +64,9 @@ Submit the OTP code received via WhatsApp for verification.
 | `phone_number` | `string` | **yes** | The phone number that received the OTP |
 | `code` | `string` | **yes** | The OTP code entered by the user |
 
-### Response `200`
+The server forwards the code along with your `VERIFY_PROFILE_ID` to Telnyx. Telnyx returns a `response_code` that the server maps to a status.
+
+### Response `200` (accepted)
 
 ```json
 {
@@ -72,13 +74,23 @@ Submit the OTP code received via WhatsApp for verification.
 }
 ```
 
-### Response `400`
+### Response `200` (rejected)
 
 ```json
 {
-  "status": "invalid_code"
+  "status": "rejected",
+  "response_code": "rejected"
 }
 ```
+
+`response_code` can be one of:
+
+| `response_code` | Meaning |
+|-----------------|---------|
+| `accepted` | Code is correct — verification successful |
+| `rejected` | Code is incorrect |
+| `expired` | Verification timed out (exceeded `timeout_secs`) |
+| `max_attempts_exceeded` | Too many incorrect attempts |
 
 **Try it:**
 
@@ -98,10 +110,11 @@ Inbound webhook endpoint called by Telnyx when a verification event occurs.
 
 | Event | Description |
 |-------|-------------|
-| `verify.sent` | OTP message sent to the carrier/WhatsApp |
+| `verify.sent` | OTP message sent to the upstream provider |
 | `verify.delivered` | OTP message delivered to the user's device |
-| `verify.completed` | User successfully verified the code |
 | `verify.failed` | Delivery or verification failed |
+
+Signature verification is optional — set `VERIFY_WEBHOOK_SIGNATURE=true` and `TELNYX_PUBLIC_KEY` in `.env` to enable.
 
 ### Request (from Telnyx)
 
@@ -135,9 +148,18 @@ Health check and service status.
 ```json
 {
   "status": "ok",
-  "verifications": 0
+  "configured": true,
+  "verifications": 0,
+  "webhook_events": 0
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | `string` | `ok` |
+| `configured` | `bool` | `true` if both `TELNYX_API_KEY` and `VERIFY_PROFILE_ID` are set |
+| `verifications` | `integer` | Number of in-memory verification records |
+| `webhook_events` | `integer` | Number of received webhook events |
 
 **Try it:**
 
@@ -149,7 +171,7 @@ curl http://localhost:5000/health
 
 ## Status Values
 
-Verification records use these status values: `pending`, `sent`, `delivered`, `completed`, `verified`, `failed`, `invalid_code`
+Verification records use these status values: `pending`, `sent`, `delivered`, `verified`, `failed`, `rejected`
 
 ## Error Handling
 
@@ -161,7 +183,8 @@ All endpoints return JSON. On error:
 
 | Status | Meaning |
 |--------|---------|
-| `200` | Success |
+| `200` | Success (check `status` field for accepted/rejected on `/verify/check`) |
 | `400` | Bad request — missing or invalid fields |
-| `401` | Invalid API key |
+| `401` | Invalid API key or invalid webhook signature |
+| `422` | Telnyx rejected the request — check error response body |
 | `500` | Server error |

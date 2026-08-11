@@ -11,8 +11,8 @@ Send and verify one-time passwords via WhatsApp using the Telnyx Verify API.
   ┌────────────────────┐
   │  Python Server     │  receives request
   └─────────┬──────────┘
+        │  POST /v2/verifications/whatsapp
         │  Telnyx Verify API
-        │  type: "whatsapp"
         ▼
   ┌────────────────────┐
   │  Telnyx Verify     │  sends OTP via WhatsApp
@@ -22,10 +22,11 @@ Send and verify one-time passwords via WhatsApp using the Telnyx Verify API.
   ┌────────────────────┐
   │  User enters code  │  submits OTP
   └─────────┬──────────┘
-        │
+        │  POST /v2/verifications/by_phone_number/{phone}/actions/verify
+        │  Body: { "code": "...", "verify_profile_id": "..." }
         ▼
   ┌────────────────────┐
-  │  Code verified     │  ✓ or ✗
+  │  Code verified     │  ✓ accepted / ✗ rejected
   └────────────────────┘
 ```
 
@@ -58,6 +59,8 @@ Edit `.env` with your Telnyx credentials:
 | `TELNYX_API_KEY` | Your Telnyx API v2 key from [Portal](https://portal.telnyx.com/api-keys) |
 | `VERIFY_PROFILE_ID` | Your Verify Profile ID with WhatsApp enabled from [Portal](https://portal.telnyx.com/verify/profiles) |
 | `PORT` | HTTP server port (default: 5000) |
+| `VERIFY_WEBHOOK_SIGNATURE` | Enable webhook signature verification (default: `false`) |
+| `TELNYX_PUBLIC_KEY` | Telnyx webhook public key (required only if `VERIFY_WEBHOOK_SIGNATURE=true`) |
 
 ## Step 2: Configure WhatsApp for Verify
 
@@ -72,21 +75,30 @@ The main application logic lives in `app.py`.
 
 ### Starting a Verification
 
-**`start_verification()`** — Sends a WhatsApp OTP to the given phone number via the Telnyx Verify API with `type: "whatsapp"`.
+**`start_verification()`** — Sends a WhatsApp OTP to the given phone number via the Telnyx Verify API's WhatsApp endpoint.
 
 ```python
-resp = requests.post("https://api.telnyx.com/v2/verifications",
-    headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-    json={"phone_number": phone, "verify_profile_id": VERIFY_PROFILE_ID, "type": "whatsapp"}, timeout=10)
+resp = requests.post(
+    f"{API_BASE}/verifications/whatsapp",
+    headers={
+        "Authorization": f"Bearer {TELNYX_API_KEY}",
+        "Content-Type": "application/json",
+    },
+    json={
+        "phone_number": phone,
+        "verify_profile_id": VERIFY_PROFILE_ID,
+    },
+    timeout=10,
+)
 ```
 
 ### Checking the Code
 
-**`check_verification()`** — Submits the user-entered OTP code for validation against the Telnyx Verify API.
+**`check_verification()`** — Submits the user-entered OTP code along with your `VERIFY_PROFILE_ID` to the Telnyx Verify API. Telnyx returns a `response_code` (`accepted`, `rejected`, `expired`, or `max_attempts_exceeded`); the server reports `verified` only when `response_code == "accepted"`.
 
 ### Receiving Webhooks
 
-**`verify_webhook()`** — Handles delivery status webhooks (`verify.sent`, `verify.delivered`, `verify.completed`, `verify.failed`) for real-time tracking.
+**`verify_webhook()`** — Handles delivery status webhooks (`verify.sent`, `verify.delivered`, `verify.failed`) for real-time tracking. Webhook signature verification is optional — enable it with `VERIFY_WEBHOOK_SIGNATURE=true` and `TELNYX_PUBLIC_KEY` in `.env`.
 
 ### All Endpoints
 
@@ -141,7 +153,7 @@ curl -X POST http://localhost:5000/verify/check \
 
 - **Database** — replace the in-memory dict with PostgreSQL or Redis for verification state.
 - **Authentication** — add API key validation on your endpoints.
-- **Webhook verification** — validate Telnyx webhook signatures ([docs](https://developers.telnyx.com/docs/api/v2/overview#webhook-signing)).
+- **Webhook verification** — already built in; set `VERIFY_WEBHOOK_SIGNATURE=true` and `TELNYX_PUBLIC_KEY` in `.env` to enforce valid signatures ([docs](https://developers.telnyx.com/docs/identity/verify/receiving-webhooks)).
 - **Monitoring** — add structured logging and health check alerts.
 - **Rate limiting** — protect your endpoints from abuse.
 - **Fallback channels** — consider adding SMS or voice fallback if WhatsApp delivery fails.

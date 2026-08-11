@@ -14,8 +14,8 @@ Send and verify one-time passwords via WhatsApp using the Telnyx Verify API.
 
 ## Telnyx API Endpoints Used
 
-- **Create Verification**: `POST /v2/verifications` - [API reference](https://developers.telnyx.com/api/verify/create-verification)
-- **Submit Verification Code**: `POST /v2/verifications/by_phone_number/{phone_number}/actions/verify` - [API reference](https://developers.telnyx.com/api/verify/verify-verification-code)
+- **Trigger WhatsApp Verification**: `POST /v2/verifications/whatsapp` - [API reference](https://developers.telnyx.com/api-reference/verify/trigger-whatsapp-verification)
+- **Submit Verification Code**: `POST /v2/verifications/by_phone_number/{phone_number}/actions/verify` - [API reference](https://developers.telnyx.com/api-reference/verify/verify-verification-code-by-phone-number)
 
 ## Architecture
 
@@ -27,8 +27,8 @@ Send and verify one-time passwords via WhatsApp using the Telnyx Verify API.
   │ POST /verify/    │
   │ start            │
   └────────┬─────────┘
+           │  POST /v2/verifications/whatsapp
            │  Telnyx Verify API
-           │  type: "whatsapp"
            ▼
   ┌──────────────────┐
   │ WhatsApp OTP     │ ── user receives code
@@ -40,9 +40,10 @@ Send and verify one-time passwords via WhatsApp using the Telnyx Verify API.
   │ POST /verify/    │ ── user submits code
   │ check            │
   └────────┬─────────┘
-           │
+           │  POST /v2/verifications/by_phone_number/{phone}/actions/verify
+           │  Body: { "code": "...", "verify_profile_id": "..." }
            ▼
-     ✓ Verified / ✗ Denied
+     ✓ Accepted / ✗ Rejected
 ```
 
 ## Why Telnyx
@@ -62,6 +63,8 @@ Copy `.env.example` to `.env` and fill in:
 | `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal](https://portal.telnyx.com/api-keys) · [CLI: `telnyx auth`](https://developers.telnyx.com/development/cli) |
 | `VERIFY_PROFILE_ID` | `string` | `your_value` | **yes** | Verify profile configured with WhatsApp channel | [Portal](https://portal.telnyx.com/verify/profiles) · [CLI: `telnyx verify-profiles`](https://developers.telnyx.com/development/cli) |
 | `PORT` | `integer` | `5000` | no | HTTP server port | - |
+| `VERIFY_WEBHOOK_SIGNATURE` | `bool` | `false` | no | Enable webhook signature verification (default: `false`) | - |
+| `TELNYX_PUBLIC_KEY` | `string` | `whsec_...` | only if sig verify | Telnyx webhook public key | [Portal](https://portal.telnyx.com) → Verify Profile |
 
 ## Setup
 
@@ -129,7 +132,7 @@ curl -X POST http://localhost:5000/verify/start \
 
 ### `POST /verify/check`
 
-Submit the OTP code for verification.
+Submit the OTP code for verification. The server forwards the code along with your `VERIFY_PROFILE_ID` to Telnyx.
 
 ```bash
 curl -X POST http://localhost:5000/verify/check \
@@ -140,7 +143,7 @@ curl -X POST http://localhost:5000/verify/check \
   }'
 ```
 
-**Response:**
+**Response (accepted):**
 
 ```json
 {
@@ -148,9 +151,20 @@ curl -X POST http://localhost:5000/verify/check \
 }
 ```
 
+**Response (rejected):**
+
+```json
+{
+  "status": "rejected",
+  "response_code": "rejected"
+}
+```
+
+`response_code` can be `accepted`, `rejected`, `expired`, or `max_attempts_exceeded` — see [Verify API reference](https://developers.telnyx.com/api-reference/verify/verify-verification-code-by-phone-number).
+
 ### `POST /webhooks/verify`
 
-Receives delivery status webhooks from Telnyx (`verify.sent`, `verify.delivered`, `verify.completed`, `verify.failed`).
+Receives delivery status webhooks from Telnyx (`verify.sent`, `verify.delivered`, `verify.failed`). Signature verification is optional — set `VERIFY_WEBHOOK_SIGNATURE=true` and `TELNYX_PUBLIC_KEY` in `.env` to enable.
 
 ```bash
 curl -X POST http://localhost:5000/webhooks/verify \
@@ -186,7 +200,9 @@ curl http://localhost:5000/health
 ```json
 {
   "status": "ok",
-  "verifications": 0
+  "configured": true,
+  "verifications": 0,
+  "webhook_events": 0
 }
 ```
 
