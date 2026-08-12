@@ -15,11 +15,12 @@ SMS triage bot on Telnyx Edge Compute + Agent SDK — classifies inbound custome
   │     → env.TELNYX.ai.openai.chat                  │
   │       .createCompletion()  (topic detection)     │
   │     → topic = billing | support | sales | general│
-  │  2. Route table lookup:                           │
-  │     → state.routeTable[topic] → queue name        │
+  │  2. KV route table lookup:                        │
+  │     → env.ROUTES.get("route/billing")            │
+  │     → returns queue name (global, not per-actor)  │
   │  3. Reply via SMS:                                │
   │     → env.TELNYX.messages.send()  (zero-cred)   │
-  │  4. Log triage entry (durable)                    │
+  │  4. Log triage entry (durable, per-actor)         │
   └──────────────────────────────────────────────────┘
 ```
 
@@ -52,8 +53,8 @@ export class TriageAgent extends Agent<TriageEnv, TriageState> {
     });
     const { topic, confidence } = JSON.parse(completion.choices[0].message.content);
 
-    // 2. Route lookup
-    const route = state.routeTable[topic] || "general-queue";
+    // 2. KV route lookup
+    const route = await this.env.ROUTES.get(`route/${topic}`);
 
     // 3. Reply via SMS
     await this.env.TELNYX.messages.send({
@@ -62,7 +63,7 @@ export class TriageAgent extends Agent<TriageEnv, TriageState> {
       text: `Thanks! Routed to ${route}.`,
     });
 
-    // 4. Log (durable)
+    // 4. Log (durable, per-actor)
     await this.setState({ ...state, triageHistory: [...history, entry] });
   }
 }
@@ -87,13 +88,18 @@ type = "TriageAgent"
 
 [telnyx]
 binding = "TELNYX"  # pre-authenticated client — no API key in code
+
+[[kv]]
+binding = "ROUTES"  # global route table — shared across all actors
+namespace_id = "<kv-namespace-id>"
 ```
 
 ### Agent SDK Primitives
 
 | Primitive | Method | Purpose |
 |-----------|--------|---------|
-| Durable State | `this.setState()` / `this.getState()` | Route table, triage history, topic counts |
+| Durable State | `this.setState()` / `this.getState()` | Triage history, topic counts (per-actor) |
+| KV Namespace | `this.env.ROUTES.get()` / `this.env.ROUTES.put()` | Global route table (shared across all actors) |
 | Telnyx Binding | `this.env.TELNYX.messages.send()` | Zero-credential SMS replies |
 | Telnyx Binding | `this.env.TELNYX.ai.openai.chat.createCompletion()` | Zero-credential topic classification |
 

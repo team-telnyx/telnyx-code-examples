@@ -19,6 +19,7 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
 
 - **Messaging**: `POST /v2/messages` — via `this.env.TELNYX.messages.send()` (pre-authenticated binding, zero-credential)
 - **AI Inference**: `POST /v2/ai/openai/chat/completions` — via `this.env.TELNYX.ai.openai.chat.createCompletion()` (pre-authenticated binding, zero-credential) for topic classification
+- **KV Storage** — `this.env.ROUTES.get()` / `this.env.ROUTES.put()` for the route table (global key-value store, separate from per-actor state)
 
 ## Architecture
 
@@ -33,12 +34,13 @@ Telnyx is an **AI Communications Infrastructure** platform — voice, messaging,
   │     → env.TELNYX.ai.openai.chat                  │
   │       .createCompletion()  (topic detection)     │
   │     → topic = billing | support | sales | general│
-  │  2. Route table lookup:                           │
-  │     → state.routeTable[topic] → queue name        │
+  │  2. KV route table lookup:                        │
+  │     → env.ROUTES.get("route/billing")            │
+  │     → returns queue name (global, not per-actor)  │
   │  3. Reply via SMS:                                │
   │     → env.TELNYX.messages.send()  (zero-cred)   │
   │  4. Log triage entry:                             │
-  │     → state.triageHistory[] (durable)            │
+  │     → state.triageHistory[] (durable, per-actor) │
   │     → state.topicCounts[topic]++                 │
   └──────────────────────────────────────────────────┘
 ```
@@ -50,6 +52,7 @@ No API key needed in code — the `[telnyx]` binding in `telnyx.toml` carries au
 | Variable | Type | Required | Description |
 |----------|------|----------|-------------|
 | `[telnyx]` binding | toml | **yes** | Pre-authenticated Telnyx client (messaging + inference) |
+| `[[kv]] ROUTES` binding | toml | **yes** | KV namespace for the route table (keys: `route/<topic>`) |
 | `AI_MODEL` | env_var | no | Inference model name (default: `moonshotai/Kimi-K2.6`) |
 
 > **Agent / CLI access**
@@ -135,29 +138,48 @@ See [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/
 
 1. **Inbound SMS** → Telnyx sends `message.received` webhook → the handler routes to the `TriageAgent` actor keyed by the inbound number
 2. **Classify** — `triage()` calls `this.env.TELNYX.ai.openai.chat.createCompletion()` with a system prompt that classifies the message into billing/support/sales/general
-3. **Route lookup** — the topic is looked up in the durable route table (`state.routeTable[topic]` → queue name)
+3. **Route lookup** — the topic is looked up in the KV route table (`this.env.ROUTES.get("route/billing")` → queue name). KV is a global key-value store, separate from per-actor state — all actors share the same route table.
 4. **Reply** — a confirmation SMS is sent to the customer via `this.env.TELNYX.messages.send()` (zero-credential), including the routed queue reference
-5. **Log** — the triage entry (timestamp, from, text, topic, route, confidence) is stored in durable history for analytics
-6. **Persistence** — the route table, triage history, and topic counts all survive restarts in the actor's durable storage
+5. **Log** — the triage entry (timestamp, from, text, topic, route, confidence) is stored in durable actor state for analytics
+6. **Persistence** — the KV route table is global and durable; triage history and topic counts are per-actor and survive restarts
 
 ## Agent SDK Primitives Used
 
 | Primitive | API | What it does |
 |-----------|-----|--------------|
-| Durable State | `this.setState()` / `this.getState()` | Route table, triage history, topic counts |
+| Durable State | `this.setState()` / `this.getState()` | Triage history, topic counts (per-actor) |
+| KV Namespace | `this.env.ROUTES.get()` / `this.env.ROUTES.put()` | Global route table (shared across all actors) |
 | Telnyx Binding | `this.env.TELNYX.messages.send()` | Zero-credential SMS replies |
 | Telnyx Binding | `this.env.TELNYX.ai.openai.chat.createCompletion()` | Zero-credential topic classification |
 
-## Route Table
+## Route Table (KV)
 
-The route table maps topics to queue names. It's stored in durable actor state and can be updated at runtime via `POST /routes`.
+The route table is stored in a KV namespace (`ROUTES`), keyed as `route/<topic>`. It's global — all actor instances share the same routes. It can be updated at runtime via `POST /routes`, which calls `this.env.ROUTES.put("route/billing", "priority-billing-queue")`.
 
-| Topic | Default Queue |
+| Key | Default Value |
 |-------|---------------|
-| billing | billing-queue |
-| support | support-queue |
-| sales | sales-queue |
-| general | general-queue |
+| `route/billing` | billing-queue |
+| `route/support` | support-queue |
+| `route/sales` | sales-queue |
+| `route/general` | general-queue |
+
+### Provisioning the KV namespace
+
+```bash
+# Create the KV namespace
+telnyx-edge storage kv create --name "triage-routes"
+
+# Seed default routes (keys use / separator — colons are not allowed in KV keys)
+telnyx-edge storage kv key put <namespace-id> route/billing billing-queue
+telnyx-edge storage kv key put <namespace-id> route/support support-queue
+telnyx-edge storage kv key put <namespace-id> route/sales sales-queue
+telnyx-edge storage kv key put <namespace-id> route/general general-queue
+
+# Add the binding to telnyx.toml:
+# [[kv]]
+# binding = "ROUTES"
+# namespace_id = "<namespace-id>"
+```
 
 ## Troubleshooting
 

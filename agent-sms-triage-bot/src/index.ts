@@ -1,5 +1,6 @@
-export { TriageAgent } from "./triageAgent";
+export { TriageAgent, routeKey, getRouteFromKv, getAllRoutesFromKv, putRouteToKv } from "./triageAgent";
 import type { TriageAgent } from "./triageAgent";
+import { getAllRoutesFromKv, putRouteToKv } from "./triageAgent";
 
 import {
   type ActorNamespace,
@@ -10,8 +11,6 @@ import {
 type TriageAgentStub = ActorStub &
   Pick<
     TriageAgent,
-    | "setRoute"
-    | "getRoutes"
     | "triage"
     | "getHistory"
     | "getDebugState"
@@ -23,10 +22,17 @@ interface TriageAgentNamespace extends ActorNamespace {
 
 interface Env {
   TRIAGE: TriageAgentNamespace;
+  KV_NAMESPACE_ID: string;
 }
 
 function actorName(e164: string): string {
   return e164.replace(/[^0-9a-zA-Z.-]/g, "");
+}
+
+function getApiKey(): string {
+  const apiKey = process.env.TELNYX_API_KEY ?? "";
+  if (!apiKey) throw new Error("TELNYX_API_KEY not configured");
+  return apiKey;
 }
 
 export default {
@@ -35,6 +41,15 @@ export default {
 
     if (url.pathname === "/health/liveness") return new Response("ok");
     if (url.pathname === "/health/readiness") return new Response("ok");
+
+    let apiKey: string;
+    try {
+      apiKey = getApiKey();
+    } catch (e) {
+      return Response.json({ error: e instanceof Error ? e.message : "secrets not configured" }, { status: 500 });
+    }
+
+    const kvNamespaceId = env.KV_NAMESPACE_ID || process.env.KV_NAMESPACE_ID || "";
 
     // ── POST /webhooks/sms — inbound SMS from customer ──────────────
     if (req.method === "POST" && (url.pathname === "/webhooks/sms" || url.pathname === "/")) {
@@ -53,42 +68,38 @@ export default {
           return Response.json({ error: "missing from or text" }, { status: 400 });
         }
 
-        // Use the inbound number (to) as the actor key — one actor per inbound number
+        // Read routes from KV
+        const routes = await getAllRoutesFromKv(kvNamespaceId, apiKey);
         const stub = env.TRIAGE.idFromName(actorName(String(to)));
-        const result = await stub.triage(String(from), String(text));
+        const result = await stub.triage(String(from), String(text), routes);
         return Response.json({ action: "triaged", from, to, ...result });
       } catch (e: any) {
-        return Response.json({ error: e?.message || "bad request" }, { status: 400 });
+        return Response.json({ error: e?.message || "bad request" }, { status: 500 });
       }
     }
 
-    // ── POST /routes — update a route in the route table ────────────
+    // ── POST /routes — update a route in KV ─────────────────────────
     if (url.pathname === "/routes" && req.method === "POST") {
       const body = (await req.json().catch(() => ({}))) as {
         topic?: string;
         queue?: string;
-        number?: string;
       };
 
       const topic = body.topic?.trim();
       const queue = body.queue?.trim();
-      const number = body.number?.trim() || "+16282564655";
 
       if (!topic || !queue) {
         return Response.json({ error: "topic and queue are required" }, { status: 400 });
       }
 
-      const stub = env.TRIAGE.idFromName(actorName(number));
-      await stub.setRoute(topic, queue);
-      return Response.json({ topic, queue, number });
+      await putRouteToKv(kvNamespaceId, apiKey, topic, queue);
+      return Response.json({ topic, queue, stored: "kv" });
     }
 
-    // ── GET /routes — list the route table ──────────────────────────
+    // ── GET /routes — list the route table from KV ──────────────────
     if (url.pathname === "/routes" && req.method === "GET") {
-      const number = url.searchParams.get("number") || "+16282564655";
-      const stub = env.TRIAGE.idFromName(actorName(number));
-      const routes = await stub.getRoutes();
-      return Response.json({ number, routes });
+      const routes = await getAllRoutesFromKv(kvNamespaceId, apiKey);
+      return Response.json({ routes, namespace: kvNamespaceId });
     }
 
     // ── GET /history — get triage history ───────────────────────────
@@ -100,7 +111,7 @@ export default {
       return Response.json({ number, ...history });
     }
 
-    // ── POST /debug/triage — simulate an inbound SMS without real SMS ─
+    // ── POST /debug/triage — simulate an inbound SMS ────────────────
     if (url.pathname === "/debug/triage" && req.method === "POST") {
       const body = (await req.json().catch(() => ({}))) as {
         from?: string;
@@ -112,18 +123,20 @@ export default {
       const to = body.to?.trim() || "+16282564655";
       const text = body.text?.trim() || "I need help with my bill";
 
+      const routes = await getAllRoutesFromKv(kvNamespaceId, apiKey);
       const stub = env.TRIAGE.idFromName(actorName(to));
-      const result = await stub.triage(from, text);
+      const result = await stub.triage(from, text, routes);
       return Response.json({ action: "triaged", from, to, text, ...result });
     }
 
-    // ── GET /debug/state — inspect actor state ─────────────────────
+    // ── GET /debug/state — inspect actor state + KV routes ─────────
     if (url.pathname === "/debug/state" && req.method === "GET") {
       const number = url.searchParams.get("number") || "+16282564655";
       const stub = env.TRIAGE.idFromName(actorName(number));
       try {
         const state = await stub.getDebugState();
-        return Response.json(state);
+        const routes = await getAllRoutesFromKv(kvNamespaceId, apiKey);
+        return Response.json({ ...state, routes, kvNamespace: kvNamespaceId });
       } catch (e: any) {
         return Response.json({ error: e?.message || "failed to get state" }, { status: 500 });
       }

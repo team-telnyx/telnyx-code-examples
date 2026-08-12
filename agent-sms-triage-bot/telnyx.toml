@@ -9,9 +9,14 @@ type = "TriageAgent"
 [telnyx]
 binding = "TELNYX"
 
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
 [edge_compute]
 func_id = "930109fd-45dc-46e9-8eb5-e57c30830e1f"
 func_name = "agent-sms-triage-bot"
 
 [env_vars]
 AI_MODEL = "moonshotai/Kimi-K2.6"
+KV_NAMESPACE_ID = "275462c4-0014-4f95-8444-2eecebb518fe"
