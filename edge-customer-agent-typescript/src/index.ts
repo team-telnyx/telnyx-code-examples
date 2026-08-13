@@ -48,7 +48,7 @@ async function handleVoiceWebhook(req: Request, env: Env): Promise<Response> {
   const customerPhone = event.data?.payload?.from ?? "";
   if (!customerPhone) return json({ error: "missing 'from' in webhook" }, 400);
 
-  const stub = env.AGENT.idFromName(customerPhone);
+  const stub = env.AGENT.idFromName(actorNameFromPhone(customerPhone));
   const result = await stub.handleCall(
     event.data?.payload?.call_control_id ?? "",
     customerPhone,
@@ -68,7 +68,7 @@ async function handleCallEndedWebhook(req: Request, env: Env): Promise<Response>
   const customerPhone = event.data?.payload?.from ?? "";
   if (!customerPhone) return json({ error: "missing 'from' in webhook" }, 400);
 
-  const stub = env.AGENT.idFromName(customerPhone);
+  const stub = env.AGENT.idFromName(actorNameFromPhone(customerPhone));
   await stub.onCallEnded(
     event.data?.payload?.call_control_id ?? "",
     event.data?.payload?.duration ?? 0,
@@ -89,7 +89,7 @@ async function handleMessagingWebhook(req: Request, env: Env): Promise<Response>
   const text = payload["text"] ?? "";
   if (!from || !text) return json({ error: "missing 'from' or 'text'" }, 400);
 
-  const stub = env.AGENT.idFromName(from);
+  const stub = env.AGENT.idFromName(actorNameFromPhone(from));
   await stub.handleSMS(from, to, text);
 
   return json({ ok: true });
@@ -102,7 +102,7 @@ async function handleSalesforceWebhook(req: Request, env: Env): Promise<Response
   const customerPhone = body.customer_phone_e164 ?? "";
   if (!customerPhone) return json({ error: "missing customer_phone_e164" }, 400);
 
-  const stub = env.AGENT.idFromName(customerPhone);
+  const stub = env.AGENT.idFromName(actorNameFromPhone(customerPhone));
   await stub.ingestSalesforceUpdate({
     salesforce_id: body.salesforce_id ?? "",
     status: body.status ?? "",
@@ -121,13 +121,22 @@ async function handleHITLReply(req: Request, env: Env): Promise<Response> {
   const replyText = body.reply_text ?? "";
   if (!customerPhone || !replyText) return json({ error: "missing phone_e164 or reply_text" }, 400);
 
-  const stub = env.AGENT.idFromName(customerPhone);
+  const stub = env.AGENT.idFromName(actorNameFromPhone(customerPhone));
   await stub.resumeEscalation(replyText);
 
   return json({ ok: true });
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Sanitize an E.164 phone number for use as a Dapr actor name.
+ * Dapr requires lowercase alphanumeric, hyphens, and dots (RFC 1123).
+ * The leading "+" in E.164 is invalid — strip it.
+ */
+function actorNameFromPhone(phone: string): string {
+  return phone.replace(/^\+/, "");
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body, null, 2), {

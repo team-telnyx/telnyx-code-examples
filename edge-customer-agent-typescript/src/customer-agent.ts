@@ -41,28 +41,31 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
   }
 
   protected initialState(): CustomerState {
-    return initialCustomerState(this.ctx.id.toString(), "Ian");
+    const id = this.ctx.id.toString();
+    const phoneE164 = id.startsWith("+") ? id : `+${id}`;
+    return initialCustomerState(phoneE164, "Ian");
   }
 
   // ── Lazy resource builders ───────────────────────────────────────────
 
-  private getLLM(): LLMClient {
+  private async getLLM(): Promise<LLMClient> {
     if (!this.llm) {
-      const apiKey = process.env["TELNYX_API_KEY"];
-      this.llm = createLLMClient(apiKey);
+      const apiKey = await this.env.SECRETS.get("TELNYX_API_KEY");
+      this.llm = createLLMClient(apiKey || undefined);
     }
     return this.llm;
   }
 
-  private getSalesforce(): SalesforceClient {
+  private async getSalesforce(): Promise<SalesforceClient> {
     if (!this.sf) {
+      const useMock = (await this.env.SECRETS.get("USE_MOCK_SALESFORCE")) !== "false";
       this.sf = new SalesforceClient({
-        useMock: process.env["USE_MOCK_SALESFORCE"] !== "false",
-        clientId: process.env["SALESFORCE_CLIENT_ID"],
-        clientSecret: process.env["SALESFORCE_CLIENT_SECRET"],
-        username: process.env["SALESFORCE_USERNAME"],
-        password: process.env["SALESFORCE_PASSWORD"],
-        token: process.env["SALESFORCE_TOKEN"],
+        useMock,
+        clientId: await this.env.SECRETS.get("SALESFORCE_CLIENT_ID").catch(() => undefined),
+        clientSecret: await this.env.SECRETS.get("SALESFORCE_CLIENT_SECRET").catch(() => undefined),
+        username: await this.env.SECRETS.get("SALESFORCE_USERNAME").catch(() => undefined),
+        password: await this.env.SECRETS.get("SALESFORCE_PASSWORD").catch(() => undefined),
+        token: await this.env.SECRETS.get("SALESFORCE_TOKEN").catch(() => undefined),
       });
     }
     return this.sf;
@@ -72,7 +75,8 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
 
   async handleCall(callControlId: string, from: string, to: string): Promise<{ texml: string }> {
     const state = await this.getState();
-    const texml = buildInboundTeXml(state.name, process.env["TELNYX_AI_ASSISTANT_ID"]);
+    const assistantId = await this.env.SECRETS.get("TELNYX_AI_ASSISTANT_ID").catch(() => undefined);
+    const texml = buildInboundTeXml(state.name, assistantId || undefined);
 
     await this.appendInteraction("voice", `Inbound call from ${from}`, "inbound");
     await this.setState({
@@ -95,11 +99,11 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
     if (!state.proactive_consent) return;
 
     const lastInteraction = state.history[state.history.length - 1];
-    const llm = this.getLLM();
+    const llm = await this.getLLM();
     const message = await llm.draftFollowup(state.name, lastInteraction?.summary ?? "recent call");
 
-    const from = process.env["TELNYX_FROM_NUMBER"] ?? "+13125550100";
-    await this.env.TELNYX.messages.send({ to: state.phone_e164, from, text: message });
+    const from = (await this.env.SECRETS.get("TELNYX_FROM_NUMBER").catch(() => "")) || "+13125550100";
+    await this.env.TELNYX.messages.send({ to: this.normalizePhone(state.phone_e164), from, text: message });
 
     await this.appendInteraction("sms", `Follow-up SMS sent: "${message.slice(0, 80)}..."`, "proactive");
   }
@@ -108,7 +112,7 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
 
   async handleSMS(from: string, to: string, text: string): Promise<void> {
     const state = await this.getState();
-    const llm = this.getLLM();
+    const llm = await this.getLLM();
 
     const intent = await llm.classifyIntent(text);
     if (intent === "escalation") {
@@ -122,7 +126,7 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
     const reply = await llm.draftReply(history, state.name, text);
     await this.messages.add("assistant", reply);
 
-    const fromNumber = process.env["TELNYX_FROM_NUMBER"] ?? to;
+    const fromNumber = (await this.env.SECRETS.get("TELNYX_FROM_NUMBER").catch(() => "")) || to;
     await this.env.TELNYX.messages.send({ to: from, from: fromNumber, text: reply });
 
     await this.appendInteraction("sms", `SMS: "${text.slice(0, 80)}..." → "${reply.slice(0, 80)}..."`, "inbound");
@@ -160,7 +164,7 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
     await this.messages.add("assistant", `[Human agent] ${replyText}`);
 
     if (state.preferred_channel === "sms") {
-      const from = process.env["TELNYX_FROM_NUMBER"] ?? "+13125550100";
+      const from = (await this.env.SECRETS.get("TELNYX_FROM_NUMBER").catch(() => "")) || "+13125550100";
       await this.env.TELNYX.messages.send({ to: state.phone_e164, from, text: replyText });
     }
 
@@ -183,17 +187,17 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
     const p = payload as { salesforce_id?: string };
     if (!p?.salesforce_id) return;
 
-    const sf = this.getSalesforce();
+    const sf = await this.getSalesforce();
     const shipments = await sf.getShipments(state.salesforce_id || p.salesforce_id);
 
     for (const shipment of shipments) {
       const existing = state.shipments.find((s) => s.salesforce_id === shipment.salesforce_id);
       if (!existing || existing.status !== shipment.status) {
-        const llm = this.getLLM();
+        const llm = await this.getLLM();
         const message = await llm.draftProactive(state.name, shipment.status, shipment.tracking_number);
 
-        const from = process.env["TELNYX_FROM_NUMBER"] ?? "+13125550100";
-        await this.env.TELNYX.messages.send({ to: state.phone_e164, from, text: message });
+        const from = (await this.env.SECRETS.get("TELNYX_FROM_NUMBER").catch(() => "")) || "+13125550100";
+        await this.env.TELNYX.messages.send({ to: this.normalizePhone(state.phone_e164), from, text: message });
 
         await this.appendInteraction("sms", `Proactive SMS: shipment "${shipment.salesforce_id}" → "${shipment.status}"`, "proactive");
       }
@@ -212,7 +216,7 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
     tracking_number?: string;
     estimated_delivery?: string;
   }): Promise<void> {
-    const sf = this.getSalesforce();
+    const sf = await this.getSalesforce();
     await sf.updateShipmentStatus(update);
 
     const state = await this.getState();
@@ -225,10 +229,10 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
     await this.setState({ shipments });
 
     if (state.proactive_consent) {
-      const llm = this.getLLM();
+      const llm = await this.getLLM();
       const message = await llm.draftProactive(state.name, update.status, update.tracking_number);
-      const from = process.env["TELNYX_FROM_NUMBER"] ?? "+13125550100";
-      await this.env.TELNYX.messages.send({ to: state.phone_e164, from, text: message });
+      const from = (await this.env.SECRETS.get("TELNYX_FROM_NUMBER").catch(() => "")) || "+13125550100";
+      await this.env.TELNYX.messages.send({ to: this.normalizePhone(state.phone_e164), from, text: message });
       await this.appendInteraction("sms", `Salesforce update → proactive SMS: "${update.status}"`, "proactive");
     }
   }
@@ -240,6 +244,10 @@ export class CustomerAgent extends Agent<Env, CustomerState> {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────
+
+  private normalizePhone(phone: string): string {
+    return phone.startsWith("+") ? phone : `+${phone}`;
+  }
 
   private async appendInteraction(
     channel: InteractionRecord["channel"],
@@ -277,5 +285,5 @@ export interface CustomerNamespace extends ActorNamespace {
 export interface Env {
   AGENT: CustomerNamespace;
   TELNYX: TelnyxBinding;
-  SECRETS?: Secrets;
+  SECRETS: Secrets;
 }

@@ -32,4 +32,17 @@ type    = "CustomerAgent"
 binding = "TELNYX"
 
 [[secrets]]
-binding = "SECRETS"
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_AI_ASSISTANT_ID"
+name = "TELNYX_AI_ASSISTANT_ID"
+
+[[secrets]]
+binding = "TELNYX_FROM_NUMBER"
+name = "TELNYX_FROM_NUMBER"
+
+[[secrets]]
+binding = "USE_MOCK_SALESFORCE"
+name = "USE_MOCK_SALESFORCE"
