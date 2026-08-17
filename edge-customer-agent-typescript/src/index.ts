@@ -44,15 +44,15 @@ export default {
 // ── Voice webhook → handleCall ──────────────────────────────────────────
 
 async function handleVoiceWebhook(req: Request, env: Env): Promise<Response> {
-  const event = (await req.json()) as VoiceWebhookEvent;
-  const customerPhone = event.data?.payload?.from ?? "";
+  const parsed = await parseWebhookBody(req);
+  const customerPhone = parsed.from ?? "";
   if (!customerPhone) return json({ error: "missing 'from' in webhook" }, 400);
 
   const stub = env.AGENT.idFromName(actorNameFromPhone(customerPhone));
   const result = await stub.handleCall(
-    event.data?.payload?.call_control_id ?? "",
+    parsed.callControlId ?? "",
     customerPhone,
-    event.data?.payload?.to ?? "",
+    parsed.to ?? "",
   );
 
   return new Response(result.texml, {
@@ -64,14 +64,14 @@ async function handleVoiceWebhook(req: Request, env: Env): Promise<Response> {
 // ── Call ended webhook → onCallEnded ────────────────────────────────────
 
 async function handleCallEndedWebhook(req: Request, env: Env): Promise<Response> {
-  const event = (await req.json()) as CallEndedWebhookEvent;
-  const customerPhone = event.data?.payload?.from ?? "";
+  const parsed = await parseWebhookBody(req);
+  const customerPhone = parsed.from ?? "";
   if (!customerPhone) return json({ error: "missing 'from' in webhook" }, 400);
 
   const stub = env.AGENT.idFromName(actorNameFromPhone(customerPhone));
   await stub.onCallEnded(
-    event.data?.payload?.call_control_id ?? "",
-    event.data?.payload?.duration ?? 0,
+    parsed.callControlId ?? "",
+    parsed.duration ?? 0,
   );
 
   return json({ ok: true });
@@ -128,6 +128,48 @@ async function handleHITLReply(req: Request, env: Env): Promise<Response> {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Parse a Telnyx webhook body, accepting both JSON (Call Control API) and
+ * form-encoded (TeXML Application) payloads. Maps field names from both
+ * formats into a normalized shape.
+ */
+async function parseWebhookBody(req: Request): Promise<{
+  from?: string;
+  to?: string;
+  callControlId?: string;
+  duration?: number;
+  text?: string;
+}> {
+  const ct = req.headers.get("content-type") ?? "";
+
+  // TeXML Application webhooks: form-encoded with PascalCase fields
+  if (ct.includes("application/x-www-form-urlencoded")) {
+    const form = await req.formData();
+    return {
+      from: (form.get("From") as string) ?? undefined,
+      to: (form.get("To") as string) ?? undefined,
+      callControlId: (form.get("CallControlId") as string) ?? undefined,
+      duration: form.get("CallDuration") ? Number(form.get("CallDuration")) : undefined,
+      text: (form.get("Body") as string) ?? undefined,
+    };
+  }
+
+  // Call Control API webhooks: JSON with nested data.payload
+  try {
+    const event = (await req.json()) as Record<string, any>;
+    const payload = event?.data?.payload ?? event;
+    return {
+      from: payload?.from ?? payload?.From,
+      to: payload?.to ?? payload?.To,
+      callControlId: payload?.call_control_id ?? payload?.CallControlId,
+      duration: payload?.duration ?? payload?.Duration,
+      text: payload?.text ?? payload?.Text,
+    };
+  } catch {
+    return {};
+  }
+}
 
 /**
  * Sanitize an E.164 phone number for use as a Dapr actor name.
