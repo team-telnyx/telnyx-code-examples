@@ -14,14 +14,23 @@ Autonomous inbound email reply bot on the Telnyx **Email API** and **AI Inferenc
 
 One API key. One platform. The agent that replies to email without you typing.
 
-> **Email API is in invite-only beta.** Request access at [telnyx.com/products/email-api](https://telnyx.com/products/email-api). The code in this directory is written against the documented API surface and will run end-to-end the moment beta access is granted.
+> **Email API is in invite-only beta.** Request access at [telnyx.com/products/email-api](https://telnyx.com/products/email-api). The endpoints below are confirmed via live API probing (2026-08-18, beta access granted).
 
 ## Telnyx API Endpoints Used
 
-- **Send Email**: `POST /v2/email_messages` — [API reference](https://developers.telnyx.com/api-reference/email-messages/create-or-send-an-email-message)
+**Confirmed working (live-verified 2026-08-18):**
+- **Send Email**: `POST /v2/emails` — returns 202 Accepted with email ID
+- **List Emails**: `GET /v2/emails` — returns `{"data": [...], "meta": {...}}`
+- **Retrieve Email**: `GET /v2/emails/{id}` — returns full email object with events, status, from, to, subject
+- **List Domains**: `GET /v2/email_domains` — returns shared + custom domains with DNS records, verification status, DKIM config
 - **AI Inference (chat completions)**: `POST /v2/ai/chat/completions` — [API reference](https://developers.telnyx.com/docs/inference/chat-completions)
-- **Fetch Inbound Message**: `GET /v2/email_inbound_messages/{id}` — confirm exact path against the [Email API inbound docs](https://developers.telnyx.com/docs/messaging/email) once beta access is granted
-- **Domain Webhook Configuration**: `POST /v2/email_domains/{domain_id}/webhooks` — per-domain webhook setup (see launch blog)
+
+**From the launch blog (not yet live-verified):**
+- **Create Domain**: `POST /v2/email_domains`
+- **Verify Domain**: `POST /v2/email_domains/{id}/verify`
+- **Domain Webhook Configuration**: `POST /v2/email_domains/{domain_id}/webhooks`
+
+> **Sandbox restriction (confirmed):** Shared domains (`mail.telnyx.com`, `msgtelnyx.com`) are in sandbox mode. The from-address must be `onboarding@<shared-domain>` and recipients must be verified email addresses on your Telnyx account. To send to arbitrary recipients, verify your own custom domain via `POST /v2/email_domains`.
 
 ## Telnyx Webhook Events
 
@@ -60,7 +69,7 @@ See the [Email API launch blog](https://telnyx.com/resources/how-to-send-emails-
            ▼
   ┌─────────────────────────────┐
   │ Fetch full inbound message  │
-  │ GET /v2/email_inbound_messages/{id}
+  │ GET /v2/emails/{id}          │
   └────────┬────────────────────┘
            │
            ▼
@@ -75,9 +84,9 @@ See the [Email API launch blog](https://telnyx.com/resources/how-to-send-emails-
            ▼
   ┌─────────────────────────────┐
   │ Send reply via Email API    │
-  │ POST /v2/email_messages     │
+  │ POST /v2/emails             │
   │ • In-Reply-To + References  │
-  │ • html_body + text_body     │
+  │ • html + text body          │
   └────────┬────────────────────┘
            │
            ▼
