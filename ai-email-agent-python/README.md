@@ -30,7 +30,11 @@ One API key. One platform. The agent that replies to email without you typing.
 - **Verify Domain**: `POST /v2/email_domains/{id}/verify`
 - **Domain Webhook Configuration**: `POST /v2/email_domains/{domain_id}/webhooks`
 
-> **Sandbox restriction (confirmed):** Shared domains (`mail.telnyx.com`, `msgtelnyx.com`) are in sandbox mode. The from-address must be `onboarding@<shared-domain>` and recipients must be verified email addresses on your Telnyx account. To send to arbitrary recipients, verify your own custom domain via `POST /v2/email_domains`.
+> **Three domain paths (confirmed via live testing 2026-08-18):**
+>
+> 1. **`shared_inbound` domain (RECOMMENDED for the demo — no DNS needed):** When you create an inbox via `POST /v2/email_inboxes` with `domain` as a string name (not `domain_id`), Telnyx auto-provisions the inbox on a Telnyx-managed `shared_inbound` subdomain (e.g. `wabsxpjb74sb.msgtelnyx.com`). Telnyx manages the MX records — no DNS verification required. The inbox can both **receive** (MX → `mx.telnyx.com`) and **send** email. This is the fastest path to a live demo.
+> 2. **Shared sandbox domain (limited):** `mail.telnyx.com`, `msgtelnyx.com`. Sandbox mode — the from-address must be `onboarding@<domain>` and recipients must be verified email addresses on your Telnyx account. Use only for quick local testing.
+> 3. **Custom verified domain:** Create your own domain via `POST /v2/email_domains`, publish the DNS records (MX, SPF, DKIM), and verify it. Then any address on that domain can send to any recipient. Use this for production deployments.
 
 ## Telnyx Webhook Events
 
@@ -101,12 +105,13 @@ Copy `.env.example` to `.env` and fill in:
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
 | `TELNYX_PUBLIC_KEY` | `string` | `-----BEGIN PUBLIC KEY-----…` | **yes** (prod) | Telnyx public key for Ed25519 webhook verification. Leave blank to skip verification (local dev only). | [Portal → API Keys → Webhook Signing Key](https://portal.telnyx.com/api-keys) |
-| `EMAIL_SENDING_DOMAIN` | `string` | `mail.telnyxemail.com` | **yes** | Sending domain (Telnyx shared domain or your own verified domain). | [Portal → Email → Domains](https://portal.telnyx.com/email) |
-| `INBOX_ADDRESS` | `string` | `[email protected]` | **yes** | Inbox address that receives inbound emails. Must be on the sending domain. | Configure in Portal once beta access is granted. |
+| `EMAIL_SENDING_DOMAIN` | `string` | `wabsxpjb74sb.msgtelnyx.com` | **yes** | Sending domain — use the `shared_inbound` subdomain Telnyx auto-provisioned (recommended), a shared sandbox domain, or your own verified domain. | [Portal → Email → Domains](https://portal.telnyx.com/email) |
+| `INBOX_ADDRESS` | `string` | `inbox-xxx@sub.msgtelnyx.com` | **yes** | Inbox address that receives inbound emails. Create via `POST /v2/email_inboxes` with `domain` as a string for the no-DNS `shared_inbound` path. | See Setup below. |
+| `REPLY_FROM_ADDRESS` | `string` | `inbox-xxx@sub.msgtelnyx.com` | no | Address the agent sends replies from. Defaults to `INBOX_ADDRESS`. Set only if you want replies from a different address. | — |
 | `AGENT_DISPLAY_NAME` | `string` | `Nyx AI Agent` | no | Display name shown in the `From:` header of AI-generated replies. | Any friendly name. |
 | `AI_MODEL` | `string` | `moonshotai/Kimi-K2.6` | no | Telnyx AI Inference model name. | [Inference models](https://developers.telnyx.com/docs/inference/models) |
 | `AGENT_SYSTEM_PROMPT` | `string` | `You are Nyx, a friendly…` | no | System prompt that defines the agent's reply persona. | See `.env.example` for the default. |
-| `MAX_TOKENS` | `integer` | `400` | no | Max tokens for AI-generated reply. | — |
+| `MAX_TOKENS` | `integer` | `2000` | no | Max tokens for AI-generated reply. 2000 gives the reasoning model room to think; lower to ~400 for shorter, cheaper replies. | — |
 | `TELNYX_PUBLIC_BASE_URL` | `string` | `https://your-tunnel.ngrok.app` | **yes** (webhooks) | Public HTTPS URL of this app. Telnyx webhooks must point to `{this}/webhooks/email`. | [ngrok](https://ngrok.com), [cloudflare-tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/), or any HTTPS tunnel. |
 | `HOST` | `string` | `0.0.0.0` | no | Flask bind host. | — |
 | `PORT` | `integer` | `8000` | no | Flask bind port. | — |
@@ -122,25 +127,46 @@ cd telnyx-code-examples/ai-email-agent-python
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-# 3. Configure environment
-cp .env.example .env
-# Edit .env — fill in TELNYX_API_KEY, TELNYX_PUBLIC_KEY,
-# EMAIL_SENDING_DOMAIN, INBOX_ADDRESS, TELNYX_PUBLIC_BASE_URL
+# 3. Create a Telnyx-managed inbound inbox (NO DNS needed).
+#    Passing "domain" as a string (not a domain_id) tells Telnyx to
+#    auto-provision the inbox on a shared_inbound subdomain it manages.
+#    The returned inbox address can both RECEIVE and SEND email.
+export TELNYX_API_KEY="KEY..."
+curl -s -X POST "https://api.telnyx.com/v2/email_inboxes" \
+  -H "Authorization: Bearer $TELNYX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "AI Email Agent demo inbox", "domain": "shared_inbound"}'
+# → {"data": {"id": "...", "email_address": "inbox-xxxx@yyyy.msgtelnyx.com",
+#            "status": "active", "domain_id": "...", ...}}
+# Note the email_address — that's your INBOX_ADDRESS and REPLY_FROM_ADDRESS.
+# Note the domain_id — you'll need it for the webhook in step 5.
 
-# 4. Expose the local server over HTTPS (Telnyx needs a public webhook URL)
+# 4. Configure environment
+cp .env.example .env
+# Edit .env — fill in:
+#   TELNYX_API_KEY, TELNYX_PUBLIC_KEY,
+#   EMAIL_SENDING_DOMAIN = the <yyyy>.msgtelnyx.com subdomain from step 3,
+#   INBOX_ADDRESS        = the inbox-xxxx@<sub>.msgtelnyx.com from step 3,
+#   REPLY_FROM_ADDRESS   = same as INBOX_ADDRESS,
+#   TELNYX_PUBLIC_BASE_URL = your public HTTPS tunnel URL (see step 5).
+
+# 5. Expose the local server over HTTPS (Telnyx needs a public webhook URL)
 ngrok http 8000
 # → copy the https://*.ngrok-free.app URL into TELNYX_PUBLIC_BASE_URL
 
-# 5. Configure the webhook in the Telnyx portal (or via API):
-#    POST /v2/email_domains/{domain_id}/webhooks
-#    { "url": "https://your-tunnel.ngrok.app/webhooks/email",
-#      "events": ["email.received", "email.delivered", "email.opened",
-#                 "email.bounced", "email.failed"] }
+# 6. Configure the webhook on your inbox's domain (no portal needed):
+curl -s -X POST "https://api.telnyx.com/v2/email_domains/<domain_id>/webhooks" \
+  -H "Authorization: Bearer $TELNYX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "url": "https://your-tunnel.ngrok.app/webhooks/email",
+        "events": ["email.received", "email.delivered", "email.opened",
+                   "email.bounced", "email.failed"] }'
 
-# 6. Run the agent
+# 7. Run the agent
 python app.py
 # → starts on http://localhost:8000
 # → dashboard live at http://localhost:8000
+# → send any email to your INBOX_ADDRESS and watch the agent reply autonomously
 ```
 
 ## Demo flow (for the video)
