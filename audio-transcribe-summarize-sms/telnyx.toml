@@ -1,0 +1,10 @@
+name = "audio-transcribe-summarize-sms"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "VOICEMAIL"
+type = "VoicemailAgent"
+
+[telnyx]
+binding = "TELNYX"

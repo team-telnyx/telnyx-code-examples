@@ -1,0 +1,17 @@
+{
+  "name": "audio-transcribe-summarize-sms",
+  "version": "1.0.0",
+  "description": "Upload a voicemail audio file → transcribe via STT → summarize with LLM → text the summary via SMS. Agent SDK pipeline on Telnyx Edge Compute.",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.9.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "license": "MIT"
+}
