@@ -115,72 +115,91 @@ def process_inbound_email(message_id: str, event_payload: dict[str, Any]) -> Non
     from agent import generate_reply, html_wrap
     from email_tools import EmailAPIError, fetch_inbound_message, send_email
 
+    from_obj_raw = event_payload.get("from", {})
+    if isinstance(from_obj_raw, dict):
+        sender_email = from_obj_raw.get("email", "")
+    else:
+        sender_email = str(from_obj_raw)
+
+    if sender_email and sender_email.lower() == INBOX_ADDRESS.lower():
+        log_event(
+            "info",
+            "Skipping self-reply (from agent's own address)",
+            f"From: {sender_email} — prevents infinite loop.",
+        )
+        return
+
     log_event(
         "inbound",
         f"New email from {event_payload.get('from', 'unknown')}",
         f"Subject: {event_payload.get('subject', '(no subject)')}",
     )
 
-    payload_body = (
-        event_payload.get("text_body")
-        or event_payload.get("text")
-        or event_payload.get("html_body")
-        or event_payload.get("html")
-    )
-    if payload_body:
-        from_obj = event_payload.get("from", {})
-        if isinstance(from_obj, dict):
-            from_email = from_obj.get("email", "")
-            from_name = from_obj.get("name", "")
-        else:
-            from_email = str(from_obj)
-            from_name = ""
-        to_obj = event_payload.get("to", {})
-        if isinstance(to_obj, list) and to_obj:
-            first = to_obj[0]
-            to_email = first.get("email", "") if isinstance(first, dict) else str(first)
-        elif isinstance(to_obj, dict):
-            to_email = to_obj.get("email", "")
-        else:
-            to_email = str(to_obj)
-        inbound = {
-            "message_id": message_id,
-            "from": from_email,
-            "from_name": from_name,
-            "to": to_email,
-            "subject": event_payload.get("subject", "(no subject)"),
-            "text_body": event_payload.get("text_body") or event_payload.get("text") or "",
-            "html_body": event_payload.get("html_body") or event_payload.get("html") or "",
-        }
-        log_event(
-            "inbound",
-            f"Using body from webhook payload",
-            f"Subject: {inbound.get('subject', '(no subject)')} · "
-            f"body: {(inbound.get('text_body') or '(html only)')[:120]}…",
-        )
+    from_obj = event_payload.get("from", {})
+    if isinstance(from_obj, dict):
+        from_email = from_obj.get("email", "")
+        from_name = from_obj.get("name", "")
     else:
+        from_email = str(from_obj)
+        from_name = ""
+    to_obj = event_payload.get("to", {})
+    if isinstance(to_obj, list) and to_obj:
+        first = to_obj[0]
+        to_email = first.get("email", "") if isinstance(first, dict) else str(first)
+    elif isinstance(to_obj, dict):
+        to_email = to_obj.get("email", "")
+    else:
+        to_email = str(to_obj)
+
+    text_body = event_payload.get("text_body") or ""
+    html_body = event_payload.get("html_body") or ""
+    text_url = event_payload.get("text_body_url")
+    html_url = event_payload.get("html_body_url")
+
+    if (not text_body or text_body == "(no content)") and text_url:
         try:
-            inbound = fetch_inbound_message(message_id)
-        except EmailAPIError as exc:
-            log_event("error", f"Failed to fetch inbound message {message_id}", str(exc))
-            return
-        if not inbound.get("text_body") and not inbound.get("html_body"):
-            log_event(
-                "error",
-                f"Empty body for message {message_id}",
-                "Inbound message had no text_body or html_body — cannot generate reply. "
-                "The webhook payload did not include a body, and GET /v2/emails/{id} "
-                "returned null bodies. This may happen if the Email API does not store "
-                "body content for retrieval. Check the webhook payload shape or use a "
-                "domain with inbound fully configured.",
-            )
-            return
+            import requests as _rq
+            r = _rq.get(text_url, timeout=15)
+            if r.ok:
+                text_body = r.text
+                log_event("inbound", "Fetched text body from text_body_url", f"{len(text_body)} chars")
+        except Exception as exc:
+            log_event("error", "Failed to fetch text_body_url", str(exc))
+
+    if (not html_body or html_body == "(no content)") and html_url:
+        try:
+            import requests as _rq
+            r = _rq.get(html_url, timeout=15)
+            if r.ok:
+                html_body = r.text
+                log_event("inbound", "Fetched html body from html_body_url", f"{len(html_body)} chars")
+        except Exception as exc:
+            log_event("error", "Failed to fetch html_body_url", str(exc))
+
+    payload_body = text_body or html_body
+
+    if not payload_body:
         log_event(
-            "inbound",
-            f"Fetched message from {inbound.get('from', 'unknown')}",
-            f"Subject: {inbound.get('subject', '(no subject)')} · "
-            f"body: {(inbound.get('text_body') or '(html only)')[:120]}…",
+            "error",
+            f"Empty body for message {message_id}",
+            "No text_body or html_body in webhook payload, and body URLs returned no content.",
         )
+        return
+
+    inbound = {
+        "message_id": message_id,
+        "from": from_email,
+        "from_name": from_name,
+        "to": to_email,
+        "subject": event_payload.get("subject", "(no subject)"),
+        "text_body": text_body,
+        "html_body": html_body,
+    }
+    log_event(
+        "inbound",
+        f"Body ready for AI",
+        f"Subject: {inbound['subject']} · text: {text_body[:100]}{'...' if len(text_body) > 100 else ''}",
+    )
 
     # 2. Ask Telnyx AI Inference to draft a reply.
     try:

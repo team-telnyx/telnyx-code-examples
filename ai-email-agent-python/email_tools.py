@@ -42,6 +42,7 @@ API_BASE = "https://api.telnyx.com/v2"
 # Sending domain and inbox address (configured via portal or API).
 EMAIL_SENDING_DOMAIN = os.getenv("EMAIL_SENDING_DOMAIN", "")
 INBOX_ADDRESS = os.getenv("INBOX_ADDRESS", "")
+REPLY_FROM_ADDRESS = os.getenv("REPLY_FROM_ADDRESS", "")
 AGENT_DISPLAY_NAME = os.getenv("AGENT_DISPLAY_NAME", "Nyx AI Agent")
 
 _HEADERS = {
@@ -98,7 +99,7 @@ def send_email(
     the conversation.
     """
     if from_email is None:
-        from_email = INBOX_ADDRESS
+        from_email = REPLY_FROM_ADDRESS or INBOX_ADDRESS
 
     payload: dict[str, Any] = {
         "from": from_email,
