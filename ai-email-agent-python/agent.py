@@ -23,7 +23,7 @@ DEFAULT_SYSTEM_PROMPT = os.getenv(
         "Sign off as 'Nyx, Telnyx AI Agent'."
     ),
 )
-MAX_TOKENS = int(os.getenv("MAX_TOKENS", "400"))
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2000"))
 
 INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
 
@@ -93,10 +93,21 @@ def generate_reply(
             "max_tokens": tokens,
             "temperature": 0.7,
         },
-        timeout=30,
+        timeout=60,
     )
     resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"].strip()
+    body = resp.json()
+    choice = body["choices"][0]
+    message = choice.get("message", {})
+    content = message.get("content")
+    if not content and message.get("reasoning"):
+        content = message["reasoning"]
+    if not isinstance(content, str) or not content.strip():
+        raise RuntimeError(
+            f"AI inference returned empty content (finish_reason={choice.get('finish_reason')}, "
+            f"model={AI_MODEL}). Try increasing MAX_TOKENS."
+        )
+    return content.strip()
 
 
 def html_wrap(plain_text: str) -> str:
