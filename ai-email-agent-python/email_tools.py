@@ -107,9 +107,9 @@ def send_email(
         "subject": subject,
     }
     if html_body is not None:
-        payload["html"] = html_body
+        payload["html_body"] = html_body
     if text_body is not None:
-        payload["text"] = text_body
+        payload["text_body"] = text_body
 
     # Threading headers (passed via the `headers` object — most transactional
     # email APIs accept In-Reply-To and References as custom headers).

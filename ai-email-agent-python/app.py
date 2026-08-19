@@ -305,6 +305,14 @@ def health() -> tuple[Any, int]:
     )
 
 
+@app.route("/clear", methods=["POST", "GET"])
+def clear_events() -> tuple[Any, int]:
+    """Clear all dashboard events."""
+    with _log_lock:
+        _events.clear()
+    return jsonify({"status": "cleared", "events_remaining": len(_events)}), 200
+
+
 @app.route("/", methods=["GET"])
 def dashboard() -> str:
     """Live dashboard — shows every step of the AI email agent as it happens.
