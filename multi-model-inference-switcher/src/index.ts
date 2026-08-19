@@ -31,9 +31,9 @@ const KV_KEY = "active-model";
 const SESSION_ID = "default";
 
 export const AVAILABLE_MODELS = [
-  { id: "moonshotai/Kimi-K2.6", name: "Kimi K2.6", vendor: "Moonshot AI" },
   { id: "zai-org/GLM-5.2", name: "GLM-5.2", vendor: "Zhipu AI" },
-  { id: "meta-llama/Llama-3.3-70B-Instruct", name: "Llama 3.3 70B", vendor: "Meta" },
+  { id: "MiniMaxAI/MiniMax-M3-MXFP8", name: "MiniMax M3", vendor: "MiniMax" },
+  { id: "moonshotai/Kimi-K2.6", name: "Kimi K2.6", vendor: "Moonshot AI" },
 ];
 
 const DEFAULT_MODEL = AVAILABLE_MODELS[0].id;

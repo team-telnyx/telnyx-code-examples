@@ -78,6 +78,8 @@ export class SwitcherAgent extends Agent<SwitcherEnv, SwitcherState> {
         temperature: 0.7,
       });
       reply = completion.choices[0]?.message?.content?.trim() || "";
+      // Strip thinking tags from MiniMax and other models that leak them
+      reply = reply.replace(/<\/?mm:think>/g, "").replace(/<\/?think>/g, "").trim();
     } catch {
       reply = "Sorry, I couldn't process that right now.";
     }
