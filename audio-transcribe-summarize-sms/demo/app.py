@@ -29,7 +29,7 @@ load_dotenv()
 
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY", "")
 SENDER_PHONE = os.getenv("SENDER_PHONE", "")
-AI_MODEL = os.getenv("AI_MODEL", "zai-org/GLM-5.2")
+AI_MODEL = os.getenv("AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
 STORAGE_BUCKET = os.getenv("STORAGE_BUCKET", "")
 STORAGE_REGION = os.getenv("STORAGE_REGION", "us-central-1")
 
@@ -72,13 +72,14 @@ def run_pipeline(audio_bytes: bytes, filename: str, recipient_phone: str) -> Non
 
         # Stage 1: Transcribe
         update_pipeline("transcribing")
-        log_event("transcribe", "Sending to STT API", f"model: whisper, file: {filename}")
+        log_event("transcribe", "Sending to STT API", f"model: distil-whisper/distil-large-v2, file: {filename}")
         headers = {"Authorization": f"Bearer {TELNYX_API_KEY}"}
-        files = {"audio": (filename, audio_bytes, "audio/wav")}
-        stt_resp = requests.post(STT_URL, headers=headers, files=files, timeout=60)
+        files = {"file": (filename, audio_bytes, "audio/wav")}
+        data = {"model": "distil-whisper/distil-large-v2"}
+        stt_resp = requests.post(STT_URL, headers=headers, files=files, data=data, timeout=60)
         stt_resp.raise_for_status()
         stt_data = stt_resp.json()
-        transcript = stt_data.get("result", {}).get("transcription", "") or stt_data.get("text", "")
+        transcript = stt_data.get("text", "")
         log_event("transcribe", "Transcript received", transcript[:100] + "..." if len(transcript) > 100 else transcript)
         update_pipeline("summarizing", transcript=transcript)
 
