@@ -1,0 +1,29 @@
+name = "geo-distributed-call-logger"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "GEO_LOGGER"
+type = "GeoLoggerAgent"
+
+[[actors]]
+binding = "REGISTRY"
+type = "CallRegistry"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.kv.REGION_KV]
+id = "<kv-namespace-uuid>"
+
+[env_vars]
+ALERT_PHONE = "+18005551234"
+SENDER_PHONE = "+18005551234"
+# Alert threshold — SMS fires when a region's call count in the current window exceeds this
+REGION_THRESHOLD = "100"
+# Window size in seconds for the rolling counter (default: 3600 = 1 hour)
+WINDOW_SECONDS = "3600"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
