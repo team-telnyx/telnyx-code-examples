@@ -374,9 +374,9 @@ function leadFromRow(row: Record<string, unknown>): LeadRef {
     meeting_time: row["Meeting_Time__c"] ? String(row["Meeting_Time__c"]) : null,
     meeting_status: row["Meeting_Status__c"] ? String(row["Meeting_Status__c"]) : undefined,
     customer_context: row["Customer_Context__c"] ? String(row["Customer_Context__c"]) : undefined,
-    assigned_sdr: row["Assigned_SDR__c"] ? String(row["Assigned_SDR__c"]) : undefined,
-    sdr_confirmation: row["SDR_Confirmation__c"] ? String(row["SDR_Confirmation__c"]) : undefined,
-    customer_confirmation: row["Customer_Confirmation__c"] ? String(row["Customer_Confirmation__c"]) : undefined,
+    assigned_sdr: row["SDR_Assigned__c"] ? String(row["SDR_Assigned__c"]) : undefined,
+    sdr_confirmation: row["SDR_Approval__c"] ? String(row["SDR_Approval__c"]) : undefined,
+    customer_confirmation: row["Customer_Approval__c"] ? String(row["Customer_Approval__c"]) : undefined,
     previous_meeting_time: null,
   };
 }
@@ -431,9 +431,9 @@ const DEMO_MEETING_FIELDS = [
   "Meeting_Time__c",
   "Meeting_Status__c",
   "Customer_Context__c",
-  "Assigned_SDR__c",
-  "SDR_Confirmation__c",
-  "Customer_Confirmation__c",
+  "SDR_Assigned__c",
+  "SDR_Approval__c",
+  "Customer_Approval__c",
 ];
 
 /**
@@ -532,7 +532,7 @@ export async function createOrUpdateLead(
  *
  * First pass: mock returns "Steve". Real path will use Salesforce assignment
  * rules, round-robin, or a custom Flow — but for the demo, we hardcode Steve
- * and write the assignment to the Lead's Assigned_SDR__c field.
+ * and write the assignment to the Lead's SDR_Assigned__c field.
  */
 export async function assignSdr(
   env: Env,
@@ -545,14 +545,14 @@ export async function assignSdr(
   console.log("[salesforce] assignSdr resolved SDR", { assignedSdr, useMock: config.useMock });
 
   if (!config.useMock) {
-    console.log("[salesforce] PATCH Lead Assigned_SDR__c", { leadId, assignedSdr });
+    console.log("[salesforce] PATCH Lead SDR_Assigned__c", { leadId, assignedSdr });
     const res = await salesforceFetch(
       config,
       `/services/data/${config.apiVersion}/sobjects/Lead/${encodeURIComponent(leadId)}`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Assigned_SDR__c: assignedSdr }),
+        body: JSON.stringify({ SDR_Assigned__c: assignedSdr }),
       },
     );
     console.log("[salesforce] PATCH response", { status: res.status, ok: res.ok });
@@ -626,9 +626,9 @@ export async function updateLeadMeeting(
   if (input.meeting_status) patchBody["Meeting_Status__c"] = input.meeting_status;
   if (input.meeting_time) patchBody["Meeting_Time__c"] = input.meeting_time;
   if (input.requested_meeting_time) patchBody["Requested_Meeting_Time__c"] = input.requested_meeting_time;
-  if (input.assigned_sdr) patchBody["Assigned_SDR__c"] = input.assigned_sdr;
-  if (input.sdr_confirmation) patchBody["SDR_Confirmation__c"] = input.sdr_confirmation;
-  if (input.customer_confirmation) patchBody["Customer_Confirmation__c"] = input.customer_confirmation;
+  if (input.assigned_sdr) patchBody["SDR_Assigned__c"] = input.assigned_sdr;
+  if (input.sdr_confirmation) patchBody["SDR_Approval__c"] = input.sdr_confirmation;
+  if (input.customer_confirmation) patchBody["Customer_Approval__c"] = input.customer_confirmation;
   if (input.customer_context) patchBody["Customer_Context__c"] = input.customer_context;
   if (input.shipment) patchBody["Shipment__c"] = input.shipment;
 
@@ -706,7 +706,7 @@ export async function getLeadCurrentMeeting(
     lead_id: String(row["Id"] ?? leadId),
     meeting_time: row["Meeting_Time__c"] ? String(row["Meeting_Time__c"]) : null,
     meeting_status: row["Meeting_Status__c"] ? String(row["Meeting_Status__c"]) : null,
-    assigned_sdr: row["Assigned_SDR__c"] ? String(row["Assigned_SDR__c"]) : null,
+    assigned_sdr: row["SDR_Assigned__c"] ? String(row["SDR_Assigned__c"]) : null,
     requested_meeting_time: row["Requested_Meeting_Time__c"] ? String(row["Requested_Meeting_Time__c"]) : null,
     previous_meeting_time: null,
   };
@@ -780,9 +780,9 @@ function mockUpdateLeadMeeting(input: LeadMeetingUpdateInput): LeadMeetingUpdate
   if (input.meeting_status) { updated.meeting_status = input.meeting_status; fieldsUpdated.push("Meeting_Status__c"); }
   if (input.meeting_time) { updated.meeting_time = input.meeting_time; fieldsUpdated.push("Meeting_Time__c"); }
   if (input.requested_meeting_time) { updated.requested_meeting_time = input.requested_meeting_time; fieldsUpdated.push("Requested_Meeting_Time__c"); }
-  if (input.assigned_sdr) { updated.assigned_sdr = input.assigned_sdr; fieldsUpdated.push("Assigned_SDR__c"); }
-  if (input.sdr_confirmation) { updated.sdr_confirmation = input.sdr_confirmation; fieldsUpdated.push("SDR_Confirmation__c"); }
-  if (input.customer_confirmation) { updated.customer_confirmation = input.customer_confirmation; fieldsUpdated.push("Customer_Confirmation__c"); }
+  if (input.assigned_sdr) { updated.assigned_sdr = input.assigned_sdr; fieldsUpdated.push("SDR_Assigned__c"); }
+  if (input.sdr_confirmation) { updated.sdr_confirmation = input.sdr_confirmation; fieldsUpdated.push("SDR_Approval__c"); }
+  if (input.customer_confirmation) { updated.customer_confirmation = input.customer_confirmation; fieldsUpdated.push("Customer_Approval__c"); }
   if (input.customer_context) { updated.customer_context = input.customer_context; fieldsUpdated.push("Customer_Context__c"); }
   if (input.shipment) { updated.shipment = input.shipment; fieldsUpdated.push("Shipment__c"); }
   updated.previous_meeting_time = previousMeetingTime;

@@ -322,8 +322,8 @@ describe("updateLeadMeeting (mock)", () => {
 
     expect(result.lead.sdr_confirmation).toBe("Yes");
     expect(result.lead.customer_confirmation).toBe("Confirmed");
-    expect(result.fields_updated).toContain("SDR_Confirmation__c");
-    expect(result.fields_updated).toContain("Customer_Confirmation__c");
+    expect(result.fields_updated).toContain("SDR_Approval__c");
+    expect(result.fields_updated).toContain("Customer_Approval__c");
   });
 
   it("returns empty fields_updated when no fields are passed", async () => {
