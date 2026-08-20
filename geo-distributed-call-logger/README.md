@@ -113,7 +113,7 @@ Use the Telnyx CLI (or ngrok) to expose `POST /webhooks/voice` to the internet, 
 # Simulate an inbound call from a Dutch number
 curl -X POST http://localhost:3000/simulate \
   -H "Content-Type: application/json" \
-  -d '{"from":"+31626781895","to":"+18005551234","direction":"inbound","duration":42}'
+  -d '{"from":"+31612345678","to":"+18005551234","direction":"inbound","duration":42}'
 ```
 
 ### Check call status
