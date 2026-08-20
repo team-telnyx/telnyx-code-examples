@@ -1,0 +1,33 @@
+{
+  "name": "customer-agent-langgraph-edge",
+  "version": "0.1.0",
+  "description": "CustomerAgent is the durable entity. A LangGraph StateGraph (intent → action → response) runs inside the per-customer actor on Telnyx Edge Compute, with zero-credential inference via the Telnyx API binding. SMS, voice, Salesforce, schedules, and human escalation all route into the same customer actor.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "local:dev": "vite-node scripts/local-dev.ts",
+    "salesforce:lookup": "vite-node scripts/salesforce-lookup.ts",
+    "salesforce:update-lead": "vite-node scripts/salesforce-update-lead.ts",
+    "typecheck": "tsc --noEmit",
+    "types": "telnyx-edge types",
+    "ship": "telnyx-edge ship",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.2.0",
+    "@telnyx/edge-runtime": "^0.9.2",
+    "svix": "^2.0.0",
+    "telnyx": "^7.13.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

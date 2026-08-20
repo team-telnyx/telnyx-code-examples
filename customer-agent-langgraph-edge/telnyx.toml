@@ -1,0 +1,62 @@
+# Scaffold: telnyx-edge new-func --actor --name=customer-agent-langgraph-edge
+# Then copy the bindings below into the generated telnyx.toml so func_id is assigned.
+
+name = "customer-agent-langgraph-edge"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "CUSTOMERS"
+type = "CustomerAgentLangGraphV2"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "SF_CLIENT_ID"
+name = "SF_CLIENT_ID"
+
+[[secrets]]
+binding = "SF_CLIENT_SECRET"
+name = "SF_CLIENT_SECRET"
+
+[[secrets]]
+binding = "USE_MOCK_SALESFORCE"
+name = "USE_MOCK_SALESFORCE"
+
+[[secrets]]
+binding = "SF_WRITE_MODE"
+name = "SF_WRITE_MODE"
+
+[[secrets]]
+binding = "SF_DOMAIN"
+name = "SF_DOMAIN"
+
+[[secrets]]
+binding = "SF_API_VERSION"
+name = "SF_API_VERSION"
+
+[[secrets]]
+binding = "SF_DEMO_LEAD_EMAIL"
+name = "SF_DEMO_LEAD_EMAIL"
+
+[edge_compute]
+func_id = "bd2578f9-62f2-4d16-9ba4-ca36ba72ea53"
+func_name = "customer-agent-langgraph-edge"
+
+[env_vars]
+DEMO_MODE = "true"
+SMS_TRANSPORT = "production"
+DEMO_FROM_NUMBER = "+16282564467"
+DEMO_SENDER_NUMBER = "+14157986793"
+DEMO_CUSTOMER_NAME = "Anusha"
+DEMO_CUSTOMER_SALESFORCE_ID = "mock-anusha-salesforce-id"
+USE_MOCK_SALESFORCE = "false"
+SF_WRITE_MODE = "demo_record"
+SF_DOMAIN = "telnyx"
+SF_API_VERSION = "v58.0"
+MODEL = "zai-org/GLM-5.2"
