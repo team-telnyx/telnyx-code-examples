@@ -295,6 +295,7 @@ export interface RescheduleEvent {
   detected_at: number;
   proactive_sms_sent: boolean;
   source: "salesforce_manual";
+  status: "pending_customer_ack" | "acknowledged";
 }
 
 export interface CallResultInput {
@@ -331,6 +332,7 @@ export interface ResponderContext {
   customer_confirmation: string | null;
   history: HistoryEntry[];
   narrative_summary: string;
+  likely_reason_for_call: string;
 }
 
 export interface WebhookEventRow {

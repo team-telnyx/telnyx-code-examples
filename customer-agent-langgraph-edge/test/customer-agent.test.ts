@@ -801,6 +801,7 @@ describe("CustomerAgent.ingestCallResult() — confirm_reschedule", () => {
         detected_at: Date.now(),
         proactive_sms_sent: true,
         source: "salesforce_manual",
+        status: "pending_customer_ack",
       },
     });
 
@@ -828,7 +829,7 @@ describe("CustomerAgent.ingestCallResult() — confirm_reschedule", () => {
     const agent = makeAgent();
     Object.assign(mockState, {
       latest_lead: { id: "00Q-test-lead-1", meeting_time: "Thursday at 11 AM" },
-      reschedule_event: { new_meeting_time: "Thursday at 11 AM" },
+      reschedule_event: { new_meeting_time: "Thursday at 11 AM", old_meeting_time: "Tuesday at 9 AM", detected_at: Date.now(), proactive_sms_sent: true, source: "salesforce_manual", status: "pending_customer_ack" },
     });
 
     await agent.ingestCallResult({
@@ -880,6 +881,7 @@ describe("CustomerAgent.getCallContext()", () => {
         detected_at: 1700000000000,
         proactive_sms_sent: true,
         source: "salesforce_manual",
+        status: "pending_customer_ack",
       },
       history: [
         { role: "user", content: "Call from Anusha", at: 1700000000000 },

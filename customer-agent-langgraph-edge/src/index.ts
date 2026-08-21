@@ -407,6 +407,7 @@ async function handleAssistantInitialization(
       proactive_sms_sent: ctx.proactive_sms_sent,
       sdr_confirmation: ctx.sdr_confirmation ?? "",
       narrative_summary: ctx.narrative_summary,
+      likely_reason_for_call: ctx.likely_reason_for_call,
     },
   });
 }

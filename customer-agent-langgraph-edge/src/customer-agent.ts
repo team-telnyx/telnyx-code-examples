@@ -408,6 +408,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
           detected_at: now,
           proactive_sms_sent: false,
           source: "salesforce_manual",
+          status: "pending_customer_ack",
         }
       : state.reschedule_event;
 
@@ -858,6 +859,9 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       latest_lead: updatedLead,
       lastIntent: "confirm_reschedule",
       history: nextHistory,
+      reschedule_event: state.reschedule_event
+        ? { ...state.reschedule_event, status: "acknowledged" }
+        : null,
       at: now,
     });
 
@@ -892,11 +896,11 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     const isReturningCaller = Boolean(lead);
 
     const originalRequestedTime = lead?.requested_meeting_time ?? null;
-    const originalConfirmedTime = lead?.meeting_time ?? null;
+    const originalConfirmedTime = reschedule?.old_meeting_time ?? lead?.meeting_time ?? null;
     const assignedSdr = lead?.assigned_sdr ?? null;
     const sdrConfirmation = lead?.sdr_confirmation ?? null;
     const newMeetingTime = reschedule?.new_meeting_time ?? null;
-    const salesforceManuallyChanged = Boolean(reschedule);
+    const salesforceManuallyChanged = Boolean(reschedule && reschedule.status === "pending_customer_ack");
     const rescheduleDetectedAt = reschedule?.detected_at ?? null;
     const proactiveSmsSent = reschedule?.proactive_sms_sent ?? false;
     const meetingStatus = lead?.meeting_status ?? null;
@@ -916,7 +920,21 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       customerConfirmation,
     });
 
-    console.log("[actor] getCallContext", { phone: from, isReturningCaller, hasLead: !!lead, hasReschedule: !!reschedule });
+    const likelyReasonForCall = this.buildLikelyReasonForCall({
+      name: state.name || "the customer",
+      assignedSdr,
+      originalConfirmedTime,
+      newMeetingTime,
+      salesforceManuallyChanged,
+      proactiveSmsSent,
+    });
+
+    this.logProcess(
+      state.turn,
+      "get_call_context",
+      "unknown",
+      `phone=${from} is_returning=${isReturningCaller} has_reschedule=${salesforceManuallyChanged} old_time=${originalConfirmedTime} new_time=${newMeetingTime} sms_sent=${proactiveSmsSent}`,
+    );
 
     return {
       phone_e164: state.phone_e164 || from,
@@ -936,6 +954,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       customer_confirmation: customerConfirmation,
       history: state.history,
       narrative_summary: narrativeSummary,
+      likely_reason_for_call: likelyReasonForCall,
     };
   }
 
@@ -984,6 +1003,27 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     }
 
     return parts.join(" ");
+  }
+
+  private buildLikelyReasonForCall(args: {
+    name: string;
+    assignedSdr: string | null;
+    originalConfirmedTime: string | null;
+    newMeetingTime: string | null;
+    salesforceManuallyChanged: boolean;
+    proactiveSmsSent: boolean;
+  }): string {
+    if (args.salesforceManuallyChanged && args.newMeetingTime) {
+      const oldTime = args.originalConfirmedTime ?? "the previously agreed time";
+      const sdr = args.assignedSdr ?? "the SDR";
+      const parts = [
+        `${args.name}'s previously confirmed sales meeting with ${sdr} was just moved from ${oldTime} to ${args.newMeetingTime} in Salesforce.`,
+        args.proactiveSmsSent ? `An SMS notifying ${args.name} of the change was sent recently.` : "",
+        `${args.name} may be calling about this reschedule.`,
+      ].filter(Boolean);
+      return parts.join(" ");
+    }
+    return "";
   }
 
   async onCall(input: VoiceCallInput): Promise<{ prompt: string }> {
