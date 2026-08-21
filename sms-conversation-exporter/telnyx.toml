@@ -1,0 +1,26 @@
+name = "sms-conversation-exporter"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "EXPORT_AGENT"
+type = "ExportAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.kv.EXPORT_KV]
+id = "<kv-namespace-uuid>"
+
+[storage.cloudstorage.EXPORT_STORAGE]
+bucket_name = "<storage-bucket-name>"
+region = "us-central-1"
+
+[env_vars]
+ALERT_PHONE = "+18005551234"
+SENDER_PHONE = "+18005551234"
+CHUNK_SIZE = "500"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"

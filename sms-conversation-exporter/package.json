@@ -1,0 +1,18 @@
+{
+  "name": "sms-conversation-exporter",
+  "private": true,
+  "version": "0.0.0",
+  "description": "SMS Conversation Exporter — Chunked export of SMS conversation history from Edge SQL to Cloud Storage as JSON, with completion SMS notification via zero-credential messaging. Agent SDK on Telnyx Edge Compute.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "npm run build && telnyx-edge dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
