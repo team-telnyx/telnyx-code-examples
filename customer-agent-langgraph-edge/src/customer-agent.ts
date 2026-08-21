@@ -45,6 +45,16 @@ const LEAD_FOLLOWUP_DELAY_SECONDS = 3 * 24 * 60 * 60;
 const SDR_NAME_DEFAULT = "Steve";
 const SDR_EMAIL_DEFAULT = "steve@example.com";
 
+function normalizeMeetingTime(time: string | null): string | null {
+  if (!time) return null;
+  const trimmed = time.trim();
+  if (!trimmed) return null;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(trimmed)) {
+    return trimmed.replace(/\.000\+0000$/, "Z").slice(0, 16);
+  }
+  return trimmed.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
 function telnyx(env: Env): TelnyxEdgeClient {
   return env.TELNYX as unknown as TelnyxEdgeClient;
 }
@@ -365,10 +375,17 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
 
     const previousMeetingTime = state.latest_lead?.meeting_time ?? null;
     const newMeetingTime = input.meeting_time ?? null;
+
+    // Normalize both times for comparison. Salesforce sends ISO datetime (e.g.
+    // "2026-08-29T20:30:00.000+0000"), actor stores natural language (e.g.
+    // "Friday August 29 at 1:30 PM"). Normalize by extracting just the date+time
+    // portion from ISO and comparing the ISO-normalized versions.
+    const prevNorm = normalizeMeetingTime(previousMeetingTime);
+    const newNorm = normalizeMeetingTime(newMeetingTime);
     const rescheduleDetected =
-      previousMeetingTime !== null &&
-      newMeetingTime !== null &&
-      previousMeetingTime !== newMeetingTime;
+      prevNorm !== null &&
+      newNorm !== null &&
+      prevNorm !== newNorm;
     console.log("[actor] ingestSalesforceLeadChange diff", { previousMeetingTime, newMeetingTime, rescheduleDetected });
 
     const updatedLead = state.latest_lead
@@ -404,7 +421,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     let proactiveSmsSent = false;
     if (rescheduleDetected && state.proactive_consent && state.to && (input.phone_e164 || state.phone_e164)) {
       const customerPhone = input.phone_e164 || state.phone_e164;
-      const smsText = `Hi ${state.name || "Anusha"} — your Telnyx onboarding meeting has been moved to ${newMeetingTime}.`;
+      const smsText = `Hi ${state.name || "Anusha"} — your sales meeting with Steve has been moved to ${newMeetingTime}.`;
       if (smsTransportEnabled(this.env)) {
         try {
           await telnyx(this.env).messages.send({ from: state.to, to: customerPhone, text: smsText });

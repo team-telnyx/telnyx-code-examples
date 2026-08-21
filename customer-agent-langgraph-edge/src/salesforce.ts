@@ -362,7 +362,10 @@ function toSalesforceDatetime(naturalTime: string): string | null {
     if (simpleTimeMatch[2] === "am" && hour === 12) hour = 0;
   }
 
-  target.setUTCHours(hour, minute, 0, 0);
+  // Interpret the meeting time as Pacific Time (PDT = UTC-7).
+  // Convert local PT hour to UTC by adding 7.
+  const PT_OFFSET = 7;
+  target.setUTCHours(hour + PT_OFFSET, minute, 0, 0);
 
   if (isNaN(target.getTime())) return null;
 
