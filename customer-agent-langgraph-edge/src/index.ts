@@ -21,6 +21,9 @@ import type {
   VoiceCallInput,
   SdrConfirmationInput,
   SdrReplyInput,
+  CallResultInput,
+  SalesforceLeadChangeInput,
+  Intent,
 } from "./types.js";
 
 export { CustomerAgent };
@@ -294,6 +297,145 @@ async function handleSdrEmail(request: Request, env: Env): Promise<Response> {
   return json({ ok: true, actor: actorNameForCustomer(phone), result });
 }
 
+async function handleCallResult(request: Request, env: Env): Promise<Response> {
+  const body = await parseJson<Partial<CallResultInput>>(request);
+  const from = normalizePhoneE164(body.from, "");
+  if (!from) return badRequest("from must be E.164");
+  if (!body.intent) return badRequest("intent is required");
+
+  const { customer } = customerForPhone(env, from);
+  const result = await customer.ingestCallResult({
+    from,
+    to: typeof body.to === "string" ? body.to : undefined,
+    call_control_id: typeof body.call_control_id === "string" ? body.call_control_id : undefined,
+    call_session_id: typeof body.call_session_id === "string" ? body.call_session_id : undefined,
+    intent: body.intent as Intent,
+    requested_meeting_time: typeof body.requested_meeting_time === "string" ? body.requested_meeting_time : undefined,
+    customer_name: typeof body.customer_name === "string" ? body.customer_name : undefined,
+    customer_email: typeof body.customer_email === "string" ? body.customer_email : undefined,
+    customer_phone: typeof body.customer_phone === "string" ? body.customer_phone : undefined,
+    customer_context: typeof body.customer_context === "string" ? body.customer_context : undefined,
+    customer_approved: typeof body.customer_approved === "boolean" ? body.customer_approved : undefined,
+    meeting_time: typeof body.meeting_time === "string" ? body.meeting_time : undefined,
+    transcript_summary: typeof body.transcript_summary === "string" ? body.transcript_summary : undefined,
+  });
+
+  return json({ ok: true, actor: actorNameForCustomer(from), result });
+}
+
+async function handleCallContext(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const from = normalizePhoneE164(url.searchParams.get("from"), "");
+  if (!from) return badRequest("from must be E.164");
+
+  const { customer } = customerForPhone(env, from);
+  const context = await customer.getCallContext(from);
+
+  return json(context);
+}
+
+async function handleSalesforceLeadChange(request: Request, env: Env): Promise<Response> {
+  const body = await parseJson<Partial<SalesforceLeadChangeInput>>(request);
+  const phone = normalizePhoneE164(body.phone_e164, "");
+  if (!phone) return badRequest("phone_e164 must be E.164");
+  if (!body.lead_id) return badRequest("lead_id is required");
+
+  const { customer } = customerForPhone(env, phone);
+  const result = await customer.ingestSalesforceLeadChange({
+    phone_e164: phone,
+    lead_id: body.lead_id,
+    meeting_time: typeof body.meeting_time === "string" ? body.meeting_time : body.meeting_time ?? undefined,
+    meeting_status: typeof body.meeting_status === "string" ? body.meeting_status : undefined,
+    assigned_sdr: typeof body.assigned_sdr === "string" ? body.assigned_sdr : undefined,
+    requested_meeting_time: typeof body.requested_meeting_time === "string" ? body.requested_meeting_time : body.requested_meeting_time ?? undefined,
+    customer_context: typeof body.customer_context === "string" ? body.customer_context : undefined,
+    shipment: typeof body.shipment === "string" ? body.shipment : undefined,
+  });
+
+  return json({ ok: true, actor: actorNameForCustomer(phone), result });
+}
+
+interface AssistantInitPayload {
+  data?: {
+    event_type?: string;
+    payload?: {
+      telnyx_end_user_target?: string;
+      telnyx_agent_target?: string;
+      call_control_id?: string;
+    };
+  };
+}
+
+async function handleAiAssistant(request: Request, env: Env): Promise<Response> {
+  const body = await parseJson<Record<string, unknown>>(request);
+
+  if (body.data && typeof body.data === "object") {
+    const eventData = body.data as { event_type?: string; payload?: Record<string, unknown> };
+    if (eventData.event_type === "assistant.initialization") {
+      return handleAssistantInitialization(eventData.payload ?? {}, env);
+    }
+  }
+
+  return handleAssistantToolCall(body, env);
+}
+
+async function handleAssistantInitialization(
+  payload: Record<string, unknown>,
+  env: Env,
+): Promise<Response> {
+  const callerPhone = normalizePhoneE164(
+    payload.telnyx_end_user_target,
+    demoSenderNumber(env),
+  );
+  if (!callerPhone) {
+    return json({ dynamic_variables: { caller_phone: "", is_returning_caller: false } });
+  }
+
+  const { customer } = customerForPhone(env, callerPhone);
+  const ctx = await customer.getCallContext(callerPhone);
+
+  return json({
+    dynamic_variables: {
+      caller_phone: ctx.phone_e164 || callerPhone,
+      customer_name: ctx.name || "there",
+      is_returning_caller: ctx.is_returning_caller,
+      assigned_sdr: ctx.assigned_sdr ?? "",
+      meeting_status: ctx.meeting_status ?? "",
+      original_meeting_time: ctx.original_confirmed_meeting_time ?? ctx.original_requested_meeting_time ?? "",
+      new_meeting_time: ctx.new_meeting_time ?? "",
+      salesforce_manually_changed: ctx.salesforce_manually_changed,
+      proactive_sms_sent: ctx.proactive_sms_sent,
+      sdr_confirmation: ctx.sdr_confirmation ?? "",
+      narrative_summary: ctx.narrative_summary,
+    },
+  });
+}
+
+async function handleAssistantToolCall(
+  body: Record<string, unknown>,
+  env: Env,
+): Promise<Response> {
+  const from = normalizePhoneE164(body.caller_phone ?? body.from, "");
+  if (!from) return badRequest("caller_phone or from must be E.164");
+  if (!body.intent) return badRequest("intent is required");
+
+  const { customer } = customerForPhone(env, from);
+  const result = await customer.ingestCallResult({
+    from,
+    intent: body.intent as Intent,
+    requested_meeting_time: typeof body.requested_meeting_time === "string" ? body.requested_meeting_time : undefined,
+    customer_name: typeof body.customer_name === "string" ? body.customer_name : undefined,
+    customer_email: typeof body.customer_email === "string" ? body.customer_email : undefined,
+    customer_phone: typeof body.customer_phone === "string" ? body.customer_phone : undefined,
+    customer_context: typeof body.customer_context === "string" ? body.customer_context : undefined,
+    customer_approved: typeof body.customer_approved === "boolean" ? body.customer_approved : undefined,
+    meeting_time: typeof body.meeting_time === "string" ? body.meeting_time : undefined,
+    transcript_summary: typeof body.transcript_summary === "string" ? body.transcript_summary : undefined,
+  });
+
+  return json({ ok: true, actor: actorNameForCustomer(from), result });
+}
+
 async function handleVoiceCall(request: Request, env: Env): Promise<Response> {
   const body = await parseJsonOrForm<Record<string, unknown>>(request);
   const voice = voiceInputFromBody(body, env);
@@ -458,6 +600,22 @@ export default {
 
     if (request.method === "POST" && url.pathname === "/schedule/followup") {
       return handleScheduleFollowup(request, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/call/result") {
+      return handleCallResult(request, env);
+    }
+
+    if (request.method === "GET" && url.pathname === "/call/context") {
+      return handleCallContext(request, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/webhooks/salesforce-lead-change") {
+      return handleSalesforceLeadChange(request, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/ai-assistant") {
+      return handleAiAssistant(request, env);
     }
 
     if (request.method === "POST" && url.pathname === "/webhooks/voice") {

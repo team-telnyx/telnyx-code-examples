@@ -44,6 +44,26 @@ name = "SF_API_VERSION"
 binding = "SF_DEMO_LEAD_EMAIL"
 name = "SF_DEMO_LEAD_EMAIL"
 
+[[secrets]]
+binding = "SDR_EMAIL"
+name = "SDR_EMAIL"
+
+[[secrets]]
+binding = "SDR_NAME"
+name = "SDR_NAME"
+
+[[secrets]]
+binding = "AGENTMAIL_API_KEY"
+name = "AGENTMAIL_API_KEY"
+
+[[secrets]]
+binding = "AGENTMAIL_INBOX"
+name = "AGENTMAIL_INBOX"
+
+[[secrets]]
+binding = "AGENTMAIL_WEBHOOK_SECRET"
+name = "AGENTMAIL_WEBHOOK_SECRET"
+
 [edge_compute]
 func_id = "bd2578f9-62f2-4d16-9ba4-ca36ba72ea53"
 func_name = "customer-agent-langgraph-edge"

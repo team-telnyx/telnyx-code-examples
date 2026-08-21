@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { normalizePhoneE164, actorNameForCustomer } from "../src/types.js";
 
-const { mockState, mockMessages, mockCalls, mockFns, insertedEventIds } = vi.hoisted(() => {
+const { mockState, mockMessages, mockCalls, mockFns, insertedEventIds, insertedLifecycleEventIds } = vi.hoisted(() => {
   const insertedEventIds = new Set<string>();
+  const insertedLifecycleEventIds = new Set<string>();
   return {
     mockState: {} as Record<string, unknown>,
     mockMessages: [] as Array<{ role: string; content: string }>,
     mockCalls: {} as Record<string, unknown[]>,
     insertedEventIds,
+    insertedLifecycleEventIds,
     mockFns: {
       getState: vi.fn(() => Promise.resolve({ ...mockState })),
       setState: vi.fn((patch: Record<string, unknown>) => {
@@ -30,6 +32,13 @@ const { mockState, mockMessages, mockCalls, mockFns, insertedEventIds } = vi.hoi
             throw new Error("UNIQUE constraint failed: webhook_events.event_id");
           }
           insertedEventIds.add(eventId);
+        }
+        if (query && query.startsWith("INSERT INTO call_lifecycle_events")) {
+          const eventId = params[0] as string;
+          if (insertedLifecycleEventIds.has(eventId)) {
+            throw new Error("UNIQUE constraint failed: call_lifecycle_events.event_id");
+          }
+          insertedLifecycleEventIds.add(eventId);
         }
         return { toArray: () => [] };
       }),
@@ -109,6 +118,7 @@ function freshInitialState(): CustomerState {
     pendingOutbound: null,
     lastIntent: "unknown",
     at: 0,
+    reschedule_event: null,
   };
 }
 
@@ -119,6 +129,7 @@ function resetMocks() {
   mockMessages.length = 0;
   for (const k of Object.keys(mockCalls)) delete mockCalls[k];
   insertedEventIds.clear();
+  insertedLifecycleEventIds.clear();
   mockGraphOutput.replyText = "Your order is shipped.";
   mockGraphOutput.intentLabel = "order";
   mockFns.getState.mockClear();
@@ -131,10 +142,18 @@ function resetMocks() {
   mockFns.sqlExec.mockClear();
 }
 
+const { mockTelnyxSend } = vi.hoisted(() => ({
+  mockTelnyxSend: vi.fn(async () => ({ data: { id: "msg-mock-1" } })),
+}));
+
 function makeEnv(overrides: Partial<Env> = {}): Env {
   return {
     SMS_TRANSPORT: "demo",
     MODEL: "zai-org/GLM-5.2",
+    TELNYX: {
+      messages: { send: mockTelnyxSend },
+      ai: { openai: { chat: { createCompletion: vi.fn(async () => ({ choices: [{ message: { content: "mock" } }] })) } } },
+    } as unknown as Env["TELNYX"],
     ...overrides,
   } as Env;
 }
@@ -506,7 +525,7 @@ describe("CustomerAgent schedule and voice hooks", () => {
     expect(mockState.active_schedule_ids).toEqual(["scheduled"]);
   });
 
-  it("records a call and sends a mocked SMS follow-up on hangup", async () => {
+  it("records a call and logs hangup without sending a follow-up SMS", async () => {
     const agent = makeAgent();
 
     const started = await agent.onCall({
@@ -521,12 +540,38 @@ describe("CustomerAgent schedule and voice hooks", () => {
     });
 
     expect(started.prompt).toContain("CustomerAgent");
-    expect(started.prompt).toContain("onboarding package status");
-    expect(mockState.preferred_channel).toBe("sms");
-    expect(mockMessages.at(-1)).toEqual({
-      role: "assistant",
-      content: "Thanks for calling, Anusha. I'll keep this thread updated with your onboarding status. You can reply here any time.",
+    expect(mockFns.sqlExec).toHaveBeenCalledWith(
+      "INSERT INTO process_log(turn, phase, intent, note, at) VALUES (?, ?, ?, ?, ?)",
+      0,
+      "call_hangup",
+      "unknown",
+      expect.stringContaining("from=+14157986793"),
+      expect.any(Number),
+    );
+  });
+
+  it("ignores duplicate call hangup lifecycle events for the same call", async () => {
+    const agent = makeAgent();
+
+    await agent.onCallEnded({
+      from: "+14157986793",
+      to: "+16282564467",
+      call_control_id: "call-1",
     });
+    await agent.onCallEnded({
+      from: "+14157986793",
+      to: "+16282564467",
+      call_control_id: "call-1",
+    });
+
+    expect(mockFns.sqlExec).toHaveBeenCalledWith(
+      "INSERT INTO process_log(turn, phase, intent, note, at) VALUES (?, ?, ?, ?, ?)",
+      0,
+      "call_hangup_duplicate_ignored",
+      "unknown",
+      "hangup:call-1",
+      expect.any(Number),
+    );
   });
 });
 
@@ -604,5 +649,383 @@ describe("phone normalization and actor naming", () => {
   it("actorNameForCustomer returns empty string for invalid input", () => {
     expect(actorNameForCustomer("")).toBe("");
     expect(actorNameForCustomer("abc")).toBe("");
+  });
+});
+
+const sfMocks = vi.hoisted(() => ({
+  createOrUpdateLead: vi.fn(async () => ({
+    lead: {
+      id: "00Q-test-lead-1",
+      name: "Anusha",
+      company: "Telnyx",
+      email: "anusha@telnyx.com",
+      status: "New",
+      meeting_status: "Requested",
+      requested_meeting_time: "Tuesday at 2 PM",
+      meeting_time: null,
+      assigned_sdr: undefined,
+      sdr_confirmation: undefined,
+      customer_confirmation: undefined,
+      previous_meeting_time: null,
+    },
+    created: true,
+  })),
+  assignSdr: vi.fn(async () => ({ assigned_sdr: "Steve" })),
+  checkSdrAvailability: vi.fn(async () => ({ available: true, sdr: "Steve", requested_time: "Tuesday at 2 PM" })),
+  updateLeadMeeting: vi.fn(async () => ({
+    lead: {
+      id: "00Q-test-lead-1",
+      meeting_status: "customer_confirmed",
+      meeting_time: "Thursday at 11 AM",
+      customer_confirmation: "confirmed",
+    },
+    fields_updated: ["Meeting_Status__c", "Customer_Approval__c"],
+  })),
+}));
+
+const mailMocks = vi.hoisted(() => ({
+  sendAgentMail: vi.fn(async () => ({
+    message_id: "msg-test-1",
+    thread_id: "thread-test-1",
+  })),
+}));
+
+vi.mock("../src/salesforce.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/salesforce.js")>();
+  return {
+    ...actual,
+    createOrUpdateLead: sfMocks.createOrUpdateLead,
+    assignSdr: sfMocks.assignSdr,
+    checkSdrAvailability: sfMocks.checkSdrAvailability,
+    updateLeadMeeting: sfMocks.updateLeadMeeting,
+  };
+});
+
+vi.mock("../src/agent-mail.js", () => ({
+  sendAgentMail: mailMocks.sendAgentMail,
+  verifyAgentMailWebhook: vi.fn(async () => ({ event_type: "message.received", message: {} })),
+  parseAgentMailInbound: vi.fn(() => ({ from: "steve@example.com", text: "Yes", thread_id: "thread-test-1", message_id: "msg-1", in_reply_to: null })),
+}));
+
+describe("CustomerAgent.ingestCallResult() — schedule_meeting", () => {
+  beforeEach(() => {
+    resetMocks();
+    sfMocks.createOrUpdateLead.mockClear();
+    sfMocks.assignSdr.mockClear();
+    sfMocks.checkSdrAvailability.mockClear();
+    sfMocks.updateLeadMeeting.mockClear();
+    mailMocks.sendAgentMail.mockClear();
+  });
+
+  it("creates a Salesforce lead, assigns SDR, checks availability, and emails SDR", async () => {
+    const agent = makeAgent(makeEnv({ SDR_EMAIL: "steve@example.com", SDR_NAME: "Steve" }));
+
+    const result = await agent.ingestCallResult({
+      from: "+14157986793",
+      intent: "schedule_meeting",
+      requested_meeting_time: "Tuesday at 2 PM",
+      customer_name: "Anusha",
+      customer_context: "Telnyx onboarding",
+      transcript_summary: "Anusha wants to schedule a meeting",
+    });
+
+    expect(sfMocks.createOrUpdateLead).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      name: "Anusha",
+      requested_meeting_time: "Tuesday at 2 PM",
+      meeting_status: "Requested",
+    }));
+    expect(sfMocks.assignSdr).toHaveBeenCalledWith(expect.anything(), "00Q-test-lead-1");
+    expect(sfMocks.checkSdrAvailability).toHaveBeenCalledWith(expect.anything(), "Steve", "Tuesday at 2 PM");
+    expect(mailMocks.sendAgentMail).toHaveBeenCalled();
+
+    expect(result).toEqual({
+      lead_id: "00Q-test-lead-1",
+      assigned_sdr: "Steve",
+      sdr_available: true,
+      sdr_emailed: true,
+    });
+  });
+
+  it("persists the lead and preferred_channel=voice to durable state", async () => {
+    const agent = makeAgent();
+
+    await agent.ingestCallResult({
+      from: "+14157986793",
+      intent: "schedule_meeting",
+      requested_meeting_time: "Tuesday at 2 PM",
+    });
+
+    expect(mockState.latest_lead).toMatchObject({
+      id: "00Q-test-lead-1",
+      assigned_sdr: "Steve",
+      meeting_status: "Requested",
+    });
+    expect(mockState.preferred_channel).toBe("voice");
+    expect(mockState.lastIntent).toBe("schedule_meeting");
+  });
+
+  it("records the call in durable history", async () => {
+    const agent = makeAgent();
+
+    await agent.ingestCallResult({
+      from: "+14157986793",
+      intent: "schedule_meeting",
+      transcript_summary: "Anusha wants onboarding meeting",
+    });
+
+    const userMessages = mockMessages.filter((m) => m.role === "user");
+    expect(userMessages).toHaveLength(1);
+    expect(userMessages[0].content).toContain("Anusha wants onboarding meeting");
+  });
+});
+
+describe("CustomerAgent.ingestCallResult() — confirm_reschedule", () => {
+  beforeEach(() => {
+    resetMocks();
+    sfMocks.updateLeadMeeting.mockClear();
+  });
+
+  it("updates Salesforce with customer_confirmation and customer_confirmed status", async () => {
+    const agent = makeAgent();
+    Object.assign(mockState, {
+      latest_lead: {
+        id: "00Q-test-lead-1",
+        name: "Anusha",
+        meeting_time: "Thursday at 11 AM",
+        meeting_status: "Rescheduled by SDR",
+        assigned_sdr: "Steve",
+      },
+      reschedule_event: {
+        old_meeting_time: "Tuesday at 2 PM",
+        new_meeting_time: "Thursday at 11 AM",
+        detected_at: Date.now(),
+        proactive_sms_sent: true,
+        source: "salesforce_manual",
+      },
+    });
+
+    await agent.ingestCallResult({
+      from: "+14157986793",
+      intent: "confirm_reschedule",
+      meeting_time: "Thursday at 11 AM",
+      customer_approved: true,
+      transcript_summary: "Anusha agreed to Thursday 11 AM",
+    });
+
+    expect(sfMocks.updateLeadMeeting).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      lead_id: "00Q-test-lead-1",
+      meeting_status: "customer_confirmed",
+      customer_confirmation: "confirmed",
+      meeting_time: "Thursday at 11 AM",
+    }));
+    expect(mockState.latest_lead).toMatchObject({
+      meeting_status: "customer_confirmed",
+      customer_confirmation: "confirmed",
+    });
+  });
+
+  it("records the confirmation in durable history", async () => {
+    const agent = makeAgent();
+    Object.assign(mockState, {
+      latest_lead: { id: "00Q-test-lead-1", meeting_time: "Thursday at 11 AM" },
+      reschedule_event: { new_meeting_time: "Thursday at 11 AM" },
+    });
+
+    await agent.ingestCallResult({
+      from: "+14157986793",
+      intent: "confirm_reschedule",
+      meeting_time: "Thursday at 11 AM",
+      customer_approved: true,
+    });
+
+    const assistantMessages = mockMessages.filter((m) => m.role === "assistant");
+    const lastAssistant = assistantMessages[assistantMessages.length - 1];
+    expect(lastAssistant.content).toContain("confirmed");
+    expect(lastAssistant.content).toContain("Thursday at 11 AM");
+  });
+});
+
+describe("CustomerAgent.getCallContext()", () => {
+  beforeEach(() => resetMocks());
+
+  it("returns is_returning_caller=false and a no-context summary for a fresh actor", async () => {
+    const agent = makeAgent();
+
+    const ctx = await agent.getCallContext("+14157986793");
+
+    expect(ctx.is_returning_caller).toBe(false);
+    expect(ctx.narrative_summary).toBe("No previous context for this caller.");
+    expect(ctx.latest_lead).toBeNull();
+    expect(ctx.assigned_sdr).toBeNull();
+  });
+
+  it("returns full context with narrative summary for a returning caller after reschedule", async () => {
+    const agent = makeAgent();
+    Object.assign(mockState, {
+      phone_e164: "+14157986793",
+      name: "Anusha",
+      latest_lead: {
+        id: "00Q-test-lead-1",
+        name: "Anusha",
+        assigned_sdr: "Steve",
+        requested_meeting_time: "Tuesday at 2 PM",
+        meeting_time: "Tuesday at 2 PM",
+        meeting_status: "Rescheduled by SDR",
+        sdr_confirmation: "confirmed",
+        customer_confirmation: null,
+      },
+      reschedule_event: {
+        old_meeting_time: "Tuesday at 2 PM",
+        new_meeting_time: "Thursday at 11 AM",
+        detected_at: 1700000000000,
+        proactive_sms_sent: true,
+        source: "salesforce_manual",
+      },
+      history: [
+        { role: "user", content: "Call from Anusha", at: 1700000000000 },
+      ],
+    });
+
+    const ctx = await agent.getCallContext("+14157986793");
+
+    expect(ctx.is_returning_caller).toBe(true);
+    expect(ctx.assigned_sdr).toBe("Steve");
+    expect(ctx.original_confirmed_meeting_time).toBe("Tuesday at 2 PM");
+    expect(ctx.new_meeting_time).toBe("Thursday at 11 AM");
+    expect(ctx.salesforce_manually_changed).toBe(true);
+    expect(ctx.proactive_sms_sent).toBe(true);
+    expect(ctx.narrative_summary).toContain("Steve");
+    expect(ctx.narrative_summary).toContain("Thursday at 11 AM");
+    expect(ctx.narrative_summary).toContain("notified by SMS");
+  });
+
+  it("returns context for a returning caller with a confirmed meeting but no reschedule", async () => {
+    const agent = makeAgent();
+    Object.assign(mockState, {
+      phone_e164: "+14157986793",
+      name: "Anusha",
+      latest_lead: {
+        id: "00Q-test-lead-1",
+        assigned_sdr: "Steve",
+        requested_meeting_time: "Tuesday at 2 PM",
+        meeting_time: "Tuesday at 2 PM",
+        meeting_status: "confirmed",
+        sdr_confirmation: "confirmed",
+      },
+      reschedule_event: null,
+      history: [
+        { role: "user", content: "Call from Anusha", at: 1700000000000 },
+      ],
+    });
+
+    const ctx = await agent.getCallContext("+14157986793");
+
+    expect(ctx.is_returning_caller).toBe(true);
+    expect(ctx.salesforce_manually_changed).toBe(false);
+    expect(ctx.narrative_summary).toContain("confirmed meeting with Steve");
+    expect(ctx.narrative_summary).toContain("Tuesday at 2 PM");
+  });
+});
+
+describe("CustomerAgent.ingestSdrReply() — Gate 4 SMS confirmation", () => {
+  beforeEach(() => {
+    resetMocks();
+    sfMocks.updateLeadMeeting.mockClear();
+  });
+
+  it("sends Anusha a confirmation SMS after Steve confirms via AgentMail", async () => {
+    const agent = makeAgent(makeEnv({ SMS_TRANSPORT: "demo" }));
+    Object.assign(mockState, {
+      phone_e164: "+14157986793",
+      to: "+16282564467",
+      latest_lead: {
+        id: "00Q-test-lead-1",
+        requested_meeting_time: "Tuesday at 2 PM",
+        meeting_time: null,
+        assigned_sdr: "Steve",
+      },
+    });
+
+    await agent.ingestSdrReply({
+      phone_e164: "+14157986793",
+      from: "steve@example.com",
+      reply_text: "Yes, that meeting time works.",
+      thread_id: "thread-test-1",
+      message_id: "msg-1",
+    });
+
+    expect(sfMocks.updateLeadMeeting).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      lead_id: "00Q-test-lead-1",
+      meeting_status: "confirmed",
+      sdr_confirmation: "confirmed",
+    }));
+
+    const assistantMessages = mockMessages.filter((m) => m.role === "assistant");
+    const confirmationMsg = assistantMessages.find((m) => m.content.includes("confirmed for"));
+    expect(confirmationMsg).toBeTruthy();
+    expect(confirmationMsg!.content).toContain("Steve");
+    expect(confirmationMsg!.content).toContain("Tuesday at 2 PM");
+  });
+});
+
+describe("CustomerAgent.ingestSalesforceLeadChange() — Gate 5 reschedule detection", () => {
+  beforeEach(() => resetMocks());
+
+  it("detects reschedule, persists reschedule_event, and sends proactive SMS", async () => {
+    const agent = makeAgent(makeEnv({ SMS_TRANSPORT: "production" }));
+    mockTelnyxSend.mockClear();
+    Object.assign(mockState, {
+      phone_e164: "+14157986793",
+      to: "+16282564467",
+      name: "Anusha",
+      latest_lead: {
+        id: "00Q-test-lead-1",
+        meeting_time: "Tuesday at 2 PM",
+        meeting_status: "confirmed",
+        assigned_sdr: "Steve",
+      },
+      reschedule_event: null,
+    });
+
+    const result = await agent.ingestSalesforceLeadChange({
+      phone_e164: "+14157986793",
+      lead_id: "00Q-test-lead-1",
+      meeting_time: "Thursday at 11 AM",
+      meeting_status: "Rescheduled by SDR",
+    });
+
+    expect(result.reschedule_detected).toBe(true);
+    expect(mockTelnyxSend).toHaveBeenCalledWith(expect.objectContaining({
+      to: "+14157986793",
+      text: expect.stringContaining("Thursday at 11 AM"),
+    }));
+    expect(mockState.reschedule_event).toMatchObject({
+      old_meeting_time: "Tuesday at 2 PM",
+      new_meeting_time: "Thursday at 11 AM",
+      source: "salesforce_manual",
+      proactive_sms_sent: true,
+    });
+  });
+
+  it("does not flag reschedule when meeting time is unchanged", async () => {
+    const agent = makeAgent();
+    Object.assign(mockState, {
+      phone_e164: "+14157986793",
+      latest_lead: {
+        id: "00Q-test-lead-1",
+        meeting_time: "Tuesday at 2 PM",
+        meeting_status: "confirmed",
+      },
+      reschedule_event: null,
+    });
+
+    const result = await agent.ingestSalesforceLeadChange({
+      phone_e164: "+14157986793",
+      lead_id: "00Q-test-lead-1",
+      meeting_time: "Tuesday at 2 PM",
+    });
+
+    expect(result.reschedule_detected).toBe(false);
+    expect(mockState.reschedule_event).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 import { Agent } from "@telnyx/edge-runtime";
 import { SystemMessage, HumanMessage, AIMessage, type BaseMessage } from "@langchain/core/messages";
 import { buildGraph } from "./graph.js";
-import { lookupLatestLead, updateLeadDemoField, updateShipmentStatus } from "./salesforce.js";
+import { lookupLatestLead, updateLeadDemoField, updateShipmentStatus, createOrUpdateLead, assignSdr, checkSdrAvailability, updateLeadMeeting } from "./salesforce.js";
 import { sendAgentMail } from "./agent-mail.js";
 import {
   demoCustomerName,
@@ -33,6 +33,9 @@ import type {
   SdrConfirmationInput,
   SdrReplyInput,
   AgentMailSendResult,
+  CallResultInput,
+  ResponderContext,
+  RescheduleEvent,
 } from "./types.js";
 
 const NUDGE_TEXT = "Just checking in — did that sort things out?";
@@ -76,6 +79,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       pendingOutbound: null,
       lastIntent: "unknown",
       at: 0,
+      reschedule_event: null,
     };
   }
 
@@ -176,7 +180,13 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     const historyCount = (out.historyCount as number) ?? 0;
     const recordId = (out.recordId as string) ?? "";
     const actionResult = (out.actionResult as string) ?? "";
-    const latestLead = intent === "lead"
+    const scheduleMeetingPending = Boolean(out.scheduleMeetingPending);
+    const requestedTime = String(out.requestedTime ?? "");
+    const graphLeadId = String(out.leadId ?? "");
+    const assignedSdr = String(out.assignedSdr ?? "");
+    const sdrAvailable = Boolean(out.sdrAvailable);
+
+    const latestLead = (intent === "lead" || intent === "schedule_meeting")
       ? await lookupLatestLead(this.env).catch(() => state.latest_lead ?? null)
       : state.latest_lead ?? null;
 
@@ -185,8 +195,26 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       targetTurn,
       "graph_done",
       intent,
-      `path=${nodePath} history=${historyCount}${recordId ? ` recordId=${recordId}` : ""} reply="${reply.slice(0, 80)}"`,
+      `path=${nodePath} history=${historyCount}${recordId ? ` recordId=${recordId}` : ""}${scheduleMeetingPending ? ` scheduleMeeting=true sdr=${assignedSdr}` : ""} reply="${reply.slice(0, 80)}"`,
     );
+
+    if (scheduleMeetingPending && sdrAvailable) {
+      console.log("[actor] post-graph: schedule_meeting pending, emailing SDR via AgentMail", { leadId: graphLeadId, requestedTime, assignedSdr });
+      try {
+        const mailResult = await this.emailSdrForConfirmation({
+          phone_e164: state.phone_e164,
+          lead_id: graphLeadId,
+          requested_time: requestedTime,
+          customer_name: state.name || "Anusha",
+          customer_context: "Telnyx onboarding",
+        });
+        console.log("[actor] post-graph: AgentMail sent", { thread_id: mailResult.thread_id.slice(0, 20) });
+        this.logProcess(targetTurn, "schedule_meeting_email_sent", intent, `thread=${mailResult.thread_id.slice(0, 20)} sdr=${assignedSdr}`);
+      } catch (err) {
+        console.error("[actor] post-graph: AgentMail send failed", err instanceof Error ? err.message : String(err));
+        this.logProcess(targetTurn, "schedule_meeting_email_failed", intent, String(err instanceof Error ? err.message : "unknown error"));
+      }
+    }
 
     const clientRef = `turn-${targetTurn}`;
     const now = Date.now();
@@ -356,9 +384,20 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
         }
       : null;
 
+    const rescheduleEvent: RescheduleEvent | null = rescheduleDetected
+      ? {
+          old_meeting_time: previousMeetingTime,
+          new_meeting_time: newMeetingTime,
+          detected_at: now,
+          proactive_sms_sent: false,
+          source: "salesforce_manual",
+        }
+      : state.reschedule_event;
+
     await this.setState({
       phone_e164: input.phone_e164 || state.phone_e164,
       latest_lead: updatedLead,
+      reschedule_event: rescheduleEvent,
       at: now,
     });
 
@@ -385,6 +424,12 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
         smsText,
         now,
       );
+
+      if (rescheduleEvent) {
+        await this.setState({
+          reschedule_event: { ...rescheduleEvent, proactive_sms_sent: proactiveSmsSent },
+        });
+      }
     }
 
     this.logProcess(
@@ -573,11 +618,373 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     }
   }
 
+  /**
+   * Gate 1 + Gate 7: Accept a call result from the Telnyx AI Assistant
+   * (Responder) and process it through the durable customer actor.
+   *
+   * For schedule_meeting: runs the Salesforce workflow (createOrUpdateLead →
+   * assignSdr → checkSdrAvailability → emailSdrForConfirmation), persists
+   * the lead to durable state, and records the call in history.
+   *
+   * For confirm_reschedule: updates Salesforce Customer_Approval + Meeting_Status
+   * and persists the customer's confirmation to durable state.
+   *
+   * This is the Orchestrator-side handler. The Responder handles the live voice
+   * conversation and sends structured results here after the call.
+   */
+  async ingestCallResult(input: CallResultInput): Promise<{ lead_id?: string; assigned_sdr?: string; sdr_available?: boolean; sdr_emailed?: boolean; salesforce_updated?: boolean }> {
+    this.ensureTables();
+    console.log("[actor] ingestCallResult START", { phone: input.from, intent: input.intent, requested_time: input.requested_meeting_time });
+    const state = await this.getState();
+    const now = Date.now();
+
+    const callSummary = input.transcript_summary || `Call from ${input.from}: intent=${input.intent}`;
+    await this.messages.add("user", callSummary);
+    this.ctx.storage.sql.exec(
+      "INSERT INTO conversation(role, content, at) VALUES (?, ?, ?)",
+      "user",
+      callSummary,
+      now,
+    );
+
+    const history = state.history ?? [];
+    const nextHistory: HistoryEntry[] = [
+      ...history,
+      { role: "user", content: callSummary, at: now },
+    ];
+
+    await this.setState({
+      phone_e164: input.from,
+      to: input.to || state.to || demoFromNumber(this.env),
+      preferred_channel: "voice",
+      history: nextHistory,
+      at: now,
+    });
+
+    this.logProcess(state.turn, "call_result_received", input.intent, `phone=${input.from}; time=${input.requested_meeting_time ?? "none"}`);
+
+    if (input.intent === "schedule_meeting") {
+      console.log("[actor] ingestCallResult: schedule_meeting branch");
+      return this.handleScheduleMeetingFromCall(input, now);
+    }
+
+    if (input.intent === "confirm_reschedule") {
+      console.log("[actor] ingestCallResult: confirm_reschedule branch");
+      return this.handleConfirmRescheduleFromCall(input, now);
+    }
+
+    this.logProcess(state.turn, "call_result_unhandled_intent", input.intent, "no action taken");
+    return {};
+  }
+
+  private async handleScheduleMeetingFromCall(input: CallResultInput, now: number): Promise<{ lead_id: string; assigned_sdr: string; sdr_available: boolean; sdr_emailed: boolean }> {
+    const state = await this.getState();
+    const customerName = input.customer_name || state.name || demoCustomerName(this.env);
+    const customerEmail = input.customer_email || this.env.SF_DEMO_LEAD_EMAIL || (await this.env.SECRETS?.get("SF_DEMO_LEAD_EMAIL")?.then(v => v?.trim())) || "anusha@telnyx.com";
+    const customerPhone = input.customer_phone || input.from || state.phone_e164;
+    const requestedTime = input.requested_meeting_time || "a time to be determined";
+    const customerContext = input.customer_context || "Interested in learning more about Telnyx. Requested a call with a sales representative.";
+
+    console.log("[actor] createOrUpdateLead", { customerName, customerEmail, customerPhone, requestedTime });
+    const leadResult = await createOrUpdateLead(this.env, {
+      name: customerName,
+      company: "Telnyx",
+      email: customerEmail,
+      phone: customerPhone,
+      shipment: "Telnyx",
+      requested_meeting_time: requestedTime,
+      customer_context: customerContext,
+      meeting_status: "Requested",
+    });
+    console.log("[actor] lead created/updated", { leadId: leadResult.lead.id, created: leadResult.created, leadFields: {
+      id: leadResult.lead.id,
+      name: leadResult.lead.name,
+      email: leadResult.lead.email,
+      phone: leadResult.lead.phone,
+      requested_meeting_time: leadResult.lead.requested_meeting_time,
+      meeting_time: leadResult.lead.meeting_time,
+      meeting_status: leadResult.lead.meeting_status,
+      customer_context: leadResult.lead.customer_context?.slice(0, 80),
+    }});
+
+    console.log("[actor] assignSdr", { leadId: leadResult.lead.id });
+    const sdrResult = await assignSdr(this.env, leadResult.lead.id);
+    console.log("[actor] SDR assigned", { assigned_sdr: sdrResult.assigned_sdr });
+
+    console.log("[actor] checkSdrAvailability", { sdr: sdrResult.assigned_sdr, time: requestedTime });
+    const availResult = await checkSdrAvailability(this.env, sdrResult.assigned_sdr, requestedTime);
+    console.log("[actor] SDR availability", { available: availResult.available });
+
+    let sdrEmailed = false;
+    if (availResult.available) {
+      console.log("[actor] emailing SDR via AgentMail", { leadId: leadResult.lead.id, requestedTime });
+      try {
+        const mailResult = await this.emailSdrForConfirmation({
+          phone_e164: input.from,
+          lead_id: leadResult.lead.id,
+          requested_time: requestedTime,
+          customer_name: customerName,
+          customer_context: customerContext,
+        });
+        console.log("[actor] AgentMail sent", { thread_id: mailResult.thread_id.slice(0, 20) });
+        sdrEmailed = true;
+        this.logProcess(state.turn, "schedule_meeting_email_sent", "schedule_meeting", `thread=${mailResult.thread_id.slice(0, 20)} sdr=${sdrResult.assigned_sdr}`);
+      } catch (err) {
+        console.error("[actor] AgentMail send failed", err instanceof Error ? err.message : String(err));
+        this.logProcess(state.turn, "schedule_meeting_email_failed", "schedule_meeting", String(err instanceof Error ? err.message : "unknown error"));
+      }
+    }
+
+    const updatedLead = {
+      ...leadResult.lead,
+      assigned_sdr: sdrResult.assigned_sdr,
+      requested_meeting_time: requestedTime,
+      customer_context: customerContext,
+      meeting_status: "Requested",
+    };
+
+    const confirmationSms = `Thanks for calling, ${customerName}. Your sales meeting with Telnyx is scheduled for ${requestedTime}. I'll keep you updated here if anything changes.`;
+
+    const nextHistory: HistoryEntry[] = [
+      ...(state.history ?? []),
+      { role: "assistant", content: confirmationSms, at: now },
+    ];
+
+    await this.setState({
+      phone_e164: customerPhone,
+      name: customerName,
+      latest_lead: updatedLead,
+      lastIntent: "schedule_meeting",
+      history: nextHistory,
+      at: now,
+    });
+
+    await this.messages.add("assistant", confirmationSms);
+    this.ctx.storage.sql.exec(
+      "INSERT INTO conversation(role, content, at) VALUES (?, ?, ?)",
+      "assistant",
+      confirmationSms,
+      now,
+    );
+
+    if (state.proactive_consent && state.to && customerPhone) {
+      if (smsTransportEnabled(this.env)) {
+        try {
+          await telnyx(this.env).messages.send({ from: state.to, to: customerPhone, text: confirmationSms });
+          this.logProcess(state.turn, "schedule_meeting_sms_sent", "schedule_meeting", confirmationSms);
+        } catch {
+          this.logProcess(state.turn, "schedule_meeting_sms_failed", "schedule_meeting", confirmationSms);
+        }
+      } else {
+        this.logProcess(state.turn, "schedule_meeting_sms_mocked", "schedule_meeting", confirmationSms);
+      }
+    }
+
+    this.logProcess(
+      state.turn,
+      "schedule_meeting_processed",
+      "schedule_meeting",
+      `lead=${leadResult.lead.id} sdr=${sdrResult.assigned_sdr} available=${availResult.available} emailed=${sdrEmailed}`,
+    );
+
+    return {
+      lead_id: leadResult.lead.id,
+      assigned_sdr: sdrResult.assigned_sdr,
+      sdr_available: availResult.available,
+      sdr_emailed: sdrEmailed,
+    };
+  }
+
+  private async handleConfirmRescheduleFromCall(input: CallResultInput, now: number): Promise<{ salesforce_updated: boolean }> {
+    const state = await this.getState();
+    const leadId = state.latest_lead?.id ?? "";
+    const meetingTime = input.meeting_time || input.requested_meeting_time || state.reschedule_event?.new_meeting_time || "";
+
+    console.log("[actor] confirm_reschedule: updating Salesforce", { leadId, meetingTime });
+    let salesforceUpdated = false;
+    if (leadId) {
+      try {
+        const result = await updateLeadMeeting(this.env, {
+          lead_id: leadId,
+          meeting_status: "customer_confirmed",
+          meeting_time: meetingTime,
+          customer_confirmation: input.customer_approved ? "confirmed" : "pending",
+        });
+        salesforceUpdated = true;
+        console.log("[actor] Salesforce updated", { fields: result.fields_updated });
+        this.logProcess(state.turn, "confirm_reschedule_salesforce_updated", "confirm_reschedule", `lead=${leadId} fields=${result.fields_updated.join(",")}`);
+      } catch (err) {
+        console.error("[actor] Salesforce update failed", err instanceof Error ? err.message : String(err));
+        this.logProcess(state.turn, "confirm_reschedule_salesforce_failed", "confirm_reschedule", String(err instanceof Error ? err.message : "unknown error"));
+      }
+    }
+
+    const updatedLead = state.latest_lead
+      ? {
+          ...state.latest_lead,
+          meeting_time: meetingTime,
+          meeting_status: "customer_confirmed",
+          customer_confirmation: input.customer_approved ? "confirmed" : "pending",
+        }
+      : null;
+
+    const confirmationMessage = input.customer_approved
+      ? `Anusha confirmed the new meeting time: ${meetingTime}. Salesforce updated: Customer_Approval=confirmed, Meeting_Status=customer_confirmed.`
+      : `Anusha did not confirm the new meeting time (${meetingTime}).`;
+
+    const nextHistory: HistoryEntry[] = [
+      ...(state.history ?? []),
+      { role: "assistant", content: confirmationMessage, at: now },
+    ];
+
+    await this.setState({
+      latest_lead: updatedLead,
+      lastIntent: "confirm_reschedule",
+      history: nextHistory,
+      at: now,
+    });
+
+    await this.messages.add("assistant", confirmationMessage);
+    this.ctx.storage.sql.exec(
+      "INSERT INTO conversation(role, content, at) VALUES (?, ?, ?)",
+      "assistant",
+      confirmationMessage,
+      now,
+    );
+
+    this.logProcess(state.turn, "confirm_reschedule_done", "confirm_reschedule", `approved=${input.customer_approved} time=${meetingTime}`);
+
+    return { salesforce_updated: salesforceUpdated };
+  }
+
+  /**
+   * Gate 6: Return existing customer context for the Responder (Telnyx AI
+   * Assistant) to use at the start of a voice call.
+   *
+   * For a new caller: returns minimal context with is_returning_caller=false.
+   * For a returning caller: returns full context including original meeting
+   * time, SDR confirmation, new meeting time, reschedule flags, and a
+   * pre-written narrative summary the AI Assistant can use directly.
+   */
+  async getCallContext(from: string): Promise<ResponderContext> {
+    this.ensureTables();
+    const state = await this.getState();
+    const lead = state.latest_lead;
+    const reschedule = state.reschedule_event;
+
+    const isReturningCaller = Boolean(lead);
+
+    const originalRequestedTime = lead?.requested_meeting_time ?? null;
+    const originalConfirmedTime = lead?.meeting_time ?? null;
+    const assignedSdr = lead?.assigned_sdr ?? null;
+    const sdrConfirmation = lead?.sdr_confirmation ?? null;
+    const newMeetingTime = reschedule?.new_meeting_time ?? null;
+    const salesforceManuallyChanged = Boolean(reschedule);
+    const rescheduleDetectedAt = reschedule?.detected_at ?? null;
+    const proactiveSmsSent = reschedule?.proactive_sms_sent ?? false;
+    const meetingStatus = lead?.meeting_status ?? null;
+    const customerConfirmation = lead?.customer_confirmation ?? null;
+
+    const narrativeSummary = this.buildNarrativeSummary({
+      name: state.name || "the customer",
+      isReturningCaller,
+      assignedSdr,
+      originalRequestedTime,
+      originalConfirmedTime,
+      sdrConfirmation,
+      newMeetingTime,
+      salesforceManuallyChanged,
+      proactiveSmsSent,
+      meetingStatus,
+      customerConfirmation,
+    });
+
+    console.log("[actor] getCallContext", { phone: from, isReturningCaller, hasLead: !!lead, hasReschedule: !!reschedule });
+
+    return {
+      phone_e164: state.phone_e164 || from,
+      name: state.name,
+      salesforce_id: state.salesforce_id,
+      is_returning_caller: isReturningCaller,
+      latest_lead: lead,
+      original_requested_meeting_time: originalRequestedTime,
+      original_confirmed_meeting_time: originalConfirmedTime,
+      assigned_sdr: assignedSdr,
+      sdr_confirmation: sdrConfirmation,
+      new_meeting_time: newMeetingTime,
+      salesforce_manually_changed: salesforceManuallyChanged,
+      reschedule_detected_at: rescheduleDetectedAt,
+      proactive_sms_sent: proactiveSmsSent,
+      meeting_status: meetingStatus,
+      customer_confirmation: customerConfirmation,
+      history: state.history,
+      narrative_summary: narrativeSummary,
+    };
+  }
+
+  private buildNarrativeSummary(args: {
+    name: string;
+    isReturningCaller: boolean;
+    assignedSdr: string | null;
+    originalRequestedTime: string | null;
+    originalConfirmedTime: string | null;
+    sdrConfirmation: string | null;
+    newMeetingTime: string | null;
+    salesforceManuallyChanged: boolean;
+    proactiveSmsSent: boolean;
+    meetingStatus: string | null;
+    customerConfirmation: string | null;
+  }): string {
+    if (!args.isReturningCaller) {
+      return "No previous context for this caller.";
+    }
+
+    const parts: string[] = [];
+
+    if (args.salesforceManuallyChanged && args.newMeetingTime) {
+      parts.push(`${args.name}'s meeting with ${args.assignedSdr ?? "the SDR"} was originally confirmed for ${args.originalConfirmedTime ?? args.originalRequestedTime ?? "a previously agreed time"}.`);
+      parts.push(`${args.assignedSdr ?? "The SDR"} later changed the Salesforce meeting time to ${args.newMeetingTime}.`);
+      if (args.proactiveSmsSent) {
+        parts.push(`${args.name} was just notified by SMS of the change.`);
+      }
+      parts.push(`Current meeting status: ${args.meetingStatus ?? "unknown"}.`);
+      if (args.customerConfirmation) {
+        parts.push(`Customer confirmation: ${args.customerConfirmation}.`);
+      }
+      parts.push(`${args.name} may now be calling because of that change.`);
+    } else if (args.assignedSdr && args.originalConfirmedTime) {
+      parts.push(`${args.name} has a confirmed meeting with ${args.assignedSdr} for ${args.originalConfirmedTime}.`);
+      if (args.sdrConfirmation) {
+        parts.push(`SDR confirmation: ${args.sdrConfirmation}.`);
+      }
+      parts.push(`Meeting status: ${args.meetingStatus ?? "unknown"}.`);
+    } else if (args.assignedSdr && args.originalRequestedTime) {
+      parts.push(`${args.name} requested a meeting with ${args.assignedSdr} for ${args.originalRequestedTime}.`);
+      parts.push(`Meeting status: ${args.meetingStatus ?? "requested"}.`);
+    } else if (args.assignedSdr) {
+      parts.push(`${args.name} has been assigned to ${args.assignedSdr} for a meeting.`);
+      parts.push(`Meeting status: ${args.meetingStatus ?? "requested"}.`);
+    }
+
+    return parts.join(" ");
+  }
+
   async onCall(input: VoiceCallInput): Promise<{ prompt: string }> {
     this.ensureTables();
     const state = await this.getState();
     const now = Date.now();
     const prompt = `Hi ${state.name || "Anusha"}, this is your CustomerAgent. I can see your Salesforce context and your onboarding package status. I will send a follow-up by text so you do not have to stay on the line.`;
+    const lifecycleId = this.callLifecycleId("start", input);
+
+    if (lifecycleId && !this.recordCallLifecycleEvent(lifecycleId, "start", now)) {
+      this.logProcess(
+        state.turn,
+        "voice_call_duplicate_ignored",
+        "unknown",
+        lifecycleId,
+      );
+      return { prompt };
+    }
 
     await this.setState({
       phone_e164: input.from,
@@ -603,32 +1010,19 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     this.ensureTables();
     const state = await this.getState();
     const now = Date.now();
-    const message = "Thanks for calling, Anusha. I'll keep this thread updated with your onboarding status. You can reply here any time.";
+    const lifecycleId = this.callLifecycleId("hangup", input);
 
-    await this.setState({
-      phone_e164: input.from || state.phone_e164,
-      to: input.to || state.to,
-      preferred_channel: "sms",
-      at: now,
-      history: [
-        ...(state.history ?? []),
-        { role: "assistant", content: message, at: now },
-      ],
-    });
-    await this.messages.add("assistant", message);
-    this.ctx.storage.sql.exec(
-      "INSERT INTO conversation(role, content, at) VALUES (?, ?, ?)",
-      "assistant",
-      message,
-      now,
-    );
-
-    if (smsTransportEnabled(this.env) && input.from && input.to) {
-      await telnyx(this.env).messages.send({ from: input.to, to: input.from, text: message });
-      this.logProcess(state.turn, "call_hangup_sms_sent", "unknown", message);
-    } else {
-      this.logProcess(state.turn, "call_hangup_sms_mocked", "unknown", message);
+    if (lifecycleId && !this.recordCallLifecycleEvent(lifecycleId, "hangup", now)) {
+      this.logProcess(
+        state.turn,
+        "call_hangup_duplicate_ignored",
+        "unknown",
+        lifecycleId,
+      );
+      return;
     }
+
+    this.logProcess(state.turn, "call_hangup", "unknown", `from=${input.from}; to=${input.to}`);
   }
 
   /**
@@ -644,17 +1038,17 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     const state = await this.getState();
     const now = Date.now();
 
-    const sdrName = this.env.SDR_NAME?.trim() || SDR_NAME_DEFAULT;
-    const sdrEmail = this.env.SDR_EMAIL?.trim() || SDR_EMAIL_DEFAULT;
+    const sdrName = this.env.SDR_NAME?.trim() || (await this.env.SECRETS?.get("SDR_NAME")?.then(v => v?.trim())) || SDR_NAME_DEFAULT;
+    const sdrEmail = this.env.SDR_EMAIL?.trim() || (await this.env.SECRETS?.get("SDR_EMAIL")?.then(v => v?.trim())) || SDR_EMAIL_DEFAULT;
     const customerName = input.customer_name || state.name || "the customer";
     const requestedTime = input.requested_time || "the requested time";
-    const customerContext = input.customer_context || "Telnyx onboarding";
+    const customerContext = input.customer_context || "Interested in learning more about Telnyx. Requested a call with a sales representative.";
     console.log("[actor] emailSdrForConfirmation resolved", { sdrName, sdrEmail, customerName, requestedTime });
 
-    const subject = `New Telnyx onboarding lead: ${customerName}`;
+    const subject = `New Telnyx sales lead: ${customerName}`;
     const text =
       `Hi ${sdrName},\n\n` +
-      `New Telnyx onboarding lead: ${customerName}.\n\n` +
+      `New Telnyx sales lead: ${customerName}.\n\n` +
       `Salesforce assigned you to this lead.\n\n` +
       `Requested meeting: ${requestedTime}\n\n` +
       `Customer context: ${customerContext}\n\n` +
@@ -747,6 +1141,69 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       "lead",
       `from=${input.from}; thread=${input.thread_id ?? "unknown"}; reply="${replyText.slice(0, 80)}"`,
     );
+
+    if (confirmed && state.latest_lead?.id) {
+      const meetingTime = state.latest_lead.requested_meeting_time ?? state.latest_lead.meeting_time ?? "the requested time";
+      const leadId = state.latest_lead.id;
+
+      console.log("[actor] ingestSdrReply: updating Salesforce on confirm", { leadId, meetingTime, sfTime: meetingTime });
+      try {
+        const sfResult = await updateLeadMeeting(this.env, {
+          lead_id: leadId,
+          meeting_status: "confirmed",
+          meeting_time: meetingTime,
+          sdr_confirmation: "confirmed",
+        });
+        this.logProcess(state.turn, "sdr_confirm_salesforce_updated", "lead", `lead=${leadId} status=confirmed fields=${sfResult.fields_updated.join(",")} meeting_time_in_actor=${meetingTime}`);
+      } catch (err) {
+        console.error("[actor] ingestSdrReply: Salesforce update failed", err instanceof Error ? err.message : String(err));
+        this.logProcess(state.turn, "sdr_confirm_salesforce_failed", "lead", String(err instanceof Error ? err.message : "unknown error"));
+      }
+
+      const updatedLead = state.latest_lead
+        ? {
+            ...state.latest_lead,
+            meeting_time: meetingTime,
+            meeting_status: "confirmed",
+            sdr_confirmation: "confirmed",
+          }
+        : null;
+
+      const customerPhone = input.phone_e164 || state.phone_e164;
+      const confirmationSms = `Your meeting with ${sdrName} is confirmed for ${meetingTime}.`;
+
+      const nextHistory: HistoryEntry[] = [
+        ...(state.history ?? []),
+        { role: "assistant", content: confirmationSms, at: now },
+      ];
+
+      await this.setState({
+        latest_lead: updatedLead,
+        history: nextHistory,
+        at: now,
+      });
+
+      await this.messages.add("assistant", confirmationSms);
+      this.ctx.storage.sql.exec(
+        "INSERT INTO conversation(role, content, at) VALUES (?, ?, ?)",
+        "assistant",
+        confirmationSms,
+        now,
+      );
+
+      if (state.proactive_consent && state.to && customerPhone) {
+        if (smsTransportEnabled(this.env)) {
+          try {
+            await telnyx(this.env).messages.send({ from: state.to, to: customerPhone, text: confirmationSms });
+            this.logProcess(state.turn, "sdr_confirm_sms_sent", "lead", confirmationSms);
+          } catch {
+            this.logProcess(state.turn, "sdr_confirm_sms_failed", "lead", confirmationSms);
+          }
+        } else {
+          this.logProcess(state.turn, "sdr_confirm_sms_mocked", "lead", confirmationSms);
+        }
+      }
+    }
 
     console.log("[actor] ingestSdrReply OK", { confirmed, reply_text: replyText.slice(0, 80) });
     return { reply_text: replyText, confirmed };
@@ -852,6 +1309,9 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       `CREATE TABLE IF NOT EXISTS webhook_events(event_id TEXT PRIMARY KEY, at INTEGER)`,
     );
     this.ctx.storage.sql.exec(
+      `CREATE TABLE IF NOT EXISTS call_lifecycle_events(event_id TEXT PRIMARY KEY, kind TEXT NOT NULL, at INTEGER NOT NULL)`,
+    );
+    this.ctx.storage.sql.exec(
       `CREATE TABLE IF NOT EXISTS conversation(id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT NOT NULL, content TEXT NOT NULL, at INTEGER NOT NULL)`,
     );
     this.ctx.storage.sql.exec(
@@ -860,6 +1320,25 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     this.ctx.storage.sql.exec(
       `CREATE TABLE IF NOT EXISTS graph_executions(id INTEGER PRIMARY KEY AUTOINCREMENT, turn INTEGER, intent TEXT, path TEXT, history_count INTEGER, order_id TEXT, action_result TEXT, reply TEXT, at INTEGER)`,
     );
+  }
+
+  private callLifecycleId(kind: "start" | "hangup", input: VoiceCallInput): string | null {
+    const callId = input.call_control_id ?? input.call_session_id;
+    return callId ? `${kind}:${callId}` : null;
+  }
+
+  private recordCallLifecycleEvent(eventId: string, kind: "start" | "hangup", at: number): boolean {
+    try {
+      this.ctx.storage.sql.exec(
+        "INSERT INTO call_lifecycle_events(event_id, kind, at) VALUES (?, ?, ?)",
+        eventId,
+        kind,
+        at,
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private logProcess(turn: number, phase: string, intent: string, note: string): void {

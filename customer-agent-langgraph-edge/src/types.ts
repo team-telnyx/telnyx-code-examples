@@ -3,7 +3,7 @@ import type { ActorNamespace } from "@telnyx/edge-runtime";
 import type Telnyx from "telnyx";
 
 export type SmsTransport = "demo" | "production";
-export type Intent = "lead" | "smalltalk" | "unknown";
+export type Intent = "lead" | "schedule_meeting" | "smalltalk" | "unknown" | "confirm_reschedule";
 export type PreferredChannel = "sms" | "voice";
 
 export interface Env {
@@ -162,6 +162,7 @@ export interface CustomerState extends Record<string, unknown> {
   pendingOutbound: PendingOutbound | null;
   lastIntent: Intent;
   at: number;
+  reschedule_event: RescheduleEvent | null;
 }
 
 export interface ReceiveMessageInput {
@@ -286,6 +287,50 @@ export interface SdrReplyInput {
   thread_id?: string;
   message_id?: string;
   in_reply_to?: string;
+}
+
+export interface RescheduleEvent {
+  old_meeting_time: string | null;
+  new_meeting_time: string | null;
+  detected_at: number;
+  proactive_sms_sent: boolean;
+  source: "salesforce_manual";
+}
+
+export interface CallResultInput {
+  from: string;
+  to?: string;
+  call_control_id?: string;
+  call_session_id?: string;
+  intent: Intent;
+  requested_meeting_time?: string;
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
+  customer_context?: string;
+  customer_approved?: boolean;
+  meeting_time?: string;
+  transcript_summary?: string;
+}
+
+export interface ResponderContext {
+  phone_e164: string;
+  name: string;
+  salesforce_id: string;
+  is_returning_caller: boolean;
+  latest_lead: LeadRef | null;
+  original_requested_meeting_time: string | null;
+  original_confirmed_meeting_time: string | null;
+  assigned_sdr: string | null;
+  sdr_confirmation: string | null;
+  new_meeting_time: string | null;
+  salesforce_manually_changed: boolean;
+  reschedule_detected_at: number | null;
+  proactive_sms_sent: boolean;
+  meeting_status: string | null;
+  customer_confirmation: string | null;
+  history: HistoryEntry[];
+  narrative_summary: string;
 }
 
 export interface WebhookEventRow {

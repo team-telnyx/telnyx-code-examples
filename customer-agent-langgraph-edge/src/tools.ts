@@ -23,3 +23,9 @@ export function smalltalkFallback(): string {
 export function asksForLead(text: string): boolean {
   return /\b(lead|salesforce|crm|prospect|mql|latest record|onboarding|package|status update|status)\b/i.test(text);
 }
+
+export function asksForMeeting(text: string): boolean {
+  return /\b(schedule|book|arrange|set up|organize)\s+(a\s+)?(meeting|call|appointment|session)\b/i.test(text)
+    || /\b(meeting|call|appointment)\s+(with|for|at|on)\b/i.test(text)
+    || /\bi\s+(want|need|would like)\s+to\s+(schedule|book|arrange)\b/i.test(text);
+}

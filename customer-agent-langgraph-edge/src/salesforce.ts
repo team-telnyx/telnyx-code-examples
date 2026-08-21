@@ -102,7 +102,7 @@ export async function lookupLatestLead(env: Env): Promise<LeadRef | null> {
   if (config.useMock) return mockLeads[0] ?? null;
 
   const soql = encodeURIComponent(
-    "SELECT Id, Name, Company, Email, Phone, MobilePhone, Status, LeadSource, LastModifiedDate FROM Lead WHERE IsConverted = false ORDER BY LastModifiedDate DESC LIMIT 1",
+    "SELECT Id, Name, Company, Email, Phone, Status, LeadSource, LastModifiedDate FROM Lead WHERE IsConverted = false ORDER BY LastModifiedDate DESC LIMIT 1",
   );
   const res = await salesforceFetch(config, `/services/data/${config.apiVersion}/query?q=${soql}`);
   if (!res.ok) throw new Error(`Salesforce lead lookup failed: ${res.status} - ${await safeResponseText(res)}`);
@@ -183,7 +183,8 @@ async function lookupLeadById(env: Env, leadId: string): Promise<LeadRef | null>
   const config = await salesforceConfig(env);
   if (config.useMock) return mockLeads.find((lead) => lead.id === leadId) ?? null;
 
-  const res = await salesforceFetch(config, `/services/data/${config.apiVersion}/sobjects/Lead/${encodeURIComponent(leadId)}?fields=Id,Name,Company,Email,Phone,MobilePhone,Status,LeadSource,LastModifiedDate`);
+  const fields = DEMO_MEETING_FIELDS.join(",");
+  const res = await salesforceFetch(config, `/services/data/${config.apiVersion}/sobjects/Lead/${encodeURIComponent(leadId)}?fields=${fields}`);
   if (!res.ok) throw new Error(`Salesforce lead lookup failed: ${res.status} - ${await safeResponseText(res)}`);
   return leadFromRow((await res.json()) as Record<string, unknown>);
 }
@@ -214,7 +215,7 @@ async function getOrCreateDemoLead(config: SalesforceConfig): Promise<LeadRef> {
 
 async function lookupDemoLead(config: SalesforceConfig): Promise<LeadRef | null> {
   const soql = encodeURIComponent(
-    `SELECT Id, Name, Company, Email, Phone, MobilePhone, Status, LeadSource, LastModifiedDate FROM Lead WHERE IsConverted = false AND Email = '${escapeSoql(config.demoLeadEmail ?? DEFAULT_DEMO_LEAD_EMAIL)}' ORDER BY LastModifiedDate DESC LIMIT 1`,
+    `SELECT Id, Name, Company, Email, Phone, Status, LeadSource, LastModifiedDate FROM Lead WHERE IsConverted = false AND Email = '${escapeSoql(config.demoLeadEmail ?? DEFAULT_DEMO_LEAD_EMAIL)}' ORDER BY LastModifiedDate DESC LIMIT 1`,
   );
   const res = await salesforceFetch(config, `/services/data/${config.apiVersion}/query?q=${soql}`);
   if (!res.ok) throw new Error(`Salesforce demo Lead lookup failed: ${res.status} - ${await safeResponseText(res)}`);
@@ -225,7 +226,8 @@ async function lookupDemoLead(config: SalesforceConfig): Promise<LeadRef | null>
 }
 
 async function lookupLeadByIdWithConfig(config: SalesforceConfig, leadId: string): Promise<LeadRef | null> {
-  const res = await salesforceFetch(config, `/services/data/${config.apiVersion}/sobjects/Lead/${encodeURIComponent(leadId)}?fields=Id,Name,Company,Email,Phone,MobilePhone,Status,LeadSource,LastModifiedDate`);
+  const fields = DEMO_MEETING_FIELDS.join(",");
+  const res = await salesforceFetch(config, `/services/data/${config.apiVersion}/sobjects/Lead/${encodeURIComponent(leadId)}?fields=${fields}`);
   if (!res.ok) throw new Error(`Salesforce lead lookup failed: ${res.status} - ${await safeResponseText(res)}`);
   return leadFromRow((await res.json()) as Record<string, unknown>);
 }
@@ -323,6 +325,51 @@ function escapeSoql(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
+function toSalesforceDatetime(naturalTime: string): string | null {
+  const now = new Date();
+  const lower = naturalTime.toLowerCase().trim();
+
+  const dayMatch = lower.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/);
+  const monthMatch = lower.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})\b/);
+  const timeMatch = lower.match(/(\d{1,2}):(\d{2})\s*(am|pm)/);
+  const simpleTimeMatch = lower.match(/(\d{1,2})\s*(am|pm)/);
+
+  let target = new Date(now);
+
+  if (monthMatch) {
+    const months = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+    const monthIdx = months.indexOf(monthMatch[1]);
+    const day = parseInt(monthMatch[2], 10);
+    target.setUTCMonth(monthIdx, day);
+  } else if (dayMatch) {
+    const days = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+    const targetDay = days.indexOf(dayMatch[1]);
+    let diff = targetDay - target.getUTCDay();
+    if (diff <= 0) diff += 7;
+    target.setUTCDate(target.getUTCDate() + diff);
+  }
+
+  let hour = 9;
+  let minute = 0;
+  if (timeMatch) {
+    hour = parseInt(timeMatch[1], 10);
+    minute = parseInt(timeMatch[2], 10);
+    if (timeMatch[3] === "pm" && hour < 12) hour += 12;
+    if (timeMatch[3] === "am" && hour === 12) hour = 0;
+  } else if (simpleTimeMatch) {
+    hour = parseInt(simpleTimeMatch[1], 10);
+    if (simpleTimeMatch[2] === "pm" && hour < 12) hour += 12;
+    if (simpleTimeMatch[2] === "am" && hour === 12) hour = 0;
+  }
+
+  target.setUTCHours(hour, minute, 0, 0);
+
+  if (isNaN(target.getTime())) return null;
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${target.getUTCFullYear()}-${pad(target.getUTCMonth() + 1)}-${pad(target.getUTCDate())}T${pad(target.getUTCHours())}:${pad(target.getUTCMinutes())}:00.000+0000`;
+}
+
 function notFoundShipment(orderId: string): ShipmentRef {
   return {
     id: orderId,
@@ -365,7 +412,7 @@ function leadFromRow(row: Record<string, unknown>): LeadRef {
     name: String(row["Name"] ?? "[[unknown]]"),
     company: String(row["Company"] ?? "[[unknown]]"),
     email: String(row["Email"] ?? ""),
-    phone: String(row["MobilePhone"] ?? row["Phone"] ?? "") || undefined,
+    phone: String(row["Phone"] ?? "") || undefined,
     status: String(row["Status"] ?? "unknown"),
     lead_source: row["LeadSource"] ? String(row["LeadSource"]) : undefined,
     last_modified: row["LastModifiedDate"] ? String(row["LastModifiedDate"]) : undefined,
@@ -422,7 +469,6 @@ const DEMO_MEETING_FIELDS = [
   "Company",
   "Email",
   "Phone",
-  "MobilePhone",
   "Status",
   "LeadSource",
   "LastModifiedDate",
@@ -464,12 +510,16 @@ export async function createOrUpdateLead(
   if (existing) {
     const patchBody: Record<string, string> = {};
     if (input.shipment) patchBody["Shipment__c"] = input.shipment;
-    if (input.requested_meeting_time) patchBody["Requested_Meeting_Time__c"] = input.requested_meeting_time;
     if (input.customer_context) patchBody["Customer_Context__c"] = input.customer_context;
+    if (input.requested_meeting_time) {
+      patchBody["Customer_Context__c"] = `${input.customer_context ?? ""} Requested meeting time: ${input.requested_meeting_time}`.trim();
+      const sfTime = toSalesforceDatetime(input.requested_meeting_time);
+      if (sfTime) patchBody["Requested_Meeting_Time__c"] = sfTime;
+    }
     if (input.meeting_status) patchBody["Meeting_Status__c"] = input.meeting_status;
 
     if (Object.keys(patchBody).length > 0) {
-      console.log("[salesforce] PATCH existing Lead", { leadId: existing.id, fields: Object.keys(patchBody) });
+      console.log("[salesforce] PATCH existing Lead", { leadId: existing.id, fields: Object.keys(patchBody), body: patchBody });
       const res = await salesforceFetch(
         config,
         `/services/data/${config.apiVersion}/sobjects/Lead/${encodeURIComponent(existing.id)}`,
@@ -487,8 +537,16 @@ export async function createOrUpdateLead(
       }
     }
 
-    console.log("[salesforce] re-fetching updated Lead", { leadId: existing.id });
+    console.log("[salesforce] re-fetching updated Lead with custom fields", { leadId: existing.id, fields: DEMO_MEETING_FIELDS });
     const refreshed = await lookupLeadByIdWithConfig(config, existing.id);
+    console.log("[salesforce] re-fetched Lead", {
+      leadId: refreshed?.id,
+      requested_meeting_time: refreshed?.requested_meeting_time,
+      meeting_time: refreshed?.meeting_time,
+      meeting_status: refreshed?.meeting_status,
+      customer_context: refreshed?.customer_context?.slice(0, 80),
+      assigned_sdr: refreshed?.assigned_sdr,
+    });
     console.log("[salesforce] createOrUpdateLead OK (updated)", { leadId: refreshed?.id, created: false });
     return { lead: refreshed ?? existing, created: false };
   }
@@ -500,8 +558,13 @@ export async function createOrUpdateLead(
   };
   if (input.phone) createBody["Phone"] = input.phone;
   if (input.shipment) createBody["Shipment__c"] = input.shipment;
-  if (input.requested_meeting_time) createBody["Requested_Meeting_Time__c"] = input.requested_meeting_time;
-  if (input.customer_context) createBody["Customer_Context__c"] = input.customer_context;
+  if (input.requested_meeting_time) {
+    createBody["Customer_Context__c"] = `${input.customer_context ?? ""} Requested meeting time: ${input.requested_meeting_time}`.trim();
+    const sfTime = toSalesforceDatetime(input.requested_meeting_time);
+    if (sfTime) createBody["Requested_Meeting_Time__c"] = sfTime;
+  } else if (input.customer_context) {
+    createBody["Customer_Context__c"] = input.customer_context;
+  }
   if (input.meeting_status) createBody["Meeting_Status__c"] = input.meeting_status;
 
   console.log("[salesforce] POST new Lead", { email: input.email, fields: Object.keys(createBody) });
@@ -624,16 +687,28 @@ export async function updateLeadMeeting(
 
   const patchBody: Record<string, string> = {};
   if (input.meeting_status) patchBody["Meeting_Status__c"] = input.meeting_status;
-  if (input.meeting_time) patchBody["Meeting_Time__c"] = input.meeting_time;
-  if (input.requested_meeting_time) patchBody["Requested_Meeting_Time__c"] = input.requested_meeting_time;
   if (input.assigned_sdr) patchBody["SDR_Assigned__c"] = input.assigned_sdr;
   if (input.sdr_confirmation) patchBody["SDR_Approval__c"] = input.sdr_confirmation;
   if (input.customer_confirmation) patchBody["Customer_Approval__c"] = input.customer_confirmation;
-  if (input.customer_context) patchBody["Customer_Context__c"] = input.customer_context;
+  if (input.meeting_time || input.requested_meeting_time) {
+    const time = input.meeting_time ?? input.requested_meeting_time ?? "";
+    const baseContext = input.customer_context ?? "";
+    patchBody["Customer_Context__c"] = `${baseContext} Confirmed meeting time: ${time}`.trim();
+    const sfTime = toSalesforceDatetime(time);
+    if (sfTime) {
+      patchBody["Meeting_Time__c"] = sfTime;
+      if (input.requested_meeting_time) {
+        const sfReqTime = toSalesforceDatetime(input.requested_meeting_time);
+        if (sfReqTime) patchBody["Requested_Meeting_Time__c"] = sfReqTime;
+      }
+    }
+  } else if (input.customer_context) {
+    patchBody["Customer_Context__c"] = input.customer_context;
+  }
   if (input.shipment) patchBody["Shipment__c"] = input.shipment;
 
   const fieldsUpdated = Object.keys(patchBody);
-  console.log("[salesforce] fields to update", { fields: fieldsUpdated });
+  console.log("[salesforce] updateLeadMeeting patchBody", { fields: fieldsUpdated, patchBody });
 
   if (fieldsUpdated.length === 0) {
     console.log("[salesforce] no fields to update, fetching current Lead");
@@ -661,7 +736,13 @@ export async function updateLeadMeeting(
 
   console.log("[salesforce] re-fetching updated Lead", { leadId: input.lead_id });
   const lead = await lookupLeadByIdWithConfig(config, input.lead_id);
-  console.log("[salesforce] updateLeadMeeting OK", { leadId: lead?.id, fields_updated: fieldsUpdated });
+  console.log("[salesforce] updateLeadMeeting re-fetched", {
+    leadId: lead?.id,
+    meeting_time: lead?.meeting_time,
+    meeting_status: lead?.meeting_status,
+    requested_meeting_time: lead?.requested_meeting_time,
+    sdr_confirmation: lead?.sdr_confirmation,
+  });
   return { lead: lead ?? ({} as LeadRef), fields_updated: fieldsUpdated };
 }
 
