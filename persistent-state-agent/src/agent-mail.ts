@@ -63,7 +63,7 @@ export async function sendAgentMail(
   console.log("[agent-mail] resolving API key + inbox");
   const apiKey = await agentMailApiKey(env);
   const inbox = await agentMailInbox(env);
-  console.log("[agent-mail] creds resolved", { apiKeyLength: apiKey.length, inbox });
+  console.log("[agent-mail] creds resolved", { inbox });
 
   const url = `${AGENTMAIL_API_BASE}/v0/inboxes/${encodeURIComponent(inbox)}/messages/send`;
   const body = JSON.stringify({
