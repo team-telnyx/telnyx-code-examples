@@ -394,6 +394,15 @@ async function handleAssistantInitialization(
   const { customer } = customerForPhone(env, callerPhone);
   const ctx = await customer.getCallContext(callerPhone);
 
+  let greetingText: string;
+  if (ctx.salesforce_manually_changed && ctx.new_meeting_time) {
+    greetingText = `Hi ${ctx.name || "there"}, I see your sales meeting with Steve was rescheduled to ${ctx.new_meeting_time}. Is that what you're calling about?`;
+  } else if (ctx.is_returning_caller && ctx.assigned_sdr) {
+    greetingText = `Hi ${ctx.name || "there"}, thanks for calling Telnyx again. How can I help you with your meeting with ${ctx.assigned_sdr}?`;
+  } else {
+    greetingText = `Hi! Thanks for calling Telnyx. We are an AI communications infrastructure platform with telephony, voice AI, and messaging. You can even build your own voice agents. What would you like to learn more about?`;
+  }
+
   return json({
     dynamic_variables: {
       caller_phone: ctx.phone_e164 || callerPhone,
@@ -408,6 +417,7 @@ async function handleAssistantInitialization(
       sdr_confirmation: ctx.sdr_confirmation ?? "",
       narrative_summary: ctx.narrative_summary,
       likely_reason_for_call: ctx.likely_reason_for_call,
+      greeting_text: greetingText,
     },
   });
 }
