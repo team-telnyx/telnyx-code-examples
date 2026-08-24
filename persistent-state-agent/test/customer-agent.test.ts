@@ -100,7 +100,7 @@ import type { Env, CustomerState } from "../src/types.js";
 function freshInitialState(): CustomerState {
   return {
     phone_e164: "",
-    to: "+16282564467",
+    to: "+15551234567",
     name: "Anusha",
     salesforce_id: "mock-anusha-salesforce-id",
     preferred_channel: "sms",
@@ -405,17 +405,17 @@ describe("CustomerAgent.ingestSalesforceUpdate()", () => {
 
   it("updates durable shipment state and records a proactive mocked SMS", async () => {
     const agent = makeAgent();
-    mockState.to = "+16282564467";
+    mockState.to = "+15551234567";
 
     await agent.ingestSalesforceUpdate({
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       order_id: "ORD-10043",
       salesforce_id: "SHP-002",
       status: "delayed",
       estimated_delivery: "Wednesday",
     });
 
-    expect(mockState.phone_e164).toBe("+14157986793");
+    expect(mockState.phone_e164).toBe("+15557654321");
     expect(mockState.shipments).toEqual([
       expect.objectContaining({
         id: "ORD-10043",
@@ -441,10 +441,10 @@ describe("CustomerAgent.updateLeadFromAgent()", () => {
 
   it("updates durable latest_lead state and records a mocked SMS", async () => {
     const agent = makeAgent();
-    mockState.to = "+16282564467";
+    mockState.to = "+15551234567";
 
     const result = await agent.updateLeadFromAgent({
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       value: "Updated by test",
     });
 
@@ -453,7 +453,7 @@ describe("CustomerAgent.updateLeadFromAgent()", () => {
       field: "reMQL_Source_Detail__c",
       value: "Updated by test",
     });
-    expect(mockState.phone_e164).toBe("+14157986793");
+    expect(mockState.phone_e164).toBe("+15557654321");
     expect(mockState.salesforce_id).toBe("00Q-demo-latest");
     expect(mockState.latest_lead).toEqual(expect.objectContaining({
       id: "00Q-demo-latest",
@@ -479,7 +479,7 @@ describe("CustomerAgent human escalation", () => {
     const agent = makeAgent();
 
     const result = await agent.requestHumanEscalation({
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       reason: "Needs authorization",
     });
 
@@ -493,7 +493,7 @@ describe("CustomerAgent human escalation", () => {
     ]);
 
     await agent.resumeHumanEscalation({
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       reply_text: "Authorized by support",
     });
 
@@ -515,7 +515,7 @@ describe("CustomerAgent schedule and voice hooks", () => {
     const agent = makeAgent();
 
     const result = await agent.scheduleLeadFollowup({
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       delay_seconds: 5,
       reason: "demo timer",
     });
@@ -529,13 +529,13 @@ describe("CustomerAgent schedule and voice hooks", () => {
     const agent = makeAgent();
 
     const started = await agent.onCall({
-      from: "+14157986793",
-      to: "+16282564467",
+      from: "+15557654321",
+      to: "+15551234567",
       call_control_id: "call-1",
     });
     await agent.onCallEnded({
-      from: "+14157986793",
-      to: "+16282564467",
+      from: "+15557654321",
+      to: "+15551234567",
       call_control_id: "call-1",
     });
 
@@ -545,7 +545,7 @@ describe("CustomerAgent schedule and voice hooks", () => {
       0,
       "call_hangup",
       "unknown",
-      expect.stringContaining("from=+14157986793"),
+      expect.stringContaining("from=+15557654321"),
       expect.any(Number),
     );
   });
@@ -554,13 +554,13 @@ describe("CustomerAgent schedule and voice hooks", () => {
     const agent = makeAgent();
 
     await agent.onCallEnded({
-      from: "+14157986793",
-      to: "+16282564467",
+      from: "+15557654321",
+      to: "+15551234567",
       call_control_id: "call-1",
     });
     await agent.onCallEnded({
-      from: "+14157986793",
-      to: "+16282564467",
+      from: "+15557654321",
+      to: "+15551234567",
       call_control_id: "call-1",
     });
 
@@ -658,7 +658,7 @@ const sfMocks = vi.hoisted(() => ({
       id: "00Q-test-lead-1",
       name: "Anusha",
       company: "Telnyx",
-      email: "anusha@telnyx.com",
+      email: "demo@example.com",
       status: "New",
       meeting_status: "Requested",
       requested_meeting_time: "Tuesday at 2 PM",
@@ -721,7 +721,7 @@ describe("CustomerAgent.ingestCallResult() — schedule_meeting", () => {
     const agent = makeAgent(makeEnv({ SDR_EMAIL: "steve@example.com", SDR_NAME: "Steve" }));
 
     const result = await agent.ingestCallResult({
-      from: "+14157986793",
+      from: "+15557654321",
       intent: "schedule_meeting",
       requested_meeting_time: "Tuesday at 2 PM",
       customer_name: "Anusha",
@@ -750,7 +750,7 @@ describe("CustomerAgent.ingestCallResult() — schedule_meeting", () => {
     const agent = makeAgent();
 
     await agent.ingestCallResult({
-      from: "+14157986793",
+      from: "+15557654321",
       intent: "schedule_meeting",
       requested_meeting_time: "Tuesday at 2 PM",
     });
@@ -768,7 +768,7 @@ describe("CustomerAgent.ingestCallResult() — schedule_meeting", () => {
     const agent = makeAgent();
 
     await agent.ingestCallResult({
-      from: "+14157986793",
+      from: "+15557654321",
       intent: "schedule_meeting",
       transcript_summary: "Anusha wants onboarding meeting",
     });
@@ -806,7 +806,7 @@ describe("CustomerAgent.ingestCallResult() — confirm_reschedule", () => {
     });
 
     await agent.ingestCallResult({
-      from: "+14157986793",
+      from: "+15557654321",
       intent: "confirm_reschedule",
       meeting_time: "Thursday at 11 AM",
       customer_approved: true,
@@ -833,7 +833,7 @@ describe("CustomerAgent.ingestCallResult() — confirm_reschedule", () => {
     });
 
     await agent.ingestCallResult({
-      from: "+14157986793",
+      from: "+15557654321",
       intent: "confirm_reschedule",
       meeting_time: "Thursday at 11 AM",
       customer_approved: true,
@@ -852,7 +852,7 @@ describe("CustomerAgent.getCallContext()", () => {
   it("returns is_returning_caller=false and a no-context summary for a fresh actor", async () => {
     const agent = makeAgent();
 
-    const ctx = await agent.getCallContext("+14157986793");
+    const ctx = await agent.getCallContext("+15557654321");
 
     expect(ctx.is_returning_caller).toBe(false);
     expect(ctx.narrative_summary).toBe("No previous context for this caller.");
@@ -863,7 +863,7 @@ describe("CustomerAgent.getCallContext()", () => {
   it("returns full context with narrative summary for a returning caller after reschedule", async () => {
     const agent = makeAgent();
     Object.assign(mockState, {
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       name: "Anusha",
       latest_lead: {
         id: "00Q-test-lead-1",
@@ -888,7 +888,7 @@ describe("CustomerAgent.getCallContext()", () => {
       ],
     });
 
-    const ctx = await agent.getCallContext("+14157986793");
+    const ctx = await agent.getCallContext("+15557654321");
 
     expect(ctx.is_returning_caller).toBe(true);
     expect(ctx.assigned_sdr).toBe("Steve");
@@ -904,7 +904,7 @@ describe("CustomerAgent.getCallContext()", () => {
   it("returns context for a returning caller with a confirmed meeting but no reschedule", async () => {
     const agent = makeAgent();
     Object.assign(mockState, {
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       name: "Anusha",
       latest_lead: {
         id: "00Q-test-lead-1",
@@ -920,7 +920,7 @@ describe("CustomerAgent.getCallContext()", () => {
       ],
     });
 
-    const ctx = await agent.getCallContext("+14157986793");
+    const ctx = await agent.getCallContext("+15557654321");
 
     expect(ctx.is_returning_caller).toBe(true);
     expect(ctx.salesforce_manually_changed).toBe(false);
@@ -938,8 +938,8 @@ describe("CustomerAgent.ingestSdrReply() — Gate 4 SMS confirmation", () => {
   it("sends Anusha a confirmation SMS after Steve confirms via AgentMail", async () => {
     const agent = makeAgent(makeEnv({ SMS_TRANSPORT: "demo" }));
     Object.assign(mockState, {
-      phone_e164: "+14157986793",
-      to: "+16282564467",
+      phone_e164: "+15557654321",
+      to: "+15551234567",
       latest_lead: {
         id: "00Q-test-lead-1",
         requested_meeting_time: "Tuesday at 2 PM",
@@ -949,7 +949,7 @@ describe("CustomerAgent.ingestSdrReply() — Gate 4 SMS confirmation", () => {
     });
 
     await agent.ingestSdrReply({
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       from: "steve@example.com",
       reply_text: "Yes, that meeting time works.",
       thread_id: "thread-test-1",
@@ -977,8 +977,8 @@ describe("CustomerAgent.ingestSalesforceLeadChange() — Gate 5 reschedule detec
     const agent = makeAgent(makeEnv({ SMS_TRANSPORT: "production" }));
     mockTelnyxSend.mockClear();
     Object.assign(mockState, {
-      phone_e164: "+14157986793",
-      to: "+16282564467",
+      phone_e164: "+15557654321",
+      to: "+15551234567",
       name: "Anusha",
       latest_lead: {
         id: "00Q-test-lead-1",
@@ -990,7 +990,7 @@ describe("CustomerAgent.ingestSalesforceLeadChange() — Gate 5 reschedule detec
     });
 
     const result = await agent.ingestSalesforceLeadChange({
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       lead_id: "00Q-test-lead-1",
       meeting_time: "Thursday at 11 AM",
       meeting_status: "Rescheduled by SDR",
@@ -998,7 +998,7 @@ describe("CustomerAgent.ingestSalesforceLeadChange() — Gate 5 reschedule detec
 
     expect(result.reschedule_detected).toBe(true);
     expect(mockTelnyxSend).toHaveBeenCalledWith(expect.objectContaining({
-      to: "+14157986793",
+      to: "+15557654321",
       text: expect.stringContaining("Thursday at 11 AM"),
     }));
     expect(mockState.reschedule_event).toMatchObject({
@@ -1012,7 +1012,7 @@ describe("CustomerAgent.ingestSalesforceLeadChange() — Gate 5 reschedule detec
   it("does not flag reschedule when meeting time is unchanged", async () => {
     const agent = makeAgent();
     Object.assign(mockState, {
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       latest_lead: {
         id: "00Q-test-lead-1",
         meeting_time: "Tuesday at 2 PM",
@@ -1022,7 +1022,7 @@ describe("CustomerAgent.ingestSalesforceLeadChange() — Gate 5 reschedule detec
     });
 
     const result = await agent.ingestSalesforceLeadChange({
-      phone_e164: "+14157986793",
+      phone_e164: "+15557654321",
       lead_id: "00Q-test-lead-1",
       meeting_time: "Tuesday at 2 PM",
     });
