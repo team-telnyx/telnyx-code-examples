@@ -1,0 +1,77 @@
+# Scaffold: telnyx-edge new-func --actor --name=persistent-state-agent
+# Then copy the bindings below into the generated telnyx.toml so func_id is assigned.
+
+name = "persistent-state-agent"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "CUSTOMERS"
+type = "CustomerAgentLangGraphV2"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "SF_CLIENT_ID"
+name = "SF_CLIENT_ID"
+
+[[secrets]]
+binding = "SF_CLIENT_SECRET"
+name = "SF_CLIENT_SECRET"
+
+[[secrets]]
+binding = "USE_MOCK_SALESFORCE"
+name = "USE_MOCK_SALESFORCE"
+
+[[secrets]]
+binding = "SF_WRITE_MODE"
+name = "SF_WRITE_MODE"
+
+[[secrets]]
+binding = "SF_DOMAIN"
+name = "SF_DOMAIN"
+
+[[secrets]]
+binding = "SF_API_VERSION"
+name = "SF_API_VERSION"
+
+[[secrets]]
+binding = "SF_DEMO_LEAD_EMAIL"
+name = "SF_DEMO_LEAD_EMAIL"
+
+[[secrets]]
+binding = "SDR_EMAIL"
+name = "SDR_EMAIL"
+
+[[secrets]]
+binding = "SDR_NAME"
+name = "SDR_NAME"
+
+[[secrets]]
+binding = "AGENTMAIL_API_KEY"
+name = "AGENTMAIL_API_KEY"
+
+[[secrets]]
+binding = "AGENTMAIL_INBOX"
+name = "AGENTMAIL_INBOX"
+
+[[secrets]]
+binding = "AGENTMAIL_WEBHOOK_SECRET"
+name = "AGENTMAIL_WEBHOOK_SECRET"
+
+[edge_compute]
+func_id = "replace-with-your-function-id"
+func_name = "persistent-state-agent"
+
+[env_vars]
+DEMO_MODE = "true"
+SMS_TRANSPORT = "production"
+DEMO_FROM_NUMBER = "+15551234567"
+DEMO_SENDER_NUMBER = "+15557654321"
+DEMO_CUSTOMER_NAME = "Jane"
+MODEL = "zai-org/GLM-5.2"

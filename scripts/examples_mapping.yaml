@@ -1360,12 +1360,6 @@ examples:
     framework: edge
     folder: agent-sms-triage-bot
 
-  - product: ai
-    use_case: multi-model-inference-switcher
-    language: nodejs
-    framework: edge
-    folder: multi-model-inference-switcher
-
   - product: sms
     use_case: sentiment-analysis-agent
     language: nodejs
@@ -1383,6 +1377,12 @@ examples:
     language: nodejs
     framework: edge
     folder: langgraph-agent-on-edge
+
+  - product: ai
+    use_case: persistent-state-agent
+    language: nodejs
+    framework: edge
+    folder: persistent-state-agent
 
   - product: sms
     use_case: elearning-course-narrator
@@ -1949,16 +1949,6 @@ examples:
     language: go
     framework: edge-compute
     folder: edge-ai-assistant-backend-go
-  - product: voice
-    use_case: edge-customer-agent
-    language: typescript
-    framework: edge-compute
-    folder: edge-customer-agent-typescript
-  - product: voice
-    use_case: edge-call-transcription-agent
-    language: typescript
-    framework: edge-compute
-    folder: edge-call-transcription-agent
   - product: voice
     use_case: merge-deal-desk-alerts
     language: python
@@ -3195,9 +3185,3 @@ examples:
     language: python
     framework: fastapi
     folder: outbound-hold-agent-python
-
-  - product: ai
-    use_case: "auto-generated-from-linear"
-    language: python
-    framework: flask
-    folder: ai-call-campaign-orchestrator

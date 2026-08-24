@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-08-19T21:24:37Z",
-  "example_count": 520,
+  "generated_at": "2026-08-24T19:37:52Z",
+  "example_count": 518,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1996,15 +1996,6 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/agent-sms-triage-bot"
     },
     {
-      "folder": "multi-model-inference-switcher",
-      "title": "Multi-Model Inference Switcher",
-      "description": "Switch between LLM models at runtime via a KV feature flag — no redeploy. Agent SDK + zero-credential inference + admin UI with live model switching.",
-      "product": "ai",
-      "language": "nodejs",
-      "framework": "edge",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multi-model-inference-switcher"
-    },
-    {
       "folder": "sentiment-analysis-agent",
       "title": "Sentiment Analysis Agent",
       "description": "Analyze inbound SMS sentiment on Telnyx Edge Compute with the Agent SDK, log results to actor-local SQL, and escalate negative sentiment by SMS.",
@@ -2030,6 +2021,15 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/langgraph-agent-on-edge"
+    },
+    {
+      "folder": "persistent-state-agent",
+      "title": "Persistent State Agent",
+      "description": "",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/persistent-state-agent"
     },
     {
       "folder": "elearning-course-narrator-python",
@@ -2894,24 +2894,6 @@
       "language": "go",
       "framework": "edge-compute",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-ai-assistant-backend-go"
-    },
-    {
-      "folder": "edge-customer-agent-typescript",
-      "title": "Customer Agent — The Actor IS the Entity",
-      "description": "A durable Entity Agent on Telnyx Edge Compute. One actor per customer phone number, surviving across days, calls, SMS messages, and actor evictions. The AI Assistant is the reasoning harness inside; the agent owns the durable state.",
-      "product": "voice",
-      "language": "typescript",
-      "framework": "edge-compute",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-customer-agent-typescript"
-    },
-    {
-      "folder": "edge-call-transcription-agent",
-      "title": "Edge Call Transcription Agent",
-      "description": "Live call transcription agent on Telnyx Edge Compute + Agent SDK — answers an inbound call, streams STT into durable agent state, and on hangup summarizes the transcript via LLM, persists it to actor-local SQL, and texts the summary via SMS. Zero-credential inference and messaging via the [telnyx] binding.",
-      "product": "voice",
-      "language": "typescript",
-      "framework": "edge-compute",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-call-transcription-agent"
     },
     {
       "folder": "merge-deal-desk-alerts-python",
