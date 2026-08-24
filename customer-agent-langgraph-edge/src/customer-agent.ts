@@ -768,9 +768,12 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       { role: "assistant", content: confirmationSms, at: now },
     ];
 
+    const to = state.to || demoFromNumber(this.env);
+
     await this.setState({
       phone_e164: customerPhone,
       name: customerName,
+      to,
       latest_lead: updatedLead,
       lastIntent: "schedule_meeting",
       history: nextHistory,
@@ -785,10 +788,10 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       now,
     );
 
-    if (state.proactive_consent && state.to && customerPhone) {
+    if (state.proactive_consent && to && customerPhone) {
       if (smsTransportEnabled(this.env)) {
         try {
-          await telnyx(this.env).messages.send({ from: state.to, to: customerPhone, text: confirmationSms });
+          await telnyx(this.env).messages.send({ from: to, to: customerPhone, text: confirmationSms });
           this.logProcess(state.turn, "schedule_meeting_sms_sent", "schedule_meeting", confirmationSms);
         } catch {
           this.logProcess(state.turn, "schedule_meeting_sms_failed", "schedule_meeting", confirmationSms);
