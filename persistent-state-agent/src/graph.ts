@@ -87,7 +87,7 @@ export function buildGraph(env: Env, model: string) {
     if (asksForMeeting(userText) || state.intentLabel === "schedule_meeting") {
       console.log("[graph] schedule_meeting action branch");
       const customerName = env.DEMO_CUSTOMER_NAME || "Anusha";
-      const customerEmail = env.SF_DEMO_LEAD_EMAIL || "anusha@telnyx.com";
+      const customerEmail = env.SF_DEMO_LEAD_EMAIL || "demo@example.com";
       const requestedTime = extractRequestedTime(userText);
       const customerContext = "Telnyx onboarding";
 

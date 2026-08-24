@@ -393,7 +393,7 @@ const mockLeads: LeadRef[] = [
     id: "00Q-demo-latest",
     name: "Anusha Demo Lead",
     company: "Telnyx",
-    email: "anusha@example.com",
+    email: "demo@example.com",
     status: "MQL",
     lead_source: "Demo",
     last_modified: new Date().toISOString(),

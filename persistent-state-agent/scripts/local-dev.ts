@@ -70,7 +70,7 @@ createServer(async (req, res) => {
 }).listen(PORT, () => {
   console.log(`CustomerAgent local dev server listening on http://localhost:${PORT}`);
   console.log(`SMS transport: ${smsTransportEnabled(env) ? "production" : "demo"}`);
-  console.log(`Demo customer: ${process.env.DEMO_CUSTOMER_NAME || "Anusha"} from ${process.env.DEMO_SENDER_NUMBER || "+14157986793"}`);
+  console.log(`Demo customer: ${process.env.DEMO_CUSTOMER_NAME || "Anusha"} from ${process.env.DEMO_SENDER_NUMBER || "+15557654321"}`);
 });
 
 function createLocalEnv(): Env {
@@ -78,8 +78,8 @@ function createLocalEnv(): Env {
   const localEnv = {
     DEMO_MODE: process.env.DEMO_MODE || "true",
     SMS_TRANSPORT: process.env.SMS_TRANSPORT || "demo",
-    DEMO_FROM_NUMBER: process.env.DEMO_FROM_NUMBER || "+16282564467",
-    DEMO_SENDER_NUMBER: process.env.DEMO_SENDER_NUMBER || "+14157986793",
+    DEMO_FROM_NUMBER: process.env.DEMO_FROM_NUMBER || "+15551234567",
+    DEMO_SENDER_NUMBER: process.env.DEMO_SENDER_NUMBER || "+15557654321",
     DEMO_CUSTOMER_NAME: process.env.DEMO_CUSTOMER_NAME || "Anusha",
     DEMO_CUSTOMER_SALESFORCE_ID: process.env.DEMO_CUSTOMER_SALESFORCE_ID || "mock-anusha-salesforce-id",
     USE_MOCK_SALESFORCE: process.env.USE_MOCK_SALESFORCE || "true",

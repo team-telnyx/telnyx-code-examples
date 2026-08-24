@@ -698,7 +698,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
   private async handleScheduleMeetingFromCall(input: CallResultInput, now: number): Promise<{ lead_id: string; assigned_sdr: string; sdr_available: boolean; sdr_emailed: boolean }> {
     const state = await this.getState();
     const customerName = input.customer_name || state.name || demoCustomerName(this.env);
-    const customerEmail = input.customer_email || this.env.SF_DEMO_LEAD_EMAIL || (await this.env.SECRETS?.get("SF_DEMO_LEAD_EMAIL")?.then(v => v?.trim())) || "anusha@telnyx.com";
+    const customerEmail = input.customer_email || this.env.SF_DEMO_LEAD_EMAIL || (await this.env.SECRETS?.get("SF_DEMO_LEAD_EMAIL")?.then(v => v?.trim())) || "demo@example.com";
     const customerPhone = input.customer_phone || input.from || state.phone_e164;
     const requestedTime = input.requested_meeting_time || "a time to be determined";
     const customerContext = input.customer_context || "Interested in learning more about Telnyx. Requested a call with a sales representative.";

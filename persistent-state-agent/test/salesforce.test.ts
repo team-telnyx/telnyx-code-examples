@@ -243,13 +243,13 @@ describe("createOrUpdateLead (mock)", () => {
   it("updates an existing Lead when email matches", async () => {
     const env = makeEnv();
     const result = await createOrUpdateLead(env, {
-      email: "anusha@example.com",
+      email: "demo@example.com",
       shipment: "Telnyx Updated",
       customer_context: "Updated context",
     });
 
     expect(result.created).toBe(false);
-    expect(result.lead.email).toBe("anusha@example.com");
+    expect(result.lead.email).toBe("demo@example.com");
     expect(result.lead.shipment).toBe("Telnyx Updated");
     expect(result.lead.customer_context).toBe("Updated context");
   });

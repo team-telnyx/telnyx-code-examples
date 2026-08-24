@@ -166,11 +166,11 @@ function makeAgent(env?: Env): InstanceType<typeof CustomerAgent> {
 describe("CustomerAgent initial state", () => {
   beforeEach(() => resetMocks());
 
-  it("seeds the demo customer Anusha with the mock salesforce_id", () => {
+  it("seeds the demo customer Jane with the mock salesforce_id", () => {
     const agent = makeAgent();
     const initial = agent["initialState"]();
 
-    expect(initial.name).toBe("Anusha");
+    expect(initial.name).toBe("Jane");
     expect(initial.salesforce_id).toBe("mock-anusha-salesforce-id");
     expect(initial.preferred_channel).toBe("sms");
     expect(initial.proactive_consent).toBe(true);

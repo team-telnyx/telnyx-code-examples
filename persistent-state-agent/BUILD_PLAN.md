@@ -10,16 +10,16 @@ The first working milestone is SMS-only:
 2. Telnyx Messaging webhook routes to the Edge function.
 3. The Edge function routes by customer phone number into one durable actor.
 4. LangGraph runs inside that actor.
-5. The actor sends an SMS reply from `+16282564467`.
+5. The actor sends an SMS reply from `+15551234567`.
 6. `/events` and `/context` show that state/history stayed on the same actor.
 
 ## Current Known-Good Inputs
 
-- Working Telnyx outbound SMS sender: `+16282564467`
-- Demo customer phone: `+14157986793`
+- Working Telnyx outbound SMS sender: `+15551234567`
+- Demo customer phone: `+15557654321`
 - Demo customer name: `Anusha`
 - Telnyx 10DLC campaign exists and is active.
-- Direct Telnyx Messages API can send SMS from `+16282564467`.
+- Direct Telnyx Messages API can send SMS from `+15551234567`.
 - Do not print or commit API keys, Salesforce secrets, or 1Password values.
 
 ## Current Project State
@@ -62,13 +62,13 @@ Current local progress while Edge is with on-call:
 Acceptance gate:
 
 - `curl /health` returns 200 for the cloned function.
-- `POST /send` with `{ "from": "+14157986793", "text": "where is order ORD-10042?" }` sends a real SMS to Anusha.
+- `POST /send` with `{ "from": "+15557654321", "text": "where is order ORD-10042?" }` sends a real SMS to Anusha.
 - `/events?from=%2B14157986793` shows inbound, graph execution, outbound, and committed turn state.
 
 Implementation notes:
 
 - Keep `SMS_TRANSPORT=production`.
-- Use `DEMO_FROM_NUMBER=+16282564467`.
+- Use `DEMO_FROM_NUMBER=+15551234567`.
 - Do not connect Salesforce yet.
 - Use mock order lookup until SMS + state is stable.
 
@@ -98,7 +98,7 @@ State should include:
 Acceptance gate:
 
 - Messaging profile webhook points at `/webhooks/messaging`.
-- Anusha texts `+16282564467`.
+- Anusha texts `+15551234567`.
 - The same actor wakes and replies.
 - Duplicate webhook event IDs are ignored.
 

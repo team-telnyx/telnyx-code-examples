@@ -117,8 +117,8 @@ The turn state machine prevents duplicate replies under retry and concurrent inb
 | `MODEL` | LLM model ID. Docs-indicated default: `zai-org/GLM-5.2`. Must be a model the binding serves. | No (defaults to `zai-org/GLM-5.2`) |
 | `DEMO_MODE` | `"true"` serves a local HTML test UI at `/`. `"false"` disables it. | No (defaults to `true`) |
 | `SMS_TRANSPORT` | `"demo"` simulates outbound SMS in the event log. Any other value sends real SMS via the binding. | No (defaults to production on Edge; local harness sets `demo`) |
-| `DEMO_FROM_NUMBER` | The agent's phone number (E.164) for the demo UI. | No (defaults to `+16282564467`) |
-| `DEMO_SENDER_NUMBER` | The simulated customer's phone number (E.164) — the actor's identity. | No (defaults to `+14157986793`) |
+| `DEMO_FROM_NUMBER` | The agent's phone number (E.164) for the demo UI. | No (defaults to `+15551234567`) |
+| `DEMO_SENDER_NUMBER` | The simulated customer's phone number (E.164) — the actor's identity. | No (defaults to `+15557654321`) |
 | `DEMO_CUSTOMER_NAME` | Seed name for the demo customer's `CustomerState`. | No (defaults to `Anusha`) |
 | `DEMO_CUSTOMER_SALESFORCE_ID` | Seed Salesforce ID for the demo customer's `CustomerState`. | No (defaults to `mock-anusha-salesforce-id`) |
 | `USE_MOCK_SALESFORCE` | `"true"` keeps Salesforce reads/writes in the mock client. Real Salesforce arrives in Gate 4. | No (defaults to `true`) |
@@ -178,7 +178,7 @@ curl -sS http://localhost:8787/health
 
 curl -sS -X POST http://localhost:8787/send \
   -H "content-type: application/json" \
-  -d '{"from":"+14157986793","text":"where is order ORD-10042?"}'
+  -d '{"from":"+15557654321","text":"where is order ORD-10042?"}'
 
 curl -sS "http://localhost:8787/events?from=%2B14157986793&limit=20"
 
@@ -187,7 +187,7 @@ curl -sS "http://localhost:8787/context?phone=%2B14157986793"
 curl -sS -X POST http://localhost:8787/webhooks/salesforce \
   -H "content-type: application/json" \
   -d '{
-    "phone_e164": "+14157986793",
+    "phone_e164": "+15557654321",
     "order_id": "ORD-10043",
     "salesforce_id": "SHP-002",
     "status": "delayed",
@@ -253,7 +253,7 @@ See [API.md](API.md) for the full typed endpoint reference.
 curl -X POST http://localhost:8787/webhooks/salesforce \
   -H "content-type: application/json" \
   -d '{
-    "phone_e164": "+14157986793",
+    "phone_e164": "+15557654321",
     "order_id": "ORD-10043",
     "salesforce_id": "SHP-002",
     "status": "delayed",
