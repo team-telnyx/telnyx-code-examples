@@ -1,7 +1,7 @@
 import type { Env } from "./types.js";
 import { demoCustomerName, demoCustomerSalesforceId, demoSenderNumber } from "./types.js";
 
-export const BRAND_VERSION = "customer-agent-langgraph-edge v0.1.0";
+export const BRAND_VERSION = "persistent-state-agent v0.1.0";
 
 export function demoHtml(env: Env): string {
   const customerName = demoCustomerName(env);

@@ -8,7 +8,7 @@ This document describes how to configure a Salesforce record-triggered Flow that
 - The custom fields `Meeting_Time__c`, `Meeting_Status__c`, `SDR_Assigned__c` must exist on the Lead object
 - The Edge function must be deployed at:
   ```
-  https://customer-agent-langgraph-edge-bd2578f9-6.telnyxcompute.com/webhooks/salesforce-lead-change
+  https://persistent-state-agent-bd2578f9-6.telnyxcompute.com/webhooks/salesforce-lead-change
   ```
 
 ## Step 1 — Create a Named Credential (or External Credential)
@@ -16,7 +16,7 @@ This document describes how to configure a Salesforce record-triggered Flow that
 1. Go to **Setup → Named Credentials**
 2. Click **New Named Credential**
 3. Name: `CustomerAgent_Edge`
-4. URL: `https://customer-agent-langgraph-edge-bd2578f9-6.telnyxcompute.com`
+4. URL: `https://persistent-state-agent-bd2578f9-6.telnyxcompute.com`
 5. Identity Type: **Anonymous** (no auth for the demo)
 6. Click **Save**
 
@@ -110,7 +110,7 @@ If your Salesforce edition doesn't support HTTP Callouts in Flows, create an Ape
 public class CustomerAgentRescheduleTrigger {
     @future(callout=true)
     public static void sendRescheduleNotification(String phoneE164, String leadId, String meetingTime, String meetingStatus, String assignedSdr) {
-        String endpoint = 'https://customer-agent-langgraph-edge-bd2578f9-6.telnyxcompute.com/webhooks/salesforce-lead-change';
+        String endpoint = 'https://persistent-state-agent-bd2578f9-6.telnyxcompute.com/webhooks/salesforce-lead-change';
         String body = JSON.new Map<String, String>{
             'phone_e164' => phoneE164,
             'lead_id' => leadId,
@@ -144,7 +144,7 @@ To simulate a Salesforce reschedule manually (for testing without the Flow):
 
 ```bash
 curl -X POST \
-  https://customer-agent-langgraph-edge-bd2578f9-6.telnyxcompute.com/webhooks/salesforce-lead-change \
+  https://persistent-state-agent-bd2578f9-6.telnyxcompute.com/webhooks/salesforce-lead-change \
   -H "content-type: application/json" \
   -d '{
     "phone_e164": "+14157986793",

@@ -13,7 +13,7 @@ Health check endpoint.
   "ok": true,
   "demo": true,
   "smsTransport": "demo",
-  "brand": "customer-agent-langgraph-edge v0.1.0"
+  "brand": "persistent-state-agent v0.1.0"
 }
 ```
 
@@ -24,7 +24,7 @@ Version info.
 **Response:** `200 OK`
 
 ```json
-{ "brand": "customer-agent-langgraph-edge v0.1.0" }
+{ "brand": "persistent-state-agent v0.1.0" }
 ```
 
 ### `GET /`

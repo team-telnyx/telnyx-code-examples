@@ -1379,10 +1379,10 @@ examples:
     folder: langgraph-agent-on-edge
 
   - product: ai
-    use_case: customer-agent-langgraph-edge
+    use_case: persistent-state-agent
     language: nodejs
     framework: edge
-    folder: customer-agent-langgraph-edge
+    folder: persistent-state-agent
 
   - product: sms
     use_case: elearning-course-narrator

@@ -3,7 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-08-24T19:16:50Z",
+  "generated_at": "2026-08-24T19:37:52Z",
   "example_count": 518,
   "examples": [
     {
@@ -2023,13 +2023,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/langgraph-agent-on-edge"
     },
     {
-      "folder": "customer-agent-langgraph-edge",
-      "title": "Customer Agent Langgraph Edge",
+      "folder": "persistent-state-agent",
+      "title": "Persistent State Agent",
       "description": "",
       "product": "ai",
       "language": "nodejs",
       "framework": "edge",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/customer-agent-langgraph-edge"
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/persistent-state-agent"
     },
     {
       "folder": "elearning-course-narrator-python",

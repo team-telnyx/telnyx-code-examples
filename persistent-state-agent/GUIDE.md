@@ -141,7 +141,7 @@ await customer.receive({ text, from: normalizedFrom, to, eventId });
 ### 5. The debug route (`GET /context`)
 
 ```bash
-curl "https://customer-agent-langgraph-edge-<your-org>.telnyxcompute.com/context?phone=%2B15551234567"
+curl "https://persistent-state-agent-<your-org>.telnyxcompute.com/context?phone=%2B15551234567"
 ```
 
 Returns the full `CustomerContext` — proves the actor persisted across requests.

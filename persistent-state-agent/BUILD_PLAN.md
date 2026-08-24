@@ -26,7 +26,7 @@ The first working milestone is SMS-only:
 
 Main cloned project:
 
-- `/Users/anushathukral/Documents/Projects/telnyx-code-examples/customer-agent-langgraph-edge`
+- `/Users/anushathukral/Documents/Projects/telnyx-code-examples/persistent-state-agent`
 
 SMS deploy experiments:
 

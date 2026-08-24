@@ -134,8 +134,8 @@ The turn state machine prevents duplicate replies under retry and concurrent inb
 > **Agent / CLI access:** Provision the messaging webhook with the Telnyx CLI:
 >
 > ```bash
-> telnyx messaging-profiles create --name "customer-agent-langgraph-edge" \
->   --webhook-url "https://customer-agent-langgraph-edge-<your-org>.telnyxcompute.com/webhooks/messaging"
+> telnyx messaging-profiles create --name "persistent-state-agent" \
+>   --webhook-url "https://persistent-state-agent-<your-org>.telnyxcompute.com/webhooks/messaging"
 >
 > telnyx phone-numbers assign --phone-number "+1YOUR_NUMBER" \
 >   --messaging-profile-id "$MESSAGING_PROFILE_ID"
@@ -148,7 +148,7 @@ The turn state machine prevents duplicate replies under retry and concurrent inb
 ### 1. Clone and install
 
 ```bash
-cd telnyx-code-examples/customer-agent-langgraph-edge
+cd telnyx-code-examples/persistent-state-agent
 npm install
 ```
 
@@ -201,7 +201,7 @@ curl -sS "http://localhost:8787/context?phone=%2B14157986793"
 
 ```bash
 # Scaffold a function ID (first time only):
-telnyx-edge new-func --actor --name=customer-agent-langgraph-edge
+telnyx-edge new-func --actor --name=persistent-state-agent
 
 # Update telnyx.toml with the generated func_id, then:
 telnyx-edge types   # generate binding types
@@ -235,7 +235,7 @@ This is a runtime model-string verification, not a deployment blocker. `MODEL` i
 
 In the Telnyx Mission Control Portal, set your messaging profile's webhook URL to:
 ```
-https://customer-agent-langgraph-edge-<your-org>.telnyxcompute.com/webhooks/messaging
+https://persistent-state-agent-<your-org>.telnyxcompute.com/webhooks/messaging
 ```
 
 ### 7. Test

@@ -1,5 +1,5 @@
 {
-  "name": "customer-agent-langgraph-edge",
+  "name": "persistent-state-agent",
   "version": "0.1.0",
   "description": "CustomerAgent is the durable entity. A LangGraph StateGraph (intent → action → response) runs inside the per-customer actor on Telnyx Edge Compute, with zero-credential inference via the Telnyx API binding. SMS, voice, Salesforce, schedules, and human escalation all route into the same customer actor.",
   "type": "module",
