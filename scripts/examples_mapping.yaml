@@ -1378,6 +1378,12 @@ examples:
     framework: edge
     folder: langgraph-agent-on-edge
 
+  - product: ai
+    use_case: customer-agent-langgraph-edge
+    language: nodejs
+    framework: edge
+    folder: customer-agent-langgraph-edge
+
   - product: sms
     use_case: elearning-course-narrator
     language: python

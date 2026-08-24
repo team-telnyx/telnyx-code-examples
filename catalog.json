@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-08-13T17:48:39Z",
-  "example_count": 517,
+  "generated_at": "2026-08-24T19:16:50Z",
+  "example_count": 518,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -2021,6 +2021,15 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/langgraph-agent-on-edge"
+    },
+    {
+      "folder": "customer-agent-langgraph-edge",
+      "title": "Customer Agent Langgraph Edge",
+      "description": "",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/customer-agent-langgraph-edge"
     },
     {
       "folder": "elearning-course-narrator-python",

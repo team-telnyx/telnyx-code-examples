@@ -65,18 +65,13 @@ binding = "AGENTMAIL_WEBHOOK_SECRET"
 name = "AGENTMAIL_WEBHOOK_SECRET"
 
 [edge_compute]
-func_id = "bd2578f9-62f2-4d16-9ba4-ca36ba72ea53"
+func_id = "replace-with-your-function-id"
 func_name = "customer-agent-langgraph-edge"
 
 [env_vars]
 DEMO_MODE = "true"
 SMS_TRANSPORT = "production"
-DEMO_FROM_NUMBER = "+16282564467"
-DEMO_SENDER_NUMBER = "+14157986793"
-DEMO_CUSTOMER_NAME = "Anusha"
-DEMO_CUSTOMER_SALESFORCE_ID = "mock-anusha-salesforce-id"
-USE_MOCK_SALESFORCE = "false"
-SF_WRITE_MODE = "demo_record"
-SF_DOMAIN = "telnyx"
-SF_API_VERSION = "v58.0"
+DEMO_FROM_NUMBER = "+15551234567"
+DEMO_SENDER_NUMBER = "+15557654321"
+DEMO_CUSTOMER_NAME = "Jane"
 MODEL = "zai-org/GLM-5.2"
