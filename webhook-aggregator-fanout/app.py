@@ -142,7 +142,7 @@ def process_sms_action(event_data):
             to=from_number,
             text=f"Thanks for your message! We received: {text[:50]}..."
         )
-        app.logger.info(f"Sent auto-reply to {from_number}")
+        app.logger.info("Sent auto-reply to inbound SMS sender")
         
     except Exception as e:
         app.logger.exception(f"Failed to process SMS action")
