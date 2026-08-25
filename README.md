@@ -364,7 +364,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(131 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(132 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -427,6 +427,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [ai-voice-survey-sentiment-tracker-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voice-survey-sentiment-tracker-python/README.md) | Python | AI Voice Survey Sentiment Tracker - real-time CSAT scoring from voice tone and word choice. |
 | [ai-voicemail-transcription-forwarding-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voicemail-transcription-forwarding-python/README.md) | Python | AI Voicemail Transcription & Forwarding - voicemail to AI-summarized SMS/email with priority classification. |
 | [ai-voiceover-studio-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voiceover-studio-python/README.md) | Python | Upload a script, select voice/style/pacing, AI adds professional direction cues (pauses, emphasis, pacing), TTS renders the voice-over, stores output in Cloud Storage. Supports multiple takes and retakes. |
+| [blob-store-backup-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/blob-store-backup-agent/README.md) | Python | Automated blob store backup pipeline to Google Cloud Storage with checksum verification, SQLite registry, and Telnyx SMS notifications. |
 | [build-rag-with-telnyx-inference-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-rag-with-telnyx-inference-python/README.md) | Python | Build a retrieval-augmented generation API with Telnyx embeddings and chat completions. |
 | [build-voice-ai-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-voice-ai-agent-nodejs/README.md) | Node.js | Build a complete voice AI agent with Telnyx - answer inbound calls, transcribe speech, generate replies with Telnyx Inference, and speak them back via Call Control. |
 | [build-voice-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-voice-ai-agent-python/README.md) | Python | Build a complete voice AI agent with Telnyx - inbound call handling, AI conversation, and call control. |

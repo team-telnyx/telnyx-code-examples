@@ -1,0 +1,6 @@
+flask>=3.0
+requests>=2.31
+python-dotenv>=1.0
+telnyx>=2.0
+google-cloud-storage>=2.10
+google-auth>=2.23
