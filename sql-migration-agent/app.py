@@ -83,9 +83,9 @@ def send_sms_notification(to_number: str, message: str) -> None:
             to=to_number,
             text=message,
         )
-        app.logger.info(f"SMS sent to {to_number}")
+        app.logger.info("SMS notification sent successfully")
     except Exception as e:
-        app.logger.exception(f"Failed to send SMS: {e}")
+        app.logger.exception("Failed to send SMS notification")
 
 
 def run_migration(migration_id: str, db_name: str, notify_number: str) -> None:
@@ -132,14 +132,14 @@ def run_migration(migration_id: str, db_name: str, notify_number: str) -> None:
     except Exception as e:
         # Rollback on failure
         migration_state["status"] = "failed"
-        migration_state["error"] = str(e)
+        migration_state["error"] = "Migration failed, check server logs for details"
         rollback_migration(migration_id, executed_steps)
 
         # Send failure notification
         if notify_phone:
             send_sms_notification(
                 notify_phone,
-                f"❌ Migration {migration_id} failed: {str(e)}. Rollback initiated.",
+                f"❌ Migration {migration_id} failed. Rollback initiated.",
             )
 
 
