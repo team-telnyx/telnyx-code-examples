@@ -138,7 +138,7 @@ def execute_job(job):
         app.logger.exception(f"Job {job_id} ({job_name}) failed")
         log_execution(job_id, job_name, job_type, "failed", str(e))
         send_sms_failure_notification(job_id, job_name, str(e))
-        return {"status": "failed", "error": str(e)}
+        return {"status": "failed", "error": "Job execution failed"}
 
 class CronScheduler:
     """Cron-like scheduler using this.every() pattern."""
@@ -361,7 +361,7 @@ def telnyx_webhook():
             # Handle incoming message
             message_text = payload.get("text")
             from_number = payload.get("from", {}).get("phone_number")
-            app.logger.info(f"Received message from {from_number}: {message_text}")
+            app.logger.info("Received inbound message")
         
         return jsonify({"status": "received"}), 200
     except Exception as e:
