@@ -365,7 +365,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(131 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(132 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -480,6 +480,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [multi-channel-ai-helpdesk-with-ticketing-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-channel-ai-helpdesk-with-ticketing-python/README.md) | Python | Multi-Channel AI Helpdesk with Ticketing - voice + SMS + WhatsApp support with auto-ticket creation. |
 | [multi-character-narrator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-character-narrator-python/README.md) | Python | Paste a dialogue script with speaker labels, assign each speaker a distinct Telnyx Ultra voice, render every line in parallel, and stitch the per-line audio into one continuous MP3. |
 | [multi-party-ai-training-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-party-ai-training-call-python/README.md) | Python | AI plays customer roles for sales/support practice. Multiple trainees join, AI rotates scenarios and scores each trainee. |
+| [multi-tenant-voice-platform](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-tenant-voice-platform/README.md) | Python | A Flask-based multi-tenant voice platform with per-tenant rate limiting, configuration, and call state management using Telnyx. |
 | [omnichannel-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-receptionist-python/README.md) | Python | One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference. |
 | [outbound-hold-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/outbound-hold-agent-python/README.md) | Python | Call a business, navigate IVRs with a Telnyx AI Assistant, pause the assistant during hold, monitor with transcription, and resume with context when a representative answers. |
 | [persistent-state-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) | Node.js | --- |

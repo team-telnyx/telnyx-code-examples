@@ -3198,3 +3198,9 @@ examples:
     language: python
     framework: flask
     folder: shipment-agent
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: multi-tenant-voice-platform
