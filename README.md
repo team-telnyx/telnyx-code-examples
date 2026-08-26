@@ -365,7 +365,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(131 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(132 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -431,6 +431,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [build-rag-with-telnyx-inference-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-rag-with-telnyx-inference-python/README.md) | Python | Build a retrieval-augmented generation API with Telnyx embeddings and chat completions. |
 | [build-voice-ai-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-voice-ai-agent-nodejs/README.md) | Node.js | Build a complete voice AI agent with Telnyx - answer inbound calls, transcribe speech, generate replies with Telnyx Inference, and speak them back via Call Control. |
 | [build-voice-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-voice-ai-agent-python/README.md) | Python | Build a complete voice AI agent with Telnyx - inbound call handling, AI conversation, and call control. |
+| [call-quality-monitor](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-quality-monitor/README.md) | Python | Monitor call quality metrics (MOS, jitter, latency) via Telnyx webhooks, store historical data in SQLite, and view live alerts on a WebSocket dashboard. |
 | [call-recording-ai-summarizer-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-recording-ai-summarizer-python/README.md) | Python | Call Recording AI Summarizer - record calls, then summarize and extract action items with AI. |
 | [call-recording-redactor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/call-recording-redactor-python/README.md) | Python | AI Call Recording Redactor — transcribe call audio and redact PII (names, cards, SSNs, addresses, phones, emails) via Telnyx STT + AI Inference. |
 | [changelog-generator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/changelog-generator-python/README.md) | Python | AI Changelog Generator — turn git commits and diffs into a clean, human-readable changelog via Telnyx AI Inference. |

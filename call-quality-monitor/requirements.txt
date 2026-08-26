@@ -1,0 +1,5 @@
+flask>=3.0
+requests>=2.31
+python-dotenv>=1.0
+telnyx>=2.0
+simple-websocket>=1.0
