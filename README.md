@@ -25,7 +25,7 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
-<summary><h2>Voice AI</h2> <em>(149 examples)</em></summary>
+<summary><h2>Voice AI</h2> <em>(150 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
@@ -33,8 +33,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 |---------|----------|-------------|
 | [ai-assistant-client-side-tools-nextjs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-client-side-tools-nextjs/README.md) | Node.js | Build a browser-based Next.js dashboard where a Telnyx AI Assistant invokes client-side JavaScript tools to navigate the UI, change theme, open a modal, and update React form state. |
 | [ai-assistant-multiparticipant-calling-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-multiparticipant-calling-nodejs/README.md) | Node.js | Build a Telnyx Voice AI assistant that answers an inbound call, uses a backend tool to dial a second participant, and joins them into the same live AI conversation with ai_assistant_join. |
-| [ai-powered-call-router](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-powered-call-router/README.md) | TypeScript | Route inbound calls by classifying caller intent via the zero-credential Telnyx AI Inference binding and a Telnyx KV route table. One StatefulActor per call leg on the Edge Runtime. |
-| [agent-fleet-shared-workspace](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-fleet-shared-workspace/README.md) | TypeScript | Coordinate five Agent SDK actors through a shared CloudFS POSIX workspace, with SQL operation history and real-time WebSocket state updates. |
+| [ai-powered-call-router](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-powered-call-router/README.md) | Typescript | Route inbound calls by analyzing caller intent with the Telnyx AI Inference binding and a Telnyx KV route table. One StatefulActor per call leg; zero-credential LLM classification + global KV lookup on the Edge Runtime. |
 | [branded-caller-id-manager-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/branded-caller-id-manager-python/README.md) | Python | Branded Caller ID Manager - register, manage, and verify branded calling profiles with STIR/SHAKEN attestation for higher answer rates. |
 | [build-conference-calling-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-go/README.md) | Go | --- |
 | [build-conference-calling-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-nodejs/README.md) | Node.js | --- |
@@ -366,7 +365,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(134 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(135 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -494,6 +493,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [semantic-search-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/semantic-search-python/README.md) | Python | Semantic Search — index support tickets via Telnyx embeddings API and find similar issues by meaning, not keywords. Includes a bundled sample ticket dataset. |
 | [shipment-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/shipment-agent/README.md) | Python | A durable AI shipment agent that proactively communicates with customers across carriers and status changes via SMS and Voice. |
 | [sms-two-factor-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-two-factor-agent/README.md) | Typescript | Agent-managed SMS two-factor authentication with code generation, KV storage, and scheduled expiry. |
+| [sprint-2-agent-sdk-quickstart](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sprint-2-agent-sdk-quickstart/README.md) | Python | A Flask app demonstrating the Telnyx Agent SDK 0.12.2 with an SMS-based issue triage workflow using webhooks and the Messaging API. |
 | [sql-natural-language-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sql-natural-language-python/README.md) | Python | AI SQL Natural Language — turn plain-English questions into validated SQL with schema context via Telnyx AI Inference. Includes a sample dataset for live execution. |
 | [storage-voicemail-archive-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/storage-voicemail-archive-python/README.md) | Python | Storage Voicemail Archive - record voicemails to Telnyx Cloud Storage with search. |
 | [texml-voicemail-drop-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/texml-voicemail-drop-python/README.md) | Python | Leave pre-recorded voicemails at scale via TeXML. |
