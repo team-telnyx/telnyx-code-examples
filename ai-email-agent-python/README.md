@@ -12,6 +12,14 @@ channel: [email]
 
 Autonomous inbound email reply bot on the Telnyx **Email API** and **AI Inference**. A customer sends an email to your agent's inbox address. Telnyx fires an inbound webhook. This app verifies the Ed25519 signature, fetches the full message body, asks Telnyx AI Inference to draft a reply, and sends the reply back via the Email API — with proper `In-Reply-To` / `References` threading so the conversation stays in one thread in the customer's mail client.
 
+## Troubleshooting
+
+Confirm the Telnyx API key, webhook public key, sending domain, and public webhook URL are configured before testing.
+
+## Related Examples
+
+See the repository index for additional Telnyx Email API and AI Inference examples.
+
 One API key. One platform. The agent that replies to email without you typing.
 
 ## Why Telnyx

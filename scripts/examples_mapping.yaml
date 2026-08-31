@@ -3204,6 +3204,11 @@ examples:
     language: python
     framework: flask
     folder: voice-ivr-with-agent-backend
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
     folder: shipment-agent
 
   - product: ai
@@ -3223,3 +3228,63 @@ examples:
     language: python
     framework: flask
     folder: sprint-2-agent-sdk-quickstart
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: ai-call-campaign-orchestrator
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: ai-email-agent-python
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: telnyx-edge
+    folder: audio-transcribe-summarize-sms
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: telnyx-edge
+    folder: edge-cache-invalidation-agent
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: telnyx-edge
+    folder: edge-call-transcription-agent
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: telnyx-edge
+    folder: edge-customer-agent-typescript
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: telnyx-edge
+    folder: geo-distributed-call-logger
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: telnyx-edge
+    folder: kv-backed-rate-limiter
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: telnyx-edge
+    folder: multi-model-inference-switcher
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: telnyx-edge
+    folder: sms-conversation-exporter

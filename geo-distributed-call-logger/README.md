@@ -2,6 +2,14 @@
 
 Log Telnyx Call Control events to a shared SQL database, track per-region call volume in Edge KV counters, and trigger SMS alerts when a region exceeds a configurable threshold — all on Telnyx Edge Compute with the Agent SDK.
 
+## Troubleshooting
+
+Verify the SQL, KV, Call Control, and Telnyx binding configuration in `telnyx.toml` before deployment.
+
+## Related Examples
+
+See the repository index for more Telnyx Edge Compute and Call Control examples.
+
 ## Why Telnyx
 
 Telnyx is AI Communications Infrastructure that brings Call Control, edge compute, KV storage, and SMS together on a single platform. For geo-distributed call logging, this means your webhook handler, SQL database, region counters, and SMS alerting all run on Telnyx Edge Compute with no external dependencies. The zero-credential `[telnyx]` messaging binding lets the agent fire ops alerts without managing separate SMS credentials or provider integrations.

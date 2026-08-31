@@ -153,7 +153,7 @@ def _handle_inbound_sms(payload, send_sms=None):
     try:
         send_sms(from_number, reply)
     except Exception:
-        app.logger.exception("Failed to send SMS reply to %s", from_number)
+        app.logger.exception("Failed to send SMS reply")
 
 
 # ---------------------------------------------------------------------------

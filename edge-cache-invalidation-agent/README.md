@@ -2,6 +2,14 @@
 
 Webhook-triggered cache invalidation across edge locations — mark caches dirty via KV, update a shared manifest in Cloud Storage, and notify ops via SMS. All orchestrated by the Agent SDK on Telnyx Edge Compute with zero-credential messaging.
 
+## Troubleshooting
+
+Verify the KV, Cloud Storage, and Telnyx binding names match `telnyx.toml` before deployment.
+
+## Related Examples
+
+See the repository index for more Telnyx Edge Compute and Agent SDK examples.
+
 ## Why Telnyx
 
 Telnyx is AI Communications Infrastructure that unifies edge compute, key-value storage, cloud storage, and messaging under one platform. For cache invalidation workflows, this means your agent can mark caches dirty in KV, update a manifest in Cloud Storage, and fire an SMS alert to ops — all without juggling separate providers or API keys. The zero-credential `[telnyx]` binding removes messaging auth overhead entirely, so the agent code stays focused on orchestration logic.

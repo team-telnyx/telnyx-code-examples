@@ -2,6 +2,14 @@
 
 Export SMS conversation history from Edge SQL to Cloud Storage as chunked JSON files, with completion SMS notification via zero-credential messaging — all on Telnyx Edge Compute with the Agent SDK.
 
+## Troubleshooting
+
+Verify the Edge SQL, Cloud Storage, and Telnyx binding configuration in `telnyx.toml` before deployment.
+
+## Related Examples
+
+See the repository index for more Telnyx Messaging and Edge Compute examples.
+
 ## Why Telnyx
 
 Telnyx is AI Communications Infrastructure that integrates SMS messaging, edge SQL, cloud storage, and compute on a single platform. For conversation export workflows, this means your SMS history lives in Edge SQL right where the export agent runs, chunks upload directly to Telnyx Cloud Storage, and the completion notification goes out via zero-credential SMS — no external databases, object stores, or notification services required.

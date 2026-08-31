@@ -2,6 +2,14 @@
 
 Sliding-window rate limiting on Telnyx Edge Compute using the Agent SDK. Each key (phone number, IP, tenant ID) gets its own agent instance that tracks request counts in Edge KV with TTL-based window expiry. Requests over the limit are rejected with HTTP 429. When rejections exceed a threshold, an SMS alert fires automatically via the zero-credential `[telnyx]` binding — no API key in code.
 
+## Troubleshooting
+
+Verify the KV namespace and Telnyx binding configuration in `telnyx.toml` before deployment.
+
+## Related Examples
+
+See the repository index for more Telnyx Edge Compute and Agent SDK examples.
+
 ## Why Telnyx
 
 Telnyx is AI Communications Infrastructure that combines edge compute, key-value storage, and programmable messaging in one platform. For rate limiting, this means your sliding-window counters live in Edge KV right next to the compute that enforces them — no external Redis or rate-limit service required. When abuse thresholds are breached, the agent sends an SMS alert through the zero-credential `[telnyx]` binding without any additional provider setup.
