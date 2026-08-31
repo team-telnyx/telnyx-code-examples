@@ -34,9 +34,8 @@ The response is an HTML page containing a table of active conversations with the
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `conversation_id` | string | The sender's phone number (E.164 format) |
+| `conversation_id` | string | Masked sender identifier containing only the final four digits |
 | `status` | string | Current state: `awaiting_issue`, `awaiting_priority`, or `done` |
-| `issue` | string or `null` | The issue description provided by the user |
 | `priority` | string or `null` | The priority level: `LOW`, `MEDIUM`, or `HIGH` |
 | `created_at` | string | ISO 8601 timestamp when the conversation started |
 | `last_updated_at` | string | ISO 8601 timestamp of the last state change |

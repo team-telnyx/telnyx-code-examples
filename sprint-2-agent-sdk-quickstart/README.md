@@ -25,8 +25,8 @@ Telnyx provides the **AI Communications Infrastructure** needed to build intelli
 
 **Telnyx SDK methods used:**
 
-- `telnyx.webhooks.unwrap()` — verifies the Ed25519 signature on inbound webhooks
-- `telnyx.Message.create()` — sends SMS replies via the Telnyx Messaging API
+- `verify_webhook_signature()` — verifies the Ed25519 signature and timestamp on inbound webhooks
+- `telnyx_client.messages.send()` — sends SMS replies via the Telnyx Messaging API
 
 ## Architecture
 
@@ -73,6 +73,7 @@ Telnyx provides the **AI Communications Infrastructure** needed to build intelli
 | `TELNYX_FROM_NUMBER` | `string` | `your_telnyx_from_number_here` | **yes** | TELNYX_FROM_NUMBER | — |
 | `TELNYX_MESSAGING_PROFILE_ID` | `string` | `your_telnyx_messaging_profile_id_here` | **yes** | TELNYX_MESSAGING_PROFILE_ID | — |
 | `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_public_key_here` | **yes** | TELNYX_PUBLIC_KEY | — |
+| `HOST` | `string` | `127.0.0.1` | no | Local bind address; use `0.0.0.0` only when required by a container | — |
 
 ## Setup
 

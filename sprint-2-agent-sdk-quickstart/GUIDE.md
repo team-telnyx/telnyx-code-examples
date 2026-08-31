@@ -134,7 +134,7 @@ The `/webhooks/sms` route is the entry point for inbound SMS messages from Telny
 
 #### a. Signature Verification
 
-Before processing anything, the app verifies the Telnyx Ed25519 signature using `telnyx.webhooks.unwrap()`. This ensures the request genuinely came from Telnyx and hasn't been tampered with. If verification fails, the app returns `401 Unauthorized`.
+Before processing anything, the app verifies the Telnyx Ed25519 signature and timestamp using `verify_webhook_signature()`. This ensures the request genuinely came from Telnyx, has not been tampered with, and is not a stale replay. If verification fails, the app returns `401 Unauthorized`.
 
 #### b. Event Type Filtering
 
@@ -154,7 +154,7 @@ The `_handle_inbound_sms()` function drives the conversation:
 The `_send_sms()` function uses the Telnyx SDK to send replies:
 
 ```python
-telnyx.Message.create(
+telnyx_client.messages.send(
     from_=TELNYX_FROM_NUMBER,
     to=to_number,
     text=body,
@@ -166,7 +166,7 @@ This is the core Telnyx primitive — the Messaging API — which handles SMS de
 
 ### 4. Dashboard
 
-The `/` route renders a simple HTML table showing all conversations, their status, issue, priority, and timestamps. This is useful for observing the demo in real time.
+The `/` route renders a privacy-conscious HTML table showing masked conversation identifiers, status, priority, and timestamps. Issue text and full phone numbers are intentionally omitted because the local server may be exposed through a tunnel.
 
 ---
 
@@ -174,7 +174,7 @@ The `/` route renders a simple HTML table showing all conversations, their statu
 
 | Primitive | Where Used | Purpose |
 | --- | --- | --- |
-| **Messaging API** (`telnyx.Message.create`) | `_send_sms()` | Sends SMS replies to customers |
+| **Messaging API** (`telnyx_client.messages.send`) | `_send_sms()` | Sends SMS replies to customers |
 | **Webhooks** | `/webhooks/sms` | Receives inbound SMS events from Telnyx |
 | **Ed25519 Signature Verification** | `_validate_webhook_signature()` | Confirms webhook authenticity |
 | **Messaging Profile** | `_send_sms()` | Routes messages through your Telnyx Messaging Profile |

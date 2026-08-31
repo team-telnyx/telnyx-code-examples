@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template_string
+from telnyx.lib.webhook_verification import verify_webhook_signature
 
 import telnyx
 
@@ -24,7 +25,7 @@ TELNYX_FROM_NUMBER = os.getenv("TELNYX_FROM_NUMBER")
 if not TELNYX_API_KEY:
     app.logger.warning("TELNYX_API_KEY is not set. API calls will fail.")
 
-telnyx.api_key = TELNYX_API_KEY
+telnyx_client = telnyx.Telnyx(api_key=TELNYX_API_KEY or "KEY_NOT_CONFIGURED")
 
 # ---------------------------------------------------------------------------
 # In-memory state for the demo workflow
@@ -51,7 +52,7 @@ def _validate_webhook_signature():
         app.logger.error("TELNYX_PUBLIC_KEY is not set; cannot verify webhook signature.")
         return False
     try:
-        telnyx.webhooks.unwrap(request.data, TELNYX_PUBLIC_KEY)
+        verify_webhook_signature(request.data, request.headers, TELNYX_PUBLIC_KEY)
         return True
     except Exception:
         app.logger.exception("Webhook signature verification failed.")
@@ -67,7 +68,7 @@ def _send_sms(to_number, body):
     if not TELNYX_FROM_NUMBER:
         raise RuntimeError("TELNYX_FROM_NUMBER is not configured.")
 
-    message = telnyx.Message.create(
+    message = telnyx_client.messages.send(
         from_=TELNYX_FROM_NUMBER,
         to=to_number,
         text=body,
@@ -160,9 +161,8 @@ def index():
     with CONVERSATIONS_LOCK:
         snapshot = [
             {
-                "conversation_id": cid,
+                "conversation_id": f"***{cid[-4:]}",
                 "status": c["status"],
-                "issue": c["issue"],
                 "priority": c["priority"],
                 "created_at": c["created_at"],
                 "last_updated_at": c["last_updated_at"],
@@ -188,7 +188,6 @@ def index():
             <tr>
               <th>Conversation ID</th>
               <th>Status</th>
-              <th>Issue</th>
               <th>Priority</th>
               <th>Created (UTC)</th>
               <th>Last Updated (UTC)</th>
@@ -197,7 +196,6 @@ def index():
             <tr>
               <td>{{ c.conversation_id }}</td>
               <td>{{ c.status }}</td>
-              <td>{{ c.issue or "—" }}</td>
               <td>{{ c.priority or "—" }}</td>
               <td>{{ c.created_at }}</td>
               <td>{{ c.last_updated_at }}</td>
@@ -210,12 +208,7 @@ def index():
       </body>
     </html>
     """
-    return send_template_string(html, conversations=snapshot)
-
-
-def send_template_string(html, **context):
-    from flask import render_template_string
-    return render_template_string(html, **context)
+    return render_template_string(html, conversations=snapshot)
 
 
 @app.post("/webhooks/sms")
@@ -255,4 +248,5 @@ def health():
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    host = os.getenv("HOST", "127.0.0.1")
+    app.run(host=host, port=port, debug=False)
