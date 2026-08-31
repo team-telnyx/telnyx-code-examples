@@ -90,6 +90,18 @@ Before you start, make sure you have:
 
 ## Running the App
 
+### Local browser demo
+
+For the quickest demo, enable the local simulator:
+
+```bash
+DEMO_MODE=true python app.py
+```
+
+Open [http://127.0.0.1:5000/demo](http://127.0.0.1:5000/demo), enter `Printer offline`, and then enter `HIGH`. This exercises the same conversation state machine without sending SMS or exposing a webhook publicly. The demo endpoint returns `404` unless `DEMO_MODE=true`.
+
+### Real SMS mode
+
 Start the Flask server:
 
 ```bash
@@ -144,7 +156,7 @@ The app checks that the event type is `message.received`. Other event types (e.g
 
 The `_handle_inbound_sms()` function drives the conversation:
 
-- **New conversation**: If the sender's number isn't in `CONVERSATIONS`, the app creates a new entry and replies asking for the issue description.
+- **New conversation**: The first inbound message becomes the issue description, and the app immediately asks for its priority.
 - **Awaiting issue**: When the customer replies with their issue, the app stores it and asks for a priority.
 - **Awaiting priority**: The app validates the priority (LOW, MEDIUM, or HIGH). If valid, it marks the conversation as `done` and sends a confirmation. If invalid, it re-prompts.
 - **Done**: If the customer sends another message after completion, the app starts a fresh conversation.

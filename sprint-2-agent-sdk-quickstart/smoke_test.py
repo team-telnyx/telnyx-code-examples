@@ -23,6 +23,7 @@ def signed_headers(signing_key: SigningKey, body: bytes) -> dict[str, str]:
 class SmokeTests(unittest.TestCase):
     def setUp(self) -> None:
         sample_app.CONVERSATIONS.clear()
+        sample_app.DEMO_TRANSCRIPT.clear()
         self.client = sample_app.app.test_client()
 
     def test_health(self) -> None:
@@ -34,6 +35,15 @@ class SmokeTests(unittest.TestCase):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"No conversations yet", response.data)
+
+    def test_local_demo_flow(self) -> None:
+        sample_app.DEMO_MODE = True
+        first = self.client.post("/demo", data={"message": "Printer offline"})
+        second = self.client.post("/demo", data={"message": "HIGH"})
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertIn(b"Issue logged!", second.data)
+        self.assertIn(b"Printer offline", second.data)
 
     def test_signed_webhook_and_invalid_signature_rejection(self) -> None:
         signing_key = SigningKey.generate()

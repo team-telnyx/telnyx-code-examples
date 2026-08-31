@@ -77,6 +77,21 @@ Telnyx provides the **AI Communications Infrastructure** needed to build intelli
 
 ## Setup
 
+### Fastest demo: no Telnyx resources required
+
+Run the sample in local demo mode:
+
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+DEMO_MODE=true python app.py
+```
+
+Open [http://127.0.0.1:5000/demo](http://127.0.0.1:5000/demo). Enter `Printer offline`, then `HIGH`, to complete the simulated SMS flow. Demo mode never sends a real message and does not require an API key, phone number, public webhook, or Messaging Profile.
+
+For a real SMS test, continue with the setup below.
+
 ### 1. Clone the repository
 
 ```bash

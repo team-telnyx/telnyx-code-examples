@@ -21,6 +21,9 @@ TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY")
 TELNYX_MESSAGING_PROFILE_ID = os.getenv("TELNYX_MESSAGING_PROFILE_ID")
 TELNYX_FROM_NUMBER = os.getenv("TELNYX_FROM_NUMBER")
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+DEMO_NUMBER = "+15550000002"
+DEMO_TRANSCRIPT = []
 
 if not TELNYX_API_KEY:
     app.logger.warning("TELNYX_API_KEY is not set. API calls will fail.")
@@ -77,8 +80,9 @@ def _send_sms(to_number, body):
     return message
 
 
-def _handle_inbound_sms(payload):
+def _handle_inbound_sms(payload, send_sms=None):
     """Process an inbound SMS and drive the state machine."""
+    send_sms = send_sms or _send_sms
     to_number = payload.get("to", [{}])[0].get("phone_number")
     from_number = payload.get("from", [{}])[0].get("phone_number")
     text = payload.get("text", "").strip()
@@ -94,17 +98,17 @@ def _handle_inbound_sms(payload):
         conv = CONVERSATIONS.get(conv_id)
 
         if conv is None:
-            # New conversation: ask for the issue description.
+            # Treat the first inbound message as the issue description.
             CONVERSATIONS[conv_id] = {
-                "status": "awaiting_issue",
-                "issue": None,
+                "status": "awaiting_priority",
+                "issue": text,
                 "priority": None,
                 "created_at": _now_iso(),
                 "last_updated_at": _now_iso(),
             }
             reply = (
-                "Welcome to the Telnyx Agent SDK Quickstart!\n"
-                "Describe the issue you're experiencing in one short message."
+                f"Got it: \"{text}\"\n\n"
+                "What priority is this? Reply LOW, MEDIUM, or HIGH."
             )
         elif conv["status"] == "awaiting_issue":
             # We have the issue; ask for priority.
@@ -147,7 +151,7 @@ def _handle_inbound_sms(payload):
             )
 
     try:
-        _send_sms(from_number, reply)
+        send_sms(from_number, reply)
     except Exception:
         app.logger.exception("Failed to send SMS reply to %s", from_number)
 
@@ -241,6 +245,60 @@ def sms_webhook():
 @app.get("/health")
 def health():
     return jsonify({"status": "ok"}), 200
+
+
+@app.route("/demo", methods=["GET", "POST"])
+def demo():
+    """Local-only browser demo that simulates inbound SMS messages."""
+    if not DEMO_MODE:
+        return jsonify({"error": "Demo mode is disabled"}), 404
+
+    if request.method == "POST":
+        text = request.form.get("message", "").strip()
+        if text:
+            DEMO_TRANSCRIPT.append({"role": "You", "text": text})
+            replies = []
+            _handle_inbound_sms(
+                {
+                    "to": [{"phone_number": "+15550000001"}],
+                    "from": [{"phone_number": DEMO_NUMBER}],
+                    "text": text,
+                },
+                send_sms=lambda _to, body: replies.append(body),
+            )
+            DEMO_TRANSCRIPT.extend(
+                {"role": "Agent", "text": reply} for reply in replies
+            )
+
+    html = """
+    <!doctype html>
+    <html>
+      <head>
+        <title>Agent SDK Quickstart Demo</title>
+        <style>
+          body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+          .message { padding: 12px; margin: 10px 0; border-radius: 10px; white-space: pre-wrap; }
+          .you { background: #e8f1ff; }
+          .agent { background: #f0f0f0; }
+          form { display: flex; gap: 8px; margin-top: 24px; }
+          input { flex: 1; padding: 12px; }
+          button { padding: 12px 18px; cursor: pointer; }
+        </style>
+      </head>
+      <body>
+        <h1>Agent SDK Quickstart Demo</h1>
+        <p>Simulate the SMS conversation locally. Try: <em>Printer offline</em>, then <em>HIGH</em>.</p>
+        {% for item in transcript %}
+          <div class="message {{ item.role|lower }}"><strong>{{ item.role }}:</strong> {{ item.text }}</div>
+        {% endfor %}
+        <form method="post">
+          <input name="message" placeholder="Type a simulated SMS…" required autofocus>
+          <button type="submit">Send</button>
+        </form>
+      </body>
+    </html>
+    """
+    return render_template_string(html, transcript=DEMO_TRANSCRIPT)
 
 
 # ---------------------------------------------------------------------------
