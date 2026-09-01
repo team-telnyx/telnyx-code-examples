@@ -159,11 +159,16 @@ function actorNameForCustomer(raw: string): string {
 /** Parse "Display Name <addr@host>" or bare "addr@host" → "addr@host". */
 function extractMailbox(from: string | { email?: string } | undefined): string {
   if (!from) return "unknown";
+  const strip = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
   if (typeof from === "string") {
-    const m = from.match(/<([^>]+)>/);
-    return (m?.[1] ?? from).trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const open = from.indexOf("<");
+    const close = from.lastIndexOf(">");
+    if (open !== -1 && close > open) {
+      return strip(from.slice(open + 1, close));
+    }
+    return strip(from);
   }
-  return (from.email ?? "unknown").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return strip(from.email ?? "unknown");
 }
 
 interface TelnyxEmailWebhookPayload {
