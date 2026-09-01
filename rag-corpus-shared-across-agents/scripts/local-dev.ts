@@ -64,6 +64,21 @@ class SqliteCursor<T extends Record<string, SqlValue>> {
 class SqliteStorageSurface {
   private readonly db = new DatabaseSync(":memory:");
 
+  constructor() {
+    // The SDK's TaskScheduler/MessageLog query their tables at actor
+    // construction — before any sample code runs — so replicate the
+    // platform's sql-backing DDL up front.
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS _a_meta (name TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS _a_seq (name TEXT PRIMARY KEY, value INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS _a_messages (seq INTEGER PRIMARY KEY, role TEXT NOT NULL, at INTEGER NOT NULL, body TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS _a_events (seq INTEGER PRIMARY KEY, type TEXT NOT NULL, at INTEGER NOT NULL, body TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS _a_state (id INTEGER PRIMARY KEY CHECK (id = 0), body TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS _a_tasks (id TEXT PRIMARY KEY, due INTEGER NOT NULL, body TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS _a_tasks_by_due ON _a_tasks(due, id);
+    `);
+  }
+
   exec<T extends Record<string, SqlValue> = Record<string, SqlValue>>(
     query: string,
     ...bindings: SqlBindValue[]
@@ -260,4 +275,13 @@ createServer(async (req, res) => {
 }).listen(PORT, () => {
   console.log(`rag-corpus-shared-across-agents (local) → http://localhost:${PORT}`);
   console.log(`bucket stand-in: ${KNOWLEDGE_DIR} (drop .txt files there, then POST /api/corpus/<id>/ingest-bucket)`);
+});
+
+// The SDK runs actor turns on background microtasks; a stray failure there
+// would otherwise take the dev server down. Log loudly, keep serving.
+process.on("uncaughtException", (error) => {
+  console.error("[local-dev] uncaught exception:", error);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[local-dev] unhandled rejection:", reason);
 });
