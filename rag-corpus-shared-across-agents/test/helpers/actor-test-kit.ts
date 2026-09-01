@@ -138,16 +138,13 @@ export function makeActorContext(id: string, storage: ActorStorage = new MemoryS
  * its own MemoryStorage, wrapped in a bound-call Proxy — the same contract
  * the platform's typed `ActorStub` provides.
  */
-export function makeNamespace(
-  ctor: new (ctx: ActorContext, env: unknown) => unknown,
-  env: unknown,
-): ActorNamespace<never> {
+export function makeNamespace(make: (name: string) => unknown): ActorNamespace<never> {
   const actors = new Map<string, unknown>();
   return {
     idFromName(name: string): unknown {
       let actor = actors.get(name);
       if (!actor) {
-        actor = new ctor(makeActorContext(name), env);
+        actor = make(name);
         actors.set(name, actor);
       }
       return new Proxy(actor as Record<string, unknown>, {

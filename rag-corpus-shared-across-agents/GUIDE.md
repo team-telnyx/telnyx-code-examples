@@ -67,19 +67,22 @@ API.
 ### 2. The persona actors — many personalities, one corpus
 
 `PersonaAgent` is addressed as `env.PERSONAS.idFromName("<corpus>:<persona>")`.
-Each (corpus, persona) pair is its own durable actor. `ask()` does three
-things:
+Each (corpus, persona) pair is its own durable actor. The worker's `/ask`
+route orchestrates the two hops (actor envs don't carry actor namespaces on
+the platform, so an actor can't address another namespace directly):
 
-1. Calls the shared corpus actor: `env.CORPUS.idFromName(corpusId).search(question, TOP_K)`
-2. Builds the prompt: persona system prompt + the actor's own conversation
-   history (`this.messages.toOpenAI()`) + the retrieved chunks as cited
-   context
-3. Completes with `TELNYX.ai.openai.chat.createCompletion` and appends the
-   Q/A pair to its MessageLog
+1. `env.CORPUS.idFromName(corpusId).search(question, TOP_K)` — every persona
+   reads the SAME corpus actor
+2. `env.PERSONAS.idFromName(...).answer({ corpusId, persona, question, sources })`
 
-Because retrieval always targets the same corpus actor, every personality
-answers from the same facts — only the voice differs. Because each persona
-keeps its own MessageLog, follow-up questions keep per-persona context.
+Inside `answer()`, the persona actor builds its prompt from its persona
+system prompt, its own conversation history (`this.messages.toOpenAI()`), and
+the retrieved chunks as cited context, then completes with
+`TELNYX.ai.openai.chat.createCompletion` and appends the Q/A pair to its
+MessageLog. Because retrieval always targets the same corpus actor, every
+personality answers from the same facts — only the voice differs. Because
+each persona keeps its own MessageLog, follow-up questions keep per-persona
+context.
 
 ### 3. The worker — REST over actors
 

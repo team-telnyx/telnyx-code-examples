@@ -36,6 +36,7 @@ export interface AskInput {
   corpusId: string;
   persona: string;
   question: string;
+  sources: SearchHit[];
 }
 
 export interface AskResult {

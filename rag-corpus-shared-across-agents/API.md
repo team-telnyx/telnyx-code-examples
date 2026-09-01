@@ -87,7 +87,7 @@ Ingest every object under the configured `KNOWLEDGE_PREFIX` from the Cloud Stora
 
 ### `POST /api/corpus/<corpus_id>/ask`
 
-Ask a question as one of the personas. The persona actor (one durable actor per `corpus:persona` pair) retrieves top-K chunks from the shared corpus actor, builds a grounded prompt, and answers in character. The exchange is appended to that persona's durable conversation history.
+Ask a question as one of the personas. The worker retrieves top-K chunks from the shared corpus actor, then the persona actor (one durable actor per `corpus:persona` pair) answers in character over those sources and remembers the exchange.
 
 **Request body:**
 
@@ -171,7 +171,7 @@ The REST routes are thin wrappers over typed calls on the two actor types. Any E
 | `CorpusAgent` | `search` | `(query, limit?)` | Embed query, return top-K chunks by cosine score |
 | `CorpusAgent` | `stats` | `()` | Corpus snapshot |
 | `CorpusAgent` | `reset` | `()` | Drop every chunk |
-| `PersonaAgent` | `ask` | `({ corpusId, persona, question })` | Retrieve + grounded persona answer with sources |
+| `PersonaAgent` | `answer` | `({ corpusId, persona, question, sources })` | Persona-shaped grounded answer over the worker-retrieved sources |
 | `PersonaAgent` | `transcript` | `()` | Persona conversation snapshot |
 
 Actor addressing: `env.CORPUS.idFromName(corpusId)` for the shared store, `env.PERSONAS.idFromName("<corpus>:<persona>")` for each personality.

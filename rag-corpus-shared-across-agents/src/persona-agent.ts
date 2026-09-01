@@ -2,13 +2,11 @@ import { Agent } from "@telnyx/edge-runtime";
 import {
   findPersona,
   modelId,
-  topK,
   sanitizeCorpusId,
   type AskInput,
   type AskResult,
   type Env,
   type PersonaState,
-  type SearchHit,
 } from "./types.js";
 
 /** Narrow the SDK's open record completion response without casting. */
@@ -46,7 +44,7 @@ function toChatMessages(
   return kept;
 }
 
-function sourcesBlock(sources: SearchHit[]): string {
+function sourcesBlock(sources: AskInput["sources"]): string {
   if (sources.length === 0) return "(no matching documents found)";
   return sources
     .map((hit, i) => `[${i + 1}] (source: ${hit.doc})\n${hit.text}`)
@@ -56,8 +54,10 @@ function sourcesBlock(sources: SearchHit[]): string {
 /**
  * One agent personality over the shared corpus. The actor name encodes the
  * (corpus, persona) pair, so each persona accumulates its own durable
- * conversation history in `this.messages` while every persona reads the SAME
- * corpus actor — one knowledge base, many personalities.
+ * conversation history in `this.messages`. Retrieval is orchestrated by the
+ * worker (actor namespaces are not injected into actor envs on the
+ * platform), which passes the retrieved sources in — every persona actor
+ * therefore answers from the SAME corpus store.
  */
 export class PersonaAgent extends Agent<Env, PersonaState> {
   protected initialState(): PersonaState {
@@ -65,20 +65,17 @@ export class PersonaAgent extends Agent<Env, PersonaState> {
   }
 
   /**
-   * Answer a question from the shared corpus. Retrieval runs on the corpus
-   * actor; the persona system prompt shapes the reply; the Q/A pair is
-   * appended to this actor's MessageLog so follow-ups keep context.
+   * Answer a question from pre-retrieved sources. The persona system prompt
+   * shapes the reply; the Q/A pair is appended to this actor's MessageLog so
+   * follow-ups keep context.
    */
-  async ask(input: AskInput): Promise<AskResult> {
+  async answer(input: AskInput): Promise<AskResult> {
     const question = input.question.trim();
     if (!question) {
-      throw new Error("ask: question is required");
+      throw new Error("answer: question is required");
     }
     const corpusId = sanitizeCorpusId(input.corpusId);
     const persona = findPersona(input.persona);
-
-    const corpus = this.env.CORPUS.idFromName(corpusId);
-    const sources = await corpus.search(question, topK(this.env));
 
     const completion = await this.env.TELNYX.ai.openai.chat.createCompletion({
       model: modelId(this.env),
@@ -87,7 +84,7 @@ export class PersonaAgent extends Agent<Env, PersonaState> {
         ...toChatMessages(await this.messages.toOpenAI()),
         {
           role: "user",
-          content: `Knowledge-base context:\n\n${sourcesBlock(sources)}\n\nQuestion: ${question}`,
+          content: `Knowledge-base context:\n\n${sourcesBlock(input.sources)}\n\nQuestion: ${question}`,
         },
       ],
       max_tokens: 500,
@@ -111,7 +108,7 @@ export class PersonaAgent extends Agent<Env, PersonaState> {
       persona: persona.id,
       question,
       answer,
-      sources,
+      sources: input.sources,
       model: modelId(this.env),
     };
   }

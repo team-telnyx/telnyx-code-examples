@@ -37,6 +37,8 @@ All three run through platform bindings inside the actor, so no credential ever 
  │  search(query) → top-K by cosine     │
  └─────────────────┬────────────────────┘
                    │  env.CORPUS.idFromName(corpusId).search(...)
+                   │  (worker orchestrates retrieval, then hands
+                   │   the sources to each persona actor)
       ┌────────────┼────────────────┐
       ▼            ▼                ▼
  ┌──────────┐ ┌──────────┐  ┌──────────────┐
@@ -53,9 +55,9 @@ All three run through platform bindings inside the actor, so no credential ever 
 **Flow:**
 1. Documents land in the Cloud Storage bucket (`knowledge/…`) or arrive via `POST /api/corpus/<id>/documents`.
 2. `CorpusAgent.ingest` chunks the text, batches embeddings through the `TELNYX` binding, and stores `chunks` rows in per-actor SQL.
-3. A question hits the persona actor (`PERSONAS.idFromName("<corpus>:<persona>")`) — each persona is its own durable actor with its own conversation history.
-4. The persona actor calls the corpus actor's `search()` — one corpus, shared by every persona — embeds the query, and ranks chunks by cosine similarity in the actor.
-5. Retrieved chunks are injected as cited context; the persona system prompt shapes the answer's voice; the Q/A pair is appended to the persona's `MessageLog` so follow-ups keep context.
+3. A question hits `POST /ask`; the worker retrieves top-K chunks from the corpus actor — one corpus, shared by every persona.
+4. The worker hands the sources to the persona actor (`PERSONAS.idFromName("<corpus>:<persona>")`) — each persona is its own durable actor with its own conversation history.
+5. The persona actor builds its prompt (persona system prompt + its MessageLog history + the cited sources), completes through the `TELNYX` binding, and appends the Q/A pair so follow-ups keep context.
 
 ## Environment Variables
 
@@ -210,7 +212,7 @@ Drop every chunk. Documents must be re-ingested afterwards.
 This sample is designed for agents and search systems that need a compact description of the runnable project:
 
 - **Use case**: One shared RAG knowledge base on Telnyx Edge Compute queried by multiple durable agent personalities with per-persona conversation memory and cited sources.
-- **Runtime**: TypeScript on Telnyx Edge Compute. One `CorpusAgent extends Agent<Env, CorpusState>` per corpus id (chunking, embeddings, SQL vector store, cosine search) plus one `PersonaAgent` per (corpus, persona) pair (retrieval, persona-shaped completion, MessageLog history).
+- **Runtime**: TypeScript on Telnyx Edge Compute. One `CorpusAgent extends Agent<Env, CorpusState>` per corpus id (chunking, embeddings, SQL vector store, cosine search) plus one `PersonaAgent` per (corpus, persona) pair (persona-shaped completion, MessageLog history); the worker orchestrates retrieval → persona hand-off (actor envs don't carry actor namespaces on the platform).
 - **Primary APIs**: Telnyx Inference via the pre-authenticated `TELNYX` binding (`ai.openai.embeddings.createEmbeddings`, `ai.openai.chat.createCompletion`), the Cloud Storage bucket binding (`env.KNOWLEDGE.list/get`), per-actor SQL via `this.ctx.storage.sql`.
 - **Entry point**: `src/index.ts` — worker fetch handler routing `GET /` and `/api/corpus/<id>/…` to the `CORPUS` and `PERSONAS` actor namespaces.
 - **Zero-credential**: deployed functions hold no API key — inference and storage are authenticated by platform bindings; only `scripts/local-dev.ts` reads `TELNYX_API_KEY`.

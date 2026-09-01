@@ -2,6 +2,7 @@ import demoHtml from "./demo-html.js";
 import {
   sanitizeCorpusId,
   personaActorName,
+  topK,
   PERSONAS,
   type Env,
 } from "./types.js";
@@ -83,8 +84,12 @@ export default {
       if (!question.trim()) {
         return json({ error: "question is required" }, { status: 400 });
       }
+      // The worker orchestrates: retrieve from the shared corpus actor, then
+      // hand the sources to the persona actor (actor envs don't carry actor
+      // namespaces on the platform, so retrieval can't happen actor-side).
+      const sources = await corpus.search(question, topK(env));
       const personaActor = env.PERSONAS.idFromName(personaActorName(corpusId, persona));
-      const result = await personaActor.ask({ corpusId, persona, question });
+      const result = await personaActor.answer({ corpusId, persona, question, sources });
       return json(result);
     }
 
