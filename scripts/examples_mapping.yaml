@@ -3204,6 +3204,11 @@ examples:
     language: python
     framework: flask
     folder: voice-ivr-with-agent-backend
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
     folder: shipment-agent
 
   - product: ai
@@ -3229,3 +3234,75 @@ examples:
     language: nodejs
     framework: edge
     folder: omni-channel-lab-inbox-agent
+
+  - product: voice
+    use_case: ai-call-campaign-orchestrator
+    language: python
+    framework: flask
+    folder: ai-call-campaign-orchestrator
+
+  - product: sms
+    use_case: ai-email-agent
+    language: python
+    framework: flask
+    folder: ai-email-agent-python
+
+  - product: sms
+    use_case: audio-transcribe-summarize-sms
+    language: nodejs
+    framework: edge
+    folder: audio-transcribe-summarize-sms
+
+  - product: ai
+    use_case: collaborative-doc-ai-copilot
+    language: nodejs
+    framework: edge
+    folder: collaborative-doc-ai-copilot
+
+  - product: sms
+    use_case: edge-cache-invalidation-agent
+    language: nodejs
+    framework: edge
+    folder: edge-cache-invalidation-agent
+
+  - product: voice
+    use_case: edge-call-transcription-agent
+    language: nodejs
+    framework: edge
+    folder: edge-call-transcription-agent
+
+  - product: voice
+    use_case: edge-customer-agent-typescript
+    language: nodejs
+    framework: edge
+    folder: edge-customer-agent-typescript
+
+  - product: voice
+    use_case: geo-distributed-call-logger
+    language: nodejs
+    framework: edge
+    folder: geo-distributed-call-logger
+
+  - product: voice
+    use_case: kv-backed-rate-limiter
+    language: nodejs
+    framework: edge
+    folder: kv-backed-rate-limiter
+
+  - product: ai
+    use_case: multi-model-inference-switcher
+    language: nodejs
+    framework: edge
+    folder: multi-model-inference-switcher
+
+  - product: sms
+    use_case: sms-conversation-exporter
+    language: nodejs
+    framework: edge
+    folder: sms-conversation-exporter
+
+  - product: voice
+    use_case: voice-ivr-with-agent-backend
+    language: python
+    framework: flask
+    folder: voice-ivr-with-agent-backend
