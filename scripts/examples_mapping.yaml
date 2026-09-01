@@ -3223,3 +3223,9 @@ examples:
     language: python
     framework: flask
     folder: webhook-aggregator-fanout
+
+  - product: ai
+    use_case: collaborative-doc-ai-copilot
+    language: nodejs
+    framework: edge
+    folder: collaborative-doc-ai-copilot

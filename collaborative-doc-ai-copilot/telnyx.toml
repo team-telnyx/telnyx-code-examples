@@ -1,0 +1,21 @@
+# Scaffold with: telnyx-edge new-func --actor --name=collaborative-doc-ai-copilot
+# Then copy the bindings below into the generated telnyx.toml so func_id is assigned.
+
+name = "collaborative-doc-ai-copilot"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "DOCS"
+type = "DocActor"
+
+[telnyx]
+binding = "TELNYX"
+
+[edge_compute]
+func_id = "replace-with-your-function-id"
+func_name = "collaborative-doc-ai-copilot"
+
+[env_vars]
+AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
+SUGGESTION_COOLDOWN_SECONDS = "5"
