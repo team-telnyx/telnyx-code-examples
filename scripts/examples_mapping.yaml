@@ -3224,74 +3224,8 @@ examples:
     framework: flask
     folder: webhook-aggregator-fanout
 
-  - product: ai
-    use_case: collaborative-doc-ai-copilot
+  - product: voice
+    use_case: omni-channel-lab-inbox-agent
     language: nodejs
     framework: edge
-    folder: collaborative-doc-ai-copilot
-
-  - product: voice
-    use_case: ai-call-campaign-orchestrator
-    language: python
-    framework: flask
-    folder: ai-call-campaign-orchestrator
-
-  - product: ai
-    use_case: ai-email-agent
-    language: python
-    framework: flask
-    folder: ai-email-agent-python
-
-  - product: voice
-    use_case: voice-ivr-with-agent-backend
-    language: python
-    framework: flask
-    folder: voice-ivr-with-agent-backend
-
-  - product: sms
-    use_case: audio-transcribe-summarize-sms
-    language: typescript
-    framework: edge
-    folder: audio-transcribe-summarize-sms
-
-  - product: voice
-    use_case: edge-call-transcription-agent
-    language: typescript
-    framework: edge
-    folder: edge-call-transcription-agent
-
-  - product: ai
-    use_case: edge-customer-agent-typescript
-    language: typescript
-    framework: edge
-    folder: edge-customer-agent-typescript
-
-  - product: ai
-    use_case: multi-model-inference-switcher
-    language: typescript
-    framework: edge
-    folder: multi-model-inference-switcher
-
-  - product: sms
-    use_case: sms-conversation-exporter
-    language: typescript
-    framework: edge
-    folder: sms-conversation-exporter
-
-  - product: ai
-    use_case: edge-cache-invalidation-agent
-    language: typescript
-    framework: edge
-    folder: edge-cache-invalidation-agent
-
-  - product: voice
-    use_case: geo-distributed-call-logger
-    language: typescript
-    framework: edge
-    folder: geo-distributed-call-logger
-
-  - product: ai
-    use_case: kv-backed-rate-limiter
-    language: typescript
-    framework: edge
-    folder: kv-backed-rate-limiter
+    folder: omni-channel-lab-inbox-agent

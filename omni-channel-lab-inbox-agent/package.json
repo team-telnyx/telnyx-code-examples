@@ -1,0 +1,19 @@
+{
+  "name": "omni-channel-inbox-agent",
+  "version": "0.1.0",
+  "description": "Omni-channel inbox agent on Telnyx Edge Compute + Agent SDK — unified per-customer inbox across voice (v1), email (v1.1), SMS/RCS/WhatsApp (v2), with a human-in-the-loop admin UI. Backed by per-actor SQLite.",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.13.0",
+    "telnyx": "^7.17.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "license": "MIT"
+}
