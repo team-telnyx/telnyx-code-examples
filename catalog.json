@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-01T21:33:48Z",
-  "example_count": 525,
+  "generated_at": "2026-09-01T22:06:29Z",
+  "example_count": 536,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -4687,6 +4687,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/agent-fleet-shared-workspace"
     },
     {
+      "folder": "voice-ivr-with-agent-backend",
+      "title": "Voice IVR with Agent Backend",
+      "description": "A natural language IVR system where the Telnyx Agent handles backend logic and an LLM powers dynamic menu options.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voice-ivr-with-agent-backend"
+    },
+    {
       "folder": "shipment-agent",
       "title": "ShipmentAgent: The Actor IS the Package",
       "description": "A durable AI shipment agent that proactively communicates with customers across carriers and status changes via SMS and Voice.",
@@ -4730,6 +4739,96 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omni-channel-lab-inbox-agent"
+    },
+    {
+      "folder": "ai-call-campaign-orchestrator",
+      "title": "AI Call Campaign Orchestrator",
+      "description": "Durable outbound call campaign with rate limiting, SQL tracking, and SMS summary using Telnyx Agent SDK, Call Control, and SMS.",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-call-campaign-orchestrator"
+    },
+    {
+      "folder": "ai-email-agent-python",
+      "title": "AI Email Agent",
+      "description": "AI Email Agent — autonomous inbound email reply bot on the Telnyx Email API. A customer emails in, the AI drafts a reply, the Email API sends it back. One platform, one API key, one agent.",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-email-agent-python"
+    },
+    {
+      "folder": "audio-transcribe-summarize-sms",
+      "title": "Audio Transcribe → Summarize → SMS",
+      "description": "Upload a voicemail audio file → transcribe via STT → summarize with LLM → text the summary via SMS. Agent SDK pipeline on Telnyx Edge Compute with zero-credential inference and messaging.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/audio-transcribe-summarize-sms"
+    },
+    {
+      "folder": "edge-cache-invalidation-agent",
+      "title": "Edge Cache Invalidation Agent",
+      "description": "",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-cache-invalidation-agent"
+    },
+    {
+      "folder": "edge-call-transcription-agent",
+      "title": "Edge Call Transcription Agent",
+      "description": "Live call transcription agent on Telnyx Edge Compute + Agent SDK — answers an inbound call, streams STT into durable agent state, and on hangup summarizes the transcript via LLM, persists it to actor-local SQL, and texts the summary via SMS. Zero-credential inference and messaging via the [telnyx] binding.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-call-transcription-agent"
+    },
+    {
+      "folder": "edge-customer-agent-typescript",
+      "title": "Customer Agent — The Actor IS the Entity",
+      "description": "A durable Entity Agent on Telnyx Edge Compute. One actor per customer phone number, surviving across days, calls, SMS messages, and actor evictions. The AI Assistant is the reasoning harness inside; the agent owns the durable state.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-customer-agent-typescript"
+    },
+    {
+      "folder": "geo-distributed-call-logger",
+      "title": "Geo Distributed Call Logger",
+      "description": "",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/geo-distributed-call-logger"
+    },
+    {
+      "folder": "kv-backed-rate-limiter",
+      "title": "Kv Backed Rate Limiter",
+      "description": "",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/kv-backed-rate-limiter"
+    },
+    {
+      "folder": "multi-model-inference-switcher",
+      "title": "Multi-Model Inference Switcher",
+      "description": "Switch between LLM models at runtime via a KV feature flag — no redeploy. Agent SDK + zero-credential inference + admin UI with live model switching.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multi-model-inference-switcher"
+    },
+    {
+      "folder": "sms-conversation-exporter",
+      "title": "Sms Conversation Exporter",
+      "description": "",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-conversation-exporter"
     }
   ]
 }
