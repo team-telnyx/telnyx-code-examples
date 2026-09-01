@@ -244,3 +244,17 @@ This folder is self-contained for coding agents. Start with `README.md` for an o
 - KV TTL is 1 hour. Adjust based on your cache refresh window.
 - Add authentication to the `/invalidate` endpoint before exposing it publicly.
 - Consider batching invalidations if you have many content IDs changing at once.
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Stuck in `invalidating` | KV binding misconfigured | Check `[storage.kv.CACHE_KV]` id in `telnyx.toml` |
+| No SMS, status `error` | ALERT_PHONE/SENDER_PHONE not set | Add them to `[env_vars]`, redeploy |
+| Deploy rejects telnyx.toml | `func_id` placeholder | Run `telnyx-edge new-func`, copy bindings into the generated config |
+
+## Related Examples
+
+- [Persistent State Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) — Durable StatefulActor on Edge with the same zero-credential inference binding
+- [Collaborative Doc with AI Copilot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/collaborative-doc-ai-copilot/README.md) — Multiplayer StatefulActor with an AI copilot on Edge
+- [Multi-Model Inference Switcher](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-model-inference-switcher/README.md) — Route inference across models on Edge

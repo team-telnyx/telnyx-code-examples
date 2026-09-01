@@ -223,3 +223,18 @@ This folder is self-contained for coding agents. Start with `README.md` for an o
 - [Telnyx AI Inference docs](https://developers.telnyx.com/docs/inference/chat-completions)
 - [Telnyx AI repo](https://github.com/team-telnyx/ai) — Agent Toolkit, MCP server, Skills (incl. `telnyx-email-curl`, `telnyx-email-inbound-curl`, `telnyx-email-domains-curl`, `telnyx-email-suppressions-curl`)
 - [Telnyx Python SDK](https://github.com/team-telnyx/telnyx-python) — used here for Ed25519 webhook verification
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `TELNYX_API_KEY` not found | Missing environment variable | Ensure `.env` exists with your API key |
+| Emails not sending | Invalid sending domain or unverified numbers | Verify your messaging profile and sender in the Telnyx portal |
+| No classification output | Inference request failed | Check the model name and API key; the API is OpenAI-compatible |
+| Webhook returns 4xx | Signature verification failed | Ensure `TELNYX_PUBLIC_KEY` matches your messaging profile |
+
+## Related Examples
+
+- [AI Email Agent (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-email-agent-python/README.md) — this sample
+- [Run LLM Inference (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/run-llm-inference-python/README.md) — Minimal Telnyx Inference chat completions walkthrough
+- [SMS Support Agent With Followup](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-support-agent-with-followup/README.md) — SMS-based support agent with follow-up state

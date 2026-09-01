@@ -250,3 +250,17 @@ This folder is self-contained for coding agents. Start with `README.md` for an o
 ## License
 
 MIT
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Region shows `unknown` | Country code not in the region map | Extend `COUNTRY_TO_REGION` in `src/geoLogger.ts` |
+| Webhook returns 4xx | Signature verification failed | Ensure `TELNYX_PUBLIC_KEY` secret is set (`telnyx-edge secrets add`) |
+| Counters reset | KV binding missing | Check `[storage.kv.REGION_KV]` id in `telnyx.toml` |
+
+## Related Examples
+
+- [Persistent State Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) — Durable StatefulActor on Edge with the same zero-credential inference binding
+- [Collaborative Doc with AI Copilot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/collaborative-doc-ai-copilot/README.md) — Multiplayer StatefulActor with an AI copilot on Edge
+- [Edge Call Transcription Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-call-transcription-agent/README.md) — Call audio transcription on Edge actors

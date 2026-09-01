@@ -242,3 +242,17 @@ This folder is self-contained for coding agents. Start with `README.md` for an o
 ## License
 
 MIT
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `messages/count` is 0 | Webhook not receiving | Check messaging profile webhook URL + `TELNYX_PUBLIC_KEY` secret |
+| Export stuck in `uploading` | Storage binding misconfigured | Check `[storage.cloudstorage.EXPORT_STORAGE]` bucket in `telnyx.toml` |
+| Huge exports time out | Chunk size too large | Lower `CHUNK_SIZE` in `[env_vars]` |
+
+## Related Examples
+
+- [Persistent State Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) — Durable StatefulActor on Edge with the same zero-credential inference binding
+- [Collaborative Doc with AI Copilot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/collaborative-doc-ai-copilot/README.md) — Multiplayer StatefulActor with an AI copilot on Edge
+- [Edge Call Transcription Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-call-transcription-agent/README.md) — Call audio transcription on Edge actors

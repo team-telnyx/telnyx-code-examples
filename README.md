@@ -25,7 +25,7 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
-<summary><h2>Voice AI</h2> <em>(150 examples)</em></summary>
+<summary><h2>Voice AI</h2> <em>(154 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
@@ -33,6 +33,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 |---------|----------|-------------|
 | [ai-assistant-client-side-tools-nextjs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-client-side-tools-nextjs/README.md) | Node.js | Build a browser-based Next.js dashboard where a Telnyx AI Assistant invokes client-side JavaScript tools to navigate the UI, change theme, open a modal, and update React form state. |
 | [ai-assistant-multiparticipant-calling-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-multiparticipant-calling-nodejs/README.md) | Node.js | Build a Telnyx Voice AI assistant that answers an inbound call, uses a backend tool to dial a second participant, and joins them into the same live AI conversation with ai_assistant_join. |
+| [ai-call-campaign-orchestrator](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-call-campaign-orchestrator/README.md) | Python | Durable outbound call campaign with rate limiting, SQL tracking, and SMS summary using Telnyx Agent SDK, Call Control, and SMS. |
 | [ai-powered-call-router](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-powered-call-router/README.md) | Typescript | Route inbound calls by analyzing caller intent with the Telnyx AI Inference binding and a Telnyx KV route table. One StatefulActor per call leg; zero-credential LLM classification + global KV lookup on the Edge Runtime. |
 | [branded-caller-id-manager-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/branded-caller-id-manager-python/README.md) | Python | Branded Caller ID Manager - register, manage, and verify branded calling profiles with STIR/SHAKEN attestation for higher answer rates. |
 | [build-conference-calling-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-conference-calling-go/README.md) | Go | --- |
@@ -76,6 +77,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [conversation-relay-voice-bot-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/conversation-relay-voice-bot-python/README.md) | Python | Forward live phone calls to any existing text-in/text-out AI chatbot using Telnyx Conversation Relay — no changes to the bot. |
 | [deepfake-voice-detector-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/deepfake-voice-detector-python/README.md) | Python | Real-time synthetic speech detection on live phone calls. Captures audio via media streaming, extracts acoustic features, scores deepfake probability with AI Inference, alerts security team via Slack. |
 | [edge-ai-assistant-backend-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-ai-assistant-backend-go/README.md) | Go | Use a Telnyx Edge Compute function as the backend for AI Assistant dynamic variables and webhook tool calls — no separate server required. |
+| [edge-call-transcription-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-call-transcription-agent/README.md) | Typescript | Live call transcription agent on Telnyx Edge Compute + Agent SDK — answers an inbound call, streams STT into durable agent state, and on hangup summarizes the transcript via LLM, persists it to actor-local SQL, and texts the summary via SMS. Zero-credential inference and messaging via the [telnyx] binding. |
 | [edge-compliance-monitor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-compliance-monitor-python/README.md) | Python | Real-time compliance checking for regulated call centers using Telnyx Voice, AI Inference, and Edge Compute. |
 | [edge-fraud-firewall-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-fraud-firewall-python/README.md) | Python | Screen every inbound call at the edge with Telnyx Voice, Number Lookup, and AI Inference. |
 | [edge-geo-smart-router-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-geo-smart-router-python/README.md) | Python | Route calls by geography at the edge using Telnyx Voice, AI Inference, and Edge Compute. |
@@ -88,6 +90,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [edge-voicemail-to-action-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-voicemail-to-action-python/README.md) | Python | AI-powered voicemail triage at the edge. |
 | [edge-webhook-aggregator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-webhook-aggregator-python/README.md) | Python | Multi-tenant webhook consolidation at the edge. |
 | [fax-to-structured-data-pipeline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/fax-to-structured-data-pipeline-python/README.md) | Python | Fax-to-Structured-Data Pipeline - receive faxes, AI extracts structured data (invoices, orders, prescriptions) into JSON. |
+| [geo-distributed-call-logger](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/geo-distributed-call-logger/README.md) | Typescript | --- |
 | [hold-music-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-csharp/README.md) | C# | --- |
 | [hold-music-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-go/README.md) | Go | --- |
 | [hold-music-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/hold-music-java/README.md) | Java | --- |
@@ -162,6 +165,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [voice-call-analytics-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-call-analytics-php/README.md) | PHP | --- |
 | [voice-call-analytics-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-call-analytics-python/README.md) | Python | --- |
 | [voice-call-analytics-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-call-analytics-ruby/README.md) | Ruby | --- |
+| [voice-ivr-with-agent-backend](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-ivr-with-agent-backend/README.md) | Python | A natural language IVR system where the Telnyx Agent handles backend logic and an LLM powers dynamic menu options. |
 | [voice-to-slack-bridge-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-to-slack-bridge-python/README.md) | Python | Voice-to-Slack Bridge - call a phone number, speak a message, AI transcribes and posts to Slack with urgency tagging. |
 | [voice-verified-identity-2fa-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-verified-identity-2fa-python/README.md) | Python | Voice-Verified Identity + 2FA - Number Lookup, SMS OTP, and AI-assisted secure transactions. |
 | [voicemail-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-csharp/README.md) | C# | --- |
@@ -185,7 +189,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 </details>
 
 <details open>
-<summary><h2>SMS & MMS</h2> <em>(170 examples)</em></summary>
+<summary><h2>SMS & MMS</h2> <em>(172 examples)</em></summary>
 
 Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/products/sms-api) - build autoresponders, implement 2FA, and manage bulk messaging campaigns.
 
@@ -198,6 +202,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [ai-appointment-booking-sms-flow-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-appointment-booking-sms-flow-python/README.md) | Python | AI Appointment Booking SMS Flow - guided SMS booking with available slot selection. |
 | [ai-appointment-reminder-sms-voice-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-appointment-reminder-sms-voice-python/README.md) | Python | AI Appointment Reminder - SMS first, voice call for non-responders, AI handles rescheduling. |
 | [alphanumeric-sender-id-sms-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/alphanumeric-sender-id-sms-python/README.md) | Python | Send SMS messages with a branded alphanumeric sender ID using the Telnyx Messaging API. Validates sender IDs and enforces regional restrictions. |
+| [audio-transcribe-summarize-sms](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/audio-transcribe-summarize-sms/README.md) | Typescript | Upload a voicemail audio file → transcribe via STT → summarize with LLM → text the summary via SMS. Agent SDK pipeline on Telnyx Edge Compute with zero-credential inference and messaging. |
 | [autonomous-outbound-sales-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/autonomous-outbound-sales-agent-python/README.md) | Python | Autonomous Outbound Sales Agent - AI-driven lead qualification, objection handling, and meeting booking. |
 | [billing-anomaly-detector-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/billing-anomaly-detector-python/README.md) | Python | Billing Anomaly Detector - monitor usage and billing for anomalies, alert on cost spikes and unusual patterns. |
 | [cdr-usage-analytics-dashboard-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/cdr-usage-analytics-dashboard-python/README.md) | Python | Pull Call Detail Records, build usage analytics with cost breakdowns, peak-hour analysis, and AI-powered insights. |
@@ -314,6 +319,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [sms-auto-reply-bot-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-auto-reply-bot-python/README.md) | Python | Build an SMS autoresponder bot. |
 | [sms-auto-reply-bot-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-auto-reply-bot-ruby/README.md) | Ruby | --- |
 | [sms-chatbot-with-conversation-memory-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-chatbot-with-conversation-memory-python/README.md) | Python | SMS Chatbot with Conversation Memory - persistent AI conversations over text with context retention. |
+| [sms-conversation-exporter](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-conversation-exporter/README.md) | Typescript | --- |
 | [sms-conversation-threading-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-conversation-threading-python/README.md) | Python | Group inbound and outbound SMS by contact into persistent conversation threads with the Telnyx Messaging API and a SQLAlchemy-backed store. |
 | [sms-delivery-receipts-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-delivery-receipts-csharp/README.md) | C# | --- |
 | [sms-delivery-receipts-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-delivery-receipts-go/README.md) | Go | --- |
@@ -365,7 +371,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(136 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(141 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -392,6 +398,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [ai-customer-winback-caller-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-customer-winback-caller-python/README.md) | Python | AI Customer Winback Caller - AI calls churned customers with personalized re-engagement offers. |
 | [ai-debt-collection-compliance-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-debt-collection-compliance-agent-python/README.md) | Python | AI Debt Collection Compliance Agent - FDCPA-compliant outbound collection with real-time guardrails. |
 | [ai-deposition-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-deposition-assistant-python/README.md) | Python | AI joins legal deposition calls, produces real-time transcript, flags objectionable questions, tracks exhibits, generates structured deposition summary. |
+| [ai-email-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-email-agent-python/README.md) | Python | AI Email Agent — autonomous inbound email reply bot on the Telnyx Email API. A customer emails in, the AI drafts a reply, the Email API sends it back. One platform, one API key, one agent. |
 | [ai-event-rsvp-phone-line-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-event-rsvp-phone-line-python/README.md) | Python | AI Event RSVP Phone Line - call to RSVP for an event. AI collects guest info, dietary restrictions, plus-ones, and confirms the reservation. |
 | [ai-hiring-phone-screen-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-hiring-phone-screen-python/README.md) | Python | AI Hiring Phone Screen - automated first-round phone screening for job applicants. |
 | [ai-insurance-claims-intake-voice-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-insurance-claims-intake-voice-python/README.md) | Python | AI Insurance Claims Intake - voice agent collects claim details, classifies, routes to adjuster. |
@@ -460,6 +467,8 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [create-ai-assistant-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-php/README.md) | PHP | --- |
 | [create-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-python/README.md) | Python | Create a new Telnyx AI Assistant with a system prompt, model selection, and tool configuration. |
 | [create-ai-assistant-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-ruby/README.md) | Ruby | --- |
+| [edge-cache-invalidation-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-cache-invalidation-agent/README.md) | Typescript | --- |
+| [edge-customer-agent-typescript](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-customer-agent-typescript/README.md) | Typescript | A durable Entity Agent on Telnyx Edge Compute. One actor per customer phone number, surviving across days, calls, SMS messages, and actor evictions. The AI Assistant is the reasoning harness inside; the agent owns the durable state. |
 | [error-explainer-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/error-explainer-python/README.md) | Python | AI Error Explainer — paste a stack trace, get a root-cause hypothesis, confidence, severity, and a suggested fix via Telnyx AI Inference. |
 | [extract-structured-json-with-ai-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/extract-structured-json-with-ai-python/README.md) | Python | Extract structured JSON from support tickets, emails, leads, or incident reports with Telnyx AI Inference. |
 | [fax-to-ai-document-processor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/fax-to-ai-document-processor-python/README.md) | Python | Fax to AI Document Processor - receive fax, AI extracts data, forwards structured summary. |
@@ -467,6 +476,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [get-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/get-ai-assistant-python/README.md) | Python | --- |
 | [global-ip-failover-monitor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/global-ip-failover-monitor-python/README.md) | Python | Global IP Failover Monitor - monitor Global IP endpoints across regions, auto-failover between healthy endpoints. |
 | [insurance-claims-intake-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/insurance-claims-intake-python/README.md) | Python | Policyholder calls, AI collects incident details, accepts photos via MMS, creates claim, assigns adjuster, texts status updates. Adjuster reviews AI-prepared claim. |
+| [kv-backed-rate-limiter](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/kv-backed-rate-limiter/README.md) | Typescript | --- |
 | [langgraph-agent-on-edge](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/langgraph-agent-on-edge/README.md) | Node.js | --- |
 | [language-learning-flashcards-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/language-learning-flashcards-python/README.md) | Python | Listen to a phrase, repeat it back, and get instant pronunciation feedback. TTS speaks, you repeat, STT transcribes, Inference scores — interactive language learning powered by all three Telnyx AI primitives. |
 | [list-ai-assistants-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/list-ai-assistants-csharp/README.md) | C# | --- |
@@ -481,6 +491,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [moderation-classifier-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/moderation-classifier-python/README.md) | Python | AI Moderation Classifier — classify user-generated content as safe/spam/abuse/hate/harassment/self-harm using embeddings pre-filter + LLM judgment via Telnyx AI Inference. |
 | [multi-channel-ai-helpdesk-with-ticketing-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-channel-ai-helpdesk-with-ticketing-python/README.md) | Python | Multi-Channel AI Helpdesk with Ticketing - voice + SMS + WhatsApp support with auto-ticket creation. |
 | [multi-character-narrator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-character-narrator-python/README.md) | Python | Paste a dialogue script with speaker labels, assign each speaker a distinct Telnyx Ultra voice, render every line in parallel, and stitch the per-line audio into one continuous MP3. |
+| [multi-model-inference-switcher](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-model-inference-switcher/README.md) | Typescript | Switch between LLM models at runtime via a KV feature flag — no redeploy. Agent SDK + zero-credential inference + admin UI with live model switching. |
 | [multi-party-ai-training-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-party-ai-training-call-python/README.md) | Python | AI plays customer roles for sales/support practice. Multiple trainees join, AI rotates scenarios and scores each trainee. |
 | [network-incident-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/network-incident-agent/README.md) | Typescript | A durable incident actor that assesses severity, proactively sends SMS, answers calls with incident context, writes an RCA to CloudFS, and checks for recurrence. |
 | [omnichannel-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-receptionist-python/README.md) | Python | One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference. |

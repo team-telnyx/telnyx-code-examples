@@ -305,3 +305,17 @@ This folder is self-contained for coding agents. Start with `README.md` for an o
 ## License
 
 MIT
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Everything allowed | KV binding missing — counters do not persist | Check `[storage.kv.RATE_KV]` id in `telnyx.toml` |
+| No alert SMS | `ALERT_PHONE`/`SENDER_PHONE` unset or threshold not hit | Set `[env_vars]`, redeploy |
+| Limits do not match config | Stale deploy | `telnyx-edge ship` after changing `[env_vars]` |
+
+## Related Examples
+
+- [Persistent State Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) — Durable StatefulActor on Edge with the same zero-credential inference binding
+- [Collaborative Doc with AI Copilot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/collaborative-doc-ai-copilot/README.md) — Multiplayer StatefulActor with an AI copilot on Edge
+- [Geo-Distributed Call Logger](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/geo-distributed-call-logger/README.md) — Per-region durable actors with KV counters
