@@ -147,8 +147,13 @@ async function main(): Promise<void> {
   console.log(`DEV-827 live flow test → ${BASE_URL} (conversation: ${CONV})\n`);
 
   // Health
-  const health = (await (await fetch(`${BASE_URL}/health`)).json()) as { ok: boolean };
-  check("GET /health", health.ok === true, JSON.stringify(health));
+  let health: { ok: boolean } | undefined;
+  try {
+    health = (await (await fetch(`${BASE_URL}/health`)).json()) as { ok: boolean };
+  } catch {
+    health = undefined;
+  }
+  check("GET /health", health?.ok === true, health ? JSON.stringify(health) : "no JSON health response — is the function deployed at BASE_URL?");
 
   // 1. WebSocket connect + attach (AgentSocketServer primitive)
   await connect(CONV);
