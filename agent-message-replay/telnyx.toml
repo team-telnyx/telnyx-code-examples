@@ -1,0 +1,28 @@
+# Scaffold: telnyx-edge new-func --actor --name=agent-message-replay
+# Then copy the bindings below into the generated telnyx.toml so func_id is assigned.
+
+name = "agent-message-replay"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "REPLAY"
+type = "ReplayAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[edge_compute]
+func_id = "replace-with-your-function-id"
+func_name = "agent-message-replay"
+
+[env_vars]
+# Inference model served by the pre-authenticated TELNYX binding.
+MODEL = "zai-org/GLM-5.2"
+# "true" serves the demo UI at /; "false" disables it.
+DEMO_MODE = "true"
+# Socket credential: clients attaching with this token get the "rpc" claim
+# (play/pause/seed). Anyone else connects as a read-only watcher.
+REPLAY_TOKEN = "replay-demo"
+# Optional: require `Authorization: Bearer <INGEST_TOKEN>` on POST /ingest.
+# Leave unset for an open demo endpoint.

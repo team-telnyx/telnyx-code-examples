@@ -3231,6 +3231,12 @@ examples:
     folder: sms-two-factor-agent
 
   - product: ai
+    use_case: "agent-message-replay"
+    language: typescript
+    framework: edge
+    folder: agent-message-replay
+
+  - product: ai
     use_case: "auto-generated-from-linear"
     language: python
     framework: flask
