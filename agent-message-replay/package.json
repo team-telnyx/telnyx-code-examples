@@ -1,7 +1,7 @@
 {
   "name": "agent-message-replay",
   "version": "0.1.0",
-  "description": "Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step — scrub through history in the browser.",
+  "description": "Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step \u2014 scrub through history in the browser.",
   "type": "module",
   "private": true,
   "scripts": {
@@ -10,7 +10,8 @@
     "types": "telnyx-edge types",
     "ship": "telnyx-edge ship",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e:live": "vite-node scripts/e2e-live.ts"
   },
   "dependencies": {
     "@telnyx/edge-runtime": "^0.13.0",
