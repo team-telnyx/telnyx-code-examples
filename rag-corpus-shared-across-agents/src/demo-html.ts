@@ -3,42 +3,64 @@ const html = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RAG Corpus — Shared Across Agents</title>
+<title>telnyx — RAG Corpus Shared Across Agents</title>
 <style>
-  :root { color-scheme: dark; }
-  body { font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0f17; color: #e6e9f0;
-         max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  p.sub { color: #8b93a7; margin: 0 0 24px; font-size: 14px; }
-  label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
-          color: #8b93a7; margin: 14px 0 6px; }
-  input, select, textarea { width: 100%; box-sizing: border-box; background: #131a26; color: #e6e9f0;
-          border: 1px solid #26304a; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  :root {
+    --bg: #0b0d0e; --panel: #131719; --border: #232a2d;
+    --teal: #0fb5a9; --teal-dim: #0b8a81;
+    --text: #f2f4f5; --muted: #9aa5a9;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+         background: var(--bg); color: var(--text); max-width: 880px; margin: 0 auto;
+         padding: 28px 16px 64px; }
+  header { display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--border);
+           padding-bottom: 18px; margin-bottom: 20px; }
+  .wordmark { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; color: var(--teal); }
+  .tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted);
+         border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; line-height: 1.5; }
+  label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+          color: var(--muted); margin: 14px 0 6px; }
+  input, select, textarea { width: 100%; background: var(--panel); color: var(--text);
+          border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--teal-dim); border-color: var(--teal-dim); }
   textarea { min-height: 84px; resize: vertical; }
-  .row { display: flex; gap: 12px; }
-  .row > * { flex: 1; }
-  button { background: #3b5bdb; border: none; color: #fff; font-size: 14px; font-weight: 600;
-           padding: 10px 16px; border-radius: 8px; cursor: pointer; margin-top: 14px; }
-  button.ghost { background: #1b2436; color: #aab3c8; margin-left: 8px; }
+  button { background: var(--teal); border: none; color: #06201e; font-size: 14px; font-weight: 700;
+           padding: 10px 18px; border-radius: 8px; cursor: pointer; margin-top: 14px; }
+  button.ghost { background: transparent; color: var(--teal); border: 1px solid var(--teal-dim);
+                 margin-left: 8px; font-weight: 600; }
+  button:hover { filter: brightness(1.1); }
   button:disabled { opacity: .5; cursor: wait; }
-  #answer { background: #101724; border: 1px solid #26304a; border-radius: 10px;
+  #answer { background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
             padding: 16px; margin-top: 20px; white-space: pre-wrap; line-height: 1.55; font-size: 14px; }
-  .source { background: #0f1522; border-left: 3px solid #3b5bdb; border-radius: 6px;
-            padding: 8px 12px; margin: 8px 0; font-size: 12px; color: #aab3c8; }
-  .meta { color: #8b93a7; font-size: 12px; margin-top: 10px; }
+  .source { background: #0f1415; border-left: 3px solid var(--teal); border-radius: 6px;
+            padding: 8px 12px; margin: 8px 0; font-size: 12px; color: var(--muted); }
+  .meta { color: var(--muted); font-size: 12px; margin-top: 10px; }
   .error { color: #ff8787; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border);
+           color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
+  footer a { color: var(--teal); text-decoration: none; }
 </style>
 </head>
 <body>
+<header>
+  <span class="wordmark">telnyx</span>
+  <span class="tag">Code Sample</span>
+</header>
+
 <h1>RAG Corpus — Shared Across Agents</h1>
 <p class="sub">One embedded knowledge base (CorpusAgent), many personalities (PersonaAgent).
-Ingest docs, then ask the same question as support, sales, and engineering.</p>
+Ingest Telnyx platform docs, then ask the same question as support, sales, and engineering —
+same sources, different voices.</p>
 
 <label>Corpus id</label>
-<input id="corpus" value="product-docs">
+<input id="corpus" value="telnyx-docs">
 
 <label>Question</label>
-<textarea id="question" placeholder="How do I rotate an API key?"></textarea>
+<textarea id="question" placeholder="How do I deploy an edge function?"></textarea>
 
 <label>Persona</label>
 <select id="persona">
@@ -48,32 +70,42 @@ Ingest docs, then ask the same question as support, sales, and engineering.</p>
 </select>
 
 <button id="ask">Ask</button>
-<button id="seed" class="ghost">Seed sample docs</button>
+<button id="seed" class="ghost">Seed Telnyx docs</button>
 <button id="stats" class="ghost">Corpus stats</button>
 
 <div id="answer" hidden></div>
 
+<footer>
+  <span>Telnyx — AI Communications Infrastructure</span>
+  <a href="https://telnyx.com" target="_blank" rel="noopener">telnyx.com</a>
+</footer>
+
 <script>
 const $ = (id) => document.getElementById(id);
-const corpus = () => $("corpus").value.trim() || "product-docs";
+const corpus = () => $("corpus").value.trim() || "telnyx-docs";
 const api = (path, init) => fetch("/api/corpus/" + encodeURIComponent(corpus()) + path, init);
 
 const SEED_DOCS = [
-  { name: "knowledge/api-keys.txt", text:
-    "API key management.\\n\\nCreate keys in the Portal under Account Settings > API Keys. " +
-    "Every key has full account access, so scope work to a dedicated key per integration. " +
-    "Rotate keys quarterly: create the new key first, deploy it, then delete the old one. " +
-    "Deleted keys stop working immediately; there is no grace period." },
-  { name: "knowledge/rate-limits.txt", text:
-    "Rate limits.\\n\\nThe inference API allows 60 requests per minute per key by default. " +
-    "Bursts above the limit return HTTP 429 with a Retry-After header. " +
-    "Production integrations should back off exponentially and cache embedding results " +
-    "because identical inputs always produce identical vectors." },
-  { name: "knowledge/edge-functions.txt", text:
-    "Edge Compute functions.\\n\\nFunctions deploy with 'telnyx-edge ship' and run at the edge " +
-    "closest to the caller. Stateful actors keep durable state per id; bindings provide " +
-    "pre-authenticated access to Telnyx APIs, Cloud Storage buckets, and KV namespaces " +
-    "without storing credentials in code." },
+  { name: "knowledge/edge-compute.txt", text:
+    "Telnyx Edge Compute.\\n\\nEdge Compute runs your code at the edge location closest to the caller. " +
+    "Functions deploy with the Edge CLI command 'telnyx-edge ship' from a project configured in telnyx.toml. " +
+    "Scaffold a stateful project with 'telnyx-edge new-func' and generate typed bindings with 'telnyx-edge types'. " +
+    "Stateful actors keep durable, single-threaded state per actor id, with per-actor SQLite through " +
+    "ctx.storage.sql. Bindings provide pre-authenticated access to Telnyx APIs, Cloud Storage buckets, and KV " +
+    "namespaces, so deployed functions hold no API keys." },
+  { name: "knowledge/inference.txt", text:
+    "Telnyx Inference.\\n\\nTelnyx Inference serves OpenAI-compatible AI endpoints under " +
+    "https://api.telnyx.com/v2/ai/openai — chat completions at /chat/completions and embeddings at /embeddings. " +
+    "Available embedding models include thenlper/gte-large, intfloat/multilingual-e5-large, and " +
+    "Qwen/Qwen3-Embedding-8B. Chat models include meta-llama/Llama-3.3-70B-Instruct. " +
+    "On Edge Compute the TELNYX binding is pre-authenticated: call this.env.TELNYX.ai.openai.chat.createCompletion " +
+    "and this.env.TELNYX.ai.openai.embeddings.createEmbeddings directly — no API key appears in your code." },
+  { name: "knowledge/voice-api.txt", text:
+    "Telnyx Voice API.\\n\\nThe Voice API gives programmatic call control over webhooks. Inbound call events " +
+    "arrive as webhooks, and their Ed25519 signatures must be verified with the Telnyx SDK webhooks.unwrap call " +
+    "using the account public key before the payload is trusted. Phone numbers use E.164 format, for example " +
+    "+13125790015. Call control commands such as answer, transfer, gather, and hangup are issued through the " +
+    "Calls API while conversation state flows through webhook events." },
 ];
 
 function show(node) { $("answer").hidden = false; $("answer").innerHTML = node; }

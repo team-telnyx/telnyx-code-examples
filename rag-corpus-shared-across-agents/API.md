@@ -52,7 +52,7 @@ Ingest one document: chunk → embed → store in the corpus actor's SQL.
 ```bash
 curl -X POST http://localhost:8787/api/corpus/product-docs/documents \
   -H "Content-Type: application/json" \
-  -d '{"name": "knowledge/api-keys.txt", "text": "Create keys in the Portal..."}'
+  -d '{"name": "knowledge/edge-compute.txt", "text": "Edge Compute runs your code at the edge location closest to the caller..."}'
 ```
 
 **Response:** `201 Created`
@@ -60,7 +60,7 @@ curl -X POST http://localhost:8787/api/corpus/product-docs/documents \
 ```json
 {
   "corpus_id": "product-docs",
-  "doc": "knowledge/api-keys.txt",
+  "doc": "knowledge/edge-compute.txt",
   "chunks": 2
 }
 ```
@@ -77,7 +77,7 @@ Ingest every object under the configured `KNOWLEDGE_PREFIX` from the Cloud Stora
 {
   "corpus_id": "product-docs",
   "ingested": [
-    { "doc": "knowledge/api-keys.txt", "chunks": 2 },
+    { "doc": "knowledge/edge-compute.txt", "chunks": 2 },
     { "doc": "knowledge/rate-limits.txt", "chunks": 1 }
   ]
 }
@@ -101,7 +101,7 @@ Ask a question as one of the personas. The worker retrieves top-K chunks from th
 ```bash
 curl -X POST http://localhost:8787/api/corpus/product-docs/ask \
   -H "Content-Type: application/json" \
-  -d '{"persona": "engineer", "question": "How do I rotate an API key?"}'
+  -d '{"persona": "engineer", "question": "How do I deploy an edge function?"}'
 ```
 
 **Response:** `200 OK`
@@ -110,14 +110,14 @@ curl -X POST http://localhost:8787/api/corpus/product-docs/ask \
 {
   "corpusId": "product-docs",
   "persona": "engineer",
-  "question": "How do I rotate an API key?",
-  "answer": "Rotation is a three-step deploy-first swap...",
+  "question": "How do I deploy an edge function?",
+  "answer": "Deploy with the Edge CLI: scaffold with telnyx-edge new-func, merge your bindings into telnyx.toml, then ship with telnyx-edge ship...",
   "sources": [
     {
-      "id": "knowledge/api-keys.txt#0",
-      "doc": "knowledge/api-keys.txt",
+      "id": "knowledge/edge-compute.txt#0",
+      "doc": "knowledge/edge-compute.txt",
       "ord": 0,
-      "text": "Rotate keys quarterly: create the new key first...",
+      "text": "Functions deploy with the Edge CLI command telnyx-edge ship...",
       "score": 0.4212
     }
   ],
@@ -139,7 +139,7 @@ Corpus snapshot: ingested documents, chunk count, last ingest timestamp.
 {
   "corpus_id": "product-docs",
   "stats": {
-    "docs": ["knowledge/api-keys.txt", "knowledge/rate-limits.txt"],
+    "docs": ["knowledge/edge-compute.txt", "knowledge/inference.txt"],
     "chunkCount": 3,
     "lastIngestedAt": 1756742400000
   }

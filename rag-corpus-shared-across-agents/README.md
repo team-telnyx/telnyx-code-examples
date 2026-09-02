@@ -26,8 +26,8 @@ All three run through platform bindings inside the actor, so no credential ever 
 ## Architecture
 
 ```
- knowledge/api-keys.txt ─┐
- knowledge/limits.txt  ──┤  Cloud Storage bucket (KNOWLEDGE binding)
+ knowledge/edge-compute.txt ─┐
+ knowledge/inference.txt  ──┤  Cloud Storage bucket (KNOWLEDGE binding)
  direct uploads ─────────┘
           │  ingest: chunk → createEmbeddings → per-actor SQL
           ▼
@@ -132,7 +132,7 @@ Set via `[env_vars]` in `telnyx.toml` (deployed) or `.env` (local dev):
    npm run local:dev
    ```
 
-   Open `http://localhost:8787`, click **Seed sample docs**, then ask the same question as Support, Sales, and Engineering — identical sources, three different voices. The local harness stands in the Cloud Storage bucket with a local `./knowledge/` directory: drop `.txt` files there and click through `POST /api/corpus/<id>/ingest-bucket`.
+   Open `http://localhost:8787`, click **Seed Telnyx docs**, then ask the same question as Support, Sales, and Engineering — identical sources, three different voices. The local harness stands in the Cloud Storage bucket with a local `./knowledge/` directory: drop `.txt` files there and click through `POST /api/corpus/<id>/ingest-bucket`.
 
 5. **Deploy to Telnyx Edge**
 
@@ -157,8 +157,8 @@ Lists the available persona ids for the ask route.
 
 Ingest one document directly (chunked + embedded immediately).
 
-**Request body:** `{ "name": "knowledge/api-keys.txt", "text": "…" }`
-**Response:** `201 Created` → `{ "corpus_id": "…", "doc": "knowledge/api-keys.txt", "chunks": 2 }`
+**Request body:** `{ "name": "knowledge/edge-compute.txt", "text": "…" }`
+**Response:** `201 Created` → `{ "corpus_id": "…", "doc": "knowledge/edge-compute.txt", "chunks": 2 }`
 
 #### POST `/api/corpus/<corpus_id>/ingest-bucket`
 
@@ -170,16 +170,16 @@ Ingest every object under the configured `KNOWLEDGE_PREFIX` from the Cloud Stora
 
 Ask a question as one of the personas. The persona actor retrieves from the shared corpus, answers in character with cited sources, and remembers the exchange.
 
-**Request body:** `{ "persona": "support" | "sales" | "engineer", "question": "How do I rotate an API key?" }`
+**Request body:** `{ "persona": "support" | "sales" | "engineer", "question": "How do I deploy an edge function?" }`
 **Response:** `200 OK` →
 
 ```json
 {
   "corpusId": "product-docs",
   "persona": "support",
-  "question": "How do I rotate an API key?",
+  "question": "How do I deploy an edge function?",
   "answer": "Rotate keys quarterly: create the new key first…",
-  "sources": [{ "id": "knowledge/api-keys.txt#0", "doc": "knowledge/api-keys.txt", "ord": 0, "text": "…", "score": 0.42 }],
+  "sources": [{ "id": "knowledge/edge-compute.txt#0", "doc": "knowledge/edge-compute.txt", "ord": 0, "text": "…", "score": 0.42 }],
   "model": "meta-llama/Llama-3.3-70B-Instruct"
 }
 ```

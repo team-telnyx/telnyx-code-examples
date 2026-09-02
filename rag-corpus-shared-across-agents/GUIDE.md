@@ -102,9 +102,9 @@ npm run local:dev             # http://localhost:8787
 
 On the demo page:
 
-1. Click **Seed sample docs** — three short documents go through the same
+1. Click **Seed Telnyx docs** — three short documents go through the same
    ingest path a bucket ingest would.
-2. Ask "How do I rotate an API key?" as **Support Agent** — step-by-step,
+2. Ask "How do I deploy an edge function?" as **Support Agent** — step-by-step,
    plain language.
 3. Switch to **Solutions Engineer** and ask again — exact names and limits,
    same sources.
@@ -116,7 +116,7 @@ Prefer raw HTTP?
 # Ingest directly
 curl -X POST http://localhost:8787/api/corpus/product-docs/documents \
   -H "Content-Type: application/json" \
-  -d '{"name": "knowledge/api-keys.txt", "text": "Rotate keys quarterly..."}'
+  -d '{"name": "knowledge/edge-compute.txt", "text": "Functions deploy with telnyx-edge ship..."}'
 
 # Ask as a persona
 curl -X POST http://localhost:8787/api/corpus/product-docs/ask \
