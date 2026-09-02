@@ -1,5 +1,5 @@
 /**
- * Live end-to-end test: runs the DEV-827 ticket flow against a DEPLOYED
+ * Live end-to-end test: runs the spec flow against a DEPLOYED
  * agent-message-replay Edge function over a real WebSocket.
  *
  *   BASE_URL=https://<your-function>.telnyxcompute.com \
@@ -7,7 +7,7 @@
  *   node --experimental-strip-types scripts/e2e-live.ts
  *   # or: npx vite-node scripts/e2e-live.ts
  *
- * Requires Node 22.5+ (global WebSocket). Each check maps to a DEV-827
+ * Requires Node 22.5+ (global WebSocket). Each check maps to a spec
  * acceptance criterion; the script exits non-zero on the first failure.
  */
 import { DEMO_SCRIPT, demoStages } from "../src/demo-script.js";
@@ -154,7 +154,7 @@ function check(ac: string, ok: boolean, detail: string): void {
 }
 
 async function main(): Promise<void> {
-  console.log(`DEV-827 live flow test → ${BASE_URL} (conversation: ${CONV})\n`);
+  console.log(`Live flow test → ${BASE_URL} (conversation: ${CONV})\n`);
 
   // Health
   let health: { ok: boolean } | undefined;
@@ -245,7 +245,7 @@ async function main(): Promise<void> {
       : `commentary_error: ${String(errors[0]?.payload.message)}`,
   );
 
-  console.log("\n— DEV-827 flow summary —");
+  console.log("\n— spec flow summary —");
   for (const r of results) console.log(`${r.ok ? "✅" : "❌"} ${r.ac}`);
   const failed = results.filter((r) => !r.ok).length;
   console.log(`\n${results.length - failed}/${results.length} checks passed`);

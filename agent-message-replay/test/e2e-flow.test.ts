@@ -1,5 +1,5 @@
 /**
- * DEV-827 flow conformance — drives the REAL ReplayAgent, AgentSocketServer,
+ * Spec-flow conformance — drives the REAL ReplayAgent, AgentSocketServer,
  * MessageLog, EventLog, and TaskScheduler in memory and asserts the exact
  * flow the Linear ticket specifies:
  *
@@ -126,7 +126,7 @@ async function waitFor<T>(fn: () => T | undefined, timeoutMs = 5000): Promise<T>
   }
 }
 
-describe("DEV-827 flow: WebSocket connect → MessageLog → broadcast → commentary", () => {
+describe("spec flow: WebSocket connect → MessageLog → broadcast → commentary", () => {
   it("WebSocket connect: AgentSocketServer bootstraps state + messages snapshots and hello", async () => {
     const { agent } = makeAgent("boot");
     const socket = await connect(agent);

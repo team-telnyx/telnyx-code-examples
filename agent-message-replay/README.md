@@ -1,13 +1,30 @@
 ---
 name: agent-message-replay
-title: "Agent Message Replay — WebSocket Live Streaming Replays on Telnyx Edge"
+title: "Replay Agent Conversations Live — WebSocket Streaming Replays on Telnyx Edge"
 description: "Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step."
 language: nodejs
 ---
 
-# Agent Message Replay on Telnyx Edge
+# Replay Agent Conversations Live on Telnyx Edge
 
 Replay recorded agent conversations as live streams — scrub through message history, watch agent state changes re-enact in real time, and let an LLM annotate the conversation as it plays.
+
+## What you'll see
+
+A 10-step customer-support conversation plays back over a WebSocket. As it plays:
+
+```
+CUSTOMER · #1   Hi — I think I was charged twice on my March invoice.
+AGENT · #2      Sorry about that — could you confirm the invoice number?
+...
+stage: intake → verifying → investigating → resolving → resolved
+```
+
+The stage badge re-enacts the original agent's state at each step, and with commentary on, an LLM annotates each agent message live:
+
+> "Customer provided the invoice number ending 4211; agent confirmed receipt and is now investigating the duplicate charge."
+
+Pause and drag the timeline to scrub through the streamed history — chat, state trail, and commentary all filter to the moment you point at.
 
 ## Why Telnyx
 
