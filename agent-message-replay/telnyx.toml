@@ -26,3 +26,6 @@ DEMO_MODE = "true"
 REPLAY_TOKEN = "replay-demo"
 # Optional: require `Authorization: Bearer <INGEST_TOKEN>` on POST /ingest.
 # Leave unset for an open demo endpoint.
+# The agent number this replay demo is presented for (E.164). Conversations
+# can be keyed by the number itself (URL-encode the +: %2B).
+DEMO_FROM_NUMBER = "+15551234567"

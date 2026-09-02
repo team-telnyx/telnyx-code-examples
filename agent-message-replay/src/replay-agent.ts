@@ -75,6 +75,10 @@ function toChatMessages(
   return out;
 }
 
+/** Ceiling for one commentary model call — a hung inference must not stall
+ * the replay tick chain (the actor degrades to a commentary_error event). */
+const COMMENTARY_TIMEOUT_MS = 30_000;
+
 /**
  * Extract the first text choice from a completion. The telnyx SDK types the
  * response as an untyped record, so the shape is verified at runtime —
@@ -164,6 +168,15 @@ export class ReplayAgent extends Agent<ReplayEnv, ReplayState> {
       commentaryBusy: false,
     });
     return { total };
+  }
+
+  /**
+   * Front-door warm-up target: dialing a WebSocket upgrade at a never-activated
+   * actor can fail before placement, so the front door calls this first to
+   * force activation, then forwards the upgrade.
+   */
+  async ping(): Promise<{ ok: true }> {
+    return { ok: true };
   }
 
   /** Load the built-in demo recording (the UI's "Load demo" button). */
@@ -311,15 +324,20 @@ export class ReplayAgent extends Agent<ReplayEnv, ReplayState> {
     await this.changeState({ commentaryBusy: true });
     try {
       const history = toChatMessages(await this.messages.toOpenAI());
-      const completion = await this.env.TELNYX.ai.openai.chat.createCompletion({
-        model,
-        messages: [
-          { role: "system", content: COMMENTARY_SYSTEM_PROMPT },
-          ...history,
-        ],
-        max_tokens: 120,
-        temperature: 0.6,
-      });
+      const completion = await Promise.race([
+        this.env.TELNYX.ai.openai.chat.createCompletion({
+          model,
+          messages: [
+            { role: "system", content: COMMENTARY_SYSTEM_PROMPT },
+            ...history,
+          ],
+          max_tokens: 120,
+          temperature: 0.6,
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("commentary timeout")), COMMENTARY_TIMEOUT_MS),
+        ),
+      ]);
       const text = firstChoiceText(completion);
       if (text) {
         await this.events.emit("commentary", { stepIndex, text, model });

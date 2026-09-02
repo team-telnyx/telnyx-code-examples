@@ -15,6 +15,7 @@ declare global {
     DEMO_MODE?: string;
     REPLAY_TOKEN?: string;
     INGEST_TOKEN?: string;
+    DEMO_FROM_NUMBER?: string;
   }
 }
 
@@ -27,6 +28,7 @@ declare module "@telnyx/edge-runtime" {
     DEMO_MODE?: string;
     REPLAY_TOKEN?: string;
     INGEST_TOKEN?: string;
+    DEMO_FROM_NUMBER?: string;
   }
 }
 

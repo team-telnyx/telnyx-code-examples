@@ -157,7 +157,7 @@ See [API.md](API.md) for the typed reference of every route, the WebSocket frame
 ## Resources
 
 - [Telnyx Edge Compute docs](https://developers.telnyx.com/docs/edge-compute/overview) — functions, stateful actors, and the Agent SDK.
-- [Telnyx Inference API reference](https://developers.telnyx.com/api-reference/ai- inference/playground/create-chat-completion) — the OpenAI-compatible chat completions endpoint the `TELNYX` binding calls.
+- [Telnyx Inference API reference](https://developers.telnyx.com/api-reference/ai-inference/playground/create-chat-completion) — the OpenAI-compatible chat completions endpoint the `TELNYX` binding calls.
 - [TypeScript SDK](https://developers.telnyx.com/development/sdk/typescript) — install and auth for the `telnyx` npm package.
 - [AI Communications Infrastructure](https://telnyx.com/products/voice-ai-agents) — Telnyx Voice AI product page.
 - [Pricing](https://telnyx.com/pricing) — Telnyx pricing.

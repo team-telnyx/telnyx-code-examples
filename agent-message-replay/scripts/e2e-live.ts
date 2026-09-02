@@ -27,7 +27,7 @@ let ws: WebSocket;
 let nextCallId = 0;
 const pending = new Map<string, { resolve: (v: Frame) => void; reject: (e: Error) => void }>();
 const frames: Frame[] = [];
-const waiters: Array<{ test: (f: Frame) => boolean; resolve: (f: Frame) => void }> = [];
+const waiters: Array<{ test: (f: Frame) => boolean }> = [];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -48,6 +48,25 @@ function mergePatch(target: Record<string, unknown>, patch: Record<string, unkno
 
 async function connect(conv: string): Promise<void> {
   const wsUrl = `${BASE_URL!.replace(/^http/, "ws")}/ws?conv=${encodeURIComponent(conv)}`;
+  // Cold-start dials occasionally fail once; retry with backoff.
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await dial(wsUrl);
+      break;
+    } catch (error) {
+      if (attempt >= 5) throw error;
+      await sleep(2000 * attempt);
+    }
+  }
+  send({
+    v: 2,
+    kind: "attach",
+    token: TOKEN,
+    subscribe: ["state", "messages", "events"],
+  });
+}
+
+function dial(wsUrl: string): Promise<void> {
   ws = new WebSocket(wsUrl);
   const opened = new Promise<void>((resolve, reject) => {
     ws.onopen = () => resolve();
@@ -57,10 +76,7 @@ async function connect(conv: string): Promise<void> {
     const frame = decode(ev.data);
     frames.push(frame);
     for (let i = waiters.length - 1; i >= 0; i -= 1) {
-      if (waiters[i]!.test(frame)) {
-        waiters[i]!.resolve(frame);
-        waiters.splice(i, 1);
-      }
+      if (waiters[i]!.test(frame)) waiters.splice(i, 1);
     }
     if (frame.kind === "result" || frame.kind === "error") {
       const p = pending.get(frame.id as string);
@@ -70,13 +86,7 @@ async function connect(conv: string): Promise<void> {
       }
     }
   };
-  await opened;
-  send({
-    v: 2,
-    kind: "attach",
-    token: TOKEN,
-    subscribe: ["state", "messages", "events"],
-  });
+  return opened;
 }
 
 function send(frame: unknown): void {
@@ -174,6 +184,9 @@ async function main(): Promise<void> {
   // 3. play → messages stream with timestamps (MessageLog read → broadcast)
   await call("play");
   await waitForFrame(() => appendedMessages().length >= DEMO_SCRIPT.length, 60_000, "all messages appended");
+  // The final tick commits the last stage + replay_finished AFTER the last
+  // append lands — wait for the terminal state before asserting.
+  await waitForFrame((f) => f.kind === "state" && (f.patch as Record<string, unknown>)?.status === "finished", 30_000, "replay finished");
   const msgs = appendedMessages();
   const ordered = DEMO_SCRIPT.every((step, i) => msgs[i]?.content === step.content && msgs[i]?.role === step.role);
   check("MessageLog history streamed in order with timestamps", ordered, `${msgs.length}/${DEMO_SCRIPT.length} messages, seq 1..${msgs.at(-1)?.seq}`);
@@ -220,7 +233,8 @@ async function main(): Promise<void> {
   await call("seed");
   await call("setCommentary", [true]);
   await call("play");
-  await waitForFrame(() => eventsOfType("commentary").length > 0 || eventsOfType("commentary_error").length > 0, 60_000, "commentary event");
+  // Five sequential model calls ride inside the replay pacing — allow 2 min.
+  await waitForFrame(() => eventsOfType("commentary").length > 0 || eventsOfType("commentary_error").length > 0, 120_000, "commentary event");
   const commentary = eventsOfType("commentary");
   const errors = eventsOfType("commentary_error");
   check(

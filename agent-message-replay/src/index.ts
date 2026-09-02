@@ -15,6 +15,7 @@ import { demoHtml, BRAND_VERSION } from "./demo-html.js";
 import { parseRecording } from "./script.js";
 import { ZodError } from "zod";
 import { DEMO_CONVERSATION_ID } from "./demo-script.js";
+import { encodeAgentName } from "@telnyx/edge-runtime/mount";
 import type { ReplayEnv } from "./types.js";
 
 function json(body: unknown, status = 200): Response {
@@ -50,12 +51,23 @@ export default {
       });
     }
 
-    // Live replay stream: hand the upgrade to the conversation's actor. The
-    // runtime detects the upgrade and dials the actor's webSocket() handler.
+    // Live replay stream: hand the upgrade to the conversation's actor. A
+    // cheap stub call first forces actor activation — the platform's upgrade
+    // dial resolves a replica for the actor only after it has been placed,
+    // and a COLD replica's first activation can outlast the dial, so retry
+    // the ping until the actor answers (bounded, then forward anyway).
     if (url.pathname === "/ws" && request.headers.get("upgrade")?.toLowerCase() === "websocket") {
       const conversationId =
         url.searchParams.get("conv") ?? DEMO_CONVERSATION_ID;
-      const stub = env.REPLAY.idFromName(conversationId);
+      const stub = env.REPLAY.idFromName(encodeAgentName(conversationId));
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        try {
+          await stub.ping();
+          break;
+        } catch {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+      }
       return stub.fetch(request);
     }
 
@@ -94,7 +106,7 @@ async function handleIngest(request: Request, env: ReplayEnv): Promise<Response>
     return json({ error: "invalid recording" }, 400);
   }
 
-  const stub = env.REPLAY.idFromName(parsed.conversation_id);
+  const stub = env.REPLAY.idFromName(encodeAgentName(parsed.conversation_id));
   try {
     const result = await stub.ingest(parsed);
     return json({

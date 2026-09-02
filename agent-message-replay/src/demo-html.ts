@@ -17,11 +17,14 @@ function jsString(value: string): string {
 export function demoHtml(env: ReplayEnv): string {
   const defaultToken = env.REPLAY_TOKEN ?? "replay-demo";
   const model = env.MODEL ?? "zai-org/GLM-5.2";
+  const agentNumber = env.DEMO_FROM_NUMBER ?? "";
+  const defaultConv = agentNumber || "demo-1";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>Agent Message Replay — Live Streaming Replay on Telnyx Edge</title>
 <style>
   :root { --green: #00e3aa; --bg: #0a0a0a; --card: #161616; --border: #2a2a2a; --text: #e8e8e8; --muted: #888; --amber: #f59e0b; --blue: #7ec8ff; --red: #ff6b6b; }
@@ -84,7 +87,7 @@ export function demoHtml(env: ReplayEnv): string {
 
 <div class="bar">
   <label>token</label> <input type="text" id="token" value=${jsString(defaultToken)}>
-  <label>conversation</label> <input type="text" id="conv" value="demo-1">
+  <label>conversation</label> <input type="text" id="conv" value=${jsString(defaultConv)}>
   <button id="btn-connect">Connect</button>
   <button id="btn-seed" class="secondary" disabled>Load demo</button>
   <button id="btn-play" class="secondary" disabled>&#9654; Play</button>
@@ -99,6 +102,7 @@ export function demoHtml(env: ReplayEnv): string {
   <span class="pill">replay: <b id="st-status">empty</b></span>
   <span class="pill">playhead: <b id="st-playhead">0 / 0</b></span>
   <span class="pill">model: <b>${model}</b></span>
+  <span class="pill stage">agent number: <b>${agentNumber || "\u2014"}</b></span>
   <span class="pill stage">stage: <b id="st-stage">&mdash;</b></span>
   <span class="pill busy">commentary: <b id="st-busy">off</b></span>
 </div>

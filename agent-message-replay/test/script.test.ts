@@ -31,6 +31,14 @@ describe("parseRecording", () => {
     ).toThrow();
   });
 
+  it("accepts an E.164 phone number as the conversation id", () => {
+    const parsed = parseRecording({
+      conversation_id: "+15551234567",
+      steps: validRecording.steps,
+    });
+    expect(parsed.conversation_id).toBe("+15551234567");
+  });
+
   it("rejects ids with characters outside [a-zA-Z0-9_-]", () => {
     expect(() =>
       parseRecording({ conversation_id: "bad/id!", steps: validRecording.steps }),

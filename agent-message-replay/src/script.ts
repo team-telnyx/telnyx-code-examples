@@ -18,7 +18,7 @@ export const recordingSchema = z.object({
     .string()
     .min(1)
     .max(64)
-    .regex(/^[a-zA-Z0-9_-]+$/, "letters, digits, dashes, underscores only"),
+    .regex(/^\+?[a-zA-Z0-9_-]+$/, "E.164 phone number or letters/digits/dashes/underscores only"),
   replace: z.boolean().optional().default(true),
   steps: z
     .array(

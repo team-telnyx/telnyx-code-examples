@@ -167,7 +167,7 @@ The second path is the real payoff: because the Agent SDK persists every convers
 ## 7. Deploy
 
 ```bash
-npm install -g @telnyx-edge/cli 2>/dev/null || npm install -g @telnyx/edge-cli
+npm install -g @telnyx/edge-cli
 telnyx-edge login
 telnyx-edge new-func --actor --name=agent-message-replay
 # copy bindings from telnyx.toml, then:
