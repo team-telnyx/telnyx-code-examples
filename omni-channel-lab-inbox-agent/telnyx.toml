@@ -1,0 +1,47 @@
+name = "omni-channel-inbox-agent"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "INBOX"
+type = "InboxAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "ADMIN_TOKEN"
+name = "ADMIN_TOKEN"
+
+[[secrets]]
+binding = "EMAIL_FROM"
+name = "EMAIL_FROM"
+
+[[secrets]]
+binding = "TELNYX_EMAIL_INBOX_ID"
+name = "TELNYX_EMAIL_INBOX_ID"
+
+[env_vars]
+FROM_NUMBER = "+15550001111"
+FAX_NUMBER = "+15550002222"
+TEXML_APP_ID = "replace_with_your_texml_app_id"
+FAX_APP_ID = "replace_with_your_fax_app_id"
+VOICE_ASSISTANT_ID = "replace_with_your_voice_assistant_id"
+AI_MODEL = "zai-org/GLM-5.2"
+TTS_VOICE = "Telnyx.Ultra.f786b574-daa5-4673-aa0c-cbe3e8534c02"
+DEMO_MODE = "true"
+DEMO_PATIENT_EMAIL = "patient@example.com"
+DEMO_PATIENT_PHONE = "+15551234567"
+DEMO_PATIENT_NAME = "Jane"
+
+[edge_compute]
+func_id = "replace-after-telnyx-edge-new-func"
+func_name = "omni-channel-inbox-agent"
