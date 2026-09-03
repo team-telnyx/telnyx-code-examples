@@ -1,0 +1,22 @@
+{
+  "name": "multi-tenant-voice-platform",
+  "version": "1.0.0",
+  "description": "White-label multi-tenant voice platform using Telnyx Edge SDK with per-tenant rate limiting, SQL config, and isolated call state via StatefulActor.",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "telnyx edge dev src/index.ts",
+    "deploy": "telnyx edge deploy src/index.ts",
+    "test": "vitest run",
+    "lint": "eslint src/ --ext .ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "vitest": "^1.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "@telnyx/edge-sdk-dev": "^1.0.0"
+  }
+}
