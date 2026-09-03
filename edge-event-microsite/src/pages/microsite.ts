@@ -106,7 +106,7 @@ export function renderMicrosite(data: EventData): string {
   <div class="section">
     <h2>Talk to the Concierge</h2>
     <div class="contact">
-      <p>Text or WhatsApp <strong>${esc(smsFrom)}</strong> for schedule, rooms, speakers, WiFi, or parking — answered by AI from the same data this page is built from.</p>
+      <p>Text <strong>${esc(smsFrom)}</strong> for schedule, rooms, speakers, WiFi, or parking — answered by AI from the same data this page is built from.</p>
       <a class="btn" href="/voice">🎙️ Talk to the concierge in your browser</a>
     </div>
   </div>
@@ -129,7 +129,7 @@ export function renderMicrosite(data: EventData): string {
     <h2>Register for Updates</h2>
     <form id="attendeeForm">
       <input name="phone_number" placeholder="Your phone (+E.164)" required>
-      <button type="submit">Get schedule-change alerts (SMS + WhatsApp)</button>
+      <button type="submit">Get schedule-change alerts by text</button>
     </form>
     <div id="attendeeResult"></div>
   </div>
@@ -164,7 +164,7 @@ document.getElementById('attendeeForm').addEventListener('submit', async (e) => 
   try {
     const r = await fetch(origin + '/api/attendees', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const d = await r.json();
-    out.textContent = d.ok ? 'Registered — you will get SMS/WhatsApp updates.' : ('Error: ' + (d.error || 'unknown'));
+    out.textContent = d.ok ? 'Registered — you will get text updates.' : ('Error: ' + (d.error || 'unknown'));
   } catch { out.textContent = 'Network error — try again.'; }
 });
 // ── Voice feedback: MediaRecorder → /api/feedback → Whisper → summary ──
