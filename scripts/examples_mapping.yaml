@@ -3230,6 +3230,12 @@ examples:
     framework: edge
     folder: collaborative-doc-ai-copilot
 
+  - product: ai
+    use_case: langchain-streaming-agent
+    language: nodejs
+    framework: edge
+    folder: langchain-streaming-agent
+
   - product: voice
     use_case: ai-call-campaign-orchestrator
     language: python
