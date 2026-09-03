@@ -1,0 +1,41 @@
+name = "edge-event-microsite"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+# ── Function identity (created via `telnyx-edge new-func -l ts -n edge-event-microsite`) ──
+[edge_compute]
+func_id = "12ddf5a9-35ba-4c8e-9c64-69c89ec5e47b"
+func_name = "edge-event-microsite"
+
+# ── Telnyx API binding: pre-authenticated SDK client (env.TELNYX) ──────────
+# Zero-credential AI Inference inside the function:
+#   env.TELNYX.ai.openai.chat.createCompletion(...)
+# Declaring this block also injects TELNYX_API_KEY as an environment variable,
+# which the REST helpers (messaging, transcription, assistants, email) use.
+[telnyx]
+binding = "TELNYX"
+
+# ── Telnyx KV: the single source of truth for site + agent ─────────────────
+# Created via: telnyx-edge storage kv create --name edge-event-microsite-data
+# The microsite HTML, the JSON APIs, the SMS/WhatsApp concierge, the browser
+# voice assistant's webhook tool, leads, and feedback ALL read this namespace.
+[storage.kv.EVENTS]
+id = "93b0ac82-c559-4595-9317-de2b9afb59b4"
+
+# ── Secrets (telnyx-edge secrets add ...) ──────────────────────────────────
+#   TELNYX_PUBLIC_KEY — org public key for Ed25519 webhook verification:
+#     curl -H "Authorization: Bearer $TELNYX_API_KEY" \
+#       https://api.telnyx.com/v2/public_key
+#     telnyx-edge secrets add TELNYX_PUBLIC_KEY "$PUBLIC_KEY"
+
+# ── Env vars (non-secret config) ───────────────────────────────────────────
+[env_vars]
+AI_MODEL = "moonshotai/Kimi-K2.6"
+# Distinct model for the voice AI Assistant (assistant-compatible set differs
+# from the chat-completions set — meta-llama/Llama-3.3-70B is rejected there).
+ASSISTANT_MODEL = "moonshotai/Kimi-K2.6"
+TRANSCRIBE_MODEL = "distil-whisper/distil-large-v2"
+TELNYX_SMS_FROM = "+16282564655"
+TELNYX_WHATSAPP_FROM = "+16282564655"
+TELNYX_SALES_REP_PHONE = "+17177247292"
+EMAIL_FROM = "onboarding@mail.telnyx.com"

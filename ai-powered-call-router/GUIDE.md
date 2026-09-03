@@ -59,10 +59,10 @@ const intent = completion.choices[0].message.content.trim().toLowerCase();
 
 ### 3. KV Binding — `[storage.kv.ROUTES]` in `telnyx.toml`
 
-The route table lives in Telnyx KV — globally distributed key-value storage. Keys are `route:<intent>` (e.g. `route:billing`), values are E.164 phone numbers. The binding is pre-authenticated, so the actor reads destinations with no API key in code:
+The route table lives in Telnyx KV — globally distributed key-value storage. Keys are `route/<intent>` (e.g. `route/billing`), values are E.164 phone numbers. The binding is pre-authenticated, so the actor reads destinations with no API key in code:
 
 ```ts
-const destination = await this.env.ROUTES.get(`route:${intent}`);
+const destination = await this.env.ROUTES.get(`route/${intent}`);
 ```
 
 This is shared across all calls and all actor instances — update a route via `POST /routes` and the next call picks it up immediately. No redeploy needed.
@@ -94,7 +94,7 @@ The handler filters on `direction: "incoming"` — outbound legs (transfer desti
 
 `actor.classifyAndRoute(speech)` does two things in one method:
 1. **Classify** via `this.env.TELNYX.ai.openai.chat.createCompletion()` — zero-credential. The LLM returns one of `billing`/`sales`/`support`.
-2. **Look up destination** via `this.env.ROUTES.get('route:<intent>')` — zero-credential KV read.
+2. **Look up destination** via `this.env.ROUTES.get('route/<intent>')` — zero-credential KV read.
 
 Then `speakText()` plays "Got it. Transferring you to billing. Please hold." with `client_state: { speak_stage: "announcement" }`.
 

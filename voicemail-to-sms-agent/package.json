@@ -1,0 +1,33 @@
+{
+  "name": "voicemail-to-sms-agent",
+  "version": "1.0.0",
+  "description": "Telnyx Edge agent that transcribes, summarizes, and SMSs voicemails to the mailbox owner.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "node smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  "description": "Telnyx Edge Agent that transcribes, summarizes, and SMSs voicemails to the mailbox owner.",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "telnyx-edge dev",
+    "deploy": "telnyx-edge deploy",
+    "test": "ts-node smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "ts-node": "^10.9.0",
+    "@types/node": "^20.0.0"
+  }
+}

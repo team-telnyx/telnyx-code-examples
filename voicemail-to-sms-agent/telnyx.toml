@@ -1,0 +1,28 @@
+name = "voicemail-to-sms-agent"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "VOICEMAIL"
+type = "VoicemailAgent"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[cloudstorage]]
+binding = "ARCHIVE"
+bucket_name = "voicemail-archives"
+
+[edge_compute]
+func_id = "aff46e50-261d-4e10-a8f0-351eeb75e9db"
+func_name = "voicemail-to-sms-agent"
+
+[env_vars]
+AI_MODEL = "moonshotai/Kimi-K2.6"
+STT_MODEL = "distil-whisper/distil-large-v2"
+MAILBOX_OWNER_NUMBER = "+17177247292"
+TELNYX_SMS_NUMBER = "+14157073175"
+STORAGE_BUCKET = "voicemail-archives"
+LIVE_MODE = "true"
+VOICEMAIL_GREETING = "Hi, you've reached Sonam's voicemail. Please leave a message after the tone."

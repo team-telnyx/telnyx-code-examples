@@ -10,7 +10,7 @@ channel: [voice]
 
 # AI-Powered Call Router
 
-Route inbound calls dynamically by analyzing caller intent with the Telnyx AI Inference API — "I need to pay my bill" → billing queue, "I want to upgrade" → sales queue. Built on the Telnyx Edge Runtime: one `RouterAgent` (StatefulActor) per inbound call leg, intent classification via the zero-credential `this.env.TELNYX.ai.openai.chat.createCompletion()` binding, and route destinations looked up in Telnyx KV (`this.env.ROUTES.get('route:billing')`).
+Route inbound calls dynamically by analyzing caller intent with the Telnyx AI Inference API — "I need to pay my bill" → billing queue, "I want to upgrade" → sales queue. Built on the Telnyx Edge Runtime: one `RouterAgent` (StatefulActor) per inbound call leg, intent classification via the zero-credential `this.env.TELNYX.ai.openai.chat.createCompletion()` binding, and route destinations looked up in Telnyx KV (`this.env.ROUTES.get('route/billing')`).
 
 ## Why Telnyx
 
@@ -23,7 +23,7 @@ Telnyx is **AI Communications Infrastructure** — voice, messaging, SIP, AI, an
 - **Call Control Gather (AI)**: `POST /v2/calls/{call_control_id}/actions/gather_using_ai` — capture the caller's spoken request (speech-to-text via the Telnyx platform)
 - **Call Control Transfer**: `POST /v2/calls/{call_control_id}/actions/transfer` — blind-bridge the call to the classified destination
 - **AI Inference**: `POST /v2/ai/openai/chat/completions` — via `this.env.TELNYX.ai.openai.chat.createCompletion()` (pre-authenticated binding, zero-credential) — intent classification
-- **KV**: `GET/PUT /v2/storage/kvs/{id}/keys/{key}` — via `this.env.ROUTES.get/put('route:<intent>')` (pre-authenticated binding) — route table
+- **KV**: `GET/PUT /v2/storage/kvs/{id}/keys/{key}` — via `this.env.ROUTES.get/put('route/<intent>')` (pre-authenticated binding) — route table
 
 ## Architecture
 
@@ -39,7 +39,7 @@ Telnyx is **AI Communications Infrastructure** — voice, messaging, SIP, AI, an
    │   → classifyAndRoute(speech)                                   │
    │     1. this.env.TELNYX.ai.openai.chat.createCompletion()        │
    │        → intent ∈ {billing, sales, support}                    │
-   │     2. this.env.ROUTES.get(`route:${intent}`)                   │
+   │     2. this.env.ROUTES.get(`route/${intent}`)                   │
    │        → destination (E.164)                                    │
    │   → speak("Transferring you to billing. Please hold.")         │
    │ call.speak.ended (announcement) → transfer(destination)         │
@@ -54,9 +54,9 @@ Telnyx is **AI Communications Infrastructure** — voice, messaging, SIP, AI, an
 To customize routing destinations, set keys in Telnyx KV (see Setup below):
 
 ```
-route:billing → +1XXXXXXXXXX
-route:sales   → +1XXXXXXXXXX
-route:support → +1XXXXXXXXXX
+route/billing → +1XXXXXXXXXX
+route/sales   → +1XXXXXXXXXX
+route/support → +1XXXXXXXXXX
 ```
 
 If a KV key is missing for a classified intent, the call transfers to `DEFAULT_DESTINATION` (set in `telnyx.toml`).
@@ -81,7 +81,7 @@ If a KV key is missing for a classified intent, the call transfers to `DEFAULT_D
 > # → paste the returned id into telnyx.toml [storage.kv.ROUTES] and .env.example
 >
 > # Seed the route table (billing/sales/support → your destinations)
-> curl -X PUT "https://api.telnyx.com/v2/storage/kvs/$KV_NAMESPACE_ID/keys/route:billing" \
+> curl -X PUT "https://api.telnyx.com/v2/storage/kvs/$KV_NAMESPACE_ID/keys/route/billing" \
 >   -H "Authorization: Bearer $TELNYX_API_KEY" \
 >   -H "Content-Type: text/plain" \
 >   -d "+17177247292"
@@ -133,7 +133,7 @@ curl -s "https://api.telnyx.com/v2/storage/kvs/$KV_NAMESPACE_ID" \
 
 # Seed routes via the REST API (alternative to the binding)
 for INTENT in billing sales support; do
-  curl -X PUT "https://api.telnyx.com/v2/storage/kvs/$KV_NAMESPACE_ID/keys/route:$INTENT" \
+  curl -X PUT "https://api.telnyx.com/v2/storage/kvs/$KV_NAMESPACE_ID/keys/route/$INTENT" \
     -H "Authorization: Bearer $TELNYX_API_KEY" \
     -H "Content-Type: text/plain" \
     -d "+17177247292"
@@ -233,7 +233,7 @@ See [API.md](./API.md) for the full endpoint reference including request/respons
 | Calls not answered | Call Control Application webhook URL wrong/unreachable | Verify the webhook URL in the Call Control Application points to your deployed function |
 | `gather_using_ai` returns 422 `90012 Invalid value for voice` | `gather_using_ai` uses a different voice set than `speak()` | This example does not pass `voice` to `gather_using_ai` — the greeting is played via `speak(voice="female")` separately. Don't add a `voice` to `gatherUsingAi()`. |
 | Intent always returns "support" | AI Inference binding misconfigured or model unreachable | Verify the `[telnyx]` binding in `telnyx.toml`; check `AI_MODEL` is a Telnyx-hosted model (`owned_by == 'Telnyx'`) |
-| Transfer fails | Invalid destination number | Ensure KV `route:<intent>` values are valid E.164 phone numbers; check `DEFAULT_DESTINATION` |
+| Transfer fails | Invalid destination number | Ensure KV `route/<intent>` values are valid E.164 phone numbers; check `DEFAULT_DESTINATION` |
 | Transferred leg is silent on answer | Expected — `transfer()` is a blind bridge | The announcement plays on the original leg; the transferred leg is bridged without TTS. See "How transfers work" above. |
 | App re-answers the transfer leg (loop) | Handler not filtering outbound legs | `call.initiated` with `direction !== "incoming"` returns `ignored_outbound` — only inbound legs enter the actor lifecycle. |
 | KV route lookup misses | Namespace not ready or key not set | Poll namespace status until `provision_ok`; seed routes via `POST /routes` or the KV REST API |
