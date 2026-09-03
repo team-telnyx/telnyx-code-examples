@@ -1,0 +1,22 @@
+{
+  "name": "sim-agent",
+  "version": "1.0.0",
+  "description": "SIMAgent — The actor IS the SIM card. A Telnyx Edge Agent that tracks data usage, alerts on thresholds, and auto-provisions upgrades.",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "smoke": "vitest run smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-sdk": "^1.0.0",
+    "telnyx": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "vitest": "^1.0.0",
+    "typescript": "^5.0.0",
+    "wrangler": "^3.0.0"
+  }
+}
