@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-03T16:43:03Z",
-  "example_count": 541,
+  "generated_at": "2026-09-03T16:49:11Z",
+  "example_count": 542,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -4730,6 +4730,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-agent"
+    },
+    {
+      "folder": "agent-message-replay",
+      "title": "Replay Agent Conversations Live — WebSocket Streaming Replays on Telnyx Edge",
+      "description": "Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/agent-message-replay"
     },
     {
       "folder": "webhook-aggregator-fanout",
