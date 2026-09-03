@@ -1,0 +1,20 @@
+{
+  "name": "ai-call-summarizer",
+  "version": "1.0.0",
+  "description": "Post-call summarization agent that texts a summary to the caller and logs to SQL for analytics",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@telnyx/edge-sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "wrangler": "^3.0.0"
+  }
+}
