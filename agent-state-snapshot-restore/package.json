@@ -1,0 +1,21 @@
+{
+  "name": "agent-state-snapshot-restore",
+  "version": "1.0.0",
+  "description": "Snapshot agent state, restore from backup — demonstrates the durability guarantees of the Agent SDK",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "telnyx edge dev src/index.ts",
+    "deploy": "telnyx edge deploy src/index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@telnyx/edge-sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+</arg_value>
