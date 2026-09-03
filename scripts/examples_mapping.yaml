@@ -3343,3 +3343,9 @@ examples:
     language: nodejs
     framework: edge
     folder: edge-event-microsite
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: tts-article-audio-publisher
