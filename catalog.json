@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-02T21:51:16Z",
-  "example_count": 540,
+  "generated_at": "2026-09-03T16:43:03Z",
+  "example_count": 541,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1931,6 +1931,15 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-url-summarizer"
+    },
+    {
+      "folder": "voicemail-to-sms-agent",
+      "title": "Voicemail-to-SMS Agent",
+      "description": "An Edge-based agent that transcribes, summarizes, and texts voicemail summaries to the mailbox owner.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voicemail-to-sms-agent"
     },
     {
       "folder": "edge-agri-crop-advisory",

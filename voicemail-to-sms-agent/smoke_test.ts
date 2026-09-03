@@ -1,3 +1,4 @@
+import { VoicemailAgent } from './src/voicemail-agent.ts';
 import { VoicemailAgent } from './src/index';
 
 /**
@@ -13,6 +14,14 @@ function runSmokeTest(): void {
     throw new Error('VoicemailAgent is undefined');
   }
 
+  const agent = new VoicemailAgent({} as any, {} as any);
+  for (const method of ['processVoicemail', 'listVoicemails', 'getStats']) {
+    if (typeof (agent as any)[method] !== 'function') {
+      throw new Error(`VoicemailAgent is missing method: ${method}`);
+    }
+  }
+
+  console.log('✅ Smoke test passed: VoicemailAgent loaded with all expected methods.');
   const agent = new VoicemailAgent();
   if (!agent || typeof agent.onTask !== 'function') {
     throw new Error('VoicemailAgent instance does not have onTask method');

@@ -151,6 +151,7 @@
 - [Voicemail with PHP and Laravel](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-php/README.md)
 - [Build a Voicemail System with Python and Flask](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-python/README.md)
 - [Voicemail with Ruby and Sinatra](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-ruby/README.md)
+- [Voicemail-to-SMS Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-to-sms-agent/README.md): An Edge-based agent that transcribes, summarizes, and texts voicemail summaries to the mailbox owner.
 - [Voice-Over Audition Generator](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voiceover-audition-generator-python/README.md): Submit a script, hear it read by every available TTS voice. AI scores and ranks best-fit voices based on content, tone, and audience. SMS delivers top picks to decision-makers.
 - [Warm Transfer with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-csharp/README.md)
 - [Warm Transfer with Go and Gin](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-go/README.md)

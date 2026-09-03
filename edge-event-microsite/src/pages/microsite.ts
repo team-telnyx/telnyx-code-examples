@@ -1,4 +1,5 @@
 import type { EventData } from "../types";
+import { envVars } from "../types";
 
 function esc(s: string): string {
   return s
@@ -9,7 +10,8 @@ function esc(s: string): string {
 }
 
 /** Server-rendered microsite — every value on this page comes from KV. */
-export function renderMicrosite(data: EventData, origin: string): string {
+export function renderMicrosite(data: EventData): string {
+  const smsFrom = envVars.TELNYX_SMS_FROM || "the event number";
   const scheduleRows = data.schedule
     .map(
       (s) => `
@@ -104,7 +106,7 @@ export function renderMicrosite(data: EventData, origin: string): string {
   <div class="section">
     <h2>Talk to the Concierge</h2>
     <div class="contact">
-      <p>Text or WhatsApp <code>TELNYX_SMS_FROM</code> for schedule, rooms, speakers, WiFi, or parking — answered by AI from the same data this page is built from.</p>
+      <p>Text or WhatsApp <strong>${esc(smsFrom)}</strong> for schedule, rooms, speakers, WiFi, or parking — answered by AI from the same data this page is built from.</p>
       <a class="btn" href="/voice">🎙️ Talk to the concierge in your browser</a>
     </div>
   </div>

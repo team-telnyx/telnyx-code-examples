@@ -19,7 +19,7 @@ export async function complete(
   const completion = await env.TELNYX.ai.openai.chat.createCompletion({
     model: envVars.AI_MODEL,
     messages,
-    max_tokens: opts?.maxTokens ?? 500,
+    max_tokens: opts?.maxTokens ?? 4000,
     temperature: opts?.temperature ?? 0.4,
   });
   return completion.choices?.[0]?.message?.content?.trim() ?? "";
@@ -37,7 +37,7 @@ export async function completeJson<T>(
       { role: "system", content: `${system}\nRespond with JSON only.` },
       { role: "user", content: user },
     ],
-    { maxTokens: 800, temperature: 0.2 },
+    { maxTokens: 4000, temperature: 0.2 },
   );
   if (content.startsWith("```")) {
     content = content.split("\n").slice(1).join("\n").replace(/```/g, "").trim();
@@ -123,6 +123,10 @@ export async function upsertAssistant(
   greeting: string,
   tools: AssistantTool[],
 ): Promise<{ id: string }> {
+  // Required for in-browser (anonymous WebRTC) access — without this the
+  // signaling server rejects anonymous_login with "Login Incorrect".
+  const telephonySettings = { supports_unauthenticated_web_calls: true };
+
   // Reuse an existing assistant with the same name, else create one.
   const listResp = await fetch(`${TELNYX_API}/ai/assistants`, {
     headers: authHeaders(),
@@ -138,7 +142,7 @@ export async function upsertAssistant(
         {
           method: "POST",
           headers: authHeaders(),
-          body: JSON.stringify({ instructions, greeting, tools }),
+          body: JSON.stringify({ instructions, greeting, tools, telephony_settings: telephonySettings }),
         },
       );
       if (!putResp.ok) {
@@ -158,6 +162,7 @@ export async function upsertAssistant(
       instructions,
       greeting,
       tools,
+      telephony_settings: telephonySettings,
       model: process.env.ASSISTANT_MODEL ?? "moonshotai/Kimi-K2.6",
     }),
   });

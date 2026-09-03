@@ -18,7 +18,7 @@ binding = "TELNYX"
 #   telnyx-edge storage kv create --name ai-call-router-routes
 # Then paste the returned id below.
 [storage.kv.ROUTES]
-id = "YOUR_KV_NAMESPACE_ID"
+id = "6fe0ad86-2218-45e6-9e7c-1ac398e93471"
 
 # ── Secret: Telnyx API key for Call Control REST (answer, speak, gather, transfer) ──
 [[secrets]]

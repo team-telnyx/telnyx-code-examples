@@ -42,15 +42,15 @@ Telnyx Call Control webhook handler. Receives call lifecycle events and drives t
 
 ### GET /routes
 
-List all route entries in the KV namespace (keys with prefix `route:`).
+List all route entries in the KV namespace (keys with prefix `route/`).
 
 **Response 200**:
 ```json
 {
   "routes": {
-    "route:billing": "+17177247292",
-    "route:sales": "+18005556789",
-    "route:support": "+18005550000"
+    "route/billing": "+17177247292",
+    "route/sales": "+18005556789",
+    "route/support": "+18005550000"
   },
   "count": 3
 }
@@ -78,7 +78,7 @@ Set a route destination for an intent in KV.
 ```json
 {
   "ok": true,
-  "key": "route:billing",
+  "key": "route/billing",
   "destination": "+17177247292"
 }
 ```
@@ -142,4 +142,4 @@ The function calls these Telnyx endpoints with the injected `TELNYX_API_KEY`:
 
 ## KV (invoked via binding, not exposed)
 
-`this.env.ROUTES.get('route:<intent>')` — called inside `RouterAgent.classifyAndRoute()` to look up the transfer destination for the classified intent. Zero-credential (the `[storage.kv.ROUTES]` binding is pre-authenticated by the runtime).
+`this.env.ROUTES.get('route/<intent>')` — called inside `RouterAgent.classifyAndRoute()` to look up the transfer destination for the classified intent. Zero-credential (the `[storage.kv.ROUTES]` binding is pre-authenticated by the runtime).

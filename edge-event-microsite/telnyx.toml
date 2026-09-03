@@ -30,7 +30,7 @@ id = "93b0ac82-c559-4595-9317-de2b9afb59b4"
 
 # ── Env vars (non-secret config) ───────────────────────────────────────────
 [env_vars]
-AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
+AI_MODEL = "moonshotai/Kimi-K2.6"
 # Distinct model for the voice AI Assistant (assistant-compatible set differs
 # from the chat-completions set — meta-llama/Llama-3.3-70B is rejected there).
 ASSISTANT_MODEL = "moonshotai/Kimi-K2.6"

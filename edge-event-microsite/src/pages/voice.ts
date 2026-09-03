@@ -7,11 +7,12 @@ function esc(s: string): string {
 /**
  * In-browser voice concierge — no dialing, no credentials.
  *
- * Uses @telnyx/ai-agent-lib (WebRTC): the browser connects straight to the
- * Telnyx AI Assistant with just an agent ID (anonymous login — no API key in
- * the page, no JWT minting). The assistant answers event questions through a
- * webhook tool backed by this function's KV namespace (/tools/lookup), so it
- * always says exactly what the microsite says.
+ * Uses @telnyx/webrtc (WebRTC) with anonymous_login: the browser connects
+ * straight to the Telnyx AI Assistant with just an assistant id — no API key
+ * in the page, no JWT minting. After login, newCall's destination is ignored
+ * and routed to the assistant. The assistant answers event questions through
+ * a webhook tool backed by this function's KV namespace (/tools/lookup), so
+ * it always says exactly what the microsite says.
  */
 export function renderVoicePage(data: EventData): string {
   return `<!DOCTYPE html>
@@ -29,12 +30,10 @@ export function renderVoicePage(data: EventData): string {
   button:disabled { opacity: .4; cursor: not-allowed; }
   button.danger { background: #b91c1c; }
   #state { font-weight: 700; color: #6ea8ff; }
-  .transcript { max-height: 320px; overflow-y: auto; }
-  .turn { margin: .5rem 0; padding: .5rem .8rem; border-radius: 8px; }
-  .user { background: #243b6b; margin-left: 2rem; }
-  .assistant { background: #232741; margin-right: 2rem; }
+  #error { color: #f87171; font-size: .9rem; min-height: 1.2rem; }
   .muted { color: #8b93a7; }
   a { color: #6ea8ff; }
+  #remoteAudio { width: 100%; margin-top: .5rem; }
 </style>
 </head>
 <body>
@@ -47,36 +46,36 @@ export function renderVoicePage(data: EventData): string {
     <button id="talkBtn" disabled>Talk to the concierge</button>
     <button id="endBtn" class="danger" disabled>End</button>
     <p>State: <span id="state">idle</span></p>
+    <div id="error"></div>
     <p class="muted">Ask about the schedule, rooms, speakers, WiFi or parking — answers come live from the event KV store.</p>
-  </div>
-
-  <div class="panel">
-    <h3>Live transcript</h3>
-    <div id="transcript" class="transcript"><p class="muted">Nothing yet.</p></div>
+    <audio id="remoteAudio" autoplay controls></audio>
   </div>
 
   <p><a href="/">← Back to the microsite</a></p>
 </div>
 
 <script type="module">
-import { TelnyxAIAgent } from 'https://esm.sh/@telnyx/ai-agent-lib@0.6.5?bundle';
+import { TelnyxRTC } from 'https://unpkg.com/@telnyx/webrtc@2.27.10/lib/bundle.mjs';
 
 const stateEl = document.getElementById('state');
-const transcriptEl = document.getElementById('transcript');
+const errorEl = document.getElementById('error');
 const connectBtn = document.getElementById('connectBtn');
 const talkBtn = document.getElementById('talkBtn');
 const endBtn = document.getElementById('endBtn');
+const remoteAudio = document.getElementById('remoteAudio');
 
-let agent = null;
-let firstTurn = true;
+let client = null;
+let call = null;
+let connectTimeout = null;
 
-function addTurn(role, content) {
-  if (firstTurn) { transcriptEl.innerHTML = ''; firstTurn = false; }
-  const div = document.createElement('div');
-  div.className = 'turn ' + role;
-  div.textContent = role + ': ' + content;
-  transcriptEl.appendChild(div);
-  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+function setState(s) { stateEl.textContent = s; }
+function fail(msg) {
+  errorEl.textContent = 'Error: ' + msg;
+  setState('error');
+  clearTimeout(connectTimeout);
+  connectBtn.disabled = false;
+  talkBtn.disabled = true;
+  endBtn.disabled = true;
 }
 
 async function ensureAgentId() {
@@ -88,74 +87,77 @@ async function ensureAgentId() {
 
 connectBtn.addEventListener('click', async () => {
   connectBtn.disabled = true;
-  stateEl.textContent = 'connecting…';
+  errorEl.textContent = '';
+  setState('connecting…');
   try {
     const agentId = await ensureAgentId();
-    agent = new TelnyxAIAgent({ agentId, debug: false });
-    agent.on('agent.connected', () => {
-      stateEl.textContent = 'connected';
+
+    client = new TelnyxRTC({
+      anonymous_login: { target_type: 'ai_assistant', target_id: agentId },
+    });
+
+    client.on('telnyx.ready', () => {
+      clearTimeout(connectTimeout);
+      setState('connected — ready to talk');
       talkBtn.disabled = false;
     });
-    agent.on('agent.disconnected', () => {
-      stateEl.textContent = 'disconnected';
-      talkBtn.disabled = true;
-      endBtn.disabled = true;
-      connectBtn.disabled = false;
+
+    client.on('telnyx.error', (err) => {
+      fail((err && (err.message || err.code)) || 'connection error');
     });
-    agent.on('conversation.agent.state', (s) => { stateEl.textContent = s; });
-    agent.on('transcript.item', (item) => {
-      addTurn(item.role, item.content);
-      captureFeedbackTurn(item.role, item.content);
+
+    client.on('telnyx.notification', (n) => {
+      if (!n) return;
+      if (n.type === 'callUpdate' && n.call) {
+        const s = n.call.state || n.call.cause;
+        if (s) setState('call: ' + s);
+        if (s === 'active') { talkBtn.disabled = true; endBtn.disabled = false; }
+        if (s === 'hangup' || s === 'ended' || s === 'busy') {
+          endBtn.disabled = true;
+          talkBtn.disabled = false;
+          call = null;
+        }
+      }
+      if (n.type === 'userMediaError') fail('microphone permission denied');
+      if (n.type === 'peerConnectionFailedError') fail('media connection failed — check network');
     });
-    await agent.connect();
+
+    // Guardrail: never hang on "connecting…" silently.
+    connectTimeout = setTimeout(() => {
+      if (stateEl.textContent === 'connecting…') {
+        fail('connect timed out after 15s — reload the page and try again');
+      }
+    }, 15000);
+
+    await client.connect();
   } catch (e) {
-    stateEl.textContent = 'error: ' + (e?.message || e);
-    connectBtn.disabled = false;
+    fail(e?.message || String(e));
   }
 });
 
-talkBtn.addEventListener('click', async () => {
-  if (!agent) return;
-  talkBtn.disabled = true;
-  endBtn.disabled = false;
+talkBtn.addEventListener('click', () => {
+  if (!client) return;
+  errorEl.textContent = '';
   try {
-    await agent.startConversation({ callerName: 'Attendee (browser)' });
+    // Destination is ignored after anonymous login — routed to the assistant.
+    call = client.newCall({
+      destinationNumber: '',
+      audio: true,
+      remoteElement: remoteAudio,
+      callerName: 'Attendee (browser)',
+    });
+    setState('calling…');
   } catch (e) {
-    stateEl.textContent = 'error: ' + (e?.message || e);
-    talkBtn.disabled = false;
+    fail(e?.message || String(e));
   }
 });
 
-endBtn.addEventListener('click', async () => {
-  if (!agent) return;
+endBtn.addEventListener('click', () => {
+  try { if (call) call.hangup(); } catch {}
   endBtn.disabled = true;
-  try { await agent.endConversation(); } catch {}
   talkBtn.disabled = false;
+  setState('connected — ready to talk');
 });
-
-// ── Feedback capture: user turns are saved as spoken feedback ──────────────
-let feedbackTurns = [];
-let feedbackTimer = null;
-function captureFeedbackTurn(role, content) {
-  if (role !== 'user' || !content) return;
-  feedbackTurns.push(content);
-  clearTimeout(feedbackTimer);
-  // After 20s of no new user speech, submit the collected turns as feedback.
-  feedbackTimer = setTimeout(submitFeedback, 20000);
-}
-async function submitFeedback() {
-  if (!feedbackTurns.length) return;
-  const transcript = feedbackTurns.join(' ');
-  feedbackTurns = [];
-  try {
-    await fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript, phone_number: 'browser', source: 'voice' }),
-    });
-    addTurn('system', '(feedback saved for the sponsor report)');
-  } catch {}
-}
 </script>
 </body>
 </html>`;

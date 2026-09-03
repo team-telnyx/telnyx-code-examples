@@ -102,6 +102,7 @@ export interface Lead {
   is_hot: boolean;
   source: string;
   created_at: string;
+  notify?: { sms: string; email: string };
 }
 
 export interface FeedbackItem {

@@ -17,6 +17,11 @@ Telnyx provides a unified AI Communications Infrastructure that allows you to se
 
 ## Telnyx API Endpoints Used
 
+- **Call Recordings API** — Recording metadata + download (`GET /v2/recordings/{id}`) or direct `recording_url` from the webhook
+- **AI Speech-to-Text** — Transcription (`POST /v2/ai/audio/transcriptions`)
+- **AI Inference** — LLM summarization (`POST /v2/ai/chat/completions`) using a Telnyx-hosted model (no BYOK required)
+- **Messaging API** — SMS summary delivery (`POST /v2/messages`)
+- **Cloud Storage** — Voicemail audio archiving (`PUT /v2/storage/buckets/{bucket}/{key}`)
 - **Call Control** — Voicemail webhook detection (`call.status = voicemail`)
 - **Call Control** — Audio download (retrieving voicemail recording)
 - **Inference API** — Speech-to-Text (STT) and LLM summarization via `this.env.TELNYX.ai.openai.chat.createCompletion()`
@@ -56,6 +61,22 @@ Telnyx provides a unified AI Communications Infrastructure that allows you to se
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
+| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key (deployed as an Edge secret) | Mission Control Portal → API Keys |
+| `VOICEMAIL_WEBHOOK_PUBLIC_KEY` | `string` | `your_telnyx_ed25519_public_key_here` | optional | Ed25519 public key for webhook signature verification (Edge secret) | Mission Control Portal → Webhooks |
+| `TELNYX_SMS_NUMBER` | `string` | `+1555XXXXXXX` | **yes** | Telnyx number sending the SMS summaries | Mission Control Portal → Numbers |
+| `MAILBOX_OWNER_NUMBER` | `string` | `+1555XXXXXXX` | **yes** | Number receiving the SMS summaries | Your phone |
+| `STORAGE_BUCKET` | `string` | `voicemail-archives` | no | Cloud Storage bucket for audio archiving | Mission Control Portal → Storage |
+| `AI_MODEL` | `string` | `moonshotai/Kimi-K2.6` | no | Telnyx-hosted LLM for summarization | [Inference docs](https://developers.telnyx.com/docs/ai/inference) |
+| `STT_MODEL` | `string` | `distil-whisper/distil-large-v2` | no | Speech-to-text model | [STT docs](https://developers.telnyx.com/docs/ai/speech-to-text) |
+| `LIVE_MODE` | `string` | `false` | no | `true` sends real SMS + archives audio; `false` logs only | — |
+
+> **Agent / CLI access** — provision the numbers and secrets this example uses with the Telnyx CLI:
+>
+> ```bash
+> telnyx number-orders create --phone-numbers "+1555XXXXXXX"   # purchase an SMS-capable number
+> telnyx messaging-profiles create --name "voicemail-sms" --enabled true
+> telnyx-edge secrets set TELNYX_API_KEY                       # store the API key as an Edge secret
+> ```
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
 
 ## Setup
@@ -73,11 +94,44 @@ Telnyx provides a unified AI Communications Infrastructure that allows you to se
    ```
    Edit `.env` to include your actual `TELNYX_API_KEY`.
 
+   <details><summary>Programmatic / CLI setup</summary>
+
+   ```bash
+   # Purchase an SMS-capable number for sending summaries
+   telnyx number-orders create --phone-numbers "+1555XXXXXXX"
+
+   # Create a messaging profile for outbound SMS
+   telnyx messaging-profiles create --name "voicemail-sms" --enabled true
+
+   # Store your API key as an Edge secret (used by the deployed function)
+   telnyx-edge secrets set TELNYX_API_KEY
+   ```
+
+   </details>
+
 3. **Install dependencies:**
    ```bash
    npm install
    ```
 
+4. **Verify locally:**
+   ```bash
+   npm test          # smoke test: module loads, agent methods present
+   npx tsc --noEmit  # typecheck
+   ```
+
+5. **Deploy to Telnyx Edge:**
+   ```bash
+   npm run deploy    # telnyx-edge ship
+   ```
+   After the first deploy, wire your Call Control / voicemail webhooks to the
+   deployed function's `/webhook` route. In demo mode (`LIVE_MODE=false`) the
+   agent logs the SMS payload instead of sending; flip `LIVE_MODE=true` in
+   `telnyx.toml` env vars (or via `telnyx-edge secrets`/env config) to go live.
+
+## API Reference
+
+For a detailed breakdown of the webhook endpoints, request parameters, and response schemas, please refer to the [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-to-sms-agent/API.md) file.
 4. **Run the application:**
    ```bash
    npm run dev
@@ -93,6 +147,7 @@ For a detailed breakdown of the webhook endpoints, request parameters, and respo
 |-------|-------|----------|
 | Webhook not receiving events | Webhook URL not configured in Telnyx Call Control Dashboard | Ensure your Edge deployment URL is registered as the webhook for `voicemail` events in your Telnyx profile. |
 | `TELNYX_API_KEY` error | Missing or invalid environment variable | Verify your `.env` file is loaded correctly and contains a valid API key from the Telnyx Mission Control Portal. |
+| SMS not received | Destination number restrictions or demo mode active | Check if the agent is running in safe demo mode (see [GUIDE.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-to-sms-agent/GUIDE.md)). Ensure the destination number is SMS-enabled. |
 | SMS not received | Destination number restrictions or demo mode active | Check if the agent is running in safe demo mode (see [GUIDE.md](./GUIDE.md)). Ensure the destination number is SMS-enabled. |
 | STT transcription fails | Audio download failed or unsupported format | Verify Call Control recording settings and ensure the audio file is accessible to the Edge environment. |
 
@@ -104,6 +159,9 @@ For a detailed breakdown of the webhook endpoints, request parameters, and respo
 
 ## Related Examples
 
+- [AI Voicemail Smart Router (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-smart-router-python/README.md)
+- [AI Voicemail Transcription Forwarding (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voicemail-transcription-forwarding-python/README.md)
+- [Edge Voicemail-to-Action (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-voicemail-to-action-python/README.md)
 - [Call-Forwarding Agent](../call-forwarding-agent)
 - [SMS Auto-Responder Agent](../sms-auto-responder-agent)
 - [Call Transcription Summarizer](../call-transcription-summarizer)

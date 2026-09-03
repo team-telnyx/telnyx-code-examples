@@ -150,7 +150,7 @@ export class RouterAgent extends Agent<RouterEnv, RouterState> {
 
     // ── Step 2: look up destination in Telnyx KV (env.ROUTES) ───────────────
     try {
-      const kvValue = await this.env.ROUTES.get(`route:${intent}`);
+      const kvValue = await this.env.ROUTES.get(`route/${intent}`);
       if (kvValue && kvValue.trim()) {
         destination = kvValue.trim();
       }

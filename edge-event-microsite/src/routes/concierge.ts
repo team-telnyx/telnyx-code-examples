@@ -50,7 +50,7 @@ export async function handleInboundMessage(
         { role: "system", content: await conciergeSystemPrompt(env) },
         { role: "user", content: text },
       ],
-      { maxTokens: 300, temperature: 0.3 },
+      { temperature: 0.3 },
     );
   } catch (e) {
     reply =

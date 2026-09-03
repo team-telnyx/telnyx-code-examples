@@ -355,7 +355,7 @@ async function handleVoiceWebhook(req: Request, env: Env): Promise<Response> {
 // ── Admin: list routes from KV ─────────────────────────────────────────────
 async function handleListRoutes(env: Env): Promise<Response> {
   try {
-    const page = await env.ROUTES.list({ prefix: "route:" });
+    const page = await env.ROUTES.list({ prefix: "route/" });
     const routes: Record<string, string> = {};
     for (const key of page.keys) {
       const value = await env.ROUTES.get(key.name);
@@ -387,8 +387,8 @@ async function handleSetRoute(req: Request, env: Env): Promise<Response> {
     return Response.json({ error: "intent must be one of: billing, sales, support" }, { status: 400 });
   }
   try {
-    await env.ROUTES.put(`route:${intent}`, destination);
-    return Response.json({ ok: true, key: `route:${intent}`, destination });
+    await env.ROUTES.put(`route/${intent}`, destination);
+    return Response.json({ ok: true, key: `route/${intent}`, destination });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "failed to set route";
     return Response.json({ error: msg }, { status: 500 });

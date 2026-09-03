@@ -39,22 +39,35 @@ async function saveAndRouteLead(
   await env.EVENTS.put(`lead/${full.id}`, JSON.stringify(full));
 
   if (isHot) {
+    // The SMS body carries the masked phone — never the raw number.
+    const masked = `***-***-${lead.phone_number.slice(-4)}`;
+    const msg = `🔥 HOT LEAD: ${lead.company} (${lead.company_size}) | Budget: ${lead.budget} | Timeline: ${lead.timeline} | Phone: ${masked}`;
+
+    // Route over both channels: SMS to the rep's phone, email to the
+    // organizer inbox (EMAIL_TO). Each channel fails independently.
     const repPhone = envVars.TELNYX_SALES_REP_PHONE;
+    let smsStatus = "skipped";
     if (repPhone) {
-      // The SMS body carries the masked phone — never the raw number.
-      const masked = `***-***-${lead.phone_number.slice(-4)}`;
-      const msg = `🔥 HOT LEAD: ${lead.company} (${lead.company_size}) | Budget: ${lead.budget} | Timeline: ${lead.timeline} | Phone: ${masked}`;
       const send = await sendSms(envVars.TELNYX_SMS_FROM, repPhone, msg);
-      if (!send.ok) {
-        // Fallback: email the rep if the SMS path fails.
-        await sendEmail(
-          envVars.EMAIL_FROM,
-          process.env.EMAIL_TO ?? process.env.ORG_EMAIL ?? "",
-          `Hot lead: ${lead.company}`,
-          msg,
-        );
-      }
+      smsStatus = send.ok ? "sent" : `failed(${send.status})`;
     }
+    const emailTo = process.env.EMAIL_TO ?? "";
+    let emailStatus = "skipped";
+    if (emailTo) {
+      const mail = await sendEmail(
+        envVars.EMAIL_FROM,
+        emailTo,
+        `Hot lead: ${lead.company} (${lead.budget} budget, ${lead.timeline})`,
+        `New hot lead captured at ${lead.source}:\n\n${msg}\n\nNotes: ${lead.notes || "(none)"}\nCaptured: ${full.created_at}`,
+      );
+      emailStatus = mail.ok ? "sent" : `failed(${mail.status})`;
+    }
+
+    await env.EVENTS.put(
+      `lead/${full.id}`,
+      JSON.stringify({ ...full, notify: { sms: smsStatus, email: emailStatus } }),
+    );
+    full.notify = { sms: smsStatus, email: emailStatus };
   }
   return full;
 }
@@ -152,7 +165,13 @@ export async function handleAttendeeRegister(req: Request, env: Env): Promise<Re
   }
   const { upsertAttendee } = await import("../store");
   await upsertAttendee(env.EVENTS, phone, "web-form");
-  return json({ ok: true, phone_number: phone }, 201);
+
+  // Opt-in confirmation (also good 10DLC practice — consent receipt + opt-out).
+  const event = await getEvent(env.EVENTS);
+  const confirmation = `You're registered for ${event.event.name} updates. Schedule changes will reach you by SMS and WhatsApp. Msg freq varies. Reply STOP to opt out, HELP for help.`;
+  const send = await sendSms(envVars.TELNYX_SMS_FROM, phone, confirmation);
+
+  return json({ ok: true, phone_number: phone, confirmation_sent: send.ok }, 201);
 }
 
 /** POST /api/broadcast — schedule change → SMS + WhatsApp to all opted-in attendees. */
@@ -249,7 +268,7 @@ async function summarizeTranscript(env: Env, transcript: string): Promise<string
         },
         { role: "user", content: transcript },
       ],
-      { maxTokens: 120, temperature: 0.3 },
+      { temperature: 0.3 },
     );
     return summary || "(summarization returned empty)";
   } catch {

@@ -114,12 +114,16 @@ function phoneFromKey(key: string): string {
 }
 
 export async function listAttendees(kv: Kv): Promise<string[]> {
-  const page = await kv.list({ prefix: "attendee/" });
+  const page = await kv.list({ prefix: "attendee/", limit: 100 });
+  const recs = await Promise.all(
+    page.keys.map((k) =>
+      kv.get<{ opted_in: boolean }>(k.name, { type: "json" }),
+    ),
+  );
   const phones: string[] = [];
-  for (const k of page.keys) {
-    const rec = await kv.get<{ opted_in: boolean }>(k.name, { type: "json" });
-    if (rec?.opted_in) phones.push(phoneFromKey(k.name));
-  }
+  page.keys.forEach((k, i) => {
+    if (recs[i]?.opted_in) phones.push(phoneFromKey(k.name));
+  });
   return phones;
 }
 
@@ -146,12 +150,14 @@ export async function upsertAttendee(
 export async function listRecords<T>(
   kv: Kv,
   prefix: string,
+  limit = 40,
 ): Promise<T[]> {
-  const page = await kv.list({ prefix });
-  const out: T[] = [];
-  for (const k of page.keys) {
-    const rec = await kv.get<T>(k.name, { type: "json" });
-    if (rec) out.push(rec);
-  }
-  return out;
+  // KV list is lexicographic and paginated; cap the fetch so a burst of
+  // records (e.g. webhook retries before dedupe existed) can't stall reads.
+  // Gets run in parallel — sequential round-trips make endpoints sluggish.
+  const page = await kv.list({ prefix, limit });
+  const records = (await Promise.all(
+    page.keys.slice(0, limit).map((k) => kv.get<T>(k.name, { type: "json" })),
+  )) as Array<T | null>;
+  return records.filter((r): r is T => r !== null);
 }

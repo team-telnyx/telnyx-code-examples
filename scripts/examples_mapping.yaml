@@ -1318,6 +1318,12 @@ examples:
     framework: edge
     folder: edge-url-summarizer
 
+  - product: voice
+    use_case: voicemail-to-sms-agent
+    language: nodejs
+    framework: edge
+    folder: voicemail-to-sms-agent
+
   - product: sms
     use_case: edge-agri-crop-advisory
     language: nodejs
