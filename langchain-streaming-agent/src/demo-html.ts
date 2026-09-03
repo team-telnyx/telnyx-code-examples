@@ -93,6 +93,9 @@ const els = {
   meta: document.getElementById("meta"),
 };
 
+const urlSession = new URLSearchParams(location.search).get("session");
+if (urlSession) els.session.value = urlSession;
+
 let client = null;
 let lastEventSeq = 0;
 let liveTurn = 0;
