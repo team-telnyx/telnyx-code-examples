@@ -12,9 +12,13 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configure Telnyx SDK
-telnyx.api_key = os.getenv("TELNYX_API_KEY")
-telnyx.public_key = os.getenv("TELNYX_PUBLIC_KEY")
+# Configure Telnyx SDK v4 — instantiated client, not module-level config.
+# v2 used `telnyx.api_key = ...` and `telnyx.Message.create(...)`; v4 uses a
+# constructed Telnyx client whose methods issue the HTTP calls.
+telnyx_client = telnyx.Telnyx(
+    api_key=os.getenv("TELNYX_API_KEY"),
+    public_key=os.getenv("TELNYX_PUBLIC_KEY"),
+)
 
 # In-memory migration state (in production, use a distributed store)
 # Key: migration_id, Value: {status, current_step, total_steps, error, started_at}
@@ -78,7 +82,7 @@ def send_sms_notification(to_number: str, message: str) -> None:
     Send SMS notification via Telnyx.
     """
     try:
-        telnyx.Message.create(
+        telnyx_client.messages.send(
             from_=os.getenv("TELNYX_FROM_NUMBER"),
             to=to_number,
             text=message,
@@ -88,7 +92,7 @@ def send_sms_notification(to_number: str, message: str) -> None:
         app.logger.exception("Failed to send SMS notification")
 
 
-def run_migration(migration_id: str, db_name: str, notify_number: str) -> None:
+def run_migration(migration_id: str, db_name: str, notify_phone: Optional[str]) -> None:
     """
     Execute a migration with proper state tracking and rollback support.
     """
@@ -236,14 +240,21 @@ def telnyx_webhook():
     Handle Telnyx webhooks (e.g., SMS delivery status).
     """
     try:
-        # Verify the Telnyx signature
-        event = telnyx.webhooks.unwrap(request)
-        app.logger.info(f"Received webhook: {event['data']['event_type']}")
+        # v4: client.webhooks.unwrap verifies the Ed25519 signature using the
+        # client's public_key and returns a typed UnwrapWebhookEvent.
+        # v2 accepted the Flask request directly; v4 takes raw body + headers.
+        raw_body = request.get_data(as_text=True)
+        verified_event = telnyx_client.webhooks.unwrap(
+            payload=raw_body, headers=request.headers
+        )
+        event_data = verified_event.data
+        event_type = getattr(event_data, "event_type", None)
+        app.logger.info(f"Received webhook: {event_type}")
 
-        # Extract event data from data.payload
-        payload = event["data"]["payload"]
-        message_id = payload.get("id")
-        status = payload.get("status")
+        # v4 typed event: event_data.payload is a typed pydantic model.
+        payload = event_data.payload if event_data else None
+        message_id = getattr(payload, "id", None) if payload else None
+        status = getattr(payload, "status", None) if payload else None
 
         app.logger.info(f"Message {message_id} status: {status}")
         return jsonify({"status": "ok"}), 200

@@ -1,4 +1,5 @@
 flask>=3.0
 requests>=2.31
 python-dotenv>=1.0
-telnyx>=2.0
+telnyx>=4.0
+pynacl>=1.5
