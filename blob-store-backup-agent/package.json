@@ -1,0 +1,20 @@
+{
+  "name": "blob-store-backup-agent",
+  "version": "1.0.0",
+  "description": "Agent that backs up BlobStore data to Cloud Storage on a schedule with SMS notification",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "telnyx-edge start",
+    "dev": "telnyx-edge dev",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@telnyx/edge-sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+</arg_value>
