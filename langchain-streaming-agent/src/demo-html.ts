@@ -99,11 +99,15 @@ let liveTurn = 0;
 let tokenEvents = 0;
 let liveText = "";
 
-/** Escape HTML, then render **bold** markers from model markdown. */
+/** Escape HTML, then render **bold** markers from model markdown.
+ * Split-based on purpose: a regex here would sit inside a template literal,
+ * whose escape processing eats the backslashes and corrupts it. */
 function renderRich(text) {
   const div = document.createElement("div");
   div.textContent = text;
-  return div.innerHTML.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  const parts = div.innerHTML.split("**");
+  if (parts.length < 3) return div.innerHTML;
+  return parts.map((p, i) => (i % 2 === 1 ? "<b>" + p + "</b>" : p)).join("");
 }
 
 function scrollLog() { els.log.scrollTop = els.log.scrollHeight; }
@@ -185,6 +189,13 @@ function connect() {
     proto + location.host + "/websocket?session=" + encodeURIComponent(session),
     { token: "demo", subscribe: ["state", "messages", "events"], resume: true },
   );
+  // Warm the actor over HTTP so the WebSocket attach does not race a cold
+  // start (the platform answers cold upgrades with 502).
+  fetch("/api/agents", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ session }),
+  }).catch(() => {});
   lastEventSeq = 0;
   liveTurn = 0;
   tokenEvents = 0;
@@ -225,22 +236,38 @@ function connect() {
   });
 }
 
+async function waitForConnection(ms) {
+  const deadline = Date.now() + ms;
+  while (!client.isConnected()) {
+    if (Date.now() > deadline) return false;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return true;
+}
+
 async function submit(text) {
   const value = (text ?? els.input.value).trim();
-  if (!value || !client || !client.isConnected()) return;
+  if (!value || !client) return;
   const prompts = document.querySelectorAll(".prompts button");
   els.log.appendChild(msgNode("user", value));
   els.input.value = "";
   els.send.disabled = true;
+  els.send.textContent = "connecting…";
   prompts.forEach((b) => { b.disabled = true; });
   clearLive();
   scrollLog();
   try {
+    // Cold starts on the edge can take a few seconds — wait for the socket
+    // instead of silently dropping the click.
+    const connected = await waitForConnection(25000);
+    if (!connected) throw new Error("still connecting — try again in a moment");
     await client.stub.send(value);
   } catch (err) {
+    els.log.lastChild?.remove();
     chip(liveTurn + 1, "error", err?.message ?? String(err), false);
   } finally {
     els.send.disabled = false;
+    els.send.textContent = "Send";
     prompts.forEach((b) => { b.disabled = false; });
     els.input.focus();
   }
@@ -253,6 +280,14 @@ els.session.addEventListener("change", connect);
 for (const b of document.querySelectorAll(".prompts button")) {
   b.addEventListener("click", () => submit(b.dataset.q));
 }
+// Surface connection state: the pill flips to "connecting…" whenever the
+// socket is down (the client reconnects automatically).
+setInterval(() => {
+  if (client && !client.isConnected()) {
+    els.status.textContent = "connecting…";
+    els.status.className = "";
+  }
+}, 1000);
 connect();
 </script>
 </body>

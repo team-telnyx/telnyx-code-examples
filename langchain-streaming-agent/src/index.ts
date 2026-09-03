@@ -36,7 +36,11 @@ export default {
 
     if (url.pathname === "/" && request.method === "GET") {
       return new Response(demoHtml, {
-        headers: { "content-type": "text/html; charset=utf-8" },
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          // The UI ships with the worker — never serve a stale cached copy.
+          "cache-control": "no-store",
+        },
       });
     }
 
