@@ -1,0 +1,31 @@
+{
+  "name": "edge-cron-scheduler",
+  "version": "1.0.0",
+  "description": "Cron-like scheduler running on Telnyx Edge — triggers jobs on schedule, manages dependencies, notifies via SMS.",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "lint": "eslint src/ --ext .ts"
+  },
+  "keywords": [
+    "telnyx",
+    "edge",
+    "cron",
+    "scheduler",
+    "sms",
+    "call-control"
+  ],
+  "author": "Telnyx",
+  "license": "MIT",
+  "dependencies": {
+    "@telnyx/edge-sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "wrangler": "^3.0.0"
+  }
+}

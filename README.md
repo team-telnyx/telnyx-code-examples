@@ -25,7 +25,7 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
-<summary><h2>Voice AI</h2> <em>(157 examples)</em></summary>
+<summary><h2>Voice AI</h2> <em>(158 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
@@ -178,6 +178,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [voicemail-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-php/README.md) | PHP | --- |
 | [voicemail-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-python/README.md) | Python | --- |
 | [voicemail-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-ruby/README.md) | Ruby | --- |
+| [voicemail-to-sms-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-to-sms-agent/README.md) | Node.js | An Edge-based agent that transcribes, summarizes, and texts voicemail summaries to the mailbox owner. |
 | [voiceover-audition-generator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voiceover-audition-generator-python/README.md) | Python | Submit a script, hear it read by every available TTS voice. AI scores and ranks best-fit voices based on content, tone, and audience. SMS delivers top picks to decision-makers. |
 | [warm-transfer-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-csharp/README.md) | C# | --- |
 | [warm-transfer-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-go/README.md) | Go | --- |
@@ -216,7 +217,6 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [edge-agri-crop-advisory](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-agri-crop-advisory/README.md) | Node.js | Agriculture crop advisory on Telnyx Edge Compute Stateful Actors — classify crop issues (disease, pest, nutrient, water, weather) and recommend treatment via AI Inference. Escalates critical cases. |
 | [edge-cache-invalidation-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-cache-invalidation-agent/README.md) | Node.js | --- |
 | [edge-compute-webhook-proxy-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-compute-webhook-proxy-python/README.md) | Python | Receive Telnyx voice and SMS webhooks at the edge with minimal latency. Validates, enriches with timestamps, HMAC-signs, and forwards to your backend. |
-| [edge-event-microsite](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-event-microsite/README.md) | Node.js | Event microsite + AI concierge on Telnyx Edge Compute — one KV store powers the site, the SMS/WhatsApp concierge, lead qualification, in-browser voice AI, feedback transcription, and the sponsor report. |
 | [edge-mcp-server-deploy-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-mcp-server-deploy-python/README.md) | Python | Deploy an MCP server to Telnyx Edge Compute exposing Telnyx APIs as tools for AI agents. Send SMS, search numbers, run inference. |
 | [edge-prompt-ab-tester](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-prompt-ab-tester/README.md) | Node.js | Prompt A/B tester on Telnyx Edge Compute Stateful Actors — run two prompt variants against the same task, collect user votes, and track which prompt wins. |
 | [edge-url-summarizer](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-url-summarizer/README.md) | Node.js | URL summarizer on Telnyx Edge Compute Stateful Actors — fetch a URL, summarize via AI Inference, cache the result for instant repeat requests. |
@@ -377,8 +377,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(134 examples)</em></summary>
-<summary><h2>AI Assistants</h2> <em>(139 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(141 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -473,6 +472,8 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [create-ai-assistant-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-php/README.md) | PHP | --- |
 | [create-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-python/README.md) | Python | Create a new Telnyx AI Assistant with a system prompt, model selection, and tool configuration. |
 | [create-ai-assistant-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-ruby/README.md) | Ruby | --- |
+| [edge-cron-scheduler](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-cron-scheduler/README.md) | Typescript | A cron-like job scheduler running on the edge that triggers jobs on schedule, logs results to SQL, and sends SMS notifications via Telnyx on failure. |
+| [edge-event-microsite](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-event-microsite/README.md) | Node.js | Event microsite + AI concierge on Telnyx Edge Compute — one KV store powers the site, the SMS/WhatsApp concierge, lead qualification, in-browser voice AI, feedback transcription, and the sponsor report. |
 | [error-explainer-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/error-explainer-python/README.md) | Python | AI Error Explainer — paste a stack trace, get a root-cause hypothesis, confidence, severity, and a suggested fix via Telnyx AI Inference. |
 | [event-microsite-that-takes-calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/event-microsite-that-takes-calls/README.md) | Python | A Flask event microsite backed by Telnyx KV that lets attendees text, call, or talk in-browser to an AI concierge, broadcasts schedule changes, qualifies exhibitor leads, and transcribes post-event feedback into a sponsor report. |
 | [extract-structured-json-with-ai-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/extract-structured-json-with-ai-python/README.md) | Python | Extract structured JSON from support tickets, emails, leads, or incident reports with Telnyx AI Inference. |
@@ -516,9 +517,9 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [update-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/update-ai-assistant-python/README.md) | Python | Update an existing Telnyx AI Assistant's configuration, model, system prompt, and tools via the API. |
 | [video-room-ai-meeting-moderator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/video-room-ai-meeting-moderator-python/README.md) | Python | Video Room AI Meeting Moderator - create video rooms with AI-powered agenda tracking and time management. |
 | [video-room-ai-moderator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/video-room-ai-moderator-python/README.md) | Python | Video Room AI Moderator - create video rooms with AI-powered content moderation on chat and participant management. |
+| [voice-ivr-with-agent-backend](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-ivr-with-agent-backend/README.md) | Python | A natural language IVR system where the Telnyx Agent handles backend logic and an LLM powers dynamic menu options. |
 | [voice-journal-daily-log-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-journal-daily-log-python/README.md) | Python | Voice Journal Daily Log - call a number, speak your daily journal entry, AI transcribes and organizes it with mood, topics, and gratitude extraction. |
 | [voicemail-smart-router-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-smart-router-python/README.md) | Python | AI Voicemail Smart Router — transcribe voicemails, classify intent (urgent, billing, support, sales, spam, routine), and route to the right channel via Telnyx STT + AI Inference. |
-| [voicemail-to-sms-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-to-sms-agent/README.md) | Typescript | An Edge-based agent that transcribes, summarizes, and texts voicemail summaries to the mailbox owner. |
 | [warm-transfer-ai-briefing-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/warm-transfer-ai-briefing-python/README.md) | Python | When an agent transfers a call, AI summarizes the conversation and briefs the next agent before connecting. No cold handoffs. |
 | [webhook-aggregator-fanout](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-aggregator-fanout/README.md) | Python | Aggregate, deduplicate, and fan out Telnyx webhooks to multiple action queues (call and SMS) with SQLite event logging. |
 | [webhook-debugger-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-debugger-ai-assistant-python/README.md) | Python | Webhook Debugger AI Assistant - catch, inspect, and debug Telnyx webhooks with AI explanations. |
