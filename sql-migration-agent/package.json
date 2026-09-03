@@ -1,0 +1,19 @@
+{
+  "name": "sql-migration-agent",
+  "version": "1.0.0",
+  "description": "Agent that orchestrates SQL schema migrations across actor instances with version tracking, rollback, and SMS notification via Telnyx.",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@telnyx/edge-sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^0.34.0"
+  }
+}
