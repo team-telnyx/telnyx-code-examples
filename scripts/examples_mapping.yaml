@@ -3325,3 +3325,9 @@ examples:
     language: nodejs
     framework: edge
     folder: edge-event-microsite
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: multi-agent-debate
