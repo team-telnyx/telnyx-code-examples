@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-04T18:33:22Z",
-  "example_count": 541,
+  "generated_at": "2026-09-04T18:46:18Z",
+  "example_count": 545,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -4723,13 +4723,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/network-incident-agent"
     },
     {
-      "folder": "sms-two-factor-agent",
-      "title": "SMS Two-Factor Authentication Agent",
-      "description": "Agent-managed SMS two-factor authentication with code generation, KV storage, and scheduled expiry.",
+      "folder": "agent-message-replay",
+      "title": "Replay Agent Conversations Live — WebSocket Streaming Replays on Telnyx Edge",
+      "description": "Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step.",
       "product": "ai",
       "language": "typescript",
       "framework": "edge",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-agent"
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/agent-message-replay"
     },
     {
       "folder": "webhook-aggregator-fanout",
@@ -4748,6 +4748,15 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omni-channel-lab-inbox-agent"
+    },
+    {
+      "folder": "langchain-streaming-agent",
+      "title": "LangChain Streaming Agent",
+      "description": "A LangChain tool-calling agent on Telnyx Edge Compute that streams every token, tool call, and result over WebSocket — powered by the zero-credential Telnyx Inference binding.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/langchain-streaming-agent"
     },
     {
       "folder": "ai-call-campaign-orchestrator",
@@ -4784,6 +4793,15 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/collaborative-doc-ai-copilot"
+    },
+    {
+      "folder": "rag-corpus-shared-across-agents",
+      "title": "RAG Corpus Shared Across Agents",
+      "description": "Multiple AI agent personalities answering over ONE shared RAG corpus on Telnyx Edge Compute — a CorpusAgent embeds documents into per-actor SQL, and PersonaAgent actors retrieve, cite, and answer with their own voice through the zero-credential Telnyx Inference binding.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/rag-corpus-shared-across-agents"
     },
     {
       "folder": "edge-cache-invalidation-agent",
@@ -4865,6 +4883,24 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-event-microsite"
+    },
+    {
+      "folder": "conference-agent-mediator",
+      "title": "Conference Agent Mediator",
+      "description": "An AI meeting facilitator on Telnyx Edge that joins conference calls, transcribes participants in real time, mediates turn-taking, and sends post-call summaries via SMS.",
+      "product": "voice",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/conference-agent-mediator"
+    },
+    {
+      "folder": "sms-two-factor-agent",
+      "title": "SMS Two-Factor Authentication Agent",
+      "description": "Agent-managed SMS two-factor authentication with code generation, KV storage, and scheduled expiry.",
+      "product": "sms",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-agent"
     },
     {
       "folder": "patient-agent",

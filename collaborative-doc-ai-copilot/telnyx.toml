@@ -13,7 +13,7 @@ type = "DocActor"
 binding = "TELNYX"
 
 [edge_compute]
-func_id = "replace-with-your-function-id"
+func_id = "9c7a064b-21d0-4948-acc4-f656bbdb0a40"
 func_name = "collaborative-doc-ai-copilot"
 
 [env_vars]

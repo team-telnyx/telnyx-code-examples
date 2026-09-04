@@ -1,0 +1,23 @@
+{
+  "name": "conference-agent-mediator",
+  "version": "1.0.0",
+  "description": "AI meeting facilitator on Telnyx Edge Compute + Agent SDK — joins conferences, transcribes participants in real time, mediates turn-taking with an LLM-crafted prompt every 30s, and delivers post-conference summaries via SMS. Zero-credential inference and messaging via the [telnyx] binding. Ships with a safe demo simulator so you can exercise the full pipeline without live calls.",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "tsx": "^4.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
