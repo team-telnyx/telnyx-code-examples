@@ -1,6 +1,5 @@
-import { Agent } from "@telnyx/edge-runtime";
-import type { ActorContext } from "@telnyx/edge-runtime";
-import { AgentSocketServer, type AgentServerSocket } from "@telnyx/edge-runtime/agent-socket";
+import { Agent, rpc } from "@telnyx/edge-runtime";
+import type { ActorContext, Claim } from "@telnyx/edge-runtime";
 import {
   cooldownMs,
   modelId,
@@ -35,45 +34,44 @@ function firstMessageContent(response: unknown): string | null {
  * is the document id, so each document gets its own single-threaded, durable
  * state — the same isolation model as a Cloudflare Durable Object.
  *
- * Clients connect over WebSocket (`/websocket?doc=<id>`) using the browser
- * `AgentClient` from `@telnyx/edge-runtime/client`. Every public async method
- * below is callable from the browser as `client.stub.<method>(...)` — the
- * AgentSocketServer dispatches `call` frames to them over the socket.
+ * Connections use the Agent SDK's built-in connection surface: once
+ * `authorize` is overridden, the default `webSocket()` serves the whole
+ * agent socket protocol — state snapshot on connect, live pushes of every
+ * committed `setState`, and remote dispatch to the `@rpc()`-decorated
+ * methods below. The browser side is `AgentClient` from
+ * `@telnyx/edge-runtime/client`.
  */
 export class DocActor extends Agent<Env, DocState> {
-  /** Socket layer for this activation; created lazily on first connection. */
-  private sockets?: AgentSocketServer<DocState>;
-
-  constructor(ctx: ActorContext, env: Env) {
-    super(ctx, env);
-  }
-
   protected initialState(): DocState {
     return { text: "", cursors: {}, suggestions: [], lastSuggestionAt: 0 };
   }
 
   /**
-   * Socket entry point. The platform hands us the accepted socket and the
-   * handshake request; the AgentSocketServer speaks the agent-client protocol
-   * on top: state snapshot + `hello` on connect, `call` frames dispatched to
-   * this actor's public methods, patches broadcast on `setState`.
+   * Connection policy. The demo grants every connection read + rpc —
+   * production deployments must validate the token / identity headers
+   * (`req`) here and only grant `rpc` to callers you trust.
    */
-  async webSocket(ws: AgentServerSocket, req: Request): Promise<void> {
-    this.sockets ??= new AgentSocketServer<DocState>(this, {
-      getState: () => this.getState(),
-    });
-    const url = new URL(req.url);
-    const user = url.searchParams.get("name") ?? "anonymous";
-    // Drop the departing user's cursor when their socket closes.
+  protected override authorize(): readonly Claim[] {
+    return ["read", "rpc"];
+  }
+
+  /**
+   * Minimal socket override: track who is joining (from the `?name=` query)
+   * so their cursor can be cleaned up when the socket closes, then hand the
+   * socket to the built-in protocol via `super.webSocket()`.
+   */
+  override async webSocket(ws: import("ws").WebSocket, req: Request): Promise<void> {
+    const user = new URL(req.url).searchParams.get("name") ?? "anonymous";
     ws.on("close", () => {
       void this.removeUser(user);
     });
-    await this.sockets.attach(ws, req);
+    await super.webSocket(ws, req);
   }
 
-  // ---- Public RPC surface (browser: `client.stub.<method>(...)`) ----------
+  // ---- Remote surface (browser: `client.stub.<method>(...)`) --------------
 
   /** Replace the document text. Triggers the copilot via `onStateChanged`. */
+  @rpc({ description: "Replace the document text as `user`" })
   async edit(user: string, text: string): Promise<DocState> {
     await this.setCursor(user, { line: 0, col: 0 });
     await this.setState({ text });
@@ -81,12 +79,14 @@ export class DocActor extends Agent<Env, DocState> {
   }
 
   /** Update a participant's cursor position (also their presence marker). */
+  @rpc({ description: "Update a participant's cursor position" })
   async setCursor(user: string, position: Cursor): Promise<DocState> {
     await this.setState({ cursors: { [user]: position } });
     return this.getState();
   }
 
   /** Accept (apply suggested text) or reject a copilot suggestion. */
+  @rpc({ description: "Accept or reject a copilot suggestion by id" })
   async respondSuggestion(suggestionId: string, accepted: boolean): Promise<DocState> {
     const state = await this.getState();
     const suggestion = state.suggestions.find((s) => s.id === suggestionId);
@@ -101,16 +101,19 @@ export class DocActor extends Agent<Env, DocState> {
   }
 
   /** Manually request a copilot suggestion (rate-limited per document). */
+  @rpc({ description: "Manually trigger the AI copilot" })
   async requestSuggestion(): Promise<{ status: "ok" | "rate_limited" | "empty" }> {
     return this.runCopilot();
   }
 
   /** Idempotent create — materializes the actor and returns its state. */
+  @rpc({ description: "Create the document if missing and return its state" })
   async touch(): Promise<DocState> {
     return this.getState();
   }
 
   /** Full state snapshot (used by the worker's REST endpoints). */
+  @rpc({ description: "Fetch the current document state" })
   async snapshot(): Promise<DocState> {
     return this.getState();
   }
@@ -120,6 +123,7 @@ export class DocActor extends Agent<Env, DocState> {
    * `onStateChanged` (its own turn — LLM latency must not block edits) and
    * directly by `requestSuggestion`. Rate-limited per document.
    */
+  @rpc({ description: "Run one copilot pass over the current text" })
   async runCopilot(): Promise<{ status: "ok" | "rate_limited" | "empty" }> {
     const state = await this.getState();
     if (Date.now() - state.lastSuggestionAt < cooldownMs(this.env)) {
@@ -158,12 +162,11 @@ export class DocActor extends Agent<Env, DocState> {
   // ---- Internals -----------------------------------------------------------
 
   /**
-   * Fires after every durable state change. Push the new state to every
-   * watching socket, and when the text changed, queue the copilot as its own
-   * turn.
+   * Fires after every durable state change. The built-in connection engine
+   * already fans the new state out to every watcher — when the text changed,
+   * queue the copilot as its own turn.
    */
-  protected async onStateChanged(next: DocState, prev: DocState): Promise<void> {
-    if (this.sockets) this.sockets.broadcastSnapshot(next);
+  protected override async onStateChanged(next: DocState, prev: DocState): Promise<void> {
     if (next.text !== prev.text) {
       await this.queue("runCopilot");
     }

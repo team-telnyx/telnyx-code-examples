@@ -124,14 +124,14 @@ curl -X POST http://localhost:8787/api/documents/doc_team_1/suggest
 ### `GET /websocket?doc=<doc_id>&name=<name>` (upgrade)
 
 Real-time collaboration channel. The worker routes the upgrade to the document's
-`DocActor`; the `AgentSocketServer` speaks the agent-client protocol:
+`DocActor`; the Agent SDK's built-in connection surface speaks the agent socket protocol:
 
 - **On connect:** the actor's current state snapshot, then `hello`
 - **On every `setState`:** the new state is pushed to all watchers
 - **Client → server:** typed RPC `call` frames and heartbeats
 
 Clients use `AgentClient` from `@telnyx/edge-runtime/client` (browser import:
-`https://esm.sh/@telnyx/edge-runtime@0.9.2/client`):
+`https://esm.sh/@telnyx/edge-runtime@0.15.1/client`):
 
 ```js
 import { AgentClient } from "@telnyx/edge-runtime/client";
