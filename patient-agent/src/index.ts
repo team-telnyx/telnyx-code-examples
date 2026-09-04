@@ -1,4 +1,5 @@
 import { PatientAgent, DemoClinic, type Env } from "./patient";
+import { page } from "./ui";
 
 export { PatientAgent, DemoClinic };
 
@@ -41,6 +42,7 @@ function normalizeTelnyxPayload(body:Json):Json {
 export default {
   async fetch(req:Request,env:Env):Promise<Response> {
     const url=new URL(req.url);
+    if(url.pathname==="/"&&req.method==="GET")return new Response(page,{headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"}});
     const clinicRoute=url.pathname.match(/^\/api\/clinic\/([a-z0-9-]+)$/);
     if(clinicRoute){
       const bearer=req.headers.get("Authorization")||"";
@@ -51,7 +53,7 @@ export default {
       if(req.method==="PATCH"){const body:Json=await req.json().catch(()=>({}));return jsonResponse(await clinic.status(body.status));}
       return jsonResponse({error:"method_not_allowed"},405);
     }
-    const route=url.pathname.match(/^\/(api|webhooks)\/patients\/([a-z0-9-]+)(?:\/(enroll|clinic-status|nurse-reply|stop|preflight))?$/);
+    const route=url.pathname.match(/^\/(api|webhooks)\/patients\/([a-z0-9-]+)(?:\/(enroll|clinic-status|nurse-reply|stop|preflight|simulate-inbound))?$/);
     if(!route)return jsonResponse({error:"not_found"},404);
     const kind=route[1],patientId=route[2],action=route[3];
     const agent=env.AGENT.idFromName(patientId);
@@ -80,6 +82,7 @@ export default {
         if(action==="enroll")return jsonResponse(await agent.enroll(body));
         if(action==="stop")return jsonResponse(await agent.stop());
         if(action==="clinic-status")return jsonResponse(await agent.clinicStatus(body.status));
+        if(action==="simulate-inbound")return jsonResponse(await agent.simulateInbound(body));
         if(action==="nurse-reply")return jsonResponse(await agent.nurseReply(body));
       }
       return jsonResponse({error:"not_found"},404);

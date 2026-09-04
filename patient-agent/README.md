@@ -44,6 +44,7 @@ Deploy per the repo's Edge Compute guide, configure the secrets named in `telnyx
 - Inbound webhooks require a valid Ed25519 Telnyx signature; unsigned or tampered requests are rejected with 401.
 - The recipient is pinned to one allowlisted number; provider event IDs are deduplicated.
 - Ambiguous sends are flagged `needs-reconciliation` in a durable outbox instead of being blindly retried.
+- Demo mode adds an operator-side **reply simulator** (clearly labeled, demo actors only); production deployments have no simulation affordance.
 
 ## Troubleshooting
 

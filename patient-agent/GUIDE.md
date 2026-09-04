@@ -40,6 +40,12 @@ For the recording, keep the appointment card and timeline visible alongside the 
 - A scheduled wake-up, not a manually invoked send helper.
 - Explicit human approval, not an LLM impersonating a nurse.
 
+## Patient reply simulator (UI, demo mode only)
+
+The dashboard includes a **Patient reply simulator** panel for demo-mode patients: one click injects `RESCHEDULE`, `TAKEN`, `feeling worse`, or a custom reply through the same durable state machine, without a carrier. Simulated replies are recorded in the timeline as operator-injected.
+
+Be explicit about this in any demo: the simulator is a presentation affordance. The carrier path — signed inbound webhooks, deduplicated provider event IDs, delivery status — is verified separately (see `VERIFICATION.md`), and production deployments have no simulator at all.
+
 ## Honest limits
 
 Clinic appointments are synthetic. Self-reported `TAKEN` is not evidence of medication ingestion. LLM output is an unverified summary for review, not symptom diagnosis. Full production readiness requires clinical governance, consent management, authentication and authorization, data retention and privacy controls, alerting, provider receipt handling, and failure reconciliation beyond this educational sample.

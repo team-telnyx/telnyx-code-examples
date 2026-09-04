@@ -87,3 +87,16 @@ it('rejects a follow-up that would fall after the demo expires',()=>{
  runInContext("el('reviewForm').onsubmit({preventDefault(){}})",a.context);
  expect(a.fetch).not.toHaveBeenCalled();expect(a.els.get('connectionStatus')!.textContent).toContain('after the demo expires');
 });
+it('shows the simulator panel for demo patients and posts injected replies',async()=>{
+ const a=app();a.render({...base,mode:'demo'});
+ expect(a.els.get('simPanel')!.hidden).toBe(false);expect(a.els.get('simReschedule')!.disabled).toBe(false);
+ a.fetch.mockResolvedValue(new Response(JSON.stringify(base),{status:200,headers:{'Content-Type':'application/json'}}));
+ a.els.get('simReschedule')!.onclick!();
+ await vi.waitFor(()=>expect(a.fetch).toHaveBeenCalledTimes(2));
+ const [url,options]=a.fetch.mock.calls[0];expect(url).toBe('/api/patients/test-patient/simulate-inbound');
+ expect(JSON.parse(options.body)).toEqual({text:'RESCHEDULE'});
+});
+it('hides the simulator panel for production patients',()=>{
+ const a=app();a.render({...base,mode:'production'});
+ expect(a.els.get('simPanel')!.hidden).toBe(true);
+});
