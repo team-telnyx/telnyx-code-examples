@@ -55,7 +55,7 @@ const html = `<!DOCTYPE html>
   </div>
 </main>
 <script type="module">
-import { AgentClient } from "https://esm.sh/@telnyx/edge-runtime@0.9.2/client";
+import { AgentClient } from "https://esm.sh/@telnyx/edge-runtime@0.15.1/client";
 
 const params = new URLSearchParams(location.search);
 const docId = params.get("doc") || "doc_demo";
@@ -83,9 +83,9 @@ function render(state) {
     applying = true; editor.value = state.text; applying = false;
     editor.setSelectionRange(Math.min(pos, state.text.length), Math.min(pos, state.text.length));
   }
-  const users = Object.keys(state.cursors || {});
+  const users = [...new Set([...Object.keys(state.cursors || {}), name])];
   usersEl.innerHTML = "";
-  (users.length ? users : []).forEach((u) => {
+  users.forEach((u) => {
     const s = document.createElement("span");
     s.textContent = u === name ? u + " (you)" : u;
     usersEl.appendChild(s);
@@ -138,7 +138,11 @@ document.getElementById("ask").addEventListener("click", () => {
 let rendered = false;
 client.onState((state) => {
   setStatus("live", true);
-  if (!rendered) { rendered = true; editor.value = state.text || ""; }
+  if (!rendered) {
+    rendered = true;
+    editor.value = state.text || "";
+    client.stub.setCursor(name, { line: 0, col: 0 });
+  }
   render(state);
 });
 
