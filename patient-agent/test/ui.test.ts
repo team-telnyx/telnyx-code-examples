@@ -9,7 +9,7 @@ class Element {
 function app(){
  const els=new Map<string,Element>();for(const m of page.matchAll(/id="([^"]+)"/g))els.set(m[1],new Element());
  const fetch=vi.fn();const context=createContext({document:{getElementById:(id:string)=>els.get(id),createElement:()=>new Element()},fetch,AbortSignal,Date,console,confirm:()=>true,setInterval:vi.fn(),clearInterval:vi.fn(),location:{reload:vi.fn()}});
- runInContext(page.match(/<script>([\s\S]*?)<\/script>/)![1],context);
+ runInContext(page.match(/<script>([\s\S]*?)<\/script>/i)![1],context);
  return {els,fetch,context,render:(state:unknown)=>{context.fixture=state;runInContext("state=fixture;activeId='test-patient';admin='a'.repeat(64);render()",context);}};
 }
 const base={enrolled:true,phone:'+12025550123',consent:true,history:[],schedules:[],demoEndsAt:Date.now()+900000};
