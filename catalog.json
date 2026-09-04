@@ -3,12 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-03T01:56:41Z",
-  "example_count": 523,
-  "generated_at": "2026-08-31T22:08:00Z",
-  "example_count": 522,
-  "generated_at": "2026-09-02T20:37:33Z",
-  "example_count": 539,
+  "generated_at": "2026-09-04T18:33:22Z",
+  "example_count": 541,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -4727,13 +4723,6 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/network-incident-agent"
     },
     {
-      "folder": "voicemail-to-sms-agent",
-      "title": "Voicemail-to-SMS Agent",
-      "description": "An Edge-based agent that transcribes, summarizes, and texts voicemail summaries to the mailbox owner.",
-      "product": "ai",
-      "language": "typescript",
-      "framework": "edge",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voicemail-to-sms-agent"
       "folder": "sms-two-factor-agent",
       "title": "SMS Two-Factor Authentication Agent",
       "description": "Agent-managed SMS two-factor authentication with code generation, KV storage, and scheduled expiry.",
@@ -4876,6 +4865,15 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-event-microsite"
+    },
+    {
+      "folder": "patient-agent",
+      "title": "Patient Agent",
+      "description": "",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/patient-agent"
     }
   ]
 }

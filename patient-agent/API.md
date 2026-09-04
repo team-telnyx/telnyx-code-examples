@@ -1,206 +1,49 @@
-# API Reference — PatientAgent
+# PatientAgent API
 
-The PatientAgent Edge Function exposes no public HTTP routes. It is a **stateful agent** that runs on Telnyx Edge, driven by scheduled wake-ups and inbound SMS webhooks. All interaction is asynchronous via the Telnyx Messaging API.
+All operator routes require `Authorization: Bearer TOKEN`. Use the separate nurse token only for `nurse-reply`. Never put credentials in a URL. Every patient ID must match `[a-z0-9][a-z0-9-]{0,63}`.
 
----
+## Enroll
 
-## Webhook Endpoint
-
-### `POST /webhook`
-
-Receives inbound SMS messages from patients. The agent unwraps the Telnyx Ed25519 signature, extracts the message payload, and routes it to the appropriate `PatientAgent` instance based on the sender's phone number.
-
-#### Request Body Schema
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `data` | object | Yes | Telnyx event envelope |
-| `data.event_id` | string | Yes | Unique event identifier |
-| `data.payload` | object | Yes | The messaging payload |
-| `data.payload.from` | object | Yes | Sender info |
-| `data.payload.from.phone_number` | string | Yes | Patient's phone number (E.164) |
-| `data.payload.to` | object | Yes | Recipient info |
-| `data.payload.to.phone_number` | string | Yes | Telnyx phone number |
-| `data.payload.text` | string | Yes | Patient's reply text |
-| `data.payload.message_id` | string | Yes | Unique message ID |
-| `data.signature` | string | Yes | Ed25519 signature header |
-| `data.timestamp` | string | Yes | ISO 8601 timestamp |
-
-#### Example Request (curl)
-
-```bash
-curl -X POST https://<edge-function-url>/webhook \
-  -H "Content-Type: application/json" \
-  -H "Telnyx-Signature-Ed25519: <signature>" \
-  -H "Telnyx-Timestamp: <timestamp>" \
-  -d '{
-    "data": {
-      "event_id": "evt_123",
-      "timestamp": "2024-01-15T10:30:00Z",
-      "payload": {
-        "message_id": "msg_abc",
-        "from": { "phone_number": "+15551234567" },
-        "to": { "phone_number": "+15559999999" },
-        "text": "I need to reschedule my appointment"
-      }
-    }
-  }'
-```
-
-#### Response Schema
-
-**200 OK**
+`POST /api/patients/{id}/enroll`
 
 ```json
-{
-  "status": "processed",
-  "patient_id": "patient-42",
-  "action": "appointment_reschedule_requested"
-}
+{"phone":"+12025550123","consent":true,"appointmentAt":"2099-01-01T10:00:00Z","mode":"production","medicationHourLocal":20,"utcOffsetMinutes":0}
 ```
 
-#### Status Codes
+- `phone`: exact allowlisted E.164 recipient.
+- `consent`: must be `true`. Patient consent is captured at intake and recorded here; the enrollment confirmation SMS includes STOP instructions.
+- `appointmentAt`: future ISO UTC timestamp.
+- `mode`: `"production"` (default) or `"demo"`.
+- Production mode: `medicationHourLocal` 0–23 (default 20) — daily reminder at that patient-local hour via a self-rescheduling durable timer; `utcOffsetMinutes` −720–840 (default 0). No-show grace defaults to 900 seconds (15 minutes); override with `noShowGraceSeconds` 60–86400. No automatic stop: the patient opts out with STOP. Demo-compression fields (`medicationIntervalSeconds`, `demoDurationSeconds`) are rejected.
+- Demo mode (`mode:"demo"`): `medicationIntervalSeconds` integer 60–604800 (default 86400) and `demoDurationSeconds` optional integer 120–1800 (auto-stop). Timings are compressed for watchability: no-show grace 60 seconds, reminder immediate for appointments within 24 hours.
 
-| Code | Description |
-|---|---|
-| 200 | Webhook processed successfully |
-| 400 | Invalid payload or missing required fields |
-| 401 | Signature verification failed |
-| 500 | Internal agent error (logged, not leaked) |
+Returns the durable state and schedules. Existing enrollment is not overwritten. Enrollment is multi-step; inspect state after an interrupted request before retrying.
 
----
+## Read and stop
 
-## Scheduled Wake-Up (Internal)
+- `GET /api/patients/{id}`: state and schedule metadata; treat as sensitive, even when synthetic.
+- `GET /api/patients/{id}/preflight`: binding/secret availability only; never secret values.
+- `POST /api/patients/{id}/stop`: returns `{"stopped":true}` after consent is revoked and jobs are cancelled.
+- `POST /api/patients/{id}/clinic-status`: `{ "status": "fulfilled" }`; values are `booked`, `fulfilled`, `noshow`, `cancelled`.
 
-The agent uses `this.schedule()` and `this.every()` to self-wake at predetermined intervals. These are **not HTTP endpoints** — they are internal Edge Function timer triggers managed by the Agent SDK.
+## Human approval
 
-### Wake-Up Events
-
-| Schedule | Trigger | Agent Action |
-|---|---|---|
-| `every(24h)` | Daily check-in | Send "How are you feeling?" SMS |
-| `schedule("2024-01-16T09:00:00Z")` | Appointment reminder | SMS 24h before appointment |
-| `schedule("2024-01-17T14:00:00Z")` | Missed appointment follow-up | SMS "Need to reschedule?" |
-| `schedule("2024-01-19T08:00:00Z")` | Medication reminder | SMS "Time for your prescription" |
-
-### Wake-Up Response Schema
-
-**200 OK** (internal)
+`POST /api/patients/{id}/nurse-reply`, using the nurse token:
 
 ```json
-{
-  "status": "wake_processed",
-  "patient_id": "patient-42",
-  "trigger": "daily_checkin",
-  "actions_taken": ["sms_sent"]
-}
+{"escalationId":"concern-1","text":"A human-approved response.","followUpSeconds":60}
 ```
 
----
+Requires a waiting escalation. Sends the approved text with the nurse capability, marks the escalation resolved, and schedules a follow-up wake-up. `followUpSeconds` 60–1209600, default 604800. Follow-ups after a demo expiry do not send.
 
-## Nurse Escalation (Human-in-the-Loop)
+## Inbound webhooks
 
-When the agent detects a symptom escalation via LLM inference, it pauses and waits for a nurse response. This is handled via a **KV store flag** that the agent polls on each wake-up.
+`POST /webhooks/patients/{id}` — Telnyx-signed (Ed25519, `telnyx-signature-ed25519` + `telnyx-signature-timestamp` over `<timestamp>.<body>`). Invalid or missing signatures return 401. `message.received` updates the actor; other message events are acknowledged and ignored; `call.*` events answer and transfer per the (optional) nurse number.
 
-### Escalation Flow
+Commands (case-insensitive, punctuation-tolerant): `STOP`/`STOPALL`/`UNSUBSCRIBE`/`CANCEL`/`END`/`QUIT` opt out; `START` re-enables (and re-arms production medication); `TAKEN` records a self-reported medication acknowledgement; `RESCHEDULE` (and `Reschedule.`-style variants) offers three deterministic slots — reply `1`, `2`, or `3` to book one via the clinic API; anything else escalates to human review with an unverified AI summary.
 
-1. Agent sets `KV.put("escalation:patient-42", "pending")` and sends SMS to nurse
-2. Nurse replies via a separate Telnyx number → triggers `/webhook`
-3. Agent reads nurse response, relays to patient, schedules follow-up
+After a demo expiry, inbound messages receive a single "demo has ended" notice and no further processing.
 
-#### KV Schema
+## Mock clinic API (fallback EHR)
 
-| Key Pattern | Value | TTL |
-|---|---|---|
-| `escalation:{patient_id}` | `"pending"` / `"resolved"` / `"nurse_response:{text}"` | 24h |
-| `patient:{patient_id}:state` | JSON blob of patient state | 7d |
-| `patient:{patient_id}:appointments` | JSON array of appointments | 30d |
-| `patient:{patient_id}:med_schedule` | JSON array of medication times | 30d |
-
----
-
-## EHR API Integration (Mock)
-
-The agent reads/writes appointment data via a mock FHIR-compatible API. In demo mode, this is an in-memory store; in live mode, it calls the real EHR endpoint.
-
-### Mock EHR Endpoints (Internal)
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/ehr/appointments?patient={id}` | Fetch patient appointments |
-| `POST` | `/ehr/appointments` | Create new appointment |
-| `PUT` | `/ehr/appointments/{id}` | Update appointment status |
-
-#### Appointment Object Schema
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `id` | string | Yes | Appointment ID |
-| `patient_id` | string | Yes | Patient identifier |
-| `datetime` | string | Yes | ISO 8601 datetime |
-| `status` | string | Yes | `scheduled` / `missed` / `completed` / `cancelled` |
-| `provider` | string | Yes | Provider name |
-| `location` | string | No | Clinic location |
-
----
-
-## Outbound SMS (via Telnyx SDK)
-
-All SMS is sent through `telnyx.messages.create()`. In demo mode, messages are logged but not sent (dry-run). In live mode, real SMS is dispatched.
-
-### Message Creation Parameters
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `from` | string | Yes | Telnyx phone number (E.164) |
-| `to` | string | Yes | Patient phone number (E.164) |
-| `text` | string | Yes | Message body (max 1600 chars) |
-| `status_callback` | string | No | Webhook URL for delivery status |
-
-#### Example (SDK call, not HTTP)
-
-```typescript
-await telnyx.messages.create({
-  from: "+15559999999",
-  to: "+15551234567",
-  text: "Your appointment is tomorrow at 2 PM. Reply YES to confirm."
-});
-```
-
----
-
-## LLM Inference (Symptom Assessment)
-
-The agent uses `this.env.TELNYX.ai.openai.chat.createCompletion()` to assess patient symptoms from free-text replies.
-
-### Inference Request Schema
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `model` | string | Yes | OpenAI model (e.g., `gpt-3.5-turbo`) |
-| `messages` | array | Yes | Conversation history |
-| `messages[].role` | string | Yes | `system` / `user` / `assistant` |
-| `messages[].content` | string | Yes | Message text |
-| `max_tokens` | number | No | Default 150 |
-| `temperature` | number | No | Default 0.3 |
-
-### Inference Response Schema
-
-| Field | Type | Description |
-|---|---|---|
-| `choices[0].message.content` | string | LLM response (JSON: `{ "escalate": boolean, "reasoning": string }`) |
-| `usage.total_tokens` | number | Token consumption |
-
----
-
-## Error Handling
-
-All errors are caught and logged via `console.error()`. HTTP responses never leak internal details.
-
-| Scenario | HTTP Response | Logged |
-|---|---|---|
-| Invalid webhook signature | 401 | Yes |
-| Missing payload fields | 400 | Yes |
-| Agent processing error | 500 | Yes (stack trace) |
-| Telnyx API failure | 500 | Yes |
-| KV store unavailable | 500 | Yes |
+`GET|POST|PATCH /api/clinic/{id}` with the admin token — read, book, and status transitions for the synthetic appointment record. The actor uses this authenticated HTTP fallback when sibling actor bindings are unavailable.
