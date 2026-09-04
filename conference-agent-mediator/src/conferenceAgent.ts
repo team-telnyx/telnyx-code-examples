@@ -243,16 +243,26 @@ export class ConferenceAgent extends Agent<ConferenceEnv, ConferenceState> {
     const trimmed = text.trim();
     if (!trimmed) return;
     const state = await this.getState();
-    if (state.phase !== "active") return;
+    // Telnyx flushes the final STT segment right after hangup — accept late
+    // finals during the finalize window, not just while active.
+    if (state.phase !== "active" && state.phase !== "summarizing") return;
     const turn: TurnRecord = { speaker, text: trimmed, at: Date.now() };
     const turns = [...state.turns, turn];
     const transcriptText = state.transcriptText ? state.transcriptText + "\n" : "";
-    await this.setState({
-      ...state,
-      turns,
-      transcriptText: transcriptText + `[${speaker}]: ${trimmed}`,
-      participants: { ...state.participants, [speaker]: turn.at },
-    });
+    if (state.phase === "active") {
+      await this.setState({
+        ...state,
+        turns,
+        transcriptText: transcriptText + `[${speaker}]: ${trimmed}`,
+        participants: { ...state.participants, [speaker]: turn.at },
+      });
+    } else {
+      await this.setState({
+        ...state,
+        turns,
+        transcriptText: transcriptText + `[${speaker}]: ${trimmed}`,
+      });
+    }
   }
 
   /**
@@ -303,7 +313,9 @@ export class ConferenceAgent extends Agent<ConferenceEnv, ConferenceState> {
     }
     await this.cancelSchedule("mediate");
     await this.setState({ ...state, phase: "summarizing", endedAt: Date.now() });
-    await this.queue("summarize");
+    // Grace window: Telnyx flushes the final STT segment shortly after hangup;
+    // give those webhooks time to land before summarizing.
+    await this.schedule(5, "summarize", undefined, { id: "finalize" });
   }
 
   /** Pipeline stage 1: summarize the transcript via LLM (zero-credential binding). */
