@@ -31,10 +31,6 @@ This is an evidence ledger, not a production-readiness certification.
 
 The separate direct-API SMS transport test does not satisfy the actor workflow checks above. Blog, Medium, and YouTube deliverables in the ticket also remain unfinished.
 
-## Simulator note (2026-09-03)
-
-The dashboard includes a demo-mode **patient reply simulator** (`simulate-inbound`, admin token, demo actors only): it injects patient replies through the same durable state machine so the UI can present the full flow without a carrier. Simulated replies are recorded in the timeline as operator-injected. This is a presentation affordance — the carrier path (signed inbound webhooks, event-ID deduplication, delivery status) was verified separately and remains the proof standard. Production deployments have no simulator.
-
 ## Incident notes (2026-09-02)
 
 1. The original working copy lived in `/tmp` and was destroyed by macOS periodic cleanup at ~15:41 PDT before it was committed. The example was rebuilt from the session's verified state; the live Edge function was never affected. Lesson applied: never keep uncommitted work in `/tmp`.

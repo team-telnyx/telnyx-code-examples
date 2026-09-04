@@ -144,15 +144,6 @@ export class PatientAgent extends Agent<Env, PatientState> {
   async clinicStatus(status:unknown) {
     const appointment=await this._clinic("status",status);await this.setState({appointment});return appointment;
   }
-  /** Demo-mode operator affordance: inject a patient reply through the same state machine. Not a carrier test. */
-  async simulateInbound(input:unknown) {
-    const s=await this.getState();
-    if(s.mode!=="demo"||!s.enrolled||!s.consent)throw new Error("invalid_request");
-    const p=z.object({text:z.string().min(1).max(160)}).parse(input);
-    await this._record("Simulated patient reply injected by operator (demo)");
-    const event={id:"sim-"+crypto.randomUUID(),from:s.phone,to:await this.env.SECRETS.get("FROM_NUMBER"),text:p.text};
-    return this.receiveSMS(event);
-  }
   async receiveSMS(input:unknown) {
     const e=z.object({id:z.string().min(1).max(128),from:Phone,to:Phone,text:Text}).parse(input);
     const s=await this.getState();

@@ -44,16 +44,6 @@ Commands (case-insensitive, punctuation-tolerant): `STOP`/`STOPALL`/`UNSUBSCRIBE
 
 After a demo expiry, inbound messages receive a single "demo has ended" notice and no further processing.
 
-## Patient reply simulator (demo mode only)
-
-`POST /api/patients/{id}/simulate-inbound`, admin token:
-
-```json
-{"text":"RESCHEDULE"}
-```
-
-Injects a patient reply through the same state machine as a carrier SMS — demo mode only (production and unenrolled/expired/stopped actors return 400). The injected event uses the patient's own number as sender and is recorded in the timeline as operator-injected. This is a presentation affordance, not a carrier test.
-
 ## Mock clinic API (fallback EHR)
 
 `GET|POST|PATCH /api/clinic/{id}` with the admin token — read, book, and status transitions for the synthetic appointment record. The actor uses this authenticated HTTP fallback when sibling actor bindings are unavailable.
