@@ -1,125 +1,157 @@
 ---
 name: edge-cron-scheduler
 title: Edge Cron Scheduler with Telnyx SMS Notifications
-description: A cron-like job scheduler running on the edge that triggers jobs on schedule, logs results to SQL, and sends SMS notifications via Telnyx on failure.
+description: A durable UTC cron scheduler with actor KV, SQL execution history, and Telnyx SMS failure alerts.
 language: typescript
 framework: edge
 telnyx_products: [SMS, Messaging, Agent SDK, KV, SQL]
 ---
 
-# Edge Cron Scheduler with Telnyx SMS Notifications
+# Edge Cron Scheduler
 
-A cron-like job scheduler running on the edge that triggers jobs on schedule, manages dependencies, and notifies via SMS using Telnyx.
+Schedule calls, SMS messages and HTTPS webhooks with five-field UTC cron expressions, durable tasks, execution history and failure alerts.
 
 ## Why Telnyx
 
-Telnyx provides the **AI Communications Infrastructure** that powers modern edge applications. With Telnyx's Edge SDK, developers can build stateful, scheduled agents that run close to users while leveraging global telecom capabilities — including SMS, voice, and messaging — through a single, unified API. This sample demonstrates how Telnyx's Agent SDK, KV store, SQL database, and SMS messaging combine to create a resilient, distributed cron scheduler with real-time failure notifications.
+Telnyx AI Communications Infrastructure combines stateful agents and communications APIs. This sample uses the published `@telnyx/edge-runtime` Agent SDK to persist recurring timers and queued work, actor KV to store job definitions, and actor SQL to retain a separate record for each execution.
 
 ## Telnyx API Endpoints Used
 
-| Product | Endpoint / Method | Purpose |
-|---------|-------------------|---------|
-| **Agent SDK** | `CronAgent extends Agent` | Base class for the edge cron scheduler agent |
-| **Agent SDK** | `this.every('1m')` | Schedules recurring execution of the agent's main loop |
-| **Agent SDK** | `this.queue('execute', job)` | Queues a job execution for asynchronous processing |
-| **KV Store** | `ctx.kv.get('jobs')` / `ctx.kv.put('jobs', ...)` | Stores the job registry (list of cron entries) |
-| **SQL Database** | `ctx.sql.exec(...)` | Persists job execution logs: `jobs(id, name, last_run, status, result)` |
-| **SMS / Messaging** | `this.env.TELNYX.messages.send(...)` | Sends SMS notification on job completion or failure |
+| API | Purpose |
+| --- | --- |
+| `Agent.every(60, 'poll')` | Durable polling every 60 seconds |
+| `Agent.queue('execute', task)` | Durable execution dispatch |
+| `ctx.storage.get/put('jobs')` | Per-actor KV job registry |
+| `ctx.storage.sql.exec(...)` | Embedded SQL execution history |
+| `TELNYX.calls.dial(...)` / `POST /v2/calls` | Request an outbound call |
+| `TELNYX.messages.send(...)` / `POST /v2/messages` | Send a message or failure alert |
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Edge Cron Agent                            │
-│                                                                 │
-│  ┌─────────────┐     ┌──────────────┐     ┌─────────────────┐  │
-│  │  this.every │────▶│  KV Job      │────▶│  Queue 'execute'│  │
-│  │  ('1m')     │     │  Registry    │     │  (per job)      │  │
-│  └─────────────┘     └──────────────┘     └─────────────────┘  │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Job Execution Handler                                   │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌──────────────────┐  │  │
-│  │  │  Call Job   │  │  SMS Job    │  │  Webhook Job     │  │  │
-│  │  └─────────────┘  └─────────────┘  └──────────────────┘  │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  ┌────────────────────────┐     ┌───────────────────────────┐  │
-│  │  SQL Execution Log     │     │  Telnyx SMS Notification  │  │
-│  │  jobs(id, name,        │     │  this.env.TELNYX          │  │
-│  │   last_run, status,    │◀────│  .messages.send()         │  │
-│  │   result)              │     │  (on failure)             │  │
-│  └────────────────────────┘     └───────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+```text
+Authenticated HTTP request → one CronAgent named "scheduler"
+                                 │
+                            actor KV registry
+                                 │
+                         every(60, 'poll')
+                                 │
+                       queue('execute', task)
+                                 │
+                 SQL execution claim → call / SMS / webhook
+                                 │
+                   SQL outcome → failure SMS if necessary
 ```
 
-**Data Flow:**
-1. `CronAgent.every('1m')` triggers the main scheduling loop every minute.
-2. The agent reads the job registry from `ctx.kv.get('jobs')`.
-3. For each job that is due (based on its cron expression and `last_run`), the agent calls `this.queue('execute', job)`.
-4. The queued job is executed — one of three job types: **call**, **SMS**, or **webhook**.
-5. The result is logged to the SQL database (`jobs` table).
-6. If the job fails, an SMS notification is sent via `this.env.TELNYX.messages.send()`.
+The production runtime owns actor activation and alarms. `local/server.ts` provides a single-process development host using the same Agent SDK with a disk-backed SQLite storage adapter. It serializes HTTP/alarm turns and resumes saved timers on restart. It does not emulate a distributed Edge deployment.
 
 ## Environment Variables
 
-| Variable | Type | Example | Required | Description | Where to get it |
-|----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
+| Variable | Default / purpose |
+| --- | --- |
+| `DEMO_MODE` | `true`; only the exact value `false` enables external requests |
+| `PORT` | `8787`, local server only |
+| `SCHEDULER_TOKEN` | Bearer token for every route except `/health/liveness`; generated temporarily by the local server if empty |
+| `SCHEDULER_DB` | `.data/scheduler.sqlite`, local persistent state |
+| `TELNYX_API_KEY` | Local live-mode SDK credential; unused in demo mode |
+| `TELNYX_PHONE_NUMBER` | Sender number for live calls, SMS and alerts |
+| `TELNYX_CONNECTION_ID` | Call Control connection ID for live calls |
+| `NOTIFICATION_PHONE_NUMBER` | Destination for live failure alerts |
+| `WEBHOOK_HOSTS` | Comma-separated exact HTTPS hostnames allowed for live webhooks; redirects rejected |
+
+> **Agent / CLI access:** Use `telnyx --help` to inspect account provisioning commands and obtain an SMS-capable sender and a Call Control connection. Production uses the Edge `TELNYX` binding; the local server constructs the SDK from `TELNYX_API_KEY`.
 
 ## Setup
 
+Requires Node.js 22.13+ and npm. No account credentials or Docker are needed for the local simulation.
+
 ```bash
-# Clone the repository
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/edge-cron-scheduler
-
-# Create .env file from example
+npm ci
 cp .env.example .env
-# Edit .env and add your Telnyx API key
-# TELNYX_API_KEY=your_telnyx_api_key_here
-
-# Install dependencies
-npm install
-
-# Run locally (demo mode — no real SMS or calls sent)
-npm run dev
-
-# Run smoke test
-npx tsx smoke_test.ts
+npm start
 ```
+
+<details><summary>Programmatic / CLI setup</summary>
+
+For the Telnyx Edge configuration, inspect your installed CLI's account, binding and secret commands before deployment:
+
+```bash
+telnyx-edge status
+telnyx-edge bindings --help
+telnyx-edge secrets --help
+telnyx-edge ship --help
+```
+
+`telnyx.toml` declares the `CRON_AGENT` actor, `TELNYX` communications binding and `SCHEDULER_TOKEN` secret. Configure the token and communications binding in the target account before shipping. Keep `DEMO_MODE=true` for an initial deployed check. Call authenticated `GET /health` or create a job to initialize the durable poller.
+
+</details>
+
+Copy the generated temporary token from the local startup output, or set `SCHEDULER_TOKEN` in `.env` before starting. In another terminal:
+
+```bash
+export SCHEDULER_TOKEN='paste-your-local-token'
+curl -s http://127.0.0.1:8787/health -H "Authorization: Bearer $SCHEDULER_TOKEN"
+curl -s http://127.0.0.1:8787/jobs \
+  -H "Authorization: Bearer $SCHEDULER_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"id":"sms-check","name":"SMS check","cron":"* * * * *","type":"sms","target":"+18005550102","payload":{"text":"Scheduled check"}}'
+curl -s -X POST http://127.0.0.1:8787/jobs/sms-check/run -H "Authorization: Bearer $SCHEDULER_TOKEN"
+curl -s http://127.0.0.1:8787/logs -H "Authorization: Bearer $SCHEDULER_TOKEN"
+```
+
+The run endpoint returns `202` with a `runId`; poll `/logs` until that row appears. Automatic execution starts at the next matching UTC minute and may be up to one polling interval late. The registry and logs survive restarting `npm start`.
+
+Run checks with `npm test` and `npm run typecheck`. Against an already-running demo server, run `SCHEDULER_TOKEN=your-token npm run test:http` to verify two automatic occurrences of all three job types (about two minutes). Set `SCHEDULER_URL` to target a different port.
+
+## Edge runtime verification status
+
+The standalone local server passes repeated automatic scheduling and restart tests. The installed local Edge stack (CLI v0.3.0 dev generator, Dapr 1.13.6, local `telnyx/*-runtime:dev` images) runs the first batch but loses the next Dapr reminder while the SDK retains its recurring task. **Repeated autonomous execution in that stack is not verified. Do not treat this sample as deployment-ready until the runtime integration is resolved.** `/health` reports 503 when a task is overdue by more than 60 seconds. See `VERIFICATION.md` for the observed results.
+
+## Scheduling and delivery semantics
+
+- Five fields: minute, hour, day of month, month, day of week. `0 9 * * *` means 09:00 UTC; `*/5 * * * *` means every fifth clock minute. Seconds and timezone overrides are not accepted.
+- Jobs are created with their first matching future time. No immediate execution unless `/run` is requested. Job IDs are immutable; delete and recreate to change a definition.
+- After downtime, each overdue job runs once for its oldest pending slot; missed intermediate slots are skipped. There is no catch-up burst.
+- `dependsOn` names existing jobs with the same cron expression. A scheduled dependent requires success in the same slot; a failed dependency produces a `skipped` execution. Delete dependents before their parents. Manual runs are available only for jobs without dependencies.
+- A stable run ID and SQL claim suppress repeated task delivery. The application does **not** promise exactly-once external effects: a crash after recording `running` leaves an uncertain row and will not automatically resend it. Inspect that run before manually retrying. Network errors can also represent an accepted request whose response was lost.
+- `success` means the API accepted the request, not that a call connected or an SMS was delivered. This sample does not receive delivery webhooks.
+- Failure alerts are attempted once and recorded as `sent`, `failed` or `simulated`. A crash between the outcome write and alert may omit the alert; there is no alert retry service.
+- Demo mode simulates all three external actions, while timers, KV and SQL remain real. Set `demoFailure:true` on a demo job to exercise failure handling. In live mode this flag has no effect.
 
 ## API Reference
 
-See [`API.md`](./API.md) for the full typed endpoint and method reference.
+See [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-cron-scheduler/API.md) and the [walkthrough](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-cron-scheduler/GUIDE.md).
 
 ## Troubleshooting
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| `TELNYX_API_KEY is not set` | Environment variable missing | Copy `.env.example` to `.env` and add your key |
-| `KV get('jobs') returns null` | No jobs registered yet | Run the seed script or add jobs via the API endpoint |
-| `SQL exec fails on 'jobs' table` | Database schema not initialized | Ensure the SQL binding is configured with the correct schema |
-| `SMS notification not sent on failure` | Telnyx API key invalid or SMS disabled in demo mode | Verify API key and check demo mode settings in `GUIDE.md` |
-| `Agent does not trigger every minute` | Edge runtime not configured for scheduled execution | Ensure the agent is deployed with proper scheduling permissions |
+| Symptom | Action |
+| --- | --- |
+| 401 | Supply the configured bearer token; a generated local token changes on restart |
+| 503 | Configure `SCHEDULER_TOKEN` in the Edge environment |
+| Job has not run yet | Check UTC `nextRun` and allow one 60-second polling interval |
+| Live webhook fails | Add the exact hostname to `WEBHOOK_HOSTS`; ensure HTTPS and no redirects |
+| Alert says `failed` | Check sender, notification number and Telnyx credentials |
+| Execution remains `running` after a crash | Treat its external outcome as uncertain; investigate before creating a manual retry |
+| Node cannot import `node:sqlite` | Use Node.js 22.13+ |
 
 ## Agent Discovery
 
 - [Telnyx Agent Signup](https://telnyx.com/agent-signup.md)
-- [Telnyx AI GitHub](https://github.com/team-telnyx/ai)
-- [llms.txt](https://telnyx.com/llms.txt)
+- [Telnyx Agent CLI](https://github.com/team-telnyx/ai)
+- [Agent Skills](https://github.com/team-telnyx/telnyx-skills)
+- [Full documentation](https://developers.telnyx.com/llms-full.txt)
+- [Documentation index](https://developers.telnyx.com/llms.txt)
+- [Telnyx CLI](https://github.com/team-telnyx/telnyx-cli)
 
 ## Related Examples
 
-- [edge-agent-chat](./edge-agent-chat) — Real-time chat agent with WebSocket streaming
-- [edge-sms-forwarder](./edge-sms-forwarder) — SMS-to-webhook forwarder with Ed25519 verification
-- [edge-call-control](./edge-call-control) — Call Control with IVR and call forwarding
-- [edge-kv-cache](./edge-kv-cache) — KV-backed caching layer with TTL
+- [Agent Fleet Shared Workspace](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-fleet-shared-workspace/README.md)
+- [KV-Backed Rate Limiter](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/kv-backed-rate-limiter/README.md)
 
 ## Resources
 
-- [Telnyx Developer Docs](https://developers.telnyx.com/)
-- [Telnyx API Reference](https://developers.telnyx.com/api/)
-- [Telnyx SDK (TypeScript)](https://github.com/team-telnyx/telnyx-node)
-- [Telnyx SMS Product Page](https://telnyx.com/sms)
-- [Telnyx Pricing](https://telnyx.com/pricing)
+- [Developer guides](https://developers.telnyx.com/docs/overview)
+- [Messaging API](https://developers.telnyx.com/api-reference/messages/send-a-message)
+- [Node SDK](https://github.com/team-telnyx/telnyx-node)
+- [Agent SDK](https://telnyx.com/products/agentsdk)
+- [SMS pricing](https://telnyx.com/pricing/messaging)
