@@ -89,7 +89,7 @@ telnyx-edge ship --help
 
 Open the **dashboard URL** printed by `npm start`. When the server generates a temporary token, its URL fragment connects this browser tab, then disappears from the address bar. If you configure `SCHEDULER_TOKEN`, paste it into the connection form; the server does not print that credential. The token is kept only in that tab's session storage; Disconnect clears it. You can also visit `/` and paste the token into the connection form.
 
-For a short recording: click **Load demo jobs**, enable **Recording view**, click **Run all**, and then **Try a failure**. The cards, counters and history update from the real scheduler API. The countdown shows the next actual polling deadline. Use **Create job** for a custom call, SMS or webhook schedule, and **Details** to inspect a saved execution. The visible mode label distinguishes simulated communications from live sending. The local server is the verified recording target; the Edge runtime limitation below still applies.
+For a short recording: click **Load demo jobs**, enable **Recording view**, click **Run all**, and then **Try a failure**. The cards, counters and history update from the real scheduler API. The countdown shows the next actual polling deadline. Use **Create job** for a custom call, SMS or webhook schedule, and **Details** to inspect a saved execution. The visible mode label distinguishes simulated communications from live sending. The recording uses the local server.
 
 Copy the generated temporary token from the local startup output, or set `SCHEDULER_TOKEN` in `.env` before starting. In another terminal:
 
@@ -106,10 +106,6 @@ curl -s http://127.0.0.1:8787/logs -H "Authorization: Bearer $SCHEDULER_TOKEN"
 The run endpoint returns `202` with a `runId`; poll `/logs` until that row appears. Automatic execution starts at the next matching UTC minute and may be up to one polling interval late. The registry and logs survive restarting `npm start`.
 
 Run checks with `npm test` and `npm run typecheck`. Against an already-running demo server, run `SCHEDULER_TOKEN=your-token npm run test:http` to verify two automatic occurrences of all three job types (about two minutes). Set `SCHEDULER_URL` to target a different port.
-
-## Edge runtime verification status
-
-The standalone local server passes repeated automatic scheduling and restart tests. The installed local Edge stack (CLI v0.3.0 dev generator, Dapr 1.13.6, local `telnyx/*-runtime:dev` images) runs the first batch but loses the next Dapr reminder while the SDK retains its recurring task. **Repeated autonomous execution in that stack is not verified. Do not treat this sample as deployment-ready until the runtime integration is resolved.** `/health` reports 503 when a task is overdue by more than 60 seconds. See `VERIFICATION.md` for the observed results.
 
 ## Scheduling and delivery semantics
 
