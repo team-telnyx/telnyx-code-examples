@@ -1,0 +1,24 @@
+name = "sim-agent"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "SIM_AGENT"
+type = "SIMAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[env_vars]
+DEMO_MODE = "true"
+TELNYX_SMS_FROM_NUMBER = "+15555550100"
+USAGE_CHECK_SECONDS = "3600"
+BILLING_CYCLE_SECONDS = "2592000"

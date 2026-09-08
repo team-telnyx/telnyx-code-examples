@@ -1,128 +1,151 @@
 # API Reference — SIMAgent
 
-The SIMAgent sample exposes a single HTTP endpoint that serves as the webhook receiver for Telnyx events. All other interactions (SMS, calls, provisioning) are driven by the agent's internal scheduling and inference logic.
+The worker (`src/index.ts`) exposes the HTTP surface; all durable state lives inside the `SIMAgent` actor, one per SIM card. In **demo mode** (`DEMO_MODE=true`, the default), webhook bodies are parsed without signature verification and outbound actions are simulated. In **live mode** (`DEMO_MODE=false`), every webhook request is verified against the Telnyx Ed25519 signature (`telnyx.webhooks.unwrap`) before processing.
 
 ## Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/webhook` | Receives Telnyx webhook events (SMS, calls, data usage) and dispatches them to the appropriate SIMAgent instance. |
+| POST | `/api/sim` | Initialize (or re-provision) the agent for a SIM card. |
+| POST | `/api/usage` | Record a usage delta against a SIM. |
+| GET | `/api/sim` | Retrieve current SIM agent state and active schedules. |
+| POST | `/api/demo` | Run the full demo flow: usage → 80% alert → plan Q&A → upgrade. |
+| POST | `/webhooks/usage` | Ingest a Telnyx data-usage event. |
+| POST | `/webhooks/sms` | Ingest an inbound customer SMS (`message.received`). |
+| POST | `/webhooks/call` | Answer an inbound call (`call.initiated`) with usage context. |
+| GET | `/health` | Health check. |
 
 ---
 
-## POST /webhook
+## POST /api/sim
 
-Receives inbound Telnyx webhook events. The handler verifies the Ed25519 signature, parses the event type from `data.payload`, and routes the event to the correct `SIMAgent` instance based on the SIM card identifier.
-
-### Request Body Schema
+### Request
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `data` | object | Yes | Top-level wrapper containing the event payload. |
-| `data.payload` | object | Yes | The Telnyx event payload. Structure varies by event type. |
-| `data.payload.event` | string | Yes | The Telnyx event type (e.g., `sms.received`, `call.initiated`, `data_usage.threshold`). |
-| `data.payload.data` | object | Yes | Event-specific data. For SMS events, contains `from`, `to`, and `text`. For call events, contains `call_control_id`, `from`, and `to`. For data usage events, contains `sim_card_id`, `usage_bytes`, and `threshold_percent`. |
-| `data.payload.data.sim_card_id` | string | Conditional | The Telnyx SIM card identifier. Present in data usage and provisioning events. |
-| `data.payload.data.from` | string | Conditional | The sender's phone number (E.164 format). Present in SMS and call events. |
-| `data.payload.data.to` | string | Conditional | The recipient's phone number (E.164 format). Present in SMS and call events. |
-| `data.payload.data.text` | string | Conditional | The body of an inbound SMS message. Present in `sms.received` events. |
-| `data.payload.data.call_control_id` | string | Conditional | The Telnyx Call Control ID. Present in call events. |
-| `data.payload.data.usage_bytes` | integer | Conditional | Current data usage in bytes. Present in data usage events. |
-| `data.payload.data.threshold_percent` | integer | Conditional | The usage threshold percentage that triggered the event. Present in data usage events. |
+| `simId` | string | Yes | 3–64 letters, numbers, underscores, or hyphens. Names the durable actor. |
+| `phoneNumber` | string | No | Customer phone number (E.164) that receives alerts and replies. |
+| `plan` | string | No | Plan preset: `1GB` (default), `5GB`, `10GB`, `20GB`, `unlimited`. |
 
-### Example Request (curl)
-
-```bash
-curl -X POST https://<your-edge-app>.telnyx.run/webhook \
-  -H "Content-Type: application/json" \
-  -H "Telnyx-Signature: t=1700000000,v1=ed25519_signature_hex" \
-  -d '{
-    "data": {
-      "payload": {
-        "event": "sms.received",
-        "data": {
-          "from": "+15551234567",
-          "to": "+15559998888",
-          "text": "what are my options?"
-        }
-      }
-    }
-  }'
+```json
+{ "simId": "sim-abc123", "phoneNumber": "+15551234567", "plan": "1GB" }
 ```
 
-### Response Schema
-
-#### 200 OK
+### Response — 201 Created
 
 ```json
 {
-  "status": "processed",
-  "event": "sms.received",
-  "sim_card_id": "sim-abc123"
+  "simId": "sim-abc123",
+  "phoneNumber": "+15551234567",
+  "plan": { "name": "1GB Starter", "dataLimitMB": 1024 },
+  "usageMB": 0,
+  "alerts": [{ "threshold": 80, "sent": false }],
+  "billingCycleStart": "2026-09-08T00:00:00.000Z",
+  "history": [],
+  "liveMode": false,
+  "model": "zai-org/GLM-5.2",
+  "error": ""
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `status` | string | Always `"processed"`. Indicates the webhook was received and dispatched. |
-| `event` | string | The Telnyx event type that was processed. |
-| `sim_card_id` | string | The SIM card identifier associated with the event. |
+Initializing also arms two durable schedules: `usage-check` (threshold re-check every `USAGE_CHECK_SECONDS`) and `billing-cycle` (counter reset every `BILLING_CYCLE_SECONDS`).
 
-#### 400 Bad Request
+## POST /api/usage
+
+### Request
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `simId` | string | Yes | SIM to credit usage against. |
+| `deltaMB` | number | Yes | Usage delta in MB (non-negative). |
+
+### Response — 200 OK
+
+Returns the updated `SIMState`. If usage crosses 80% of the plan limit and the alert has not been sent, the agent sends a proactive SMS and marks the threshold alert.
+
+## GET /api/sim
+
+Query: `?simId=sim-abc123`.
+
+### Response — 200 OK
 
 ```json
 {
-  "error": "Invalid request body"
+  "state": { "simId": "sim-abc123", "usageMB": 900, "plan": { "name": "10GB", "dataLimitMB": 10240 } },
+  "schedules": [{ "id": "usage-check", "method": "checkThresholds", "due": 1788999878245 }]
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `error` | string | Generic error message. No internal details are exposed. |
+## POST /api/demo
 
-#### 401 Unauthorized
+Runs the whole narrative in one call: initialize a SIM, feed usage past the 80% threshold (proactive alert), answer plan-option and upgrade SMS commands, then return the snapshot.
+
+### Request
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `simId` | string | No | Defaults to `sim-demo-<timestamp>`. |
+| `phoneNumber` | string | No | Defaults to `+15551234567`. |
+| `plan` | string | No | Defaults to `1GB`. |
+
+### Response — 200 OK
 
 ```json
 {
-  "error": "Invalid signature"
+  "status": "complete",
+  "simId": "sim-demo-1788909878245",
+  "initializedPlan": "1GB Starter",
+  "snapshot": { "state": { "...": "..." }, "schedules": ["..."] }
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `error` | string | Returned when the Ed25519 signature verification fails. |
+## POST /webhooks/usage
 
-#### 500 Internal Server Error
+Ingests a data-usage event shaped like a Telnyx webhook: `data.payload.sim_card_id` (or `data.payload.to` for the MSISDN fallback) plus `data.payload.usage_mb` or `data.payload.usage_bytes`.
+
+### Response — 200 OK
 
 ```json
-{
-  "error": "Internal server error"
-}
+{ "status": "processed", "sim_card_id": "sim-abc123" }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `error` | string | Generic error message. Exception details are logged server-side but never returned to the client. |
+## POST /webhooks/sms
 
-### Status Codes
+Ingests `message.received` events. `data.payload.text` is the customer's message; `data.payload.from` is the reply-to number. Commands:
 
-| Status Code | Meaning | Description |
-|-------------|---------|-------------|
-| 200 | OK | Webhook event was received, signature verified, and dispatched to the appropriate SIMAgent instance. |
-| 400 | Bad Request | The request body is malformed or missing required fields. |
-| 401 | Unauthorized | The Telnyx Ed25519 signature could not be verified. |
-| 500 | Internal Server Error | An unexpected error occurred while processing the webhook. Details are logged internally. |
+| Command | Behavior |
+|---------|----------|
+| `options` / `plans` | LLM-generated plan comparison (fallback: preset list). |
+| `upgrade to <plan>` | Auto-provisions the upgrade via `POST /v2/sim_cards/{id}` (live) and confirms by SMS. |
+| `usage` / `history` / `summary` | Sends a usage summary with plan, usage, and percentage. |
+| anything else | LLM natural-language reply (fallback: help text). |
 
-### Headers
+### Response — 200 OK
 
-| Header | Type | Required | Description |
-|--------|------|----------|-------------|
-| `Content-Type` | string | Yes | Must be `application/json`. |
-| `Telnyx-Signature` | string | Yes | The Ed25519 signature header sent by Telnyx for webhook verification. |
+```json
+{ "status": "processed", "sim_card_id": "sim-abc123" }
+```
 
-### Notes
+## POST /webhooks/call
 
-- **Signature Verification**: The handler uses `telnyx.webhooks.unwrap(rawBody, signature)` to verify the Ed25519 signature before processing the event. Requests with invalid signatures are rejected with a 401.
-- **Agent Dispatch**: After verification, the handler extracts the `sim_card_id` from the payload and routes the event to the corresponding `SIMAgent` instance via the Telnyx Edge SDK's agent dispatch mechanism.
-- **Safe Demo Mode**: In demo mode, the agent logs all outbound actions (SMS sends, call initiations, plan upgrades) instead of executing them against the live Telnyx API. Switch to live mode by setting `TELNYX_DEMO_MODE=false` in the environment.
-- **No Real Phone Numbers**: All phone numbers in this sample use placeholder formats (e.g., `+1555XXXXXXXX`). Replace with real numbers only when switching to live mode.
+On `call.initiated`, the agent builds a usage-history message. In live mode the worker performs Call Control `answer` + `speak` against `https://api.telnyx.com/v2/calls/{call_control_id}/actions/...`; in demo mode the action is simulated and the message is returned instead.
+
+### Response — 200 OK (demo)
+
+```json
+{ "status": "answered", "demo": true, "sim_card_id": "sim-abc123", "message": "SIM sim-abc123 | Plan: 1GB Starter | ..." }
+```
+
+## Error responses
+
+| Status | Meaning |
+|--------|---------|
+| 400 | Malformed request (missing/invalid `simId`, negative usage, unknown plan). |
+| 401 | Live-mode webhook signature verification failed. |
+| 500 | Unexpected server error; details are logged internally, never returned. |
+
+## Notes
+
+- **Durable state**: usage counters, plan, alert flags, and history persist per actor via `getState()` / `setState()` — no external KV is used.
+- **Safe demo mode**: in demo mode the agent logs simulated sends (`sms.sent.demo` events) and skips all Telnyx API calls. Switch to live mode with `DEMO_MODE=false`.
+- **No real numbers**: all phone numbers in this sample use placeholder formats (e.g. `+1555XXXXXXXX`).

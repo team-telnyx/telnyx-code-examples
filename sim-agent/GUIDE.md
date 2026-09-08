@@ -6,10 +6,11 @@ A step-by-step tutorial for the `sim-agent` sample, which demonstrates a Telnyx 
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - A Telnyx account with an API key (get one at [telnyx.com](https://telnyx.com))
-- The Telnyx CLI (optional, for local testing): `npm install -g @telnyx/telnyx-cli`
+- The Telnyx Edge CLI (`telnyx-edge`) for local development and deployment
 - A phone number provisioned in your Telnyx account (for live mode)
+- A SIM card registered in Telnyx Wireless (for live mode)
 
 ---
 
@@ -25,7 +26,7 @@ npm install
 
 ### 2. Configure environment variables
 
-Copy the example env file and fill in your Telnyx API key:
+Copy the example env file and fill in your Telnyx credentials:
 
 ```bash
 cp .env.example .env
@@ -35,9 +36,9 @@ Edit `.env`:
 
 ```env
 TELNYX_API_KEY=your_telnyx_api_key_here
-TELNYX_PHONE_NUMBER=+1555XXXXXXXX
-TELNYX_SIM_ID=sim-abc123
-OPENAI_API_KEY=your_openai_api_key_here
+TELNYX_PUBLIC_KEY=your_telnyx_public_key_here
+TELNYX_SMS_FROM_NUMBER=+1555XXXXXXXX
+DEMO_MODE=true
 ```
 
 > **Demo mode** is the default. No real SMS, calls, or provisioning actions are taken. See the [Demo vs Live Mode](#demo-vs-live-mode) section below.
@@ -49,12 +50,15 @@ OPENAI_API_KEY=your_openai_api_key_here
 ```
 sim-agent/
 ├── src/
-│   └── index.ts          # Main agent entry point
+│   ├── index.ts            # Worker: routes webhooks and demo requests to the agent
+│   └── simAgent.ts         # SIMAgent class — the actor IS the SIM
+├── scripts/
+│   ├── smoke.mjs           # Self-contained smoke test (builds and exercises the flow)
+│   └── start.mjs           # Boots `telnyx-edge dev`
 ├── package.json
 ├── tsconfig.json
+├── telnyx.toml             # Edge bindings: actors, [telnyx], secrets, env_vars
 ├── .env.example
-├── .gitignore
-├── smoke_test.ts
 ├── README.md
 ├── API.md
 └── GUIDE.md
@@ -68,34 +72,35 @@ The `SIMAgent` is a Telnyx Edge Agent that extends the `Agent` base class. It re
 
 ### 1. Agent Initialization — `SIMAgent("sim-abc123")`
 
-The agent is instantiated with a unique SIM identifier. On startup, it loads persistent state from KV:
+The worker routes each SIM ID to a durable actor via the `[[actors]]` binding in `telnyx.toml`:
 
 ```typescript
-const usage = await this.kv.get(`sim:${this.simId}:usage`);
-const plan = await this.kv.get(`sim:${this.simId}:plan`);
+const stub = env.SIM_AGENT.idFromName(`sim-${simId}`);
+await stub.initialize({ simId, phoneNumber, plan: "1GB" });
 ```
 
-This state persists across billing cycles and reboots — the actor IS the SIM, not a transient conversation.
+The same SIM ID always routes back to the same durable actor. State persists via the SDK's merge-patch state store — the actor IS the SIM, not a transient conversation.
 
 ### 2. Normal Usage (Days 1–15) — Silent Operation
 
-The agent schedules a daily check using `this.schedule()` and `every()`:
+The agent arms two durable named timers during initialization:
 
 ```typescript
-this.schedule('0 9 * * *', () => this.checkUsageThreshold());
+await this.every(checkSeconds, "checkThresholds", undefined, { id: "usage-check" });
+await this.every(cycleSeconds, "resetBillingCycle", undefined, { id: "billing-cycle" });
 ```
 
-During normal usage, the agent receives webhook updates from Telnyx with data usage. It updates its KV counters silently — no alerts are sent.
+Tasks ride the actor's single alarm slot and survive crashes and restarts. During normal usage, the agent receives usage updates from Telnyx and updates its durable state silently — no alerts are sent.
 
 ### 3. 80% Threshold Alert (Day 16) — Proactive SMS
 
-When usage crosses 80% of the plan limit, the agent wakes and sends a proactive SMS:
+When usage crosses 80% of the plan limit, the agent sends a proactive SMS:
 
 ```typescript
-await this.telnyx.messages.create({
-  from: this.phoneNumber,
-  to: this.customerPhone,
-  text: `You've used 80% of your data plan (${used}MB of ${limit}MB).`
+await this.env.TELNYX.messages.send({
+  from: this.env.TELNYX_SMS_FROM_NUMBER,
+  to,
+  text: `You've used ${Math.round(pct)}% of your data on SIM ${state.simId}. Reply "options" for upgrade plans.`,
 });
 ```
 
@@ -103,66 +108,57 @@ This uses the `[telnyx]` binding's SMS channel.
 
 ### 4. Customer Inquiry (Day 17) — Natural Language Plan Comparison
 
-When the customer replies "what are my options?", the agent uses the OpenAI LLM binding to generate a natural-language comparison of available plans:
+When the customer replies "what are my options?", the agent uses the Telnyx inference binding to generate a natural-language comparison of available plans:
 
 ```typescript
 const response = await this.env.TELNYX.ai.openai.chat.createCompletion({
-  model: 'gpt-3.5-turbo',
+  model: state.model,
   messages: [
-    { role: 'system', content: 'You are a SIM plan advisor...' },
-    { role: 'user', content: `Customer has used ${used}MB of ${limit}MB. What plans are available?` }
+    { role: 'system', content: 'You are a helpful SIM card assistant...' },
+    { role: 'user', content: `Current plan: ${state.plan.name}. Available plans: ...` }
   ]
 });
 ```
 
-The agent parses the LLM response and sends it back as an SMS.
+The reply is sent back as an SMS. If inference fails, the agent falls back to a plain preset list.
 
 ### 5. Auto-Provisioning Upgrade (Day 17) — Telnyx API
 
 When the customer texts "upgrade to 10GB", the agent provisions the upgrade via the Telnyx API:
 
 ```typescript
-await this.telnyx.simCards.update(this.simId, {
-  data_plan: { id: 'plan_10gb_monthly' }
+await this.env.TELNYX.simCards.update(state.simId, {
+  data_limit: { amount: "10", unit: "GB" },
 });
 ```
 
-It then sends a confirmation SMS and updates the KV state.
+It then sends a confirmation SMS and updates durable state.
 
 ### 6. Webhook Updates (Day 20) — State Sync
 
-Telnyx sends data usage webhooks to the agent's webhook endpoint. The agent verifies the Ed25519 signature and updates its state:
+Telnyx sends data usage webhooks to the worker's `/webhooks/usage` endpoint. In live mode the handler verifies the Ed25519 signature before trusting the body:
 
 ```typescript
-const event = client.webhooks.unwrap(req.body, req.headers);
-const usage = event.data.payload.usage;
-await this.kv.set(`sim:${this.simId}:usage`, usage);
+const publicKey = await env.SECRETS?.get("TELNYX_PUBLIC_KEY");
+const event = telnyxClient.webhooks.unwrap(rawBody, { headers, key: publicKey });
+await env.SIM_AGENT.idFromName(actorName).recordUsage({ deltaMB: usageMb });
 ```
 
 ### 7. Billing Cycle Reset (Day 30) — Scheduled Reset
 
-The agent uses `this.schedule()` to reset counters at the end of each billing cycle:
-
-```typescript
-this.schedule('0 0 1 * *', () => this.resetBillingCycle());
-```
-
-It sends a billing summary SMS and resets usage counters in KV.
+The durable `billing-cycle` timer fires `resetBillingCycle()`, which sends a billing summary SMS and resets the usage counters in durable state.
 
 ### 8. Inbound Call (Day 31) — Call Control with Usage History
 
-When the customer calls, the agent answers using Telnyx Call Control and speaks the full usage history:
+When the customer calls, the worker receives `call.initiated` and answers using Telnyx Call Control, speaking the full usage history:
 
 ```typescript
-await this.telnyx.calls.create({
-  from: this.customerPhone,
-  to: this.phoneNumber,
-  webhook_url: this.webhookUrl,
-  webhook_url_method: 'POST'
-});
+const context = await env.SIM_AGENT.idFromName(actorName).handleInboundCall();
+await telnyxAction(env.TELNYX_API_KEY, callControlId, "answer", {});
+await telnyxAction(env.TELNYX_API_KEY, callControlId, "speak", { payload: context.message, voice: "Telnyx.KokoroTTS.af" });
 ```
 
-The agent uses text-to-speech to read out the usage summary, plan details, and billing history.
+The agent uses text-to-speech to read out the usage summary, plan details, and history.
 
 ---
 
@@ -171,10 +167,10 @@ The agent uses text-to-speech to read out the usage summary, plan details, and b
 | Primitive | How It's Used |
 |-----------|---------------|
 | **Agent SDK** | `class SIMAgent extends Agent` — owns the SIM entity with persistent state |
-| **`schedule()` + `every()`** | Daily threshold checks, billing cycle resets |
-| **`[telnyx]` binding** | SMS sending, call control, SIM provisioning via Telnyx API |
-| **Webhooks** | Inbound data usage updates from Telnyx (Ed25519 verified) |
-| **KV** | Persistent storage for usage counters, plan info, alert state |
+| **`every()` + `schedule()`** | Threshold re-checks, billing cycle resets |
+| **`[telnyx]` binding** | SMS sending, inference, SIM provisioning via the real Telnyx API client |
+| **Webhooks** | Inbound usage/SMS/call events from Telnyx (Ed25519 verified in live mode) |
+| **Durable state** | `getState()` / `setState()` for usage counters, plan info, alert state |
 | **Inference (LLM)** | Natural language plan comparison via `this.env.TELNYX.ai.openai.chat.createCompletion()` |
 | **Call Control** | Customer calls answered with full usage history via text-to-speech |
 
@@ -184,41 +180,36 @@ The agent uses text-to-speech to read out the usage summary, plan details, and b
 
 ### Demo Mode (Default)
 
-By default, the agent runs in **demo mode**. In this mode:
+By default, the agent runs in **demo mode** (`DEMO_MODE=true`). In this mode:
 
-- SMS messages are logged to the console instead of being sent
+- SMS messages are recorded in the agent's event log instead of being sent
 - Call Control actions are simulated (no real calls placed)
-- SIM provisioning updates are logged, not executed
-- Webhook payloads are processed but no real Telnyx resources are modified
-
-To enable demo mode, ensure `.env` does **not** contain `TELNYX_LIVE_MODE=true`:
+- SIM provisioning updates are simulated, not executed
+- Webhook payloads are parsed without Ed25519 verification
 
 ```env
 # .env (demo mode)
 TELNYX_API_KEY=your_telnyx_api_key_here
-TELNYX_PHONE_NUMBER=+1555XXXXXXXX
-TELNYX_SIM_ID=sim-abc123
-OPENAI_API_KEY=your_openai_api_key_here
-# TELNYX_LIVE_MODE is not set — demo mode active
+TELNYX_SMS_FROM_NUMBER=+1555XXXXXXXX
+DEMO_MODE=true
 ```
 
 ### Live Mode
 
-To switch to **live mode**, set `TELNYX_LIVE_MODE=true` in your `.env`:
+To switch to **live mode**, set `DEMO_MODE=false` in your `.env`:
 
 ```env
 TELNYX_API_KEY=your_real_telnyx_api_key_here
-TELNYX_PHONE_NUMBER=+1555XXXXXXXX
-TELNYX_SIM_ID=sim-abc123
-OPENAI_API_KEY=your_real_openai_api_key_here
-TELNYX_LIVE_MODE=true
+TELNYX_PUBLIC_KEY=your_real_telnyx_public_key_here
+TELNYX_SMS_FROM_NUMBER=+1555XXXXXXXX
+DEMO_MODE=false
 ```
 
 In live mode, the agent will:
 - Send real SMS messages via Telnyx
-- Place and receive real calls via Call Control
-- Execute real SIM provisioning updates via the Telnyx API
-- Process real webhook events from Telnyx
+- Answer and speak on real calls via Call Control
+- Execute real SIM provisioning updates via `POST /v2/sim_cards/{id}`
+- Verify every inbound webhook with `telnyx.webhooks.unwrap`
 
 > **Warning**: Live mode incurs real charges. Use only with a test SIM and verified phone numbers.
 
@@ -229,30 +220,31 @@ In live mode, the agent will:
 ### Local Development
 
 ```bash
-npm run dev
+npm start
 ```
 
-This starts the agent locally using the Telnyx Edge runtime emulator. The agent will:
-1. Load state from KV (or initialize fresh state)
-2. Register webhook endpoints
-3. Begin scheduled tasks (threshold checks, billing resets)
+This typechecks, builds, and starts the agent locally with `telnyx-edge dev`. The agent will:
+1. Load durable state (or initialize fresh state on first contact)
+2. Serve the webhook and demo endpoints
+3. Resume durable scheduled tasks (threshold checks, billing resets)
 
 ### Smoke Test
 
-Before running, verify the agent loads correctly:
+Verify the agent end to end without any external services:
 
 ```bash
-npm run smoke-test
+npm run build
+npm run smoke
 ```
 
-This imports the `SIMAgent` class and verifies it initializes without error.
+The smoke test runs a real Node HTTP server around the compiled worker with an in-process actor host, then exercises the full demo flow: threshold alert, plan Q&A, upgrade, webhooks, and health.
 
 ### Deploying
 
 Deploy to Telnyx Edge:
 
 ```bash
-telnyx deploy
+telnyx-edge ship
 ```
 
 ---
@@ -261,27 +253,24 @@ telnyx deploy
 
 | Feature | File | Description |
 |---------|------|-------------|
-| Agent class definition | `src/index.ts` | `class SIMAgent extends Agent` with SIM state |
-| Threshold check logic | `src/index.ts` | `checkUsageThreshold()` method — 80% alert |
-| Plan comparison | `src/index.ts` | `comparePlans()` method — LLM-powered |
-| Auto-provisioning | `src/index.ts` | `upgradePlan()` method — Telnyx API call |
-| Billing cycle reset | `src/index.ts` | `resetBillingCycle()` method — scheduled |
-| Call handling | `src/index.ts` | `handleIncomingCall()` method — Call Control |
-| Webhook handler | `src/index.ts` | `handleWebhook()` method — Ed25519 verified |
-| KV state management | `src/index.ts` | `loadState()` / `saveState()` methods |
+| Agent class definition | `src/simAgent.ts` | `class SIMAgent extends Agent` with SIM state |
+| Threshold check logic | `src/simAgent.ts` | `checkThresholds()` method — 80% proactive alert |
+| Plan comparison | `src/simAgent.ts` | `planOptionsReply()` method — LLM-powered with fallback |
+| Auto-provisioning | `src/simAgent.ts` | `provisionUpgrade()` method — `TELNYX.simCards.update()` |
+| Billing cycle reset | `src/simAgent.ts` | `resetBillingCycle()` method — durable timer |
+| Call handling | `src/index.ts` | `handleCallWebhook()` — Call Control answer + speak |
+| Webhook intake | `src/index.ts` | `webhookBody()` — Ed25519 verified in live mode |
+| Durable state | `src/simAgent.ts` | `getState()` / `setState()` merge-patch state store |
 
 ---
 
 ## Next Steps
 
-- **Telnyx Edge Agents Documentation**: [https://docs.telnyx.com/edge/agents](https://docs.telnyx.com/edge/agents)
-- **Telnyx SMS API**: [https://docs.telnyx.com/api/messages](https://docs.telnyx.com/api/messages)
-- **Telnyx Call Control**: [https://docs.telnyx.com/voice/call-control](https://docs.telnyx.com/voice/call-control)
-- **Telnyx SIM Cards API**: [https://docs.telnyx.com/api/sim-cards](https://docs.telnyx.com/api/sim-cards)
-- **Telnyx Webhooks Guide**: [https://docs.telnyx.com/webhooks](https://docs.telnyx.com/webhooks)
-- **Telnyx Edge KV Store**: [https://docs.telnyx.com/edge/kv](https://docs.telnyx.com/edge/kv)
-- **Telnyx AI Inference**: [https://docs.telnyx.com/edge/ai](https://docs.telnyx.com/edge/ai)
-- **Telnyx Edge Scheduling**: [https://docs.telnyx.com/edge/schedule](https://docs.telnyx.com/edge/schedule)
+- **Telnyx Edge Compute**: [https://developers.telnyx.com/docs/edge-compute](https://developers.telnyx.com/docs/edge-compute)
+- **Telnyx SMS API**: [https://developers.telnyx.com/docs/messaging](https://developers.telnyx.com/docs/messaging)
+- **Telnyx Call Control**: [https://developers.telnyx.com/docs/voice/programmable-voice](https://developers.telnyx.com/docs/voice/programmable-voice)
+- **Telnyx SIM Cards API**: [https://developers.telnyx.com/api-reference/sim-cards](https://developers.telnyx.com/api-reference/sim-cards)
+- **Telnyx Webhooks**: [https://developers.telnyx.com/docs/development/server-instructions](https://developers.telnyx.com/docs/development/server-instructions)
 
 ---
 
@@ -290,20 +279,20 @@ telnyx deploy
 | Issue | Solution |
 |-------|----------|
 | Agent fails to load | Check that `TELNYX_API_KEY` is set in `.env` |
-| SMS not sending | Verify `TELNYX_PHONE_NUMBER` is a valid Telnyx number |
-| Webhook verification fails | Ensure you're using the correct public key from Telnyx dashboard |
-| LLM responses are slow | Check `OPENAI_API_KEY` is valid and has sufficient quota |
-| Call Control not working | Verify your phone number is in E.164 format |
-| KV state not persisting | Ensure the agent is running on Telnyx Edge (not local emulator) |
+| SMS not sending | Verify `TELNYX_SMS_FROM_NUMBER` is a valid Telnyx number |
+| Webhook verification fails | Ensure `TELNYX_PUBLIC_KEY` matches the public key from the Telnyx dashboard; live mode requires it |
+| Plan comparison returns canned text | The inference call failed — check the model name and the `[telnyx]` binding in telnyx.toml |
+| Call Control not working | Verify your phone number is in E.164 format and `TELNYX_API_KEY` is configured |
+| State not persisting | Ensure the agent runs on Telnyx Edge; durable state requires the actor runtime |
 
 ---
 
 ## Related Examples
 
-- **`sms-chatbot`** — A simpler SMS-based chatbot without persistent state
-- **`voice-agent`** — A Call Control agent for voice-only interactions
-- **`kv-counter`** — A minimal example of KV store usage on Telnyx Edge
-- **`scheduled-tasks`** — Demonstrates `this.schedule()` and `every()` patterns
+- **`network-incident-agent`** — Durable incident actor with proactive SMS, Call Control, and scheduling
+- **`edge-cron-scheduler`** — Durable `every()` / `schedule()` patterns on the Agent SDK
+- **`agent-with-tool-calling`** — LLM tool calling with demo-mode SMS transport
+- **`conference-agent-mediator`** — Inference and Call Control via the `[telnyx]` binding
 
 ---
 
