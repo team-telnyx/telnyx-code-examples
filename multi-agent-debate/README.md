@@ -4,25 +4,26 @@ title: Multi-Agent Debate with Live WebSocket Streaming
 description: Two AI agents debate a topic with turn-based arguments, live WebSocket broadcasting, and audience voting tallied in SQL.
 language: typescript
 framework: edge
-telnyx_products: [Telnyx AI, Telnyx Edge SDK, Telnyx WebSockets]
+telnyx_products: [Telnyx AI, Edge Compute, Telnyx WebSockets]
 ---
 
 # Multi-Agent Debate with Live WebSocket Streaming
 
-Two AI agents with opposing stances debate a topic in real time. Arguments stream live over WebSocket, and the audience votes on the winner via WebSocket, with vote tallies persisted to SQL.
+Two AI agents with opposing stances debate a topic in real time. Arguments and vote tallies stream live over WebSocket, the audience votes via WebSocket call frames or HTTP, and votes are persisted to a per-actor SQL ledger.
 
 ## Why Telnyx
 
-Telnyx provides **AI Communications Infrastructure** — a unified platform for building AI agents that communicate over voice, SMS, and real-time WebSockets. The Telnyx Edge SDK gives agents a runtime environment with built-in state management, WebSocket streaming, and zero-credential AI inference binding, so you can focus on the debate logic instead of infrastructure plumbing.
+Telnyx provides **AI Communications Infrastructure** — a unified platform for building AI agents that communicate over voice, SMS, and real-time WebSockets. The Telnyx Agent SDK (`@telnyx/edge-runtime`) gives agents a durable runtime with merge-patch state, an embedded SQL store, durable timers, a built-in WebSocket connection surface, and zero-credential AI inference through the `[telnyx]` binding, so you can focus on the debate logic instead of infrastructure plumbing.
 
 ## Telnyx API Endpoints Used
 
 | Endpoint | Product | Purpose |
 |---|---|---|
 | `this.env.TELNYX.ai.openai.chat.createCompletion()` | Telnyx AI | Zero-credential OpenAI chat completion for agent argument generation |
-| `AgentSocketServer` | Telnyx Edge SDK | Live WebSocket broadcasting of debate turns and audience votes |
-| `StateStore` | Telnyx Edge SDK | Turn-based debate state (current turn, arguments, vote counts) |
-| `SQL DB` | Telnyx Edge SDK | Persistent vote tally storage |
+| `Agent` connection surface (`webSocket()` via the `/agents` mount) | Edge Compute (`@telnyx/edge-runtime`) | Streams the state snapshot, incremental merge-patches, and progress events live to connected audience clients |
+| `getState()` / `setState()` | Edge Compute (`@telnyx/edge-runtime`) | Merge-patch durable debate state (phase, current turn, arguments, live tally) |
+| `this.ctx.storage.sql.exec()` | Edge Compute (`@telnyx/edge-runtime`) | Per-actor embedded SQL vote ledger (one row per audience member, upsert on re-vote) |
+| `@rpc()` + `authorize()` | Edge Compute (`@telnyx/edge-runtime`) | Lets WebSocket clients cast votes over a `call` frame while staying read-only otherwise |
 
 ## Architecture
 
@@ -47,46 +48,50 @@ Telnyx provides **AI Communications Infrastructure** — a unified platform for 
 │  └──────────────────────────────────────┘                   │
 │                                                             │
 │  ┌──────────────────────────────────────┐                   │
-│  │         StateStore                   │                   │
-│  │  - currentTurn                       │                   │
+│  │   DebateRoom agent state             │                   │
+│  │  - phase / currentTurn               │                   │
 │  │  - arguments[]                       │                   │
-│  │  - votes                             │                   │
+│  │  - live vote tally                   │                   │
 │  └──────────┬───────────────────────────┘                   │
 │             │                                               │
 │             ▼                                               │
 │  ┌──────────────────────────────────────┐                   │
-│  │     AgentSocketServer                │                   │
-│  │  - Broadcasts debate turns           │                   │
-│  │  - Receives audience votes           │                   │
+│  │  Agent connection surface            │                   │
+│  │  (/agents/room/{id} WebSocket)       │                   │
+│  │  - Streams state patches + events    │                   │
+│  │  - Receives @rpc() vote calls        │                   │
 │  └──────────┬───────────────────────────┘                   │
 │             │                                               │
 │             ▼                                               │
 │  ┌──────────────────────────────────────┐                   │
-│  │     SQL DB                           │                   │
-│  │  - Vote tally                        │                   │
+│  │     Embedded SQL (ctx.storage.sql)   │                   │
+│  │  - Vote ledger (one row per voter)   │                   │
 │  └──────────────────────────────────────┘                   │
 │                                                             │
 │  ┌──────────────────────────────────────┐                   │
 │  │     Audience (WebSocket Client)      │                   │
 │  │  - Watches live debate               │                   │
-│  │  - Votes via WebSocket               │                   │
+│  │  - Votes via call frame or HTTP      │                   │
 │  └──────────────────────────────────────┘                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Data flow:**
-1. `POST /debate/start` — initializes debate state and launches Agent A
-2. Agent A generates a pro argument via `createCompletion()`, broadcasts over WebSocket
-3. StateStore advances turn → Agent B generates a con argument, broadcasts
-4. Audience members vote via WebSocket (`vote` event)
-5. Votes are tallied in SQL DB
-6. After N rounds, winner is determined and broadcast
+1. `POST /debate` — creates a `DebateRoom` actor for a new debate id and runs both debaters
+2. The room composes the pro argument through its `DebateAgent` actor via `env.TELNYX.ai.openai.chat.createCompletion()`, then the con rebuttal the same way
+3. Every `setState()` patch streams live to WebSocket clients on `/agents/room/{id}` — arguments, phase, and tally
+4. Audience members vote via a WebSocket `call` frame to the `@rpc()` vote method, or via `POST /debate/{id}/vote`
+5. Votes are upserted into the room's embedded SQL ledger; the tally is read back into agent state and streams live
+6. `POST /debate/{id}/end` finalizes the winner from the SQL tally and broadcasts it in state
 
 ## Environment Variables
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
+| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key — used by the `telnyx-edge` CLI to authenticate; the `[telnyx]` binding provides zero-credential inference to the actors | [Telnyx Dashboard → API Keys](https://portal.telnyx.com/#/app/api-keys) |
+| `AI_MODEL` | `string` | `meta-llama/Llama-3.3-70B-Instruct` | no | Inference model used by the debaters in live mode | Telnyx AI Inference model catalog |
+| `DEMO_MODE` | `string` | `true` | no | `false` switches the debaters to live inference; any other value keeps canned demo arguments | Set in `telnyx.toml` `[env_vars]` or `telnyx-edge secrets add DEMO_MODE false` |
+| `DEMO_BASE_URL` | `string` | `http://localhost:8787` | no | Base URL the smoke test runs against | Local edge stack (`npm start`) or your deployed function URL |
 
 ## Setup
 
@@ -95,19 +100,18 @@ Telnyx provides **AI Communications Infrastructure** — a unified platform for 
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/multi-agent-debate
 
-# Create .env file
-cp .env.example .env
-# Edit .env and add your Telnyx API key
-echo "TELNYX_API_KEY=your_telnyx_api_key_here" > .env
-
 # Install dependencies
 npm install
 
-# Run the edge app locally
-npm run dev
+# Build (typecheck + tsc -b)
+npm run build
 
-# Run smoke test
-npm run smoke-test
+# Run the edge app locally (boots the local actor stack via telnyx-edge dev;
+# requires Docker and the Edge Compute CLI)
+npm start
+
+# Run the smoke test against the running stack (or set DEMO_BASE_URL)
+npm run smoke
 ```
 
 The app starts on `http://localhost:8787` by default.
@@ -120,20 +124,21 @@ See [`API.md`](./API.md) for the full typed endpoint reference.
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/debate/start` | Start a new debate with a given topic |
-| `GET` | `/debate/:id` | Get current debate state |
-| `GET` | `/debate/:id/winner` | Get the winning agent |
-| `WS` | `/debate/:id/stream` | Live WebSocket stream of debate + voting |
+| `POST` | `/debate` | Start a new debate with a given topic |
+| `GET` | `/debate/{id}` | Get current debate state |
+| `POST` | `/debate/{id}/vote` | Cast or change an audience vote |
+| `POST` | `/debate/{id}/end` | End the debate and declare the winner from the SQL tally |
+| `WS` | `/agents/room/{id}` | Live WebSocket stream of debate state + events (also supports SSE and RPC POST) |
 
 ## Troubleshooting
 
 | Issue | Cause | Solution |
 |---|---|---|
-| `createCompletion is not a function` | Wrong binding path | Ensure you're using `this.env.TELNYX.ai.openai.chat.createCompletion()` |
-| WebSocket connection refused | Server not running | Run `npm run dev` and check port 8787 |
-| Vote not persisted | SQL DB not initialized | Check edge runtime logs for SQL errors |
-| Agent returns empty argument | Prompt too short | Increase `max_tokens` in the completion request |
-| `TELNYX_API_KEY` not found | `.env` missing | Copy `.env.example` to `.env` and set your key |
+| `argument generation failed` | Inference binding unavailable | Ensure the `[telnyx]` binding is declared in `telnyx.toml` and the Edge CLI is authenticated |
+| WebSocket connection refused | Local stack not running | Run `npm start` (needs Docker + `telnyx-edge`) and check port 8787 |
+| Vote not persisted | SQL ledger not initialized | Check edge runtime logs for SQL errors; the ledger is created on debate start |
+| Agent returns empty argument | Model returned no content | Increase `max_tokens` in `createCompletion()` or try a different `AI_MODEL` |
+| `TELNYX_API_KEY` not found | CLI not authenticated | Run `telnyx-edge auth` (or `telnyx-edge secrets add TELNYX_API_KEY …`) before deploying |
 
 ## Agent Discovery
 
@@ -143,14 +148,15 @@ See [`API.md`](./API.md) for the full typed endpoint reference.
 
 ## Related Examples
 
-- [voice-agent](./voice-agent) — Voice-based AI agent using Telnyx Call Control
-- [sms-agent](./sms-agent) — SMS-based AI agent with conversation state
-- [websocket-chat](./websocket-chat) — Multi-user WebSocket chat with Telnyx Edge
+- [conference-agent-mediator](../conference-agent-mediator/) — multi-participant turn-taking with the same agent socket streaming surface.
+- [ai-powered-call-router](../ai-powered-call-router/) — actor stub RPC and zero-credential inference from a voice webhook.
+- [network-incident-agent](../network-incident-agent/) — agent state, embedded SQL, durable timers, and a live demo dashboard.
 
 ## Resources
 
-- [Telnyx Developer Docs](https://docs.telnyx.com) — Official documentation
-- [Telnyx API Reference](https://developers.telnyx.com) — API endpoint reference
-- [Telnyx Edge SDK](https://github.com/team-telnyx/edge-sdk) — TypeScript SDK for edge agents
-- [Telnyx AI Product Page](https://telnyx.com/ai) — AI agent platform overview
-- [Telnyx Pricing](https://telnyx.com/pricing) — Pricing details for all Telnyx products
+- [Agent SDK Overview](https://developers.telnyx.com/docs/agent-sdk)
+- [Stateful Actors Quick Start](https://developers.telnyx.com/docs/edge-compute/stateful-actors/quick-start)
+- [AI Inference Guide](https://developers.telnyx.com/docs/inference)
+- [Edge Compute CLI](https://github.com/team-telnyx/edge-compute/releases)
+- [Telnyx AI Product Page](https://telnyx.com/ai-assistants)
+- [Telnyx Pricing](https://telnyx.com/pricing)
