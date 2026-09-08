@@ -1,0 +1,49 @@
+name = "week9-patient-agent"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[edge_compute]
+  func_id = "c643fa97-9615-4ed9-a76c-b98ddbccced1"
+  func_name = "week9-patient-agent"
+
+[[actors]]
+binding = "AGENT"
+type = "PatientAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[[actors]]
+binding = "CLINIC"
+type = "DemoClinic"
+
+[[secrets]]
+binding = "NURSE_TOKEN"
+name = "week9-patient-nurse"
+
+[[secrets]]
+binding = "DEMO_RECIPIENT"
+name = "week9-patient-recipient"
+
+[[secrets]]
+binding = "FROM_NUMBER"
+name = "week9-patient-from"
+
+[[secrets]]
+binding = "NURSE_NUMBER"
+name = "week9-patient-nurse-number"
+
+[[secrets]]
+binding = "WEBHOOK_PUBLIC_KEY"
+name = "week9-patient-webhook-public-key"
+
+[[secrets]]
+binding = "ADMIN_TOKEN"
+name = "week9-patient-agent-admin"
+
+[[secrets]]
+binding = "CLINIC_BASE_URL"
+name = "week9-patient-clinic-url"
+
+[env_vars]
+AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
