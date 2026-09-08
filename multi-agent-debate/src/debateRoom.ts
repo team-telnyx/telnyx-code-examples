@@ -161,9 +161,9 @@ export class DebateRoom extends Agent<DebateEnv, DebateRoomState> {
 
   /** Run the two debaters in sequence: pro opens, con rebuts, then voting opens. */
   private async composeArguments(): Promise<void> {
-    const state = await this.getState();
     let previousArgument = "";
     for (const stance of ["pro", "con"] as const) {
+      const state = await this.getState();
       try {
         const debater = this.env.DEBATER.idFromName(`${state.debateId}-${stance}`);
         const composed = await debater.compose({

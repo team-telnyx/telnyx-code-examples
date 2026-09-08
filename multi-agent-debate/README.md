@@ -91,7 +91,7 @@ Telnyx provides **AI Communications Infrastructure** — a unified platform for 
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key — used by the `telnyx-edge` CLI to authenticate; the `[telnyx]` binding provides zero-credential inference to the actors | [Telnyx Dashboard → API Keys](https://portal.telnyx.com/#/app/api-keys) |
 | `AI_MODEL` | `string` | `meta-llama/Llama-3.3-70B-Instruct` | no | Inference model used by the debaters in live mode | Telnyx AI Inference model catalog |
 | `DEMO_MODE` | `string` | `true` | no | `false` switches the debaters to live inference; any other value keeps canned demo arguments | Set in `telnyx.toml` `[env_vars]` or `telnyx-edge secrets add DEMO_MODE false` |
-| `DEMO_BASE_URL` | `string` | `http://localhost:8787` | no | Base URL the smoke test runs against | Local edge stack (`npm start`) or your deployed function URL |
+| `DEMO_BASE_URL` | `string` | `http://localhost:8787` | no | Base URL of a live edge stack for manual testing (`npm start`) | Local edge stack or your deployed function URL |
 
 ## Setup
 
@@ -110,8 +110,13 @@ npm run build
 # requires Docker and the Edge Compute CLI)
 npm start
 
-# Run the smoke test against the running stack (or set DEMO_BASE_URL)
+# Run the smoke test (self-contained — in-process actor host, no edge runtime needed)
 npm run smoke
+
+# Optionally, run the live edge stack (boots the local actor stack via telnyx-edge
+# dev; requires Docker and the Edge Compute CLI) and exercise the debate via the
+# dashboard and API:
+npm start
 ```
 
 The app starts on `http://localhost:8787` by default.
