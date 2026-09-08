@@ -51,4 +51,3 @@ def test_demo_mode_default():
     """Test that demo mode is enabled by default."""
     import app
     assert app.DEMO_MODE is True
-</arg_value></tool_call>
