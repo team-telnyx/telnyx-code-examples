@@ -14,7 +14,8 @@ app.logger.setLevel(logging.INFO)
 
 # --- Telnyx client init ---
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY", "")
-telnyx.api_key = TELNYX_API_KEY
+TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY", "")
+telnyx_client = telnyx.Telnyx(api_key=TELNYX_API_KEY, public_key=TELNYX_PUBLIC_KEY)
 
 # --- Config ---
 PRIMARY_CONNECTION_ID = os.getenv("TELNYX_PRIMARY_CONNECTION_ID", "")
@@ -74,7 +75,7 @@ def trip_circuit_breaker():
         app.logger.info(f"[DEMO MODE] SMS alert (not sent): {alert_msg}")
     else:
         try:
-            telnyx.Message.create(
+            telnyx_client.messages.send(
                 from_=FROM_NUMBER,
                 to=OPS_ALERT_NUMBER,
                 text=alert_msg,
@@ -115,15 +116,13 @@ def should_route_to_backup():
 @app.route("/webhooks/call-control", methods=["POST"])
 def call_control_webhook():
     """Handle Call Control webhooks, including call failures."""
+    raw_body = request.get_data(as_text=True)
     try:
-        # Verify webhook signature
-        telnyx_event = telnyx.Webhook.construct_event(
-            payload=request.get_data(as_text=True),
-            signature_header=request.headers.get("Telnyx-Signature"),
-            secret=os.getenv("TELNYX_WEBHOOK_SECRET", ""),
-        )
-        payload = telnyx_event.data.payload
-        event_type = telnyx_event.data.event_type
+        telnyx_client.webhooks.unwrap(raw_body, headers=dict(request.headers))
+        event = json.loads(raw_body)
+        event_data = event.get("data", {})
+        event_type = event_data.get("event_type", "")
+        payload = event_data.get("payload", {})
 
         app.logger.info(f"Received webhook event: {event_type}")
 
@@ -135,8 +134,8 @@ def call_control_webhook():
         return jsonify({"status": "ok"}), 200
 
     except Exception:
-        app.logger.exception("Error processing webhook.")
-        return jsonify({"error": "Internal server error"}), 500
+        app.logger.warning("Webhook signature verification failed or invalid payload.")
+        return jsonify({"error": "Invalid webhook signature"}), 401
 
 
 def handle_call_failure(payload):
@@ -176,25 +175,30 @@ def route_call():
                 f"via connection {connection_id} "
                 f"(tripped={state['tripped']}, failures={state['failures']})"
             )
-            return jsonify({
-                "demo": True,
-                "to": to_number,
-                "connection_id": connection_id,
-                "circuit_state": state,
-                "message": "Demo mode: no real call placed.",
-            }), 200
+            return jsonify(
+                {
+                    "demo": True,
+                    "to": to_number,
+                    "connection_id": connection_id,
+                    "circuit_state": state,
+                    "message": "Demo mode: no real call placed.",
+                }
+            ), 200
 
         # Live mode: create actual call via Telnyx Call Control API
-        call = telnyx.Call.create(
+        call = telnyx_client.calls.dial(
             from_=FROM_NUMBER,
             to=to_number,
             connection_id=connection_id,
         )
-        return jsonify({
-            "call_id": call.id,
-            "connection_id": connection_id,
-            "circuit_state": state,
-        }), 201
+        call_id = call.data.call_control_id if call.data else ""
+        return jsonify(
+            {
+                "call_id": call_id,
+                "connection_id": connection_id,
+                "circuit_state": state,
+            }
+        ), 201
 
     except Exception:
         app.logger.exception("Error routing call.")
