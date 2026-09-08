@@ -85,6 +85,9 @@ server.listen(port, "127.0.0.1", () => {
   console.log(
     `Scheduler: http://127.0.0.1:${port} (${demo ? "demo" : "LIVE"} mode)`,
   );
+  console.log(
+    `Open dashboard: http://127.0.0.1:${port}/${process.env.SCHEDULER_TOKEN ? "" : "#token=" + encodeURIComponent(token)}`,
+  );
   if (!process.env.SCHEDULER_TOKEN)
     console.log(`Temporary local bearer token: ${token}`);
 });

@@ -1,3 +1,4 @@
+import { dashboard } from "./dashboard.js";
 export { CronAgent } from "./cron-agent.js";
 import type { CronAgent } from "./cron-agent.js";
 import { ValidationError, validateJob } from "./jobs.js";
@@ -23,6 +24,18 @@ export interface Env {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (request.method === "GET" && url.pathname === "/") {
+      return new Response(dashboard(), {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+          "referrer-policy": "no-referrer",
+          "x-content-type-options": "nosniff",
+          "content-security-policy":
+            "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+        },
+      });
+    }
     if (url.pathname === "/health/liveness")
       return Response.json({ status: "ok" });
     let token = env.SCHEDULER_TOKEN || process.env.SCHEDULER_TOKEN;

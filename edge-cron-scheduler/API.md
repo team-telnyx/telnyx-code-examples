@@ -1,9 +1,10 @@
 # Edge Cron Scheduler API
 
-Base URL for local development: `http://127.0.0.1:8787`. All routes require `Authorization: Bearer <SCHEDULER_TOKEN>` except the liveness probe. Bodies and responses are JSON unless stated otherwise.
+Base URL for local development: `http://127.0.0.1:8787`. All routes require `Authorization: Bearer <SCHEDULER_TOKEN>` except the dashboard shell and liveness probe. Bodies and responses are JSON unless stated otherwise.
 
 | Method | Path | Response |
 | --- | --- | --- |
+| GET | `/` | 200 HTML dashboard shell; API data still requires authentication |
 | GET | `/health/liveness` | 200 `{status:"ok"}`; process probe only |
 | GET | `/health` | 200 `{status, demoMode, jobs, schedules}` or 503 for a task overdue by more than 60 seconds; initializes the durable poller |
 | GET | `/jobs` | 200 array of stored jobs |

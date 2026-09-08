@@ -50,7 +50,7 @@ The production runtime owns actor activation and alarms. `local/server.ts` provi
 | --- | --- |
 | `DEMO_MODE` | `true`; only the exact value `false` enables external requests |
 | `PORT` | `8787`, local server only |
-| `SCHEDULER_TOKEN` | Bearer token for every route except `/health/liveness`; generated temporarily by the local server if empty |
+| `SCHEDULER_TOKEN` | Bearer token for every route except `/` and `/health/liveness`; generated temporarily by the local server if empty |
 | `SCHEDULER_DB` | `.data/scheduler.sqlite`, local persistent state |
 | `TELNYX_API_KEY` | Local live-mode SDK credential; unused in demo mode |
 | `TELNYX_PHONE_NUMBER` | Sender number for live calls, SMS and alerts |
@@ -86,6 +86,10 @@ telnyx-edge ship --help
 `telnyx.toml` declares the `CRON_AGENT` actor, `TELNYX` communications binding and `SCHEDULER_TOKEN` secret. Configure the token and communications binding in the target account before shipping. Keep `DEMO_MODE=true` for an initial deployed check. Call authenticated `GET /health` or create a job to initialize the durable poller.
 
 </details>
+
+Open the **dashboard URL** printed by `npm start`. When the server generates a temporary token, its URL fragment connects this browser tab, then disappears from the address bar. If you configure `SCHEDULER_TOKEN`, paste it into the connection form; the server does not print that credential. The token is kept only in that tab's session storage; Disconnect clears it. You can also visit `/` and paste the token into the connection form.
+
+For a short recording: click **Load demo jobs**, enable **Recording view**, click **Run all**, and then **Try a failure**. The cards, counters and history update from the real scheduler API. The countdown shows the next actual polling deadline. Use **Create job** for a custom call, SMS or webhook schedule, and **Details** to inspect a saved execution. The visible mode label distinguishes simulated communications from live sending. The local server is the verified recording target; the Edge runtime limitation below still applies.
 
 Copy the generated temporary token from the local startup output, or set `SCHEDULER_TOKEN` in `.env` before starting. In another terminal:
 
