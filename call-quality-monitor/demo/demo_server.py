@@ -253,16 +253,13 @@ def demo_reset():
 
 
 # ---------------------------------------------------------------------------
-# Dashboard enhancement — inject demo buttons into the HTML
+# Dashboard enhancement — override the view function to inject demo buttons
 # ---------------------------------------------------------------------------
-_ORIGINAL_DASHBOARD = app.view_functions["dashboard"]
+# Flask matches the first registered route for "/", so adding a second
+# @app.route("/") won't work. Instead we replace the view function directly.
+from app import DASHBOARD_HTML  # noqa: E402
 
-
-@app.route("/")
-def demo_dashboard():
-    """Serve the dashboard with demo controls appended."""
-    from app import DASHBOARD_HTML
-    demo_controls = """
+_DEMO_CONTROLS = """
   <div id="demo-controls" style="margin: 1rem 0; padding: 1rem; background: #f0f4ff; border-radius: 8px;">
     <h3 style="margin-top:0">Demo Controls</h3>
     <button onclick="fetch('/demo/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({calls:3,metrics_per_call:5})})">Start 3 Calls</button>
@@ -272,10 +269,17 @@ def demo_dashboard():
   </div>
 </body>
 </html>"""
-    # Replace closing </body></html> with demo controls + closing tags
-    html = DASHBOARD_HTML.replace("</body>\n</html>", demo_controls)
+
+_DEMO_HTML = DASHBOARD_HTML.replace("</body>\n</html>", _DEMO_CONTROLS)
+
+
+def demo_dashboard():
+    """Serve the dashboard with demo controls appended."""
     from flask import Response
-    return Response(html, mimetype="text/html")
+    return Response(_DEMO_HTML, mimetype="text/html")
+
+
+app.view_functions["dashboard"] = demo_dashboard
 
 
 # ---------------------------------------------------------------------------
