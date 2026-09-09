@@ -17,7 +17,7 @@ export async function lookupLead(env: Env): Promise<{ recordId: string; summary:
 }
 
 export function smalltalkFallback(): string {
-  return "I'm here to help with Anusha's onboarding context, Salesforce status, and escalation.";
+  return "I'm here to help with your onboarding context, Salesforce status, and escalation.";
 }
 
 export function asksForLead(text: string): boolean {

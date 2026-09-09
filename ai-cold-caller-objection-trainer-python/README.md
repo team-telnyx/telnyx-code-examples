@@ -29,28 +29,40 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 ## Architecture
 
 ```
-  Inbound Phone Call
+  POST /train (rep_number, persona)
         │
         ▼
   ┌──────────────────┐
-  │ Answer + Greet    │ ── TTS welcome message
+  │ Outbound Call     │ ── Telnyx Call Control dials the rep
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
-  │ Gather Speech     │ ── STT transcription
+  │ AI Persona opens  │ ── TTS in-character greeting
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │ Gather Speech     │ ── STT captures rep's pitch
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
   │ AI Inference      │
-  │ • Classification / triage│
-  │ • Case / claim handling│
+  │ • Stay in persona │
+  │   (Busy VP, Gate- │
+  │    keeper, etc.)  │
+  │ • Push objections │
   └────────┬─────────┘
-           │ ◄──── conversation loop
+           │ ◄──── roleplay loop (5-8 exchanges)
            │
            ▼
-     JSON response
+  ┌──────────────────┐
+  │ Call hangup       │ ── AI scores performance
+  │ • objection score │
+  │ • rapport score   │
+  │ • feedback list   │
+  └──────────────────┘
 ```
 
 ## Environment Variables

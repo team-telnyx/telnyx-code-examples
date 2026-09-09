@@ -2,6 +2,10 @@
 
 Log Telnyx Call Control events to a shared SQL database, track per-region call volume in Edge KV counters, and trigger SMS alerts when a region exceeds a configurable threshold — all on Telnyx Edge Compute with the Agent SDK.
 
+## Why Telnyx
+
+Telnyx is AI Communications Infrastructure that brings Call Control, edge compute, KV storage, and SMS together on a single platform. For geo-distributed call logging, this means your webhook handler, SQL database, region counters, and SMS alerting all run on Telnyx Edge Compute with no external dependencies. The zero-credential `[telnyx]` messaging binding lets the agent fire ops alerts without managing separate SMS credentials or provider integrations.
+
 ## Architecture
 
 ```
@@ -233,6 +237,30 @@ geo-distributed-call-logger/
 └── .gitignore
 ```
 
+## Agent Discovery
+
+This folder is self-contained for coding agents. Start with `README.md` for an overview, then the code file and `GUIDE.md` for implementation details.
+
+- **Sign up**: [telnyx.com/sign-up](https://telnyx.com/sign-up)
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **LLM-friendly docs**: [developers.telnyx.com/llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [llms.txt](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI** (human + agent): [developers.telnyx.com/docs/development/cli](https://developers.telnyx.com/docs/development/cli)
+
 ## License
 
 MIT
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Region shows `unknown` | Country code not in the region map | Extend `COUNTRY_TO_REGION` in `src/geoLogger.ts` |
+| Webhook returns 4xx | Signature verification failed | Ensure `TELNYX_PUBLIC_KEY` secret is set (`telnyx-edge secrets add`) |
+| Counters reset | KV binding missing | Check `[storage.kv.REGION_KV]` id in `telnyx.toml` |
+
+## Related Examples
+
+- [Persistent State Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) — Durable StatefulActor on Edge with the same zero-credential inference binding
+- [Collaborative Doc with AI Copilot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/collaborative-doc-ai-copilot/README.md) — Multiplayer StatefulActor with an AI copilot on Edge
+- [Edge Call Transcription Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-call-transcription-agent/README.md) — Call audio transcription on Edge actors

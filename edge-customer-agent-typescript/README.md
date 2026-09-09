@@ -15,7 +15,7 @@ A durable **Entity Agent** on Telnyx Edge Compute. One actor per customer, keyed
 
 **Runs on [Telnyx Edge Compute](https://developers.telnyx.com/docs/edge-compute)** with the [Agent SDK](https://developers.telnyx.com/docs/agent-sdk) — deploy with `telnyx-edge ship`.
 
-> **Key insight** (Ian Reither, Aug 10): *"The Assistant isn't the durable object. Ian is."* The actor IS the customer — not a conversation, not a session. A durable entity that lives across channels (voice/SMS/WhatsApp), across days, across interactions. No external state machine. No queue infrastructure. No context reconstruction.
+> **Key insight**: *"The Assistant isn't the durable object. The customer is."* The actor IS the customer — not a conversation, not a session. A durable entity that lives across channels (voice/SMS/WhatsApp), across days, across interactions. No external state machine. No queue infrastructure. No context reconstruction.
 
 ## Telnyx API Endpoints Used
 
@@ -132,7 +132,7 @@ edge-customer-agent-typescript/
 
 The **Entity Agent pattern** flips the conventional architecture on its head. Instead of the AI Assistant being the durable object (with state stored in Redis, a database, or session storage), the **actor IS the durable entity** — and the Assistant is the reasoning harness *inside* it.
 
-### The 8 acceptance criteria (DEV-839)
+### The 8 acceptance criteria
 
 | AC | What | How |
 |----|------|-----|

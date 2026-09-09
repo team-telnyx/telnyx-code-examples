@@ -2,6 +2,10 @@
 
 Webhook-triggered cache invalidation across edge locations — mark caches dirty via KV, update a shared manifest in Cloud Storage, and notify ops via SMS. All orchestrated by the Agent SDK on Telnyx Edge Compute with zero-credential messaging.
 
+## Why Telnyx
+
+Telnyx is AI Communications Infrastructure that unifies edge compute, key-value storage, cloud storage, and messaging under one platform. For cache invalidation workflows, this means your agent can mark caches dirty in KV, update a manifest in Cloud Storage, and fire an SMS alert to ops — all without juggling separate providers or API keys. The zero-credential `[telnyx]` binding removes messaging auth overhead entirely, so the agent code stays focused on orchestration logic.
+
 ## Telnyx API Endpoints Used
 
 - **KV (Key-Value Store)** — `this.env.CACHE_KV.put()` / `get()` / `delete()` — per-location cache invalidation flags
@@ -223,6 +227,16 @@ The shared manifest (`cache-manifest.json`) in Cloud Storage is an append-only l
 - **Emergency content removal** — take down outdated or incorrect content, force all edges to refresh immediately
 - **A/B test rollout** — switch a percentage of traffic to a new variant, invalidate the old variant's cache
 
+## Agent Discovery
+
+This folder is self-contained for coding agents. Start with `README.md` for an overview, then the code file and `GUIDE.md` for implementation details.
+
+- **Sign up**: [telnyx.com/sign-up](https://telnyx.com/sign-up)
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **LLM-friendly docs**: [developers.telnyx.com/llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [llms.txt](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI** (human + agent): [developers.telnyx.com/docs/development/cli](https://developers.telnyx.com/docs/development/cli)
+
 ## Production Notes
 
 - This sample uses in-memory actor state. Production should add persistent storage for crash recovery.
@@ -230,3 +244,17 @@ The shared manifest (`cache-manifest.json`) in Cloud Storage is an append-only l
 - KV TTL is 1 hour. Adjust based on your cache refresh window.
 - Add authentication to the `/invalidate` endpoint before exposing it publicly.
 - Consider batching invalidations if you have many content IDs changing at once.
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Stuck in `invalidating` | KV binding misconfigured | Check `[storage.kv.CACHE_KV]` id in `telnyx.toml` |
+| No SMS, status `error` | ALERT_PHONE/SENDER_PHONE not set | Add them to `[env_vars]`, redeploy |
+| Deploy rejects telnyx.toml | `func_id` placeholder | Run `telnyx-edge new-func`, copy bindings into the generated config |
+
+## Related Examples
+
+- [Persistent State Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) — Durable StatefulActor on Edge with the same zero-credential inference binding
+- [Collaborative Doc with AI Copilot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/collaborative-doc-ai-copilot/README.md) — Multiplayer StatefulActor with an AI copilot on Edge
+- [Multi-Model Inference Switcher](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-model-inference-switcher/README.md) — Route inference across models on Edge

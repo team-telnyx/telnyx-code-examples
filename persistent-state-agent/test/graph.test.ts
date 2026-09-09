@@ -11,7 +11,7 @@ vi.mock("../src/telnyx-bound-chat-model.js", () => {
         if (systemContent.toLowerCase().includes("classify")) {
           return { content: "lead" };
         }
-        return { content: "The latest Salesforce lead is Anusha Demo Lead at Telnyx, status MQL." };
+        return { content: "The latest Salesforce lead is Alex Demo Lead at Telnyx, status MQL." };
       }),
       _llmType: () => "telnyx-bound-mock",
     })),
@@ -45,7 +45,7 @@ describe("LangGraph StateGraph routing", () => {
     });
 
     expect(result.intentLabel).toBe("lead");
-    expect(result.actionResult).toContain("Anusha Demo Lead");
+    expect(result.actionResult).toContain("Alex Demo Lead");
     expect(result.actionResult).toContain("MQL");
     expect(result.replyText).toBeTruthy();
   });
@@ -87,7 +87,7 @@ describe("LangGraph StateGraph routing", () => {
     });
 
     expect(result.intentLabel).toBe("lead");
-    expect(result.actionResult).toContain("Anusha Demo Lead");
+    expect(result.actionResult).toContain("Alex Demo Lead");
   });
 
   it("skips action for non-lead messages", async () => {

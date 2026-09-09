@@ -18,19 +18,33 @@ AI Customer Churn Predictor - analyze call/message patterns via Telnyx APIs, AI 
 ## Architecture
 
 ```
-  API Request
+  POST /predict (customer data)
         │
         ▼
   ┌──────────────────┐
-  │ Your App          │
+  │ Build prompt from │
+  │ • call volumes    │
+  │ • message volumes │
+  │ • support tickets │
+  │ • login recency   │
   └────────┬─────────┘
            │
-           ├──► Telnyx AI Inference
-           │
-           ├──► Classification / triage
+           ▼
+  ┌──────────────────┐
+  │ Telnyx AI         │
+  │ Inference         │
+  │ • Churn risk      │
+  │   (high/med/low)  │
+  │ • Probability     │
+  │ • Risk factors    │
+  │ • Recommended     │
+  │   interventions   │
+  └────────┬─────────┘
            │
            ▼
-     JSON response
+     JSON prediction
+  (also: POST /predict/batch
+   for up to 20 customers)
 ```
 
 ## Environment Variables

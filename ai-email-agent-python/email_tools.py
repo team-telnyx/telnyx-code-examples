@@ -1,15 +1,14 @@
 """Telnyx Email API wrappers — send email and fetch inbound messages.
 
-Email API is in invite-only beta. Endpoints confirmed via live API probing
-(202-08-18, beta access granted):
+Endpoints:
 
-Outbound + retrieval (CONFIRMED working):
+Outbound + retrieval:
   POST /v2/emails                          — send a transactional email (202 Accepted)
   GET  /v2/emails                          — list emails (outbound + inbound)
   GET  /v2/emails/{id}                     — retrieve a single email by ID
   GET  /v2/email_domains                   — list sending domains (shared + custom)
 
-Domain management (paths from launch blog, not yet live-verified):
+Domain management:
   POST /v2/email_domains                   — create a sending domain
   POST /v2/email_domains/{id}/verify       — verify DNS records
   POST /v2/email_domains/{id}/webhooks     — configure domain-level webhook
@@ -270,9 +269,8 @@ def configure_domain_webhook(
     return _check(resp)
 
 
-# Outbound webhook events — confirmed from the launch blog and live email
-# event tracking (GET /v2/emails/{id} returns an `events` array with these
-# types: queued, sending, sent, delivered, failed, etc.).
+# Outbound webhook events (GET /v2/emails/{id} returns an `events` array
+# with these types: queued, sending, sent, delivered, failed, etc.).
 OUTBOUND_WEBHOOK_EVENTS = [
     "email.queued",
     "email.sending",
@@ -288,9 +286,8 @@ OUTBOUND_WEBHOOK_EVENTS = [
     "email.rejected",
 ]
 
-# Inbound webhook events (the exact event name is being confirmed against the
-# official telnyx-email-inbound skill). The webhook handler in app.py accepts
-# any of these as a trigger for the fetch → AI → reply flow.
+# Inbound webhook events. The webhook handler in app.py accepts any of
+# these as a trigger for the fetch → AI → reply flow.
 INBOUND_WEBHOOK_EVENTS = [
     "email.received",
     "email.inbound",

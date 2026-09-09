@@ -65,15 +65,15 @@ POST /campaign { phone_numbers: [...] }
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `CALL_RATE_LIMIT_PER_MINUTE` | `string` | `your_call_rate_limit_per_minute_here` | **yes** | CALL_RATE_LIMIT_PER_MINUTE | — |
-| `PORT` | `string` | `your_port_here` | **yes** | PORT | — |
-| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
-| `TELNYX_CONNECTION_ID` | `string` | `your_telnyx_connection_id_here` | **yes** | TELNYX_CONNECTION_ID | — |
-| `TELNYX_PHONE_NUMBER` | `string` | `your_telnyx_phone_number_here` | **yes** | TELNYX_PHONE_NUMBER | — |
-| `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_public_key_here` | **yes** | TELNYX_PUBLIC_KEY | — |
-| `TELNYX_SMS_FROM` | `string` | `your_telnyx_sms_from_here` | **yes** | TELNYX_SMS_FROM | — |
-| `TELNYX_SMS_TO` | `string` | `your_telnyx_sms_to_here` | **yes** | TELNYX_SMS_TO | — |
-| `TELNYX_WEBHOOK_URL` | `string` | `your_telnyx_webhook_url_here` | **yes** | TELNYX_WEBHOOK_URL | — |
+| `CALL_RATE_LIMIT_PER_MINUTE` | `string` | `30` | **yes** | Max outbound calls per minute to avoid rate limits | Set based on your Telnyx plan limits |
+| `PORT` | `string` | `5000` | **yes** | Port the Flask server listens on | Choose any available port |
+| `TELNYX_API_KEY` | `string` | `KEY01...` | **yes** | Telnyx API v2 authentication key | [portal.telnyx.com → API Keys](https://portal.telnyx.com/#/app/api-keys) |
+| `TELNYX_CONNECTION_ID` | `string` | `18001...` | **yes** | Call Control connection for outbound calls | [portal.telnyx.com → Voice → SIP Connections](https://portal.telnyx.com/#/app/connections) |
+| `TELNYX_PHONE_NUMBER` | `string` | `+18005550100` | **yes** | E.164 caller ID for outbound calls | [portal.telnyx.com → Numbers](https://portal.telnyx.com/#/app/numbers/my-numbers) |
+| `TELNYX_PUBLIC_KEY` | `string` | `abc123...` | **yes** | Ed25519 public key for webhook signature verification | [portal.telnyx.com → API Keys](https://portal.telnyx.com/#/app/api-keys) |
+| `TELNYX_SMS_FROM` | `string` | `+18005550100` | **yes** | E.164 number for outbound SMS notifications | [portal.telnyx.com → Numbers](https://portal.telnyx.com/#/app/numbers/my-numbers) |
+| `TELNYX_SMS_TO` | `string` | `+18005550199` | **yes** | E.164 destination number for campaign status SMS | Your notification recipient number |
+| `TELNYX_WEBHOOK_URL` | `string` | `https://your-domain.ngrok.io/webhook` | **yes** | Public URL for Telnyx to send call event webhooks | Your server's public URL (use ngrok for local dev) |
 
 ## Setup
 
@@ -212,9 +212,9 @@ Health check endpoint.
 
 ## Related Examples
 
-- [agent-desk](https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-compute-statefulactor/examples/agent-desk) — Stateful actor pattern for agent-based workflows
-- [Call Control Examples](https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-control) — Outbound call control patterns
-- [SMS Examples](https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms) — Messaging patterns
+- [AI Cold Caller Objection Trainer](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-cold-caller-objection-trainer-python/README.md) — AI-powered call training
+- [AI Customer Winback Caller](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-customer-winback-caller-python/README.md) — Outbound AI calling patterns
+- [AI Live Call Participant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-live-call-participant-python/README.md) — Real-time call AI integration
 
 ## Resources
 

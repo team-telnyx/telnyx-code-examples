@@ -1,0 +1,47 @@
+# SMS Two-Factor Auth Agent — Telnyx Edge Compute (Stateful Actors).
+#
+# One durable actor instance per phone number: it generates the 6-digit
+# code, writes it to KV with a 5-minute TTL, sends the SMS via the
+# zero-credential [telnyx] binding, and schedules a cleanup task so codes
+# never outlive their TTL even if KV expiry is missed.
+#
+# Bindings:
+#   [[actors]]     AGENT   — the TwoFactorAgent durable namespace. One
+#                            actor instance per E.164 phone number,
+#                            addressed via idFromName(phone).
+#   [telnyx]       TELNYX  — the standard Telnyx SDK binding. Exposes
+#                            this.env.TELNYX.messages.send(). Declaring
+#                            this block also injects TELNYX_API_KEY into
+#                            process.env.
+#   [storage.kv.KV]         — Telnyx KV namespace holding the active
+#                            verification codes. Created via:
+#                            telnyx-edge storage kv create --name sms-two-factor-agent-2fa
+#
+# Env vars:
+#   DEMO_MODE           — "true" (default) logs codes to console instead of
+#                         sending real SMS; "false" sends real SMS.
+#   TELNYX_FROM_NUMBER  — SMS sender number in E.164 format.
+
+name = "sms-two-factor-agent"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# ── Function identity (created via `telnyx-edge new-func --actor -l ts -n sms-two-factor-agent`) ──
+[edge_compute]
+func_id = "c93f8341-e13f-4dc9-87c7-495f526ee101"
+func_name = "sms-two-factor-agent"
+
+[[actors]]
+binding = "AGENT"
+type = "TwoFactorAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.kv.KV]
+id = "2daad78d-92e1-4a11-9064-b896a69c0493"
+
+[env_vars]
+DEMO_MODE = "false"
+# 10DLC campaign number (campaign 4b30019a…270f) — SMS-capable sender.
+TELNYX_FROM_NUMBER = "+16282564655"

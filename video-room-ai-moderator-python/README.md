@@ -18,20 +18,23 @@ Video Room AI Moderator - create video rooms with AI-powered content moderation 
 ## Architecture
 
 ```
-  Participants join
-        │
-        ▼
-  ┌──────────────────┐
-  │ Telnyx Video Room │
-  └────────┬─────────┘
-           │
-           ▼
-  ┌──────────────────┐
-  │ AI Processing     │
-  │ • Classification / triage│
-  └────────┬─────────┘
-           │
-           ├──► JSON response
+  POST /rooms                POST /moderate
+       │                          │
+       ▼                          ▼
+  ┌──────────────┐     ┌───────────────────┐
+  │ Telnyx Video  │     │ Telnyx AI          │
+  │ Rooms API     │     │ Inference          │
+  │ • create room │     │ • content policy   │
+  │ • join tokens │     │   check            │
+  └──────────────┘     │ • severity rating  │
+                        └─────────┬─────────┘
+                                  ▼
+                         ┌───────────────┐
+                         │ Moderation Log │
+                         │ • violation?   │
+                         │ • allow / warn │
+                         │   / mute / kick│
+                         └───────────────┘
 ```
 
 ## Environment Variables

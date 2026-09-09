@@ -118,7 +118,7 @@ In the Telnyx Portal, assign your Telnyx phone number directly to the AI Assista
 
 ## Agent Discovery
 
-This folder is self-contained for coding agents and answer engines. Start with `README.md` for the direct assistant flow, `provision_assistant.py` for the Telnyx Assistant payload, `app.py` for the optional Flask dashboard and webhook extension points, and `data/patients.json` for mock patient records. Do not use `.env` values in generated output or commits.
+This folder is self-contained for coding agents. Start with `README.md` for the direct assistant flow, `provision_assistant.py` for the Telnyx Assistant payload, `app.py` for the optional Flask dashboard and webhook extension points, and `data/patients.json` for mock patient records. Do not use `.env` values in generated output or commits.
 
 ## HIPAA-Aware Safeguards Demonstrated
 

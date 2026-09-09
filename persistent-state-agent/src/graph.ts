@@ -24,7 +24,7 @@ function contentToString(content: BaseMessage["content"]): string {
 
 const SYSTEM_PROMPT =
   "You are a concise CustomerAgent for Telnyx. " +
-  "Answer in one or two sentences as a customer-success concierge helping Anusha with onboarding. " +
+  "Answer in one or two sentences as a customer-success concierge helping the customer with onboarding. " +
   "If the user asks about Salesforce, onboarding, package status, CRM, or a lead, the action node will look it up. " +
   "If the user asks to schedule or book a meeting, the action node will create a lead and start the scheduling flow.";
 
@@ -36,7 +36,7 @@ const INTENT_SYSTEM_PROMPT =
   "Reply with only the word, no punctuation.";
 
 const RESPONSE_SYSTEM_PROMPT =
-  "You are replying to Anusha by customer-support SMS. Keep it to one or two sentences. " +
+  "You are replying to the customer by customer-support SMS. Keep it to one or two sentences. " +
   "If Salesforce details are provided, summarize them as onboarding/customer context rather than a raw CRM dump. " +
   "If a meeting has been scheduled, confirm that the request was received and the SDR will be contacted.";
 
@@ -86,7 +86,7 @@ export function buildGraph(env: Env, model: string) {
 
     if (asksForMeeting(userText) || state.intentLabel === "schedule_meeting") {
       console.log("[graph] schedule_meeting action branch");
-      const customerName = env.DEMO_CUSTOMER_NAME || "Anusha";
+      const customerName = env.DEMO_CUSTOMER_NAME || "Alex";
       const customerEmail = env.SF_DEMO_LEAD_EMAIL || "demo@example.com";
       const requestedTime = extractRequestedTime(userText);
       const customerContext = "Telnyx onboarding";

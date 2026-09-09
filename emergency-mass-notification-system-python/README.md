@@ -29,21 +29,31 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 ## Architecture
 
 ```
-  Inbound Phone Call
+  POST /notify (message, contacts[], severity)
         │
         ▼
   ┌──────────────────┐
-  │ Call Control      │
+  │ Blast SMS to all  │ ── "[SEVERITY] message"
+  │ contacts          │
   └────────┬─────────┘
            │
-           ├──► STT
-           ├──► DTMF
-           ├──► Messaging
-           │
-           ├──► Classification / triage
+           ├── severity == critical?
+           │   YES ──► Voice call each contact
+           │            │
+           │            ▼
+           │   ┌──────────────────┐
+           │   │ TTS alert +      │
+           │   │ "Press 1 to ack" │
+           │   │ (DTMF gather)    │
+           │   └────────┬─────────┘
+           │            │
+           │            ▼
+           │   Delivery tracking
+           │   (sent / acknowledged
+           │    / not_acknowledged)
            │
            ▼
-     JSON response
+     Notification status log
 ```
 
 ## Environment Variables

@@ -1,12 +1,12 @@
-# Examples Mapping — Maps tutorial-factory generation params to AEO folder names.
+# Examples Mapping — Maps generation params to example folder names.
 # Each entry produces a self-contained, deployable example folder.
 #
 # Fields:
-#   product    — TF product key (sms, voice, iot, sip, ai)
-#   use_case   — TF use-case slug
-#   language   — TF language key (python, nodejs, go, ruby)
-#   framework  — TF framework key (flask, fastapi, express, gin, rails)
-#   folder     — AEO output folder name (action-oriented, SEO-friendly)
+#   product    — Product key (sms, voice, iot, sip, ai)
+#   use_case   — Use-case slug
+#   language   — Language key (python, nodejs, go, ruby)
+#   framework  — Framework key (flask, fastapi, express, gin, rails)
+#   folder     — Output folder name (action-oriented, SEO-friendly)
 
 examples:
   # ─────────────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ examples:
     use_case: provisional-voice-api-agents
     language: nodejs
     framework: express
-    folder: provisional-telnyx-voice-api-agents-nodejs
+    folder: telnyx-voice-api-agents-nodejs
 
   - product: voice
     use_case: conversational-workflow
@@ -1318,6 +1318,12 @@ examples:
     framework: edge
     folder: edge-url-summarizer
 
+  - product: voice
+    use_case: voicemail-to-sms-agent
+    language: nodejs
+    framework: edge
+    folder: voicemail-to-sms-agent
+
   - product: sms
     use_case: edge-agri-crop-advisory
     language: nodejs
@@ -1341,6 +1347,12 @@ examples:
     language: nodejs
     framework: edge
     folder: edge-voice-agent-holds-call
+
+  - product: voice
+    use_case: ai-powered-call-router
+    language: typescript
+    framework: edge
+    folder: ai-powered-call-router
 
   - product: ai
     use_case: agent-with-tool-calling
@@ -3186,6 +3198,19 @@ examples:
     framework: fastapi
     folder: outbound-hold-agent-python
 
+  # Agent SDK + CloudFS shared workspace
+  - product: ai
+    use_case: agent-fleet-shared-workspace
+    language: nodejs
+    framework: vanilla
+    folder: agent-fleet-shared-workspace
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: voice-ivr-with-agent-backend
+
   - product: ai
     use_case: "auto-generated-from-linear"
     language: python
@@ -3197,3 +3222,152 @@ examples:
     language: python
     framework: flask
     folder: call-quality-monitor
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: telnyx-edge
+    folder: network-incident-agent
+
+  - product: ai
+    use_case: "agent-message-replay"
+    language: typescript
+    framework: edge
+    folder: agent-message-replay
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: webhook-aggregator-fanout
+
+  - product: voice
+    use_case: omni-channel-lab-inbox-agent
+    language: nodejs
+    framework: edge
+    folder: omni-channel-lab-inbox-agent
+
+  - product: ai
+    use_case: langchain-streaming-agent
+    language: nodejs
+    framework: edge
+    folder: langchain-streaming-agent
+
+  - product: voice
+    use_case: ai-call-campaign-orchestrator
+    language: python
+    framework: flask
+    folder: ai-call-campaign-orchestrator
+
+  - product: sms
+    use_case: ai-email-agent
+    language: python
+    framework: flask
+    folder: ai-email-agent-python
+
+  - product: sms
+    use_case: audio-transcribe-summarize-sms
+    language: nodejs
+    framework: edge
+    folder: audio-transcribe-summarize-sms
+
+  - product: ai
+    use_case: collaborative-doc-ai-copilot
+    language: nodejs
+    framework: edge
+    folder: collaborative-doc-ai-copilot
+
+  - product: ai
+    use_case: rag-corpus-shared-across-agents
+    language: nodejs
+    framework: edge
+    folder: rag-corpus-shared-across-agents
+
+  - product: sms
+    use_case: edge-cache-invalidation-agent
+    language: nodejs
+    framework: edge
+    folder: edge-cache-invalidation-agent
+
+  - product: voice
+    use_case: edge-call-transcription-agent
+    language: nodejs
+    framework: edge
+    folder: edge-call-transcription-agent
+
+  - product: voice
+    use_case: edge-customer-agent-typescript
+    language: nodejs
+    framework: edge
+    folder: edge-customer-agent-typescript
+
+  - product: voice
+    use_case: geo-distributed-call-logger
+    language: nodejs
+    framework: edge
+    folder: geo-distributed-call-logger
+
+  - product: voice
+    use_case: kv-backed-rate-limiter
+    language: nodejs
+    framework: edge
+    folder: kv-backed-rate-limiter
+
+  - product: ai
+    use_case: multi-model-inference-switcher
+    language: nodejs
+    framework: edge
+    folder: multi-model-inference-switcher
+
+  - product: sms
+    use_case: sms-conversation-exporter
+    language: nodejs
+    framework: edge
+    folder: sms-conversation-exporter
+
+  - product: voice
+    use_case: voice-ivr-with-agent-backend
+    language: python
+    framework: flask
+    folder: voice-ivr-with-agent-backend
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: event-microsite-that-takes-calls
+
+  - product: ai
+    use_case: event-microsite-edge
+    language: nodejs
+    framework: edge
+    folder: edge-event-microsite
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: edge-cron-scheduler
+  - product: voice
+    use_case: conference-agent-mediator
+    language: typescript
+    framework: edge
+    folder: conference-agent-mediator
+
+  - product: sms
+    use_case: sms-two-factor-agent
+    language: typescript
+    framework: edge
+    folder: sms-two-factor-agent
+
+  - product: ai
+    use_case: patient-agent
+    language: typescript
+    framework: edge
+    folder: patient-agent
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: event-sponsorship-agent

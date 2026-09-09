@@ -133,7 +133,7 @@ export class SalesforceClient {
 // ── Mock implementation (deterministic, in-memory) ──────────────────────
 
 const mockCustomers: Map<string, SalesforceCustomer> = new Map([
-  ["001", { id: "001", name: "Ian Reither", phone: "+13125550100", email: "ian@example.com", account_type: "Enterprise" }],
+  ["001", { id: "001", name: "Jane Smith", phone: "+13125550100", email: "jane@example.com", account_type: "Enterprise" }],
 ]);
 
 const mockShipments: Map<string, ShipmentRecord[]> = new Map([

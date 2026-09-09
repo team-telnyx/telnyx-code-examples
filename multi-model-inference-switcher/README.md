@@ -53,7 +53,7 @@ All models are hosted on Telnyx inference (zero-credential via the `[telnyx]` bi
 | Model ID | Name | Vendor | Notes |
 |----------|------|--------|-------|
 | `moonshotai/Kimi-K2.6` | Kimi K2.6 | Moonshot AI | Strong general-purpose reasoning |
-| `zai-org/GLM-5.2` | GLM-5.2 | Zhipu AI | Fast reasoning, good at tool use |
+| `zai-org/GLM-5.2` | GLM-5.2 | Z.AI | Fast reasoning, good at tool use |
 | `meta-llama/Llama-3.3-70B-Instruct` | Llama 3.3 70B | Meta | Open-source, good for comparison |
 
 ## Environment Variables / Secrets

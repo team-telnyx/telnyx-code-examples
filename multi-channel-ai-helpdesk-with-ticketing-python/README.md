@@ -48,7 +48,7 @@ This app handles these webhook events ([Call Control docs](https://developers.te
   │ AI Inference      │
   │ • Classification / triage│
   │ • Escalation logic │
-  │ • Case / claim handling│
+  │ • Ticket routing / escalation│
   └────────┬─────────┘
            │ ◄──── conversation loop
            │

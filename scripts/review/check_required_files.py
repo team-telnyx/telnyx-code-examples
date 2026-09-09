@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """check_required_files.py — per-example structural gate for the PR-review toolkit.
 
-Confirms each example folder has the required AEO files, the right language
+Confirms each example folder has the required files, the right language
 code+dependency files, and NONE of the forbidden deploy-scaffolding files
 (Dockerfile/Makefile) that CLAUDE.md bans. Knows the newer languages
 (php/java/csharp) that the in-repo verify.py mappings don't yet cover.

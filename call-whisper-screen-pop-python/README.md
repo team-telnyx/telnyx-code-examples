@@ -33,15 +33,28 @@ This app handles these webhook events ([Call Control docs](https://developers.te
         │
         ▼
   ┌──────────────────┐
-  │ Call Control      │
+  │ Answer + hold     │ ── "One moment please"
+  │ caller            │
   └────────┬─────────┘
            │
-           ├──► Number Lookup
-           │
-           ├──► Case / claim handling
+           ├──► Number Lookup (contacts DB
+           │    or Telnyx Number Lookup API)
            │
            ▼
-     JSON response
+  ┌──────────────────┐
+  │ Dial agent        │ ── outbound call leg
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │ Whisper to agent  │ ── TTS: caller name,
+  │                   │   company, tier, tickets
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │ Bridge calls      │ ── connect caller ↔ agent
+  └──────────────────┘
 ```
 
 ## Environment Variables

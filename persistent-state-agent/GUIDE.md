@@ -26,8 +26,8 @@ A per-customer durable agent that:
 CustomerAgent (actor instance, keyed by phone_e164)
   └─ CustomerState
        ├─ phone_e164      ← identity
-       ├─ name            ← Anusha (seeded for demo)
-       ├─ salesforce_id   ← mock-anusha-salesforce-id (Gate 1)
+       ├─ name            ← Alex (seeded for demo)
+       ├─ salesforce_id   ← mock-alex-salesforce-id (Gate 1)
        ├─ open_tickets    ← Salesforce Case refs (Gate 3+)
        ├─ shipments       ← Shipment refs (Gate 5+)
        ├─ escalation_pending ← HITL escalation (Gate 6)
@@ -90,7 +90,7 @@ Don't conflate these:
 
 `CustomerAgent extends Agent<Env, CustomerState>`:
 
-- `initialState()` seeds the demo customer (Anusha) with the mock Salesforce ID and empty external refs.
+- `initialState()` seeds the demo customer (Alex) with the mock Salesforce ID and empty external refs.
 - `receive({ text, from, to, eventId })` — dedupes by `eventId`, sets `state.phone_e164`, appends to `state.history`, bumps turn, queues `process()`. No LLM calls (30s budget).
 - `process()` — stale-task guard, runs graph, stages `pendingOutbound`, sends SMS, commits `lastSentTurn`, appends assistant reply to `state.history`.
 - `getContext()` — returns the full `CustomerContext` for `GET /context`.

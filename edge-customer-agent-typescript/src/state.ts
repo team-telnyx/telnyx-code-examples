@@ -62,7 +62,7 @@ export interface CustomerState {
 
   /** Salesforce customer ID — links the actor to the CRM record. */
   salesforce_id: string;
-  /** Customer's display name (e.g., "Ian Reither"). */
+  /** Customer's display name (e.g., "Jane Smith"). */
   name: string;
   /** E.164 phone number — the actor's identity key. */
   phone_e164: string;

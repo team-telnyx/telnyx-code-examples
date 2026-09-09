@@ -215,7 +215,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
           phone_e164: state.phone_e164,
           lead_id: graphLeadId,
           requested_time: requestedTime,
-          customer_name: state.name || "Anusha",
+          customer_name: state.name || "Alex",
           customer_context: "Telnyx onboarding",
         });
         console.log("[actor] post-graph: AgentMail sent", { thread_id: mailResult.thread_id.slice(0, 20) });
@@ -422,7 +422,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     let proactiveSmsSent = false;
     if (rescheduleDetected && state.proactive_consent && state.to && (input.phone_e164 || state.phone_e164)) {
       const customerPhone = input.phone_e164 || state.phone_e164;
-      const smsText = `Hi ${state.name || "Anusha"} — your sales meeting with Steve has been moved to ${newMeetingTime}.`;
+      const smsText = `Hi ${state.name || "Alex"} — your sales meeting with Steve has been moved to ${newMeetingTime}.`;
       if (smsTransportEnabled(this.env)) {
         try {
           await telnyx(this.env).messages.send({ from: state.to, to: customerPhone, text: smsText });
@@ -466,7 +466,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     const state = await this.getState();
     const now = Date.now();
     const value = input.value?.trim()
-      || `Updated by CustomerAgent for ${state.name || "Anusha"} at ${new Date(now).toISOString()}`;
+      || `Updated by CustomerAgent for ${state.name || "Alex"} at ${new Date(now).toISOString()}`;
 
     const result = await updateLeadDemoField(this.env, {
       lead_id: input.lead_id,
@@ -552,7 +552,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     const state = await this.getState();
     const now = Date.now();
     const ticketId = state.escalation_pending?.ticket_id;
-    const message = `Good news, Anusha. A specialist approved the expedited onboarding package. ${input.reply_text}`;
+    const message = `Good news, ${state.name || "Alex"}. A specialist approved the expedited onboarding package. ${input.reply_text}`;
 
     await this.setState({
       phone_e164: input.phone_e164,
@@ -609,7 +609,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     const state = await this.getState();
     if (!state.phone_e164 || !state.to) return;
 
-    const message = `Anusha, your onboarding package is now ready. ${reason}`;
+    const message = `${state.name || "Alex"}, your onboarding package is now ready. ${reason}`;
     const now = Date.now();
 
     await this.setState({
@@ -850,8 +850,8 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
       : null;
 
     const confirmationMessage = input.customer_approved
-      ? `Anusha confirmed the new meeting time: ${meetingTime}. Salesforce updated: Customer_Approval=confirmed, Meeting_Status=customer_confirmed.`
-      : `Anusha did not confirm the new meeting time (${meetingTime}).`;
+      ? `${state.name || "Alex"} confirmed the new meeting time: ${meetingTime}. Salesforce updated: Customer_Approval=confirmed, Meeting_Status=customer_confirmed.`
+      : `${state.name || "Alex"} did not confirm the new meeting time (${meetingTime}).`;
 
     const nextHistory: HistoryEntry[] = [
       ...(state.history ?? []),
@@ -1033,7 +1033,7 @@ export class CustomerAgentLangGraphV2 extends Agent<Env, CustomerState> {
     this.ensureTables();
     const state = await this.getState();
     const now = Date.now();
-    const prompt = `Hi ${state.name || "Anusha"}, this is your CustomerAgent. I can see your Salesforce context and your onboarding package status. I will send a follow-up by text so you do not have to stay on the line.`;
+    const prompt = `Hi ${state.name || "Alex"}, this is your CustomerAgent. I can see your Salesforce context and your onboarding package status. I will send a follow-up by text so you do not have to stay on the line.`;
     const lifecycleId = this.callLifecycleId("start", input);
 
     if (lifecycleId && !this.recordCallLifecycleEvent(lifecycleId, "start", now)) {

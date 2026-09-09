@@ -38,7 +38,7 @@ This app handles these webhook events ([Call Control docs](https://developers.te
         │
         ▼
   ┌──────────────────┐
-  │ Answer + Greet    │ ── TTS welcome message
+  │ Answer + Greet    │ ── "IT Support, how can I help?"
   └────────┬─────────┘
            │
            ▼
@@ -49,14 +49,17 @@ This app handles these webhook events ([Call Control docs](https://developers.te
            ▼
   ┌──────────────────┐
   │ AI Inference      │
-  │ • Case / claim handling│
+  │ • Match to KB     │
+  │   (password reset, │
+  │    VPN, printer,   │
+  │    email, WiFi)   │
+  │ • Troubleshooting │
+  │   guidance        │
   └────────┬─────────┘
            │ ◄──── conversation loop
            │
-           ├──► Email
-           └──► Ticket / issue
-
-  State: Redis
+           ▼
+     TTS response to caller
 ```
 
 ## Environment Variables

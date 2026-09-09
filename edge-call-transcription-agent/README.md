@@ -106,17 +106,17 @@ npm install
 telnyx-edge secret set TELNYX_API_KEY your_telnyx_api_key
 
 # SMS sender (Telnyx number with messaging + 10DLC campaign)
-telnyx-edge secret set SMS_FROM +16282564655
+telnyx-edge secret set SMS_FROM +1333377777
 
 # SMS recipient (your mobile, E.164)
-telnyx-edge secret set SMS_TO +17177247292
+telnyx-edge secret set SMS_TO +173636474849
 ```
 
 <details><summary>Programmatic / CLI setup</summary>
 
 ```bash
 # Buy a number (if you don't have one)
-telnyx number-orders create --phone-number "+16282564655"
+telnyx number-orders create --phone-number "+13333777773"
 
 # Create a Call Control application
 telnyx call-control-applications create \
@@ -124,7 +124,7 @@ telnyx call-control-applications create \
   --webhook-url "https://edge-call-transcription-agent-<id>.telnyxcompute.com/webhooks/voice"
 
 # Assign the number to the application
-telnyx numbers update +16282564655 --connection-id <call_control_app_id>
+telnyx numbers update +13333777773 --connection-id <call_control_app_id>
 
 # Verify the number can send SMS (10DLC campaign attached)
 telnyx messaging-profiles list

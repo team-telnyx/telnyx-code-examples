@@ -2,6 +2,10 @@
 
 Export SMS conversation history from Edge SQL to Cloud Storage as chunked JSON files, with completion SMS notification via zero-credential messaging — all on Telnyx Edge Compute with the Agent SDK.
 
+## Why Telnyx
+
+Telnyx is AI Communications Infrastructure that integrates SMS messaging, edge SQL, cloud storage, and compute on a single platform. For conversation export workflows, this means your SMS history lives in Edge SQL right where the export agent runs, chunks upload directly to Telnyx Cloud Storage, and the completion notification goes out via zero-credential SMS — no external databases, object stores, or notification services required.
+
 ## Architecture
 
 ```
@@ -225,6 +229,30 @@ sms-conversation-exporter/
 - **Backup** — Periodic JSON exports of all conversations to Cloud Storage
 - **Analytics** — Export conversation data for offline analysis in Spark, BigQuery, or similar
 
+## Agent Discovery
+
+This folder is self-contained for coding agents. Start with `README.md` for an overview, then the code file and `GUIDE.md` for implementation details.
+
+- **Sign up**: [telnyx.com/sign-up](https://telnyx.com/sign-up)
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **LLM-friendly docs**: [developers.telnyx.com/llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [llms.txt](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI** (human + agent): [developers.telnyx.com/docs/development/cli](https://developers.telnyx.com/docs/development/cli)
+
 ## License
 
 MIT
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `messages/count` is 0 | Webhook not receiving | Check messaging profile webhook URL + `TELNYX_PUBLIC_KEY` secret |
+| Export stuck in `uploading` | Storage binding misconfigured | Check `[storage.cloudstorage.EXPORT_STORAGE]` bucket in `telnyx.toml` |
+| Huge exports time out | Chunk size too large | Lower `CHUNK_SIZE` in `[env_vars]` |
+
+## Related Examples
+
+- [Persistent State Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) — Durable StatefulActor on Edge with the same zero-credential inference binding
+- [Collaborative Doc with AI Copilot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/collaborative-doc-ai-copilot/README.md) — Multiplayer StatefulActor with an AI copilot on Edge
+- [Edge Call Transcription Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-call-transcription-agent/README.md) — Call audio transcription on Edge actors

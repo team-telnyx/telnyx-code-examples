@@ -1,0 +1,16 @@
+name = "agent-fleet-shared-workspace"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "FLEET_AGENT"
+type = "FleetAgent"
+
+[[actors]]
+binding = "REGISTRY"
+type = "FleetRegistry"
+
+[env_vars]
+# CloudFS is a POSIX mount provided by JuiceFS, not an Edge Runtime binding.
+CLOUDFS_MOUNT_PATH = "/mnt/agentfs"
+CLOUDFS_WORKSPACE_DIR = "/shared"

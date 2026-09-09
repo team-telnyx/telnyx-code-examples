@@ -39,24 +39,29 @@ This app handles these webhook events ([Call Control docs](https://developers.te
         │
         ▼
   ┌──────────────────┐
-  │ Answer + Greet    │ ── TTS welcome message
+  │ Answer + Greet    │ ── TTS: "Speak your message"
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
-  │ Gather DTMF      │ ── caller presses keys
+  │ Gather Speech     │ ── STT captures voice message
+  │ (press # to end)  │
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
   │ AI Inference      │
-  │ • Classification / triage│
-  │ • Summarization    │
+  │ • Urgency rating  │
+  │   (critical/high/ │
+  │    normal/low)    │
+  │ • Clean up STT    │
+  │   artifacts       │
   └────────┬─────────┘
-           │ ◄──── conversation loop
            │
            ▼
-     Slack alert
+  ┌──────────────────┐
+  │ Post to Slack     │ ── emoji tag by urgency
+  └──────────────────┘
 ```
 
 ## Environment Variables

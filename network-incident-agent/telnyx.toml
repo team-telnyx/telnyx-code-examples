@@ -1,0 +1,25 @@
+name = "network-incident-agent"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "INCIDENT_AGENT"
+type = "NetworkIncidentAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.kv.INCIDENT_KV]
+# Valid development placeholder. Replace it with the UUID returned by
+# `telnyx-edge storage kv create` before deploying.
+id = "00000000-0000-4000-8000-000000000000"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[env_vars]
+TELNYX_SMS_FROM_NUMBER = "+15555550100"
+CLOUDFS_MOUNT_PATH = "/mnt/incidentfs"
+CLOUDFS_RCA_DIR = "/rca"
+RECURRENCE_CHECK_SECONDS = "259200"

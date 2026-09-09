@@ -70,7 +70,7 @@ createServer(async (req, res) => {
 }).listen(PORT, () => {
   console.log(`CustomerAgent local dev server listening on http://localhost:${PORT}`);
   console.log(`SMS transport: ${smsTransportEnabled(env) ? "production" : "demo"}`);
-  console.log(`Demo customer: ${process.env.DEMO_CUSTOMER_NAME || "Anusha"} from ${process.env.DEMO_SENDER_NUMBER || "+15557654321"}`);
+  console.log(`Demo customer: ${process.env.DEMO_CUSTOMER_NAME || "Alex"} from ${process.env.DEMO_SENDER_NUMBER || "+15557654321"}`);
 });
 
 function createLocalEnv(): Env {
@@ -80,8 +80,8 @@ function createLocalEnv(): Env {
     SMS_TRANSPORT: process.env.SMS_TRANSPORT || "demo",
     DEMO_FROM_NUMBER: process.env.DEMO_FROM_NUMBER || "+15551234567",
     DEMO_SENDER_NUMBER: process.env.DEMO_SENDER_NUMBER || "+15557654321",
-    DEMO_CUSTOMER_NAME: process.env.DEMO_CUSTOMER_NAME || "Anusha",
-    DEMO_CUSTOMER_SALESFORCE_ID: process.env.DEMO_CUSTOMER_SALESFORCE_ID || "mock-anusha-salesforce-id",
+    DEMO_CUSTOMER_NAME: process.env.DEMO_CUSTOMER_NAME || "Alex",
+    DEMO_CUSTOMER_SALESFORCE_ID: process.env.DEMO_CUSTOMER_SALESFORCE_ID || "mock-alex-salesforce-id",
     USE_MOCK_SALESFORCE: process.env.USE_MOCK_SALESFORCE || "true",
     SF_WRITE_MODE: process.env.SF_WRITE_MODE || "mock",
     SF_CLIENT_ID: process.env.SF_CLIENT_ID,
@@ -268,7 +268,7 @@ class LocalCustomer {
   async updateLeadFromAgent(input: LeadUpdateInput): Promise<{ lead_id: string; field: string; value: string }> {
     const now = Date.now();
     const value = input.value?.trim()
-      || `Updated by CustomerAgent for ${this.state.name || "Anusha"} at ${new Date(now).toISOString()}`;
+      || `Updated by CustomerAgent for ${this.state.name || "Alex"} at ${new Date(now).toISOString()}`;
     const result = await updateLeadDemoField(this.env, {
       lead_id: input.lead_id,
       field: input.field,
@@ -315,7 +315,7 @@ class LocalCustomer {
   async resumeHumanEscalation(input: HumanReplyInput): Promise<void> {
     const now = Date.now();
     const ticketId = this.state.escalation_pending?.ticket_id;
-    const message = `Good news, Anusha. A specialist approved the expedited onboarding package. ${input.reply_text}`;
+    const message = `Good news, Alex. A specialist approved the expedited onboarding package. ${input.reply_text}`;
     this.state = {
       ...this.state,
       phone_e164: input.phone_e164,
@@ -350,7 +350,7 @@ class LocalCustomer {
 
   async sendScheduledLeadFollowup(reason = "lead_followup"): Promise<void> {
     const now = Date.now();
-    const message = `Anusha, your onboarding package is now ready. ${reason}`;
+    const message = `Alex, your onboarding package is now ready. ${reason}`;
     this.state = {
       ...this.state,
       active_schedule_ids: [],
@@ -366,7 +366,7 @@ class LocalCustomer {
 
   async onCall(input: VoiceCallInput): Promise<{ prompt: string }> {
     const now = Date.now();
-    const prompt = `Hi ${this.state.name || "Anusha"}, this is your CustomerAgent. I can see your Salesforce context and your onboarding package status. I will send a follow-up by text so you do not have to stay on the line.`;
+    const prompt = `Hi ${this.state.name || "Alex"}, this is your CustomerAgent. I can see your Salesforce context and your onboarding package status. I will send a follow-up by text so you do not have to stay on the line.`;
     this.state = {
       ...this.state,
       phone_e164: input.from,
@@ -382,7 +382,7 @@ class LocalCustomer {
 
   async onCallEnded(input: VoiceCallInput): Promise<void> {
     const now = Date.now();
-    const message = "Thanks for calling, Anusha. I'll keep this thread updated with your onboarding status. You can reply here any time.";
+    const message = "Thanks for calling, Alex. I'll keep this thread updated with your onboarding status. You can reply here any time.";
     this.state = {
       ...this.state,
       phone_e164: input.from || this.state.phone_e164,
@@ -455,7 +455,7 @@ function localCompletion(messages: Array<{ role: string; content: string }>): st
   if (/\b(lead|salesforce|crm|prospect|mql|latest record|onboarding|package|status update|status)\b/i.test(lastUser)) {
     return "I still have the context from your call. Your Salesforce record shows onboarding is in progress, and I can check whether this can be expedited.";
   }
-  return "Hi Anusha - I can help with your onboarding context, Salesforce status, or escalation.";
+  return "Hi Alex - I can help with your onboarding context, Salesforce status, or escalation.";
 }
 
 function loadDotEnv(): void {

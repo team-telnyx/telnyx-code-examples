@@ -1,0 +1,20 @@
+{
+  "name": "network-incident-agent",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A durable Telnyx Edge incident actor with proactive SMS, Call Control, KV, SQL, scheduling, CloudFS RCA output, and a live demo dashboard",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "npm run build && node scripts/start.mjs",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

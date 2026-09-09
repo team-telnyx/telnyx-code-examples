@@ -30,29 +30,30 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 ## Architecture
 
 ```
-  Inbound Phone Call
+  Outbound Call (call.initiated)
         │
         ▼
   ┌──────────────────┐
-  │ Answer + Greet    │ ── TTS welcome message
+  │ Auto-record       │ ── dual-channel MP3
+  │ + live transcribe  │
+  └────────┬─────────┘
+           │
+           ▼ (call.hangup)
+  ┌──────────────────┐
+  │ Store recording   │ ── Telnyx Cloud Storage (S3)
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
-  │ Gather Speech     │ ── STT transcription
+  │ AI Compliance     │
+  │ Audit             │
+  │ • Disclosure check │
+  │ • Risk score 1-10 │
+  │ • Violation detect │
   └────────┬─────────┘
            │
-           ▼
-  ┌──────────────────┐
-  │ AI Inference      │
-  │ • Risk analysis    │
-  │ • Classification / triage│
-  │ • Case / claim handling│
-  └────────┬─────────┘
-           │ ◄──── conversation loop
-           │
-           ▼
-     Ticket / issue
+           ├──► Non-compliant? Create ticket
+           └──► Audit results log
 ```
 
 ## Environment Variables

@@ -1,0 +1,31 @@
+name = "ai-powered-call-router"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+# ── Stateful actor: one RouterAgent instance per inbound call leg ──────────
+[[actors]]
+binding = "ROUTER"
+type = "RouterAgent"
+
+# ── Telnyx API binding: pre-authenticated SDK client (env.TELNYX) ──────────
+# Used inside the actor for zero-credential AI Inference:
+#   this.env.TELNYX.ai.openai.chat.createCompletion(...)
+[telnyx]
+binding = "TELNYX"
+
+# ── Telnyx KV: globally distributed route table (env.ROUTES) ────────────────
+# Create the namespace first:
+#   telnyx-edge storage kv create --name ai-call-router-routes
+# Then paste the returned id below.
+[storage.kv.ROUTES]
+id = "6fe0ad86-2218-45e6-9e7c-1ac398e93471"
+
+# ── Secret: Telnyx API key for Call Control REST (answer, speak, gather, transfer) ──
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+# ── Env vars (non-secret config) ───────────────────────────────────────────
+[env_vars]
+AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
+DEFAULT_DESTINATION = "+17177247292"

@@ -267,10 +267,6 @@ Yes. This example includes error handling and environment-based configuration. R
 
 Ruby 3.1 or higher. Ruby 3.3 is recommended.
 
-**Q: How is Telnyx different from Twilio?**
-
-Telnyx is an AI Communications Infrastructure platform with a private global network, integrated voice + messaging + AI + SIP + IoT under one API, and significantly lower pricing. No need to stitch together multiple vendors.
-
 **Q: Where do I get a Telnyx phone number?**
 
 Log into the [Telnyx Portal](https://portal.telnyx.com), navigate to Numbers > Search & Buy, and purchase a number with the capabilities you need (SMS, voice, or both).

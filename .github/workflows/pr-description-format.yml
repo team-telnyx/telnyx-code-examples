@@ -1,0 +1,44 @@
+name: PR description format
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  check-description:
+    name: Check PR description (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required sections
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          headings = (
+              "## Summary",
+              "## Source / Tracking",
+              "## Changes",
+              "## Validation",
+              "## Review Checklist",
+              "## Merge Readiness",
+          )
+          event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          body = (event.get("pull_request", {}).get("body") or "").strip()
+          missing = [heading for heading in headings if heading not in body]
+          if missing:
+              message = "PR description is missing: " + ", ".join(missing)
+              print(f"::warning title=PR description format::{message}")
+          else:
+              message = "PR description includes all recommended sections."
+              print(message)
+          summary = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary:
+              with open(summary, "a", encoding="utf-8") as output:
+                  output.write(f"### PR description format (advisory)\n\n{message}\n")
+          PY

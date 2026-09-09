@@ -157,8 +157,8 @@ curl http://localhost:5000/calls/example-id/status
   "call_control_id": "v3:uMi2qMWHT-mLFGkEm4t9tA",
   "is_alive": false,
   "state": "hangup",
-  "transcript": "Hello, this is Harpreet. Who am I talking to today?",
-  "ai_response": "Good morning, Harpreet. I'm an AI assistant. How can I help you today?",
+  "transcript": "Hello, this is Sarah. Who am I talking to today?",
+  "ai_response": "Good morning, Sarah. I'm an AI assistant. How can I help you today?",
   "spoken": false
 }
 ```

@@ -25,21 +25,24 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 ## Architecture
 
 ```
-  Inbound Phone Call
+  POST /notify (customer_id, message, urgency)
         │
         ▼
   ┌──────────────────┐
-  │ Call Control      │
+  │ Channel selection │
+  │ • Customer pref   │
+  │ • Fallback cascade│
+  │ • Critical =      │
+  │   all channels    │
   └────────┬─────────┘
            │
-           ├──► TTS
-           ├──► Messaging
+           ├──► SMS (Telnyx Messaging)
            ├──► WhatsApp
-           │
-           ├──► Classification / triage
-           │
-           ▼
-     SMS notification
+           └──► Voice call (TTS alert)
+                    │
+                    ▼
+           Delivery tracking
+           + fallback on failure
 ```
 
 ## Environment Variables

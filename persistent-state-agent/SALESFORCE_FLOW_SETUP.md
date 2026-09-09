@@ -4,7 +4,7 @@ This document describes how to configure a Salesforce record-triggered Flow that
 
 ## Prerequisites
 
-- Salesforce admin access to the Telnyx org
+- Salesforce admin access to your Salesforce org
 - The custom fields `Meeting_Time__c`, `Meeting_Status__c`, `SDR_Assigned__c` must exist on the Lead object
 - The Edge function must be deployed at:
   ```
@@ -161,10 +161,10 @@ Replace `00Qhk000000wh9oEAA` with the actual Lead ID from your test.
 
 After the Flow is configured:
 
-1. Call the Telnyx number → schedule a meeting → reply "Yes" to AgentMail
+1. Call your Telnyx number → schedule a meeting → reply "Yes" to AgentMail
 2. Open the Lead in Salesforce
 3. Change `Meeting_Time__c` to a different time
 4. Save the Lead
 5. The Edge function should receive the webhook
-6. Anusha should receive an SMS: "Hi Anusha — your sales meeting with Steve has been moved to {new time}."
+6. The customer (Alex) should receive an SMS: "Hi Alex — your sales meeting with Steve has been moved to {new time}."
 7. Check `/context?phone=+15557654321` — should show `reschedule_event` with old and new times

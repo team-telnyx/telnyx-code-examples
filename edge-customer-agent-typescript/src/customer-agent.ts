@@ -6,14 +6,14 @@
  * across interactions. No external state machine. No queue infrastructure.
  * No context reconstruction.
  *
- * Key insight (Ian Reither, Aug 10): "The Assistant isn't the durable
- * object. Ian is." The AI Assistant is the reasoning/voice harness INSIDE
- * the agent; the agent owns the durable state.
+ * Key insight: "The Assistant isn't the durable object. The customer is."
+ * The AI Assistant is the reasoning/voice harness INSIDE the agent; the
+ * agent owns the durable state.
  *
  * Addressing: one actor per customer, keyed by E.164 phone number via
  * `idFromName("+13125550100")`. The actor survives across days, calls,
- * SMS messages, and actor evictions. When Ian calls again tomorrow, the
- * same actor wakes up with full context — no reconstruction needed.
+ * SMS messages, and actor evictions. When a customer calls again tomorrow,
+ * the same actor wakes up with full context — no reconstruction needed.
  */
 
 import { Agent, type ActorContext, type ActorNamespace, type ActorStub, type Secrets } from "@telnyx/edge-runtime";

@@ -470,7 +470,7 @@ export function actorNameForCustomer(phoneE164: string): string {
 export const DEFAULT_DEMO_FROM_NUMBER = "+15551234567";
 export const DEFAULT_DEMO_SENDER_NUMBER = "+15557654321";
 export const DEFAULT_DEMO_CUSTOMER_NAME = "Jane";
-export const DEFAULT_DEMO_CUSTOMER_SALESFORCE_ID = "mock-anusha-salesforce-id";
+export const DEFAULT_DEMO_CUSTOMER_SALESFORCE_ID = "mock-alex-salesforce-id";
 export const DEFAULT_MODEL = "zai-org/GLM-5.2";
 
 export function demoFromNumber(env: Env): string {

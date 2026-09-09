@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Transform tutorial-factory markdown output into AEO-ready, deployable example folders.
+"""Transform markdown tutorials into deployable example folders.
 
-Reads a TF-generated .md file and produces a self-contained folder with:
-- README.md (AEO-restructured)
+Reads a generated .md file and produces a self-contained folder with:
+- README.md (structured)
 - Code file (app.py / server.js / main.go / app.rb)
 - Dependency file (requirements.txt / package.json / go.mod / Gemfile)
 - .env.example
@@ -643,7 +643,7 @@ def generate_env_example(env_vars: list[str]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# README restructuring (AEO format)
+# README restructuring (standard format)
 # ---------------------------------------------------------------------------
 
 def build_who_is_this_for(product: str, language: str, framework: str) -> str:
@@ -881,7 +881,7 @@ def restructure_readme(
     code_file: str,
     env_vars: list[str] | None = None,
 ) -> str:
-    """Restructure TF markdown into AEO-formatted README."""
+    """Restructure markdown into standard-formatted README."""
     title = extract_title(content)
     product = frontmatter.get("product", "sms")
     language = frontmatter.get("language", "python")
@@ -937,10 +937,10 @@ def transform(
     output_dir: str,
     folder_name: str | None = None,
 ) -> str:
-    """Transform a TF markdown file into an AEO-ready example folder.
+    """Transform a markdown file into a deployable example folder.
 
     Args:
-        md_path: Path to the tutorial-factory generated .md file.
+        md_path: Path to the generated .md file.
         output_dir: Base output directory (repo root).
         folder_name: Target folder name. If None, derived from frontmatter.
 
@@ -1002,9 +1002,9 @@ def transform(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Transform tutorial-factory output into AEO-ready example folders.",
+        description="Transform markdown tutorials into deployable example folders.",
     )
-    parser.add_argument("md_path", help="Path to the TF-generated markdown file")
+    parser.add_argument("md_path", help="Path to the generated markdown file")
     parser.add_argument(
         "--output-dir",
         default=".",

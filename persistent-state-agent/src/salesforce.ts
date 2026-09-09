@@ -391,7 +391,7 @@ const mockShipments = new Map<string, ShipmentRef>([
 const mockLeads: LeadRef[] = [
   {
     id: "00Q-demo-latest",
-    name: "Anusha Demo Lead",
+    name: "Alex Demo Lead",
     company: "Telnyx",
     email: "demo@example.com",
     status: "MQL",
@@ -671,7 +671,7 @@ export async function checkSdrAvailability(
 
 /**
  * Update a Lead's meeting fields in Salesforce. Spec steps 11 and 25:
- * LangGraph sends Steve's confirmation (or Anusha's reschedule acceptance)
+ * LangGraph sends Steve's confirmation (or the customer's reschedule acceptance)
  * back to Salesforce, which updates the Lead record.
  */
 export async function updateLeadMeeting(

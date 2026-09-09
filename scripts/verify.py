@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify all AEO example folders meet quality requirements.
+"""Verify all example folders meet quality requirements.
 
 Checks:
 - Every example folder on disk is registered in examples_mapping.yaml.
@@ -56,7 +56,7 @@ LANG_DEP_FILE = {
 
 # Sections required on every example README. Kept to the set common to both the
 # new 3-file format and the older Node/Go/Ruby examples; the brand phrase is also required.
-REQUIRED_AEO_SECTIONS = [
+REQUIRED_SECTIONS = [
     "why telnyx",
     "troubleshooting",
     "related examples",
@@ -125,9 +125,9 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
     if readme_path.exists():
         readme = readme_path.read_text()
 
-        # Check for AEO sections
+        # Check for required sections
         readme_lower = readme.lower()
-        for section in REQUIRED_AEO_SECTIONS:
+        for section in REQUIRED_SECTIONS:
             if section not in readme_lower:
                 errors.append(f"README missing section: '{section}'")
 
@@ -303,7 +303,7 @@ def run_verification(verbose: bool = False, only: str | None = None) -> bool:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Verify AEO example folders meet quality requirements.",
+        description="Verify example folders meet quality requirements.",
     )
     parser.add_argument(
         "--verbose",

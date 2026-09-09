@@ -1,0 +1,20 @@
+# Scaffold with: telnyx-edge new-func --actor --name=langchain-streaming-agent
+# Then copy the bindings below into the generated telnyx.toml so func_id is assigned.
+
+name = "langchain-streaming-agent"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "AGENTS"
+type = "StreamingAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[edge_compute]
+func_id = "replace-with-your-function-id"
+func_name = "langchain-streaming-agent"
+
+[env_vars]
+AI_MODEL = "zai-org/GLM-5.2"

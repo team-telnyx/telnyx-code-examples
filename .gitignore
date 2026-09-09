@@ -47,3 +47,9 @@ vendor/bundle/
 
 # OS
 Thumbs.db
+
+# Internal bot scripts (live in devrel-internal)
+scripts/bot/
+
+# Claude Code session state
+.omo/

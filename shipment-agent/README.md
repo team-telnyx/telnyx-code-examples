@@ -53,11 +53,11 @@ Telnyx provides a comprehensive AI Communications Infrastructure that enables de
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
-| `TELNYX_FROM_NUMBER` | `string` | `your_telnyx_from_number_here` | **yes** | TELNYX_FROM_NUMBER | — |
-| `TELNYX_MESSAGING_PROFILE_ID` | `string` | `your_telnyx_messaging_profile_id_here` | **yes** | TELNYX_MESSAGING_PROFILE_ID | — |
-| `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_public_key_here` | **yes** | TELNYX_PUBLIC_KEY | — |
-| `TELNYX_TO_NUMBER` | `string` | `your_telnyx_to_number_here` | **yes** | TELNYX_TO_NUMBER | — |
+| `TELNYX_API_KEY` | `string` | `KEY01...` | **yes** | Telnyx API v2 authentication key | [portal.telnyx.com → API Keys](https://portal.telnyx.com/#/app/api-keys) |
+| `TELNYX_FROM_NUMBER` | `string` | `+18005550100` | **yes** | E.164 number for outbound SMS shipment notifications | [portal.telnyx.com → Numbers](https://portal.telnyx.com/#/app/numbers/my-numbers) |
+| `TELNYX_MESSAGING_PROFILE_ID` | `string` | `40017...` | **yes** | Messaging profile associated with your sending number | [portal.telnyx.com → Messaging → Profiles](https://portal.telnyx.com/#/app/messaging) |
+| `TELNYX_PUBLIC_KEY` | `string` | `abc123...` | **yes** | Ed25519 public key for webhook signature verification | [portal.telnyx.com → API Keys](https://portal.telnyx.com/#/app/api-keys) |
+| `TELNYX_TO_NUMBER` | `string` | `+18005550199` | **yes** | E.164 destination number for shipment updates | Your customer notification number |
 
 ## Setup
 
@@ -108,9 +108,9 @@ See `API.md` for a complete typed endpoint reference, including request/response
 
 ## Related Examples
 
-- [Call Control Quickstart](https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-control-quickstart)
-- [SMS Webhook Verification](https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-webhook-verification)
-- [AI Chatbot with Telnyx Inference](https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-chatbot)
+- [SMS Chatbot with Conversation Memory](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sms-chatbot-with-conversation-memory-python/README.md)
+- [AI Appointment Booking SMS Flow](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-appointment-booking-sms-flow-python/README.md)
+- [Agent SMS Triage Bot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-sms-triage-bot/README.md)
 
 ## Resources
 

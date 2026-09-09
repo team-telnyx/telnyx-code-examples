@@ -38,24 +38,36 @@ This app handles these webhook events ([Call Control docs](https://developers.te
         │
         ▼
   ┌──────────────────┐
-  │ Answer + Greet    │ ── TTS welcome message
+  │ Answer + Greet    │ ── "Welcome to the compliance quiz"
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
-  │ Gather Speech     │ ── STT transcription
+  │ Ask question (TTS)│ ── 5 compliance scenarios
+  └────────┬─────────┘
+           │
+           ▼
+  ┌──────────────────┐
+  │ Gather Speech     │ ── employee answers verbally
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
   │ AI Inference      │
-  │ • Scoring / evaluation│
-  │ • Case / claim handling│
+  │ • Grade answer    │
+  │   vs. correct     │
+  │ • Score 0-10      │
+  │ • Brief feedback  │
   └────────┬─────────┘
-           │ ◄──── conversation loop
+           │ ◄──── loop through 5 questions
            │
            ▼
-     Email
+  ┌──────────────────┐
+  │ Final score       │ ── pass (≥35/50) or fail
+  │ + completion log  │
+  └──────────────────┘
+
+  State: Telnyx client_state (stateless server)
 ```
 
 ## Environment Variables

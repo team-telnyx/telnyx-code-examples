@@ -29,22 +29,27 @@ This app handles these webhook events:
 ## Architecture
 
 ```
-  API Request
+  Inbound Fax (webhook: fax.received)
         │
         ▼
   ┌──────────────────┐
-  │ Parse message     │
+  │ Verify signature  │
+  │ Extract fax meta  │
+  │ (sender, pages)   │
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
   │ AI Inference      │
-  │ • Classification / triage│
-  │ • Summarization    │
+  │ • Document type   │
+  │   classification  │
+  │ • Key field       │
+  │   extraction      │
+  │ • Priority rating │
   └────────┬─────────┘
-           │ ◄──── conversation loop
            │
-           └──► Email
+           ├──► Urgent? SMS alert
+           └──► Processed fax log
 ```
 
 ## Environment Variables

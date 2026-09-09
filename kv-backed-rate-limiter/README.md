@@ -2,6 +2,10 @@
 
 Sliding-window rate limiting on Telnyx Edge Compute using the Agent SDK. Each key (phone number, IP, tenant ID) gets its own agent instance that tracks request counts in Edge KV with TTL-based window expiry. Requests over the limit are rejected with HTTP 429. When rejections exceed a threshold, an SMS alert fires automatically via the zero-credential `[telnyx]` binding — no API key in code.
 
+## Why Telnyx
+
+Telnyx is AI Communications Infrastructure that combines edge compute, key-value storage, and programmable messaging in one platform. For rate limiting, this means your sliding-window counters live in Edge KV right next to the compute that enforces them — no external Redis or rate-limit service required. When abuse thresholds are breached, the agent sends an SMS alert through the zero-credential `[telnyx]` binding without any additional provider setup.
+
 ## Architecture
 
 ```
@@ -288,6 +292,30 @@ kv-backed-rate-limiter/
 - **Webhook throttling** — Limit incoming webhook rate per source to protect downstream services
 - **Tenant quotas** — Per-tenant request caps on multi-tenant platforms
 
+## Agent Discovery
+
+This folder is self-contained for coding agents. Start with `README.md` for an overview, then the code file and `GUIDE.md` for implementation details.
+
+- **Sign up**: [telnyx.com/sign-up](https://telnyx.com/sign-up)
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **LLM-friendly docs**: [developers.telnyx.com/llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [llms.txt](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI** (human + agent): [developers.telnyx.com/docs/development/cli](https://developers.telnyx.com/docs/development/cli)
+
 ## License
 
 MIT
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Everything allowed | KV binding missing — counters do not persist | Check `[storage.kv.RATE_KV]` id in `telnyx.toml` |
+| No alert SMS | `ALERT_PHONE`/`SENDER_PHONE` unset or threshold not hit | Set `[env_vars]`, redeploy |
+| Limits do not match config | Stale deploy | `telnyx-edge ship` after changing `[env_vars]` |
+
+## Related Examples
+
+- [Persistent State Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) — Durable StatefulActor on Edge with the same zero-credential inference binding
+- [Collaborative Doc with AI Copilot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/collaborative-doc-ai-copilot/README.md) — Multiplayer StatefulActor with an AI copilot on Edge
+- [Geo-Distributed Call Logger](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/geo-distributed-call-logger/README.md) — Per-region durable actors with KV counters

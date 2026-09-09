@@ -101,8 +101,8 @@ function freshInitialState(): CustomerState {
   return {
     phone_e164: "",
     to: "+15551234567",
-    name: "Anusha",
-    salesforce_id: "mock-anusha-salesforce-id",
+    name: "Alex",
+    salesforce_id: "mock-alex-salesforce-id",
     preferred_channel: "sms",
     proactive_consent: true,
     open_tickets: [],
@@ -171,7 +171,7 @@ describe("CustomerAgent initial state", () => {
     const initial = agent["initialState"]();
 
     expect(initial.name).toBe("Jane");
-    expect(initial.salesforce_id).toBe("mock-anusha-salesforce-id");
+    expect(initial.salesforce_id).toBe("mock-alex-salesforce-id");
     expect(initial.preferred_channel).toBe("sms");
     expect(initial.proactive_consent).toBe(true);
     expect(initial.open_tickets).toEqual([]);
@@ -249,8 +249,8 @@ describe("CustomerAgent.receive()", () => {
     expect(mockState.phone_e164).toBe("+15550001111");
     expect(mockState.turn).toBe(2);
     expect(mockState.queuedTurn).toBe(2);
-    expect(mockState.name).toBe("Anusha");
-    expect(mockState.salesforce_id).toBe("mock-anusha-salesforce-id");
+    expect(mockState.name).toBe("Alex");
+    expect(mockState.salesforce_id).toBe("mock-alex-salesforce-id");
   });
 
   it("logs a phone_mismatch phase when an inbound phone differs from the actor's bound customer", async () => {
@@ -503,7 +503,7 @@ describe("CustomerAgent human escalation", () => {
     ]);
     expect(mockMessages.at(-1)).toEqual({
       role: "assistant",
-      content: "Good news, Anusha. A specialist approved the expedited onboarding package. Authorized by support",
+      content: "Good news, Alex. A specialist approved the expedited onboarding package. Authorized by support",
     });
   });
 });
@@ -595,8 +595,8 @@ describe("CustomerAgent.getContext()", () => {
     const ctx = await agent.getContext();
 
     expect(ctx.customer.phone_e164).toBe("+15550001111");
-    expect(ctx.customer.name).toBe("Anusha");
-    expect(ctx.customer.salesforce_id).toBe("mock-anusha-salesforce-id");
+    expect(ctx.customer.name).toBe("Alex");
+    expect(ctx.customer.salesforce_id).toBe("mock-alex-salesforce-id");
     expect(ctx.customer.preferred_channel).toBe("sms");
     expect(ctx.customer.open_tickets).toEqual([]);
     expect(ctx.customer.shipments).toEqual([]);
@@ -614,8 +614,8 @@ describe("CustomerAgent.getContext()", () => {
     const agent = makeAgent();
     const ctx = await agent.getContext();
 
-    expect(ctx.customer.name).toBe("Anusha");
-    expect(ctx.customer.salesforce_id).toBe("mock-anusha-salesforce-id");
+    expect(ctx.customer.name).toBe("Alex");
+    expect(ctx.customer.salesforce_id).toBe("mock-alex-salesforce-id");
     expect(ctx.history).toEqual([]);
     expect(ctx.customer.turn).toBe(0);
   });
@@ -656,7 +656,7 @@ const sfMocks = vi.hoisted(() => ({
   createOrUpdateLead: vi.fn(async () => ({
     lead: {
       id: "00Q-test-lead-1",
-      name: "Anusha",
+      name: "Alex",
       company: "Telnyx",
       email: "demo@example.com",
       status: "New",
@@ -724,13 +724,13 @@ describe("CustomerAgent.ingestCallResult() — schedule_meeting", () => {
       from: "+15557654321",
       intent: "schedule_meeting",
       requested_meeting_time: "Tuesday at 2 PM",
-      customer_name: "Anusha",
+      customer_name: "Alex",
       customer_context: "Telnyx onboarding",
-      transcript_summary: "Anusha wants to schedule a meeting",
+      transcript_summary: "Alex wants to schedule a meeting",
     });
 
     expect(sfMocks.createOrUpdateLead).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-      name: "Anusha",
+      name: "Alex",
       requested_meeting_time: "Tuesday at 2 PM",
       meeting_status: "Requested",
     }));
@@ -770,12 +770,12 @@ describe("CustomerAgent.ingestCallResult() — schedule_meeting", () => {
     await agent.ingestCallResult({
       from: "+15557654321",
       intent: "schedule_meeting",
-      transcript_summary: "Anusha wants onboarding meeting",
+      transcript_summary: "Alex wants onboarding meeting",
     });
 
     const userMessages = mockMessages.filter((m) => m.role === "user");
     expect(userMessages).toHaveLength(1);
-    expect(userMessages[0].content).toContain("Anusha wants onboarding meeting");
+    expect(userMessages[0].content).toContain("Alex wants onboarding meeting");
   });
 });
 
@@ -790,7 +790,7 @@ describe("CustomerAgent.ingestCallResult() — confirm_reschedule", () => {
     Object.assign(mockState, {
       latest_lead: {
         id: "00Q-test-lead-1",
-        name: "Anusha",
+        name: "Alex",
         meeting_time: "Thursday at 11 AM",
         meeting_status: "Rescheduled by SDR",
         assigned_sdr: "Steve",
@@ -810,7 +810,7 @@ describe("CustomerAgent.ingestCallResult() — confirm_reschedule", () => {
       intent: "confirm_reschedule",
       meeting_time: "Thursday at 11 AM",
       customer_approved: true,
-      transcript_summary: "Anusha agreed to Thursday 11 AM",
+      transcript_summary: "Alex agreed to Thursday 11 AM",
     });
 
     expect(sfMocks.updateLeadMeeting).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
@@ -864,10 +864,10 @@ describe("CustomerAgent.getCallContext()", () => {
     const agent = makeAgent();
     Object.assign(mockState, {
       phone_e164: "+15557654321",
-      name: "Anusha",
+      name: "Alex",
       latest_lead: {
         id: "00Q-test-lead-1",
-        name: "Anusha",
+        name: "Alex",
         assigned_sdr: "Steve",
         requested_meeting_time: "Tuesday at 2 PM",
         meeting_time: "Tuesday at 2 PM",
@@ -884,7 +884,7 @@ describe("CustomerAgent.getCallContext()", () => {
         status: "pending_customer_ack",
       },
       history: [
-        { role: "user", content: "Call from Anusha", at: 1700000000000 },
+        { role: "user", content: "Call from Alex", at: 1700000000000 },
       ],
     });
 
@@ -905,7 +905,7 @@ describe("CustomerAgent.getCallContext()", () => {
     const agent = makeAgent();
     Object.assign(mockState, {
       phone_e164: "+15557654321",
-      name: "Anusha",
+      name: "Alex",
       latest_lead: {
         id: "00Q-test-lead-1",
         assigned_sdr: "Steve",
@@ -916,7 +916,7 @@ describe("CustomerAgent.getCallContext()", () => {
       },
       reschedule_event: null,
       history: [
-        { role: "user", content: "Call from Anusha", at: 1700000000000 },
+        { role: "user", content: "Call from Alex", at: 1700000000000 },
       ],
     });
 
@@ -935,7 +935,7 @@ describe("CustomerAgent.ingestSdrReply() — Gate 4 SMS confirmation", () => {
     sfMocks.updateLeadMeeting.mockClear();
   });
 
-  it("sends Anusha a confirmation SMS after Steve confirms via AgentMail", async () => {
+  it("sends Alex a confirmation SMS after Steve confirms via AgentMail", async () => {
     const agent = makeAgent(makeEnv({ SMS_TRANSPORT: "demo" }));
     Object.assign(mockState, {
       phone_e164: "+15557654321",
@@ -979,7 +979,7 @@ describe("CustomerAgent.ingestSalesforceLeadChange() — Gate 5 reschedule detec
     Object.assign(mockState, {
       phone_e164: "+15557654321",
       to: "+15551234567",
-      name: "Anusha",
+      name: "Alex",
       latest_lead: {
         id: "00Q-test-lead-1",
         meeting_time: "Tuesday at 2 PM",

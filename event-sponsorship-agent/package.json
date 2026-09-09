@@ -1,0 +1,19 @@
+{
+  "name": "event-sponsorship-agent",
+  "version": "1.0.0",
+  "description": "Branded microsite agent for event sponsorship activations — giveaway entry, product Q&A, demo booking, lead capture, and multilingual support via Telnyx Edge.",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0",
+    "tsx": "^4.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

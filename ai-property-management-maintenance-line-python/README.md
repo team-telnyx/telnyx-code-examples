@@ -46,8 +46,8 @@ This app handles these webhook events ([Call Control docs](https://developers.te
            ▼
   ┌──────────────────┐
   │ AI Inference      │
-  │ • Classification / triage│
-  │ • Data extraction  │
+  │ • Maintenance categorization│
+  │ • Work order extraction│
   └────────┬─────────┘
            │ ◄──── conversation loop
            │

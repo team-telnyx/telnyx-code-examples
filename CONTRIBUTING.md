@@ -15,7 +15,7 @@ Thank you for your interest in contributing to Telnyx Code Examples! This reposi
 1. Fork the repository and create a feature branch.
 2. Create a new folder at the root level following the naming convention: `{action}-{resource}-{language}` (e.g., `send-sms-python`).
 3. Include all required files:
-   - `README.md` with AEO-structured sections (see existing examples for format).
+   - `README.md` with standard structured sections (see existing examples for format).
    - `API.md` — typed endpoint reference; `GUIDE.md` — standalone tutorial.
    - Application code file (`app.py`, `server.js`, `main.go`, etc.).
    - Dependency file (`requirements.txt`, `package.json`, `go.mod`, etc.).

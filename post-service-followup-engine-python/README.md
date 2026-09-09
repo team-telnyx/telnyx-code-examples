@@ -36,31 +36,32 @@ This app handles these webhook events ([Call Control docs](https://developers.te
 ## Architecture
 
 ```
-  Inbound Phone Call
+  POST /follow-up/send
         │
         ▼
   ┌──────────────────┐
-  │ Answer + Greet    │ ── TTS welcome message
+  │ SMS survey        │ ── "Rate 1-5"
   └────────┬─────────┘
            │
-           ▼
+           ▼ (customer replies)
   ┌──────────────────┐
-  │ Gather Speech     │ ── STT transcription
+  │ Rating ≤ 2?       │
+  │  YES ──► AI voice │    NO ──► "Thanks!" SMS
+  │  callback to      │
+  │  understand issue  │
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
   │ AI Inference      │
-  │ • Appointment scheduling│
-  │ • Summarization    │
-  │ • Case / claim handling│
+  │ • Empathetic      │
+  │   conversation    │
+  │ • Collect details │
   └────────┬─────────┘
-           │ ◄──── conversation loop
            │
-           ├──► SMS notification
-           ├──► Voice response
-           ├──► Slack alert
-           └──► Email
+           ├──► Create Jira ticket
+           ├──► Slack alert to manager
+           └──► Update HubSpot CRM
 
   State: In-memory dict
 ```

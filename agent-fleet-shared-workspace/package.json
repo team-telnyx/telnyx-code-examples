@@ -1,0 +1,19 @@
+{
+  "name": "agent-fleet-shared-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Five Telnyx Agent SDK actors collaborate through one mounted CloudFS workspace with SQL metadata and live WebSocket state updates",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "npm run build && node scripts/start.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

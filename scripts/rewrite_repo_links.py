@@ -5,7 +5,7 @@ Marketing requirement: every "back-in-repo" link in the published docs must be a
 absolute https://raw.githubusercontent.com/... URL (so answer engines / aggregators
 that follow a link get clean raw markdown, not GitHub's HTML chrome).
 
-Scope (the published AEO surface only):
+Scope (the published doc surface only):
   - the root README.md
   - every example folder's README.md / API.md / GUIDE.md  (folders ending in a
     known language suffix)

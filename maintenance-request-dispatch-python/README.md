@@ -34,8 +34,8 @@ Tenant texts issue, AI categorizes and estimates cost, auto-dispatches vendor fo
            ▼
   ┌──────────────────┐
   │ AI Inference      │
-  │ • Classification / triage│
-  │ • Summarization    │
+  │ • Issue categorization│
+  │ • Priority dispatch routing│
   └────────┬─────────┘
            │ ◄──── conversation loop
            │

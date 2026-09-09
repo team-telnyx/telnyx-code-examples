@@ -2,7 +2,7 @@
 
 All endpoints are on `https://api.telnyx.com/v2`. Auth: `Authorization: Bearer <TELNYX_API_KEY>`. Content-Type: `application/json`.
 
-> **Email API is in invite-only beta.** Some inbound endpoint paths are marked TODO and will be confirmed against the official `telnyx-email-inbound` skill before the PR merges.
+> **Email API** — Request access at [telnyx.com/products/email-api](https://telnyx.com/products/email-api).
 
 ## Send a transactional email
 
@@ -158,19 +158,14 @@ curl -X POST https://api.telnyx.com/v2/ai/chat/completions \
 
 Used in `agent.generate_reply()`.
 
-## Inbound email — fetch message (TODO: confirm path)
+## Inbound email — fetch message
 
-`GET /v2/email_inbound_messages/{id}` *(path being confirmed)*
+`GET /v2/email_inbound_messages/{id}`
 
 After an inbound webhook fires, fetch the full message body. The webhook payload contains the `message_id` needed here.
 
 ```bash
-# Most likely path (being confirmed against the official skill):
 curl https://api.telnyx.com/v2/email_inbound_messages/$MESSAGE_ID \
-  -H "Authorization: Bearer $TELNYX_API_KEY"
-
-# Fallback if the above 404s:
-curl https://api.telnyx.com/v2/email_messages/$MESSAGE_ID \
   -H "Authorization: Bearer $TELNYX_API_KEY"
 ```
 
@@ -181,7 +176,7 @@ Used in `email_tools.fetch_inbound_message()`.
 **Inbound** (triggers the AI reply flow):
 | Event | Description |
 |---|---|
-| `email.received` *(name being confirmed)* | New inbound email arrived in the inbox |
+| `email.received` | New inbound email arrived in the inbox |
 
 **Outbound** (logged to the dashboard, no action taken):
 | Event | Description |

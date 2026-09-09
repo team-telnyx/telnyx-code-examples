@@ -46,7 +46,7 @@ function makeInboundPayload(
       timestamp: "2026-08-19T23:04:18.302Z",
       from: "steve@example.com",
       to: [TEST_INBOX],
-      subject: "Re: New Telnyx onboarding lead: Anusha",
+      subject: "Re: New Telnyx onboarding lead: Alex",
       text: "Yes, that meeting time works.",
       extracted_text: "Yes, that meeting time works.",
       in_reply_to: "msg_outbound_001",
@@ -261,7 +261,7 @@ describe("parseAgentMailInbound", () => {
     const payload = makeInboundPayload();
     const parsed = parseAgentMailInbound(payload);
     expect(parsed.from).toBe("steve@example.com");
-    expect(parsed.subject).toBe("Re: New Telnyx onboarding lead: Anusha");
+    expect(parsed.subject).toBe("Re: New Telnyx onboarding lead: Alex");
     expect(parsed.text).toBe("Yes, that meeting time works.");
     expect(parsed.thread_id).toBe("thr_test_001");
     expect(parsed.message_id).toBe("msg_test_001");
@@ -270,7 +270,7 @@ describe("parseAgentMailInbound", () => {
 
   it("prefers extracted_text over raw text", () => {
     const payload = makeInboundPayload({
-      text: "Yes, that meeting time works.\n\n> On Mon, Anusha wrote:\n> Hi Steve...",
+      text: "Yes, that meeting time works.\n\n> On Mon, Alex wrote:\n> Hi Steve...",
       extracted_text: "Yes, that meeting time works.",
     });
     const parsed = parseAgentMailInbound(payload);

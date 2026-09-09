@@ -39,24 +39,29 @@ This app handles these webhook events ([Call Control docs](https://developers.te
         │
         ▼
   ┌──────────────────┐
-  │ Answer + Greet    │ ── TTS welcome message
+  │ Answer + Greet    │ ── TTS: "Leave a message"
   └────────┬─────────┘
            │
            ▼
   ┌──────────────────┐
-  │ Gather Speech     │ ── STT transcription
+  │ Record + Transcribe│ ── beep, then live STT
   └────────┬─────────┘
            │
-           ▼
+           ▼ (call.hangup)
   ┌──────────────────┐
   │ AI Inference      │
-  │ • Classification / triage│
-  │ • Summarization    │
+  │ • Priority classify│
+  │   (urgent/normal/ │
+  │    spam)          │
+  │ • One-line summary │
+  │ • Callback needed? │
   └────────┬─────────┘
-           │ ◄──── conversation loop
            │
-           ├──► SMS notification
-           └──► Email
+           ▼
+  ┌──────────────────┐
+  │ SMS forward       │ ── summary + priority
+  │ to owner          │    to FORWARD_NUMBER
+  └──────────────────┘
 ```
 
 ## Environment Variables

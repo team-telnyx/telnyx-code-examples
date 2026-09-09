@@ -13,6 +13,7 @@ load_dotenv()
 app = Flask(__name__)
 
 telnyx.api_key = os.getenv("TELNYX_API_KEY")
+telnyx.public_key = os.getenv("TELNYX_PUBLIC_KEY")
 TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY")
 TELNYX_MESSAGING_PROFILE_ID = os.getenv("TELNYX_MESSAGING_PROFILE_ID")
 TELNYX_FROM_NUMBER = os.getenv("TELNYX_FROM_NUMBER")
@@ -163,17 +164,19 @@ def telnyx_webhook():
     """Handles inbound Telnyx webhooks (SMS replies, Call Control events)."""
     try:
         # Verify Telnyx Ed25519 signature
-        signature = request.headers.get("Telnyx-Signature-Ed25519", "")
-        timestamp = request.headers.get("Telnyx-Signature-Timestamp", "")
+        # Case-insensitive header lookup (Telnyx sends mixed casing)
+        headers_lower = {k.lower(): v for k, v in request.headers.items()}
+        signature = headers_lower.get("telnyx-signature-ed25519", "")
+        timestamp = headers_lower.get("telnyx-timestamp", "")
         raw_body = request.get_data(as_text=True)
-        
+
         if not signature or not timestamp:
-            app.logger.warning("Missing Telnyx signature headers")
+            app.logger.warning("Missing Telnyx signature headers. Got headers: %s", list(request.headers.keys()))
             abort(401, "Unauthorized")
             
         try:
             verified_event = telnyx.Webhook.construct_event(
-                raw_body, signature, timestamp, TELNYX_PUBLIC_KEY
+                raw_body, signature, timestamp
             )
         except Exception:
             app.logger.exception("Webhook signature verification failed")
@@ -186,8 +189,14 @@ def telnyx_webhook():
 
         if event_type == "message.finalized" or event_type == "message.received":
             # Handle inbound SMS reply from customer
-            from_number = payload.get("from", {}).get("phone_number")
-            to_number = payload.get("to", {}).get("phone_number")
+            # v2 payload: from is a dict, to is a list of dicts
+            from_obj = payload.get("from", {}) or payload.get("from_", {})
+            to_list = payload.get("to", [])
+            if isinstance(to_list, list) and to_list:
+                to_number = to_list[0].get("phone_number")
+            else:
+                to_number = to_list.get("phone_number") if isinstance(to_list, dict) else None
+            from_number = from_obj.get("phone_number") if isinstance(from_obj, dict) else None
             text = payload.get("text")
             
             # Route to the correct agent based on the customer's number

@@ -108,8 +108,8 @@ Debug route. Returns the full `CustomerContext` for the per-customer actor — p
   "phone_e164": "+15551234567",
   "customer": {
     "phone_e164": "+15551234567",
-    "name": "Anusha",
-    "salesforce_id": "mock-anusha-salesforce-id",
+    "name": "Alex",
+    "salesforce_id": "mock-alex-salesforce-id",
     "preferred_channel": "sms",
     "proactive_consent": true,
     "open_tickets": [],
@@ -128,8 +128,8 @@ Debug route. Returns the full `CustomerContext` for the per-customer actor — p
     { "role": "assistant", "content": "Your order is shipped.", "at": 1723480000500 }
   ],
   "demo": {
-    "default_customer_name": "Anusha",
-    "default_salesforce_id": "mock-anusha-salesforce-id"
+    "default_customer_name": "Alex",
+    "default_salesforce_id": "mock-alex-salesforce-id"
   }
 }
 ```
@@ -195,8 +195,8 @@ interface CustomerState {
   // Identity (durable, normalized E.164)
   phone_e164: string;            // customer phone
   to: string;                    // agent phone (the customer's To:)
-  name: string;                  // e.g. "Anusha"
-  salesforce_id: string;         // mock-anusha-salesforce-id in Gate 1
+  name: string;                  // e.g. "Alex"
+  salesforce_id: string;         // mock-alex-salesforce-id in Gate 1
   preferred_channel: "sms" | "voice";
   proactive_consent: boolean;
 

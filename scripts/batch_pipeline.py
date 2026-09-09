@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Batch pipeline — Orchestrate tutorial generation + AEO transformation for all examples.
+"""Batch pipeline — Orchestrate tutorial generation + transformation for all examples.
 
 For each entry in examples_mapping.yaml:
-1. Check if the tutorial already exists in tutorial-factory's tutorials/ directory.
-2. If not, call tutorial_factory.py generate to create it.
+1. Check if the tutorial already exists in the tutorials directory.
+2. If not, generate it.
 3. Read the generated .md from tutorials/{product}/{language}/{framework}/{use_case}.md.
-4. Call transform() to produce the AEO folder in the code-examples repo.
+4. Call transform() to produce the example folder in the code-examples repo.
 
 Usage:
     python scripts/batch_pipeline.py --dry-run          # Preview what will be generated
     python scripts/batch_pipeline.py                    # Generate and transform all
-    python scripts/batch_pipeline.py --tf-dir /path/to/tutorial-factory
+    python scripts/batch_pipeline.py --tf-dir /path/to/tutorials
     python scripts/batch_pipeline.py --only send-sms-python  # Single example
 """
 
@@ -275,17 +275,17 @@ def run_verify() -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Batch pipeline: generate tutorials and transform into AEO folders.",
+        description="Batch pipeline: generate tutorials and transform into example folders.",
     )
     parser.add_argument(
         "--tf-dir",
         default=None,
-        help="Path to the tutorial-factory directory (default: auto-detect sibling)",
+        help="Path to the tutorials directory (default: auto-detect sibling)",
     )
     parser.add_argument(
         "--output-dir",
         default=None,
-        help="Output directory for AEO folders (default: repo root)",
+        help="Output directory for example folders (default: repo root)",
     )
     parser.add_argument(
         "--dry-run",
@@ -311,19 +311,19 @@ def main():
 
     args = parser.parse_args()
 
-    # Resolve tutorial-factory directory
+    # Resolve tutorials directory
     if args.tf_dir:
         tf_dir = Path(args.tf_dir).resolve()
     else:
-        # Auto-detect: look for tutorial-factory as sibling of this repo
+        # Auto-detect: look for tutorials generator as sibling of this repo
         tf_dir = REPO_ROOT.parent / "tutorial-factory"
         if not tf_dir.exists():
-            print(f"Cannot find tutorial-factory at {tf_dir}")
+            print(f"Cannot find tutorials directory at {tf_dir}")
             print("Use --tf-dir to specify the path.")
             sys.exit(1)
 
     if not (tf_dir / "tutorial_factory.py").exists():
-        print(f"Not a valid tutorial-factory directory: {tf_dir}")
+        print(f"Not a valid tutorials directory: {tf_dir}")
         sys.exit(1)
 
     # Resolve output directory

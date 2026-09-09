@@ -41,13 +41,13 @@ If only `html_body` is available (no `text_body`), the wrapper strips HTML tags 
 
 Two layers:
 
-**Outbound (confirmed from the launch blog):**
-- `send_email(to, subject, html_body, text_body, from_email, from_name, in_reply_to, references)` — `POST /v2/email_messages`. The `from` field is an object (`{"email": ..., "name": ...}`), not a string. The body field is `html_body`, not `html`. Threading headers (`In-Reply-To`, `References`) are passed via a `headers` object on the payload — the exact field name is being confirmed against the official Email API skill, but this is the standard email threading mechanism.
+**Outbound:**
+- `send_email(to, subject, html_body, text_body, from_email, from_name, in_reply_to, references)` — `POST /v2/email_messages`. The `from` field is an object (`{"email": ..., "name": ...}`), not a string. The body field is `html_body`, not `html`. Threading headers (`In-Reply-To`, `References`) are passed via a `headers` object on the payload.
 - `list_domains()`, `create_domain(domain)`, `verify_domain(domain_id)`, `configure_domain_webhook(domain_id, url, events)` — domain setup helpers. Not used by the live demo flow (configured once via portal) but included so this directory is a self-contained reference.
 
-**Inbound (TODO: confirm exact paths):**
-- `fetch_inbound_message(message_id)` — fetches the full inbound email body after the webhook fires. Tries `GET /v2/email_inbound_messages/{id}` first, falls back to `GET /v2/email_messages/{id}`. The exact path will be confirmed against the official `telnyx-email-inbound` skill and updated before the PR merges.
-- `list_inbound_messages(limit)` — lists recent inbound messages. Same TODO.
+**Inbound:**
+- `fetch_inbound_message(message_id)` — fetches the full inbound email body after the webhook fires. Tries `GET /v2/email_inbound_messages/{id}` first, falls back to `GET /v2/email_messages/{id}`.
+- `list_inbound_messages(limit)` — lists recent inbound messages.
 - `_normalize_inbound(raw)` — converts the API response into the shape `agent.generate_reply` expects (`from`, `from_name`, `to`, `subject`, `text_body`, `html_body`, `message_id`). Handles common field-name variants (`from` vs `sender`, `text_body` vs `text` vs `body`).
 
 ### `templates/reply.liquid` — Liquid template reference
