@@ -7,6 +7,8 @@ import {
   readBreaker,
   shouldRouteToBackup,
 } from "./breaker.js";
+import { listEvents, recordEvent } from "./events.js";
+import { DASHBOARD_HTML } from "./dashboard.js";
 import type { CallControlEvent, CallRoutingMap } from "./failoverAgent.js";
 
 // ---------------------------------------------------------------------------
@@ -110,15 +112,11 @@ export default {
     const url = new URL(req.url);
 
     if (req.method === "GET" && url.pathname === "/") {
-      return Response.json({
-        name: "auto-failover-voice-routing",
-        endpoints: [
-          "POST /webhooks/call-control",
-          "POST /api/route",
-          "GET /api/circuit-state",
-          "POST /api/circuit-reset",
-          "GET /health",
-        ],
+      return new Response(DASHBOARD_HTML, {
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store",
+        },
       });
     }
     if (req.method === "GET" && url.pathname === "/health") {
@@ -135,6 +133,9 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/circuit-state") {
         return await handleCircuitState(env);
       }
+      if (req.method === "GET" && url.pathname === "/api/events") {
+        return Response.json({ events: await listEvents(env.FAILOVER_KV) });
+      }
       if (req.method === "POST" && url.pathname === "/api/circuit-reset") {
         return await handleCircuitReset(env);
       }
@@ -150,6 +151,7 @@ export default {
         "POST /webhooks/call-control",
         "POST /api/route",
         "GET /api/circuit-state",
+        "GET /api/events",
         "POST /api/circuit-reset",
         "GET /health",
       ],
@@ -171,6 +173,12 @@ async function handleRoute(req: Request, env: Env): Promise<Response> {
   const cooldownSeconds = intEnv(env.COOLDOWN_SECONDS, 300);
   const useBackup = shouldRouteToBackup(snapshot, cooldownSeconds);
   const connectionId = useBackup ? backupConnectionId(env) : primaryConnectionId(env);
+  await recordEvent(
+    env.FAILOVER_KV,
+    "route_decision",
+    `routed via ${useBackup ? "backup" : "primary"} connection`,
+    useBackup ? "backup" : "primary",
+  );
 
   if (isDemoMode(env)) {
     log(
@@ -211,7 +219,12 @@ async function handleRoute(req: Request, env: Env): Promise<Response> {
 async function handleCircuitState(env: Env): Promise<Response> {
   const snapshot = await readBreaker(env.FAILOVER_KV);
   const status = breakerStatus(snapshot, intEnv(env.COOLDOWN_SECONDS, 300));
-  return Response.json({ ...snapshot, status });
+  const payload: Record<string, unknown> = { ...snapshot, status };
+  const threshold = env.FAILURE_THRESHOLD;
+  if (threshold) payload.threshold = intEnv(threshold, 3);
+  if (primaryConnectionId(env)) payload.primary_connection_id = primaryConnectionId(env);
+  if (backupConnectionId(env)) payload.backup_connection_id = backupConnectionId(env);
+  return Response.json(payload);
 }
 
 /** Reset goes through the actor — the breaker's single writer. */
@@ -240,6 +253,7 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
       ? stringValue(payload.state)
       : eventType.replace("call.", "");
   log(`Received webhook event: ${eventType}`);
+  await recordEvent(env.FAILOVER_KV, "webhook", `event: ${eventType}`);
 
   if (eventType === "call.hangup") {
     const hangupCause = stringValue(payload.hangup_cause).toUpperCase();
@@ -249,10 +263,22 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
       log(
         `Call failed on primary (hangup_cause=${hangupCause}) — counting toward circuit breaker.`,
       );
-      await failoverActor(env).recordOutcome(event);
+      const snapshot = await failoverActor(env).recordOutcome(event);
+      await recordEvent(
+        env.FAILOVER_KV,
+        "failure_counted",
+        `hangup_cause=${hangupCause} — failures: ${snapshot.failures}`,
+        "primary",
+      );
     }
   } else if (callState === "failed" || callState === "busy" || callState === "no_answer") {
-    await failoverActor(env).recordOutcome(event);
+    const snapshot = await failoverActor(env).recordOutcome(event);
+    await recordEvent(
+      env.FAILOVER_KV,
+      "failure_counted",
+      `call ${callState} on primary — failures: ${snapshot.failures}`,
+      "primary",
+    );
   } else if (callState === "answered") {
     await failoverActor(env).handleCallEvent(event);
   } else if (eventType === "call.speak.ended") {

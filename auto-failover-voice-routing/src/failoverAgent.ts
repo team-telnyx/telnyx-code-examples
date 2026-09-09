@@ -9,6 +9,7 @@ import {
   type BreakerSnapshot,
   type KvLike,
 } from "./breaker.js";
+import { recordEvent } from "./events.js";
 
 
 /**
@@ -171,6 +172,7 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
   async resetBreaker(): Promise<BreakerSnapshot> {
     const snapshot = await resetBreaker(this.kvStore());
     this.log("Circuit breaker reset to CLOSED state.");
+    await recordEvent(this.kvStore(), "breaker_reset", "breaker reset to closed", "primary");
     return snapshot;
   }
 
@@ -183,6 +185,12 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
     previousTrips: number,
   ): Promise<void> {
     await tripBreaker(kv, nowSeconds);
+    await recordEvent(
+      kv,
+      "breaker_tripped",
+      `failures: ${failures} — auto-failover to backup connection`,
+      "primary",
+    );
     const backupId = this.env.TELNYX_BACKUP_CONNECTION_ID ?? "";
     const alertMsg =
       `[${new Date().toISOString()}] ` +
@@ -192,10 +200,12 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
     if (isDemoMode(this.env)) {
       this.log(`[DEMO MODE] SMS alert (not sent): ${alertMsg}`);
       await this.events.emit("ops.sms.demo", { to: this.env.TELNYX_OPS_ALERT_NUMBER ?? "", text: alertMsg });
+      await recordEvent(kv, "sms_sent", "ops alert SMS (demo — not sent)", "primary");
     } else {
       try {
         await this.sendSms(this.env.TELNYX_OPS_ALERT_NUMBER ?? "", alertMsg);
         this.log("SMS alert sent to ops.");
+        await recordEvent(kv, "sms_sent", "ops alert SMS sent", "primary");
       } catch (error: unknown) {
         this.log(`Failed to send SMS alert: ${this.errorMessage(error)}`);
       }
@@ -235,6 +245,12 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
     await this.putStage(callControlId, "greeting");
     if (await this.speakWithFallback(callControlId, text)) {
       this.log(`Fraud alert announced via ${label} connection.`);
+      await recordEvent(
+        this.kvStore(),
+        "call_answered",
+        `fraud alert announced via ${label} connection`,
+        label,
+      );
       const state = await this.getState();
       await this.setState({ callsAnnounced: state.callsAnnounced + 1, updatedAt: Date.now() });
     }
@@ -282,6 +298,7 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
     const ref = `MTB-${(Math.floor(Date.now() / 1000) % 100000).toString().padStart(5, "0")}`;
     let confirmation: string;
     let sms: string;
+    let outcome: string;
     if (digits === "1") {
       confirmation =
         "Thank you for confirming. That purchase was yours, so nothing more is needed. " +
@@ -289,6 +306,7 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
       sms =
         "Meridian Trust: You confirmed the $1,240.50 purchase " +
         "(card ...4821). Nothing more is needed. Ref: " + ref;
+      outcome = "transaction confirmed";
       this.log("Caller confirmed the transaction.");
     } else if (digits === "2") {
       confirmation =
@@ -298,6 +316,7 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
       sms =
         "Meridian Trust: The $1,240.50 purchase (card ...4821) was BLOCKED " +
         "and your card frozen. A specialist will contact you. Ref: " + ref;
+      outcome = "fraud reported — card frozen";
       this.log("Caller reported fraud — card frozen.");
     } else {
       confirmation =
@@ -307,10 +326,17 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
       sms =
         "Meridian Trust: No response received — card ...4821 frozen and the " +
         "$1,240.50 purchase flagged for review. Ref: " + ref;
+      outcome = "no response — card frozen (safe default)";
       this.log("No response received — safe-default froze the card.");
     }
+    await recordEvent(
+      this.kvStore(),
+      "caller_response",
+      `pressed ${digits || "(nothing)"} — ${outcome}`,
+    );
     if (caller) {
       await this.sendCustomerSms(caller, sms);
+      await recordEvent(this.kvStore(), "sms_sent", `customer receipt SMS — ${outcome}`);
     }
     await this.putStage(callControlId, "confirming");
     await this.speakWithFallback(callControlId, confirmation);

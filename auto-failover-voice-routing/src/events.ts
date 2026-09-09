@@ -1,0 +1,75 @@
+import type { KvNamespace } from "@telnyx/edge-runtime";
+import type { KvLike } from "./breaker.js";
+
+/**
+ * Live operations event feed — what the demo dashboard polls at
+ * `GET /api/events`. Each event is its own KV key (`event:<ms>-<rand>`, 1h
+ * TTL) so the worker and the FailoverAgent actor can record concurrently
+ * without a read-modify-write race on a shared list.
+ */
+export type EventKind =
+  | "route_decision"
+  | "call_answered"
+  | "webhook"
+  | "failure_counted"
+  | "breaker_tripped"
+  | "caller_response"
+  | "sms_sent"
+  | "breaker_reset";
+
+export interface OpsEvent {
+  ts: string;
+  kind: EventKind;
+  detail: string;
+  connection: "primary" | "backup" | null;
+}
+
+const EVENT_PREFIX = "event:";
+const EVENT_TTL_SECONDS = 3600;
+
+export async function recordEvent(
+  kv: KvLike,
+  kind: EventKind,
+  detail: string,
+  connection: "primary" | "backup" | null = null,
+): Promise<void> {
+  const event: OpsEvent = {
+    ts: new Date().toISOString(),
+    kind,
+    detail,
+    connection,
+  };
+  const suffix = Math.random().toString(36).slice(2, 8);
+  await kv.put(
+    `${EVENT_PREFIX}${Date.now()}-${suffix}`,
+    JSON.stringify(event),
+    { expirationTtl: EVENT_TTL_SECONDS },
+  );
+}
+
+/** Newest first, capped — every poll the dashboard does is bounded. */
+export async function listEvents(kv: KvNamespace, limit = 30): Promise<OpsEvent[]> {
+  const page = await kv.list({ prefix: EVENT_PREFIX, limit });
+  const keys = page.keys
+    .map((info) => info.name)
+    .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
+  const events: OpsEvent[] = [];
+  for (const key of keys) {
+    const raw = await kv.get(key);
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw) as OpsEvent;
+      if (parsed && typeof parsed.kind === "string") {
+        events.push({
+          ts: parsed.ts,
+          kind: parsed.kind,
+          detail: parsed.detail,
+          connection: parsed.connection ?? null,
+        });
+      }
+    } catch {
+      continue;
+    }
+  }
+  return events;
+}

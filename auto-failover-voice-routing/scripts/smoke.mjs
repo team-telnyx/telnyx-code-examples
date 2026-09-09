@@ -361,6 +361,28 @@ try {
   assert(backupAnnounce.payload.includes("we're running on our backup systems right now"), `backup intro missing: ${backupAnnounce.payload}`);
   assert(backupAnnounce.payload.includes('<emotion value="apologetic" />'), `apologetic emotion missing: ${backupAnnounce.payload}`);
   console.log("ok  call.answered on backup leg → apologetic backup intro");
+
+  // ── Dashboard + live events feed ─────────────────────────────────────────
+  const dashResponse = await fetch(`http://127.0.0.1:${portA}/`);
+  assert(dashResponse.headers.get("content-type")?.includes("text/html") === true, "GET / must serve HTML");
+  const dashHtml = await dashResponse.text();
+  assert(dashHtml.includes("Auto-Failover Voice Routing"), "dashboard title missing");
+  const events = await call(portA, "GET", "/api/events");
+  assert(Array.isArray(events.events) && events.events.length > 0, "events feed empty");
+  const kinds = new Set(events.events.map((event) => event.kind));
+  for (const kind of [
+    "route_decision",
+    "webhook",
+    "failure_counted",
+    "breaker_tripped",
+    "caller_response",
+    "sms_sent",
+    "breaker_reset",
+    "call_answered",
+  ]) {
+    assert(kinds.has(kind), `events feed missing kind: ${kind}`);
+  }
+  console.log("ok  GET / serves the dashboard; /api/events covers every demo beat");
 } finally {
   serverA.close();
 }
