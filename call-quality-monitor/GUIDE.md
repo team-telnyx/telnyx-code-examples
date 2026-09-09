@@ -1,6 +1,6 @@
 # Call Quality Monitor — Developer Guide
 
-This guide walks through the `call-quality-monitor` example, a Flask application that ingests Telnyx call quality webhooks, stores metrics for historical analysis, tracks per-call state, and provides a live dashboard via WebSocket. By the end, you'll understand how each component works and how to extend it for your own real-time call monitoring needs.
+This guide walks through the `call-quality-monitor` example, a Flask application that ingests Telnyx call quality webhooks, stores metrics for historical analysis, tracks per-call state, and provides a live dashboard via Server-Sent Events (SSE). By the end, you'll understand how each component works and how to extend it for your own real-time call monitoring needs.
 
 ## Prerequisites
 
@@ -77,7 +77,7 @@ This example is built around three core data layers:
 
 1. **In-memory KV store** — Tracks per-call state (metrics, alerts, lifecycle events) for real-time access.
 2. **SQLite database** — Persists every quality metric for historical analytics and querying.
-3. **WebSocket broadcast** — Pushes live updates to connected dashboard clients.
+3. **SSE broadcast** — Pushes live updates to connected dashboard clients via Server-Sent Events.
 
 Let's walk through each piece of the code.
 
@@ -196,7 +196,7 @@ The `process_quality_metric` function is the heart of the sample. It:
 3. **Stores it in the KV store** for per-call state.
 4. **Persists it to SQLite** for historical analytics.
 5. **Checks thresholds** and logs alerts.
-6. **Broadcasts** the metric to WebSocket clients.
+6. **Broadcasts** the metric to SSE clients.
 
 ```python
 def process_quality_metric(payload):
@@ -269,7 +269,7 @@ def check_thresholds(metric):
 Alerts are:
 - Logged via `app.logger.warning`
 - Stored in the per-call KV state
-- Included in the WebSocket broadcast so dashboards can surface them immediately
+- Included in the SSE broadcast so dashboards can surface them immediately
 
 ---
 
@@ -383,50 +383,61 @@ def get_alerts():
 
 ---
 
-## Step 7: Live WebSocket Dashboard
+## Step 7: Live SSE Dashboard
 
-The `/ws` endpoint provides a WebSocket connection for real-time updates:
+The `/events` endpoint provides a Server-Sent Events (SSE) stream for real-time updates. The dashboard at `/` connects to this stream automatically.
 
 ```python
-@app.route("/ws")
-def websocket_endpoint():
-    if request.environ.get("wsgi.websocket"):
-        ws = request.environ["wsgi.websocket"]
-        from queue import Queue
+@app.route("/events")
+def sse_stream():
+    q: queue.Queue = queue.Queue(maxsize=256)
+    with _sse_lock:
+        _sse_clients.append(q)
 
-        client_queue = Queue()
-        ws_clients.add(client_queue)
+    def stream():
         try:
+            yield ": connected\n\n"
             while True:
-                message = client_queue.get()
-                ws.send(message)
-        except Exception:
-            ws_clients.discard(client_queue)
-        return ""
-    return jsonify({"error": "WebSocket connection required"}), 400
+                try:
+                    msg = q.get(timeout=30)
+                    yield msg
+                except queue.Empty:
+                    yield ": keepalive\n\n"
+        finally:
+            with _sse_lock:
+                if q in _sse_clients:
+                    _sse_clients.remove(q)
+
+    return Response(stream(), mimetype="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })
 ```
 
 **How it works:**
 
-- Each connected client gets a `Queue` object added to the `ws_clients` set.
-- The `broadcast_ws` function puts messages onto every client's queue:
+- Each connected client gets a `Queue` object added to the `_sse_clients` list.
+- The `_broadcast_sse` function puts SSE-formatted messages onto every client's queue:
 
   ```python
-  def broadcast_ws(message):
-      payload = json.dumps(message)
+  def _broadcast_sse(event_type: str, data: dict) -> None:
+      msg = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
       dead = []
-      for client in ws_clients:
-          try:
-              client.put_nowait(payload)
-          except Exception:
-              dead.append(client)
-      for client in dead:
-          ws_clients.discard(client)
+      with _sse_lock:
+          for q in _sse_clients:
+              try:
+                  q.put_nowait(msg)
+              except queue.Full:
+                  dead.append(q)
+          for q in dead:
+              _sse_clients.remove(q)
   ```
 
-- The WebSocket handler blocks on `client_queue.get()`, waiting for new messages, then sends them to the browser.
+- The SSE handler blocks on `q.get(timeout=30)`, waiting for new messages, then yields them to the browser. A keepalive comment is sent every 30 seconds to keep the connection alive.
 
-**Note:** This implementation uses a simple queue-based approach. For production, consider using a proper WebSocket library like `Flask-Sock` or `websockets` with an async server (e.g., `uvicorn` + `fastapi`).
+- The dashboard HTML at `/` uses the browser's `EventSource` API to connect to `/events` and render incoming metrics in real time.
+
+**Why SSE instead of WebSocket?** SSE works with plain Flask (no extra dependencies like `flask-sock` or `gevent-websocket`), is simpler to implement, and is perfect for one-way push from server to dashboard. The dashboard only needs to display incoming data — it doesn't need to send messages back to the server.
 
 ---
 
@@ -466,12 +477,12 @@ Here's the data flow when everything is running:
    - Stored in KV (`call_state`)
    - Persisted to SQLite
    - Checked against thresholds
-   - Broadcast to WebSocket clients
+   - Broadcast to SSE clients
 5. **Dashboard queries**:
    - `GET /api/quality/<call_id>` — per-call detail
    - `GET /api/quality/stats` — aggregate health
    - `GET /api/quality/alerts` — active alerts
-   - WebSocket `/ws` — live updates
+   - SSE `/events` — live updates
 
 ---
 
@@ -479,7 +490,7 @@ Here's the data flow when everything is running:
 
 Now that you understand how the sample works, here are some ways to extend it:
 
-- **Add a frontend dashboard** — Build a simple HTML/JS page that connects to `/ws` and renders live metrics using Chart.js or D3.
+- **Add a frontend dashboard** — The built-in dashboard at `/` is minimal. Extend it with Chart.js or D3 to render live charts of MOS, jitter, and latency over time.
 - **Persist alerts** — Currently alerts live only in memory. Add an `alerts` table to SQLite so you can query historical alerts.
 - **Add call control actions** — Use the Telnyx API to automatically hang up or reroute calls that fall below quality thresholds.
 - **Scale the database** — Swap SQLite for PostgreSQL or TimescaleDB for time-series analytics.
@@ -490,7 +501,7 @@ Now that you understand how the sample works, here are some ways to extend it:
 - [Telnyx Call Quality Webhooks](https://developers.telnyx.com/docs/voice/call-quality)
 - [Telnyx Webhook Security](https://developers.telnyx.com/docs/voice/webhooks)
 - [Telnyx Python SDK](https://github.com/team-telnyx/telnyx-python)
-- [Flask WebSocket Support](https://flask-sock.readthedocs.io/)
+- [Server-Sent Events (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events)
 
 ---
 
@@ -500,7 +511,7 @@ Now that you understand how the sample works, here are some ways to extend it:
 |-------|----------|
 | Webhook returns `400 Invalid signature` | Ensure `TELNYX_PUBLIC_KEY` is set correctly in `.env` |
 | No metrics appearing | Check your Telnyx dashboard webhook configuration — make sure the URL is correct and events are enabled |
-| WebSocket not connecting | Ensure you're using a WebSocket-capable client (e.g., browser `WebSocket` API) and the server supports `wsgi.websocket` |
+| SSE stream not updating | Check browser console for EventSource errors; ensure `/events` endpoint is accessible and not buffered by a proxy |
 | Database locked errors | SQLite can only handle one writer at a time. For production, switch to PostgreSQL |
 
 ---

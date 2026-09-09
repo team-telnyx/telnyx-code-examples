@@ -1,10 +1,10 @@
 # API Reference — Call Quality Monitor
 
-This document describes the HTTP endpoints exposed by the Call Quality Monitor sample. All endpoints return JSON responses.
+This document describes the HTTP endpoints exposed by the Call Quality Monitor sample. All endpoints return JSON responses except the SSE stream.
 
 ## Base URL
 
-When running locally, the base URL is `http://localhost:5000` (or the port specified by the `PORT` environment variable).
+When running locally, the base URL is `http://localhost:5000` (or the port specified by the `PORT` environment variable). The demo server runs on `http://localhost:5555`.
 
 ---
 
@@ -82,6 +82,18 @@ curl -X POST http://localhost:5000/webhooks/call-quality \
 |-------------|-------------|
 | `200` | Webhook processed successfully |
 | `400` | Invalid webhook signature |
+
+---
+
+## Dashboard Endpoint
+
+### GET `/`
+
+Serves the live call quality dashboard HTML page with SSE-powered real-time updates.
+
+| Status Code | Description |
+|-------------|-------------|
+| `200` | Dashboard HTML returned |
 
 ---
 
@@ -243,17 +255,18 @@ curl http://localhost:8080/api/quality/alerts
 
 ## WebSocket Endpoint
 
-### GET `/ws`
+> **Note:** This sample uses Server-Sent Events (SSE) instead of WebSocket. SSE works with plain Flask and requires no additional dependencies.
 
-WebSocket endpoint for the live dashboard. Requires a WebSocket connection (e.g., via `websocket-client` or a browser WebSocket). Messages are broadcast to all connected clients.
+### GET `/events`
 
-### Message Types
+SSE endpoint for the live dashboard. Returns a `text/event-stream` response that pushes quality metrics and call events to connected browsers.
 
-**Quality Metric Message**
+### Event Types
+
+**quality_metric**
 
 ```json
 {
-  "type": "quality_metric",
   "data": {
     "call_id": "call-leg-123",
     "timestamp": "2025-01-15T12:34:00+00:00",
@@ -269,35 +282,28 @@ WebSocket endpoint for the live dashboard. Requires a WebSocket connection (e.g.
 }
 ```
 
-**Call Event Message**
+**call_event**
 
 ```json
 {
-  "type": "call_event",
   "call_id": "call-leg-123",
   "event": "call.initiated"
 }
 ```
 
-### Example Connection (Python)
+### Example Connection (JavaScript)
 
-```python
-import websocket
-
-ws = websocket.WebSocket()
-ws.connect("ws://localhost:8080/ws")
-
-while True:
-    message = ws.recv()
-    print(message)
+```javascript
+const evtSource = new EventSource('/events');
+evtSource.addEventListener('quality_metric', function(e) {
+    const msg = JSON.parse(e.data);
+    console.log(msg.data, msg.alerts);
+});
+evtSource.addEventListener('call_event', function(e) {
+    const msg = JSON.parse(e.data);
+    console.log(msg.event, msg.call_id);
+});
 ```
-
-### Status Codes
-
-| Status Code | Description |
-|-------------|-------------|
-| `200` | WebSocket connection established |
-| `400` | Not a WebSocket connection |
 
 ---
 

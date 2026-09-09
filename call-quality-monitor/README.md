@@ -1,7 +1,7 @@
 ---
 name: call-quality-monitor
 title: "Call Quality Monitor"
-description: "Monitor call quality metrics (MOS, jitter, latency) via Telnyx webhooks, store historical data in SQLite, and view live alerts on a WebSocket dashboard."
+description: "Monitor call quality metrics (MOS, jitter, latency) via Telnyx webhooks, store historical data in SQLite, and view live alerts on an SSE dashboard."
 language: python
 framework: flask
 telnyx_products: [Voice, Webhooks]
@@ -9,7 +9,7 @@ telnyx_products: [Voice, Webhooks]
 
 # Call Quality Monitor
 
-Monitor call quality metrics (MOS, jitter, latency, packet loss) from Telnyx webhooks, store historical analytics in SQLite, track per-call state, and view live alerts on a WebSocket dashboard.
+Monitor call quality metrics (MOS, jitter, latency, packet loss) from Telnyx webhooks, store historical analytics in SQLite, track per-call state, and view live alerts on a Server-Sent Events (SSE) dashboard. A built-in demo server lets you run the full pipeline without Telnyx credentials.
 
 ## Why Telnyx
 
@@ -19,7 +19,8 @@ Telnyx provides the **AI Communications Infrastructure** needed to build real-ti
 
 - **Call Quality Webhooks** — Receive real-time quality metrics (MOS, jitter, latency, packet loss) for active calls via Telnyx's webhook delivery.
 - **Call Lifecycle Webhooks** — Track call states (`call.initiated`, `call.answered`, `call.completed`) to correlate quality data with call events.
-- **Webhook Signature Verification** — Verify inbound webhook payloads using Telnyx's Ed25519 signature to ensure authenticity.
+- **Webhook Signature Verification** — Verify inbound webhook payloads using Telnyx's Ed25519 signature (via pynacl) to ensure authenticity.
+- **Telnyx Python SDK v4** — Constructed `telnyx.Telnyx(api_key=..., public_key=...)` client for SDK initialization and webhook key management.
 
 ## Architecture
 
@@ -52,8 +53,8 @@ Telnyx provides the **AI Communications Infrastructure** needed to build real-ti
                                   │             │                │
                                   │             ▼                │
                                   │  ┌────────────────────────┐  │
-                                  │  │ WebSocket Broadcast    │  │
-                                  │  │ (Live Dashboard)       │  │
+                                  │  │ SSE Broadcast         │  │
+                                  │  │ (Live Dashboard)      │  │
                                   │  └────────────────────────┘  │
                                   └──────────────────────────────┘
 ```
@@ -71,6 +72,22 @@ Telnyx provides the **AI Communications Infrastructure** needed to build real-ti
 | `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_public_key_here` | **yes** | TELNYX_PUBLIC_KEY | — |
 
 ## Setup
+
+### Option A — Demo mode (no credentials needed)
+
+```bash
+git clone https://github.com/team-telnyx/telnyx-code-examples.git
+cd telnyx-code-examples/call-quality-monitor
+
+pip install -r requirements.txt
+pip install requests  # needed by the demo webhook sender
+
+python demo/demo_server.py
+```
+
+Open `http://localhost:5555/` and use the demo controls to start simulated calls, trigger threshold alerts, and reset data. The demo generates an Ed25519 keypair locally, signs webhook payloads, and posts them to the real `/webhooks/call-quality` endpoint — the full pipeline runs end-to-end without Telnyx credentials or ngrok.
+
+### Option B — Production mode (with Telnyx credentials)
 
 1. **Clone the repository**
 
@@ -103,27 +120,43 @@ Telnyx provides the **AI Communications Infrastructure** needed to build real-ti
 
    The server will start on `http://localhost:5000` (or the port specified in `PORT`).
 
+5. **Configure your Telnyx webhook**
+
+   In the Telnyx Portal, set your webhook URL to `https://<your-domain>/webhooks/call-quality` so Telnyx delivers call quality events to your server.
+
 ## API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/webhooks/call-quality` | Receive Telnyx call quality webhooks (verify signature, process metrics). |
+| `POST` | `/webhooks/call-quality` | Receive Telnyx call quality webhooks (verify Ed25519 signature, process metrics). |
+| `GET` | `/` | Live dashboard (SSE-powered, shows metrics and alerts in real time). |
+| `GET` | `/events` | SSE stream endpoint for live dashboard updates. |
 | `GET` | `/api/quality/<call_id>` | Get all quality metrics for a specific call. |
 | `GET` | `/api/quality` | Get all quality metrics with optional filters (`call_id`, `start`, `end`, `limit`). |
 | `GET` | `/api/quality/stats` | Get aggregate statistics (average MOS, jitter, latency, packet loss). |
 | `GET` | `/api/quality/alerts` | Get all threshold alerts from in-memory call state. |
-| `GET` | `/ws` | WebSocket endpoint for live dashboard updates. |
 | `GET` | `/health` | Health check endpoint. |
 
 ## Troubleshooting
 
 | Issue | Likely Cause | Solution |
 |-------|--------------|----------|
-| `401 Unauthorized` on webhook | Invalid or missing `TELNYX_API_KEY` | Verify your API key in `.env` |
-| `400 Invalid signature` on webhook | Incorrect `TELNYX_PUBLIC_KEY` | Ensure the public key matches your Telnyx account |
+| `401` on webhook | Invalid or missing `TELNYX_PUBLIC_KEY` | Verify your public key in `.env` |
 | No metrics stored | Webhook not configured in Telnyx portal | Set up the webhook URL to point to `https://<your-domain>/webhooks/call-quality` |
-| WebSocket connection fails | Server not running with WebSocket support | Ensure the Flask app is running and accessible |
+| SSE stream not updating | Browser not connected to `/events` | Check browser console; ensure `/events` endpoint is accessible |
 | Database errors | Invalid `DB_PATH` or permissions | Check the path is writable and valid |
+| Demo server errors | Missing `requests` package | Run `pip install requests` for the demo webhook sender |
+
+## Testing
+
+```bash
+# Run the smoke test suite
+python -m pytest smoke_test.py -v
+
+# Run the demo server end-to-end
+python demo/demo_server.py
+# Then open http://localhost:5555/ and click "Start 3 Calls"
+```
 
 ## Agent Discovery
 
