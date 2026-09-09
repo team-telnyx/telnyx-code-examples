@@ -1,6 +1,6 @@
 # API Reference — Auto-Failover Voice Routing
 
-This document describes every HTTP endpoint exposed by the Flask application in `app.py`. All endpoints are stateless HTTP handlers; circuit-breaker state is persisted in an in-memory KV store (demo mode) or an external KV store (production mode).
+This document describes every HTTP endpoint exposed by the Edge worker in `src/index.ts`. All endpoints are stateless HTTP handlers; circuit-breaker state is persisted in the `FAILOVER_KV` Telnyx KV binding, and Call Control webhooks dispatch to the durable `FailoverAgent` actor.
 
 ---
 
@@ -38,7 +38,7 @@ Receives inbound Call Control webhooks from Telnyx. Verifies the Ed25519 signatu
 ### Example Request
 
 ```bash
-curl -X POST http://localhost:5000/webhooks/call-control \
+curl -X POST http://localhost:8787/webhooks/call-control \
   -H "Content-Type: application/json" \
   -H "Telnyx-Signature: t=1699999999,v1=ed25519_signature_here" \
   -H "Telnyx-Signature-Timestamp: 1699999999" \
@@ -71,7 +71,8 @@ curl -X POST http://localhost:5000/webhooks/call-control \
 | Code | Description |
 |---|---|
 | 200 | Webhook processed successfully. |
-| 500 | Internal server error — signature verification failed or unhandled exception. |
+| 401 | Ed25519 signature verification failed (live mode) or the payload is invalid. |
+| 500 | Internal server error — unhandled exception while dispatching. |
 
 ---
 
@@ -88,7 +89,7 @@ Determines which SIP connection (primary or backup) should be used for an outbou
 ### Example Request
 
 ```bash
-curl -X POST http://localhost:5000/api/route \
+curl -X POST http://localhost:8787/api/route \
   -H "Content-Type: application/json" \
   -d '{
     "to": "+15551234567"
@@ -149,7 +150,7 @@ No request body or parameters required.
 ### Example Request
 
 ```bash
-curl -X GET http://localhost:5000/api/circuit-state
+curl -X GET http://localhost:8787/api/circuit-state
 ```
 
 ### Response
@@ -184,7 +185,7 @@ No request body or parameters required.
 ### Example Request
 
 ```bash
-curl -X POST http://localhost:5000/api/circuit-reset
+curl -X POST http://localhost:8787/api/circuit-reset
 ```
 
 ### Response
@@ -221,7 +222,7 @@ No request body or parameters required.
 ### Example Request
 
 ```bash
-curl -X GET http://localhost:5000/health
+curl -X GET http://localhost:8787/health
 ```
 
 ### Response

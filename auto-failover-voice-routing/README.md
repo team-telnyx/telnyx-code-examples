@@ -2,8 +2,8 @@
 name: auto-failover-voice-routing
 title: "Auto-Failover Voice Routing with Circuit Breaker"
 description: "Telecom-native circuit breaker pattern using Telnyx Call Control, KV state, and SMS alerts for automatic SIP failover."
-language: python
-framework: flask
+language: typescript
+framework: edge
 telnyx_products: [Call Control, SMS, Webhooks, KV]
 ---
 
@@ -19,12 +19,15 @@ Telnyx provides **AI Communications Infrastructure** — a global, programmable 
 
 | API | Method | Purpose |
 |-----|--------|---------|
-| Call Control API | `telnyx.Call.create()` | Create outbound calls via primary or backup SIP connections |
-| Call Control Webhooks | `telnyx.Webhook.construct_event()` | Verify Ed25519-signed webhook events for call state changes |
-| SMS API | `telnyx.Message.create()` | Send SMS alerts to ops when circuit breaker trips |
-| KV Store (in-memory demo) | `kv_get()` / `kv_put()` / `kv_increment()` | Persist circuit breaker state (failures, tripped, last_fail) |
+| Call Control API | `env.TELNYX.calls.dial()` | Create outbound calls via primary or backup SIP connections |
+| Call Control Actions | `env.TELNYX.calls.actions.speak()` / `gather()` / `hangup()` | Deliver the fraud alert, collect the 1/2 response, hang up |
+| Call Control Webhooks | `telnyx.webhooks.unwrap()` | Verify Ed25519-signed webhook events for call state changes |
+| SMS API | `env.TELNYX.messages.send()` | Send SMS alerts to ops when the circuit breaker trips and confirmations to the customer |
+| Telnyx KV | `env.FAILOVER_KV.get()` / `put()` | Persist circuit breaker state (failures, tripped, last_fail) and call routing maps |
 
 ## Architecture
+
+The sample runs on Telnyx Edge Compute with the Agent SDK: an edge **worker** (`src/index.ts`) fronts the HTTP surface and dispatches Call Control webhooks to a durable **actor** (`src/failoverAgent.ts`, a `FailoverAgent` extending `Agent`) that owns the circuit breaker and the call flow. Breaker state lives in the `FAILOVER_KV` KV binding so it survives restarts and is shared between the worker and the actor.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -35,41 +38,50 @@ Telnyx provides **AI Communications Infrastructure** — a global, programmable 
 │  │ Connection    │     │ Connection   │     │   Endpoint   │    │
 │  └──────┬───────┘     └──────┬───────┘     └──────┬───────┘    │
 │         │                    │                    │            │
-│         │ Call Control API   │ Call Control API   │ POST       │
+│         │ env.TELNYX         │ env.TELNYX         │ POST       │
+│         │ .calls.dial        │ .calls.dial        │            │
 │         ▼                    ▼                    ▼            │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │              Flask App (auto-failover)                  │   │
+│  │        Edge worker (src/index.ts, fetch handler)        │   │
 │  │                                                         │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌────────────────┐  │   │
 │  │  │ /api/route  │  │ /webhooks/  │  │ /api/circuit-  │  │   │
 │  │  │             │  │ call-control│  │ state          │  │   │
-│  │  │ Routes call │  │             │  │                │  │   │
-│  │  │ to primary  │  │ Receives    │  │ Returns breaker│  │   │
-│  │  │ or backup   │  │ call failure│  │ state (closed/ │  │   │
-│  │  │ based on    │  │ webhooks    │  │ open/half-open)│  │   │
-│  │  │ breaker     │  │             │  │                │  │   │
-│  │  │ state       │  │ → increments│  │                │  │   │
-│  │  └─────────────┘  │   failure   │  └────────────────┘  │   │
-│  │                   │   counter   │  ┌────────────────┐  │   │
-│  │                   │   in KV     │  │ /api/circuit-  │  │   │
-│  │                   │             │  │ reset          │  │   │
-│  │                   │ → if count  │  │                │  │   │
-│  │                   │   >= thresh │  │ Manually reset │  │   │
-│  │                   │   → trip    │  │ breaker        │  │   │
-│  │                   │   breaker   │  └────────────────┘  │   │
-│  │                   │   → SMS     │  ┌────────────────┐  │   │
-│  │                   │   alert     │  │ /health        │  │   │
-│  │                   │   to ops    │  │                │  │   │
-│  │                   └─────────────┘  │ Health check   │  │   │
-│  │                                    └────────────────┘  │   │
-│  │                                                         │   │
-│  │  ┌────────────────────────────────────────────────────┐ │   │
-│  │  │  KV Store (in-memory demo / Redis in production)   │ │   │
-│  │  │  primary:failures  → int                           │ │   │
-│  │  │  primary:tripped   → bool                          │ │   │
-│  │  │  primary:last_fail → timestamp                     │ │   │
-│  │  └────────────────────────────────────────────────────┘ │   │
+│  │  │ Reads the   │  │ Verifies    │  │                │  │   │
+│  │  │ breaker in  │  │ the Ed25519 │  │ Reads breaker  │  │   │
+│  │  │ KV, dials   │  │ signature,  │  │ state from KV  │  │   │
+│  │  │ the chosen  │  │ dispatches  │  │ (closed/open/  │  │   │
+│  │  │ connection  │  │ events to   │  │ half-open)     │  │   │
+│  │  │ and records │  │ the actor   │  └────────────────┘  │   │
+│  │  │ the routing │  │             │  ┌────────────────┐  │   │
+│  │  │ map in KV   │  │             │  │ /api/circuit-  │  │   │
+│  │  │             │  │             │  │ reset          │  │   │
+│  │  └─────────────┘  │             │  │                │  │   │
+│  │                   │             │  │ Resets breaker │  │   │
+│  │                   │             │  │ via the actor  │  │   │
+│  │                   │             │  └────────────────┘  │   │
+│  │                   │             │  ┌────────────────┐  │   │
+│  │                   │             │  │ /health        │  │   │
+│  │                   │             │  └────────────────┘  │   │
+│  │         ┌─────────┘             │                      │   │
+│  │         ▼                       │                      │   │
+│  │  ┌──────────────────────────────┴───────────────────┐  │   │
+│  │  │      FailoverAgent actor (src/failoverAgent.ts)  │  │   │
+│  │  │                                                  │  │   │
+│  │  │  recordOutcome(): counts primary failures in KV, │  │   │
+│  │  │  trips the breaker at threshold → ops SMS        │  │   │
+│  │  │  handleCallEvent(): announces the fraud alert    │  │   │
+│  │  │  (speak → gather → resolve → SMS → hangup)       │  │   │
+│  │  │  resetBreaker(): closes the breaker              │  │   │
+│  │  └──────────────────────────────────────────────────┘  │   │
 │  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │   Telnyx KV (env.FAILOVER_KV) — durable breaker state    │  │
+│  │   primary:failures  → int                                │  │
+│  │   primary:tripped   → bool                               │  │
+│  │   primary:last_fail → timestamp                          │  │
+│  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌──────────────┐                                               │
 │  │   SMS to     │                                               │
@@ -79,24 +91,26 @@ Telnyx provides **AI Communications Infrastructure** — a global, programmable 
 
 Circuit Breaker State Flow:
   CLOSED → (failures >= threshold) → OPEN → (cooldown expired) → HALF-OPEN → (test call succeeds) → CLOSED
-                                                                                                   ↓
-                                                                                                   → (test call fails) → OPEN
+                                                                                                    ↓
+                                                                                                    → (test call fails) → OPEN
 ```
 
 ## Environment Variables
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `COOLDOWN_SECONDS` | `string` | `your_cooldown_seconds_here` | **yes** | COOLDOWN_SECONDS | — |
-| `DEMO_MODE` | `string` | `your_demo_mode_here` | **yes** | DEMO_MODE | — |
-| `FAILURE_THRESHOLD` | `string` | `your_failure_threshold_here` | **yes** | FAILURE_THRESHOLD | — |
-| `PORT` | `string` | `your_port_here` | **yes** | PORT | — |
-| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
-| `TELNYX_BACKUP_CONNECTION_ID` | `string` | `your_telnyx_backup_connection_id_here` | **yes** | TELNYX_BACKUP_CONNECTION_ID | — |
-| `TELNYX_FROM_NUMBER` | `string` | `your_telnyx_from_number_here` | **yes** | TELNYX_FROM_NUMBER | — |
-| `TELNYX_OPS_ALERT_NUMBER` | `string` | `your_telnyx_ops_alert_number_here` | **yes** | TELNYX_OPS_ALERT_NUMBER | — |
-| `TELNYX_PRIMARY_CONNECTION_ID` | `string` | `your_telnyx_primary_connection_id_here` | **yes** | TELNYX_PRIMARY_CONNECTION_ID | — |
-| `TELNYX_WEBHOOK_SECRET` | `string` | `your_telnyx_webhook_secret_here` | **yes** | TELNYX_WEBHOOK_SECRET | — |
+| `COOLDOWN_SECONDS` | `string` | `300` | **yes** | Seconds the breaker stays open before half-open probing | Your ops policy |
+| `DEMO_MODE` | `string` | `true` | **yes** | `true` logs SMS/alerts instead of sending and skips dialing | — |
+| `DIAL_TIMEOUT_SECS` | `string` | `30` | **yes** | Ring timeout for outbound dials | Your ops policy |
+| `FAILURE_THRESHOLD` | `string` | `3` | **yes** | Failures before the breaker trips | Your ops policy |
+| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key (Edge secret) | Telnyx Mission Control → API Keys |
+| `TELNYX_BACKUP_CONNECTION_ID` | `string` | `your_telnyx_backup_connection_id_here` | **yes** | Backup SIP connection ID | Telnyx Portal → Voice → SIP Connections |
+| `TELNYX_FROM_NUMBER` | `string` | `+1555XXXXXXXX` | **yes** | Caller ID for outbound calls | Telnyx Portal → Numbers |
+| `TELNYX_OPS_ALERT_NUMBER` | `string` | `+1555XXXXXXXX` | **yes** | Mobile number that receives breaker-trip SMS alerts | Your ops on-call number |
+| `TELNYX_PRIMARY_CONNECTION_ID` | `string` | `your_telnyx_primary_connection_id_here` | **yes** | Primary SIP connection ID | Telnyx Portal → Voice → SIP Connections |
+| `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_public_key_base64` | **yes** (live) | Ed25519 public key for webhook signature verification | Telnyx Portal → Webhook signing keys |
+| `SMS_FROM_NUMBER` | `string` | `+1555XXXXXXXX` | **yes** | Sender for SMS alerts (falls back to `TELNYX_FROM_NUMBER`) | Telnyx Portal → Numbers |
+| `TTS_VOICE` | `string` | `Telnyx.Ultra.f786b574-daa5-4673-aa0c-cbe3e8534c02` | **yes** | Telnyx voice for the spoken fraud alert | [Telnyx TTS voices](https://developers.telnyx.com/docs/voice/programmable-voice/best-practices/tts) |
 
 ## Setup
 
@@ -105,20 +119,23 @@ Circuit Breaker State Flow:
 git clone https://github.com/team-telnyx/telnyx-code-examples.git
 cd telnyx-code-examples/auto-failover-voice-routing
 
-# Create a virtual environment and install dependencies
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+# Install dependencies and typecheck/build
+npm install
+npm run typecheck
+npm run build
 
 # Copy the example environment file and configure your values
 cp .env.example .env
-# Edit .env with your Telnyx API key, connection IDs, phone numbers, and webhook secret
+# Edit .env with your Telnyx API key, connection IDs, phone numbers, and public key
 
-# Run the Flask application
-python app.py
+# Run the sample locally (telnyx-edge dev)
+npm start
+
+# Deploy to Telnyx Edge Compute
+telnyx-edge ship
 ```
 
-The server starts on `http://0.0.0.0:5000` by default. In demo mode (`DEMO_MODE=true`), no real calls or SMS messages are sent — all actions are logged.
+On Telnyx Edge Compute the config is provided by `telnyx.toml` (`[env_vars]`, `[[secrets]]`, and the `[storage.kv.FAILOVER_KV]` namespace). Locally, the same variables load from `.env`. In demo mode (`DEMO_MODE=true`), no real calls or SMS messages are sent — all actions are logged, and inbound webhook signatures are skipped so you can test without the public key.
 
 ## API Reference
 
@@ -138,12 +155,12 @@ Quick reference:
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| Webhook returns 500 | Invalid or missing `Telnyx-Signature` header | Verify `TELNYX_WEBHOOK_SECRET` matches the secret configured in the Telnyx Portal |
+| Webhook returns 401 | Invalid or missing Ed25519 signature | In live mode, set `TELNYX_PUBLIC_KEY` (`telnyx-edge secrets add TELNYX_PUBLIC_KEY <base64>`). Demo mode (`DEMO_MODE=true`) skips verification for local testing. |
 | Calls always route to backup | Circuit breaker is tripped and cooldown hasn't expired | Wait for cooldown period or call `POST /api/circuit-reset` |
 | No SMS alert sent | `DEMO_MODE=true` or `TELNYX_OPS_ALERT_NUMBER` not set | Set `DEMO_MODE=false` and configure `TELNYX_OPS_ALERT_NUMBER` |
 | Call creation fails | Invalid `TELNYX_PRIMARY_CONNECTION_ID` or `TELNYX_BACKUP_CONNECTION_ID` | Verify connection IDs in the Telnyx Portal under SIP Connections |
-| `telnyx` module not found | Dependencies not installed | Run `pip install -r requirements.txt` |
-| Port already in use | Another process is using port 5000 | Set `PORT` environment variable to an available port |
+| Module not found | Dependencies not installed | Run `npm install` |
+| KV errors on Edge | `FAILOVER_KV` namespace not created | Run `telnyx-edge storage kv create --name auto-failover-breaker` and paste the id into `telnyx.toml` |
 
 ## Agent Discovery
 
@@ -162,7 +179,7 @@ Quick reference:
 
 - [Telnyx Developer Docs](https://developers.telnyx.com)
 - [Telnyx API Reference](https://developers.telnyx.com/api)
-- [Telnyx Python SDK](https://github.com/team-telnyx/telnyx-python)
+- [Telnyx Edge Compute Docs](https://developers.telnyx.com/docs/edge)
 - [Telnyx Call Control Product Page](https://telnyx.com/call-control)
 - [Telnyx SMS Product Page](https://telnyx.com/sms)
 - [Telnyx Pricing](https://telnyx.com/pricing)

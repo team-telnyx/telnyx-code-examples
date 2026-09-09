@@ -1,0 +1,42 @@
+name = "auto-failover-voice-routing"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+# ── Stateful actor: one FailoverAgent instance owns the breaker + call flow ──
+[[actors]]
+binding = "FAILOVER_AGENT"
+type = "FailoverAgent"
+
+# ── Telnyx API binding: pre-authenticated SDK client (env.TELNYX) ──────────
+# Used for Call Control (dial, speak, gather, hangup) and Messaging (SMS).
+[telnyx]
+binding = "TELNYX"
+
+# ── Telnyx KV: durable circuit-breaker state + call routing maps (env.FAILOVER_KV) ──
+# Create the namespace first:
+#   telnyx-edge storage kv create --name auto-failover-breaker
+# Then paste the returned id below.
+[storage.kv.FAILOVER_KV]
+id = "00000000-0000-4000-8000-000000000000"
+
+# ── Secrets ────────────────────────────────────────────────────────────────
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+# ── Env vars (non-secret config) ───────────────────────────────────────────
+[env_vars]
+DEMO_MODE = "true"
+TELNYX_PRIMARY_CONNECTION_ID = "your_primary_sip_connection_id"
+TELNYX_BACKUP_CONNECTION_ID = "your_backup_sip_connection_id"
+TELNYX_FROM_NUMBER = "+15555550100"
+SMS_FROM_NUMBER = "+15555550100"
+TELNYX_OPS_ALERT_NUMBER = "+15555550200"
+FAILURE_THRESHOLD = "3"
+COOLDOWN_SECONDS = "300"
+DIAL_TIMEOUT_SECS = "30"
+TTS_VOICE = "Telnyx.Ultra.f786b574-daa5-4673-aa0c-cbe3e8534c02"
