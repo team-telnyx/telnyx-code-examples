@@ -176,6 +176,22 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
     return snapshot;
   }
 
+  /** Current breaker state for worker-side reads when no KV binding reaches the fetch env. */
+  async snapshot(): Promise<BreakerSnapshot> {
+    return readBreaker(this.kvStore());
+  }
+
+  /** Register a dialed call's connection mapping (worker fallback when KV is absent there). */
+  async noteCall(callControlId: string, connectionId: string, to: string): Promise<void> {
+    await this.putCallMap(callControlId, { connection_id: connectionId, to });
+  }
+
+  /** Connection that carried a call (empty when unknown). */
+  async connectionFor(callControlId: string): Promise<string> {
+    const map = await this.getCallMap(callControlId);
+    return map?.connection_id ?? "";
+  }
+
   // ── Breaker internals ─────────────────────────────────────────────────────
 
   private async tripBreakerWithAlert(
@@ -420,6 +436,14 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
 
   private stageKey(callControlId: string): string {
     return `stage:${callControlId}`;
+  }
+
+  private async putCallMap(callControlId: string, map: CallRoutingMap): Promise<void> {
+    await this.kvStore().put(
+      this.callMapKey(callControlId),
+      JSON.stringify(map),
+      { expirationTtl: CALL_MAP_TTL_SECONDS },
+    );
   }
 
   private async getCallMap(callControlId: string): Promise<CallRoutingMap | null> {

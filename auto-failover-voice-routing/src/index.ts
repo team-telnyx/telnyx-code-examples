@@ -6,6 +6,7 @@ import {
   breakerStatus,
   readBreaker,
   shouldRouteToBackup,
+  type BreakerSnapshot,
 } from "./breaker.js";
 import { listEvents, recordEvent } from "./events.js";
 import { DASHBOARD_HTML } from "./dashboard.js";
@@ -19,7 +20,10 @@ import type { CallControlEvent, CallRoutingMap } from "./failoverAgent.js";
 // ---------------------------------------------------------------------------
 
 type FailoverStub = ActorStub &
-  Pick<FailoverAgent, "recordOutcome" | "handleCallEvent" | "resetBreaker">;
+  Pick<
+    FailoverAgent,
+    "recordOutcome" | "handleCallEvent" | "resetBreaker" | "snapshot" | "noteCall" | "connectionFor"
+  >;
 
 interface FailoverNamespace extends ActorNamespace {
   idFromName(name: string, options?: IdFromNameOptions): FailoverStub;
@@ -67,16 +71,27 @@ const telnyxVerifyClient = new Telnyx({
   apiKey: process.env.TELNYX_API_KEY ?? "unused-webhook-verification-only",
 });
 
+/**
+ * Worker-process config. On Telnyx Edge, `[env_vars]` from telnyx.toml surface
+ * through `process.env` in the worker (the merged samples' convention); the
+ * fetch `env` object is kept as a secondary source for local runtimes that
+ * inject there instead.
+ */
+function envConfig(env: Env, key: keyof Env | "TELNYX_OPS_ALERT_NUMBER" | "SMS_FROM_NUMBER"): string | undefined {
+  return process.env[key] ?? (env as unknown as Record<string, string>)[key];
+}
+
 function isDemoMode(env: Env): boolean {
-  return ["true", "1", "yes"].includes((env.DEMO_MODE ?? "true").toLowerCase());
+  const value = envConfig(env, "DEMO_MODE") ?? "true";
+  return ["true", "1", "yes"].includes(value.toLowerCase());
 }
 
 function primaryConnectionId(env: Env): string {
-  return env.TELNYX_PRIMARY_CONNECTION_ID ?? "";
+  return envConfig(env, "TELNYX_PRIMARY_CONNECTION_ID") ?? "";
 }
 
 function backupConnectionId(env: Env): string {
-  return env.TELNYX_BACKUP_CONNECTION_ID ?? "";
+  return envConfig(env, "TELNYX_BACKUP_CONNECTION_ID") ?? "";
 }
 
 function intEnv(value: string | undefined, fallback: number): number {
@@ -134,7 +149,7 @@ export default {
         return await handleCircuitState(env);
       }
       if (req.method === "GET" && url.pathname === "/api/events") {
-        return Response.json({ events: await listEvents(env.FAILOVER_KV) });
+        return Response.json({ events: env.FAILOVER_KV ? await listEvents(env.FAILOVER_KV) : [] });
       }
       if (req.method === "POST" && url.pathname === "/api/circuit-reset") {
         return await handleCircuitReset(env);
@@ -169,8 +184,8 @@ async function handleRoute(req: Request, env: Env): Promise<Response> {
     return Response.json({ error: "Missing 'to' parameter" }, { status: 400 });
   }
 
-  const snapshot = await readBreaker(env.FAILOVER_KV);
-  const cooldownSeconds = intEnv(env.COOLDOWN_SECONDS, 300);
+  const snapshot = await currentBreaker(env);
+  const cooldownSeconds = intEnv(envConfig(env, "COOLDOWN_SECONDS"), 300);
   const useBackup = shouldRouteToBackup(snapshot, cooldownSeconds);
   const connectionId = useBackup ? backupConnectionId(env) : primaryConnectionId(env);
   await recordEvent(
@@ -197,17 +212,13 @@ async function handleRoute(req: Request, env: Env): Promise<Response> {
   // Live mode: create the call over the chosen SIP connection.
   const call = await env.TELNYX.calls.dial({
     connection_id: connectionId,
-    from: env.TELNYX_FROM_NUMBER ?? "",
+    from: envConfig(env, "TELNYX_FROM_NUMBER") ?? "",
     to: toNumber,
-    timeout_secs: intEnv(env.DIAL_TIMEOUT_SECS, 30),
+    timeout_secs: intEnv(envConfig(env, "DIAL_TIMEOUT_SECS"), 30),
   });
   const callId = call.data?.call_control_id ?? "";
   if (callId) {
-    await env.FAILOVER_KV.put(
-      callMapKey(callId),
-      JSON.stringify({ connection_id: connectionId, to: toNumber }),
-      { expirationTtl: CALL_MAP_TTL_SECONDS },
-    );
+    await putCallMap(env, callId, { connection_id: connectionId, to: toNumber });
   }
   return Response.json(
     { call_id: callId, connection_id: connectionId, circuit_state: snapshot },
@@ -217,14 +228,43 @@ async function handleRoute(req: Request, env: Env): Promise<Response> {
 
 /** Raw breaker state plus the derived closed/open/half-open status. */
 async function handleCircuitState(env: Env): Promise<Response> {
-  const snapshot = await readBreaker(env.FAILOVER_KV);
-  const status = breakerStatus(snapshot, intEnv(env.COOLDOWN_SECONDS, 300));
+  const snapshot = await currentBreaker(env);
+  const status = breakerStatus(snapshot, intEnv(envConfig(env, "COOLDOWN_SECONDS"), 300));
   const payload: Record<string, unknown> = { ...snapshot, status };
-  const threshold = env.FAILURE_THRESHOLD;
+  const threshold = envConfig(env, "FAILURE_THRESHOLD");
   if (threshold) payload.threshold = intEnv(threshold, 3);
   if (primaryConnectionId(env)) payload.primary_connection_id = primaryConnectionId(env);
   if (backupConnectionId(env)) payload.backup_connection_id = backupConnectionId(env);
   return Response.json(payload);
+}
+
+/**
+ * Breaker reads in the worker. Edge injects the `[storage.kv]` binding into
+ * the fetch `env`; runtimes that don't fall back to the FailoverAgent, which
+ * mirrors the breaker in KV (or its durable storage).
+ */
+async function currentBreaker(env: Env): Promise<BreakerSnapshot> {
+  return env.FAILOVER_KV ? readBreaker(env.FAILOVER_KV) : failoverActor(env).snapshot();
+}
+
+async function putCallMap(env: Env, callControlId: string, map: CallRoutingMap): Promise<void> {
+  if (env.FAILOVER_KV) {
+    await env.FAILOVER_KV.put(
+      callMapKey(callControlId),
+      JSON.stringify(map),
+      { expirationTtl: CALL_MAP_TTL_SECONDS },
+    );
+    return;
+  }
+  await failoverActor(env).noteCall(callControlId, map.connection_id, map.to);
+}
+
+async function getCallConnection(env: Env, callControlId: string): Promise<string> {
+  if (env.FAILOVER_KV) {
+    const raw = await env.FAILOVER_KV.get(callMapKey(callControlId));
+    return raw ? (JSON.parse(raw) as CallRoutingMap).connection_id : "";
+  }
+  return failoverActor(env).connectionFor(callControlId);
 }
 
 /** Reset goes through the actor — the breaker's single writer. */
@@ -257,7 +297,7 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
 
   if (eventType === "call.hangup") {
     const hangupCause = stringValue(payload.hangup_cause).toUpperCase();
-    const callConnection = await getCallConnection(env.FAILOVER_KV, callControlId);
+    const callConnection = await getCallConnection(env, callControlId);
     log(`Call hangup cause: ${hangupCause || "unknown"}`);
     if (FAILURE_HANGUP_CAUSES.has(hangupCause) && callConnection === primaryConnectionId(env)) {
       log(
@@ -327,15 +367,3 @@ function callMapKey(callControlId: string): string {
   return `call:${callControlId}`;
 }
 
-/** Which connection a call leg was dialed over, or null when unknown. */
-async function getCallConnection(kv: KvNamespace, callControlId: string): Promise<string> {
-  const raw = await kv.get(callMapKey(callControlId));
-  if (!raw) return "";
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    const map = parsed as Partial<CallRoutingMap> | null;
-    return typeof map?.connection_id === "string" ? map.connection_id : "";
-  } catch {
-    return "";
-  }
-}
