@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-08T13:51:35Z",
-  "example_count": 546,
+  "generated_at": "2026-09-09T10:41:33Z",
+  "example_count": 548,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -4714,6 +4714,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/shipment-agent"
     },
     {
+      "folder": "call-quality-monitor",
+      "title": "Call Quality Monitor",
+      "description": "Monitor call quality metrics (MOS, jitter, latency) via Telnyx webhooks, store historical data in SQLite, and view live alerts on an SSE dashboard.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-quality-monitor"
+    },
+    {
       "folder": "network-incident-agent",
       "title": "Network Incident Agent on Telnyx Edge",
       "description": "A durable incident actor that assesses severity, proactively sends SMS, answers calls with incident context, writes an RCA to CloudFS, and checks for recurrence.",
@@ -4919,6 +4928,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/patient-agent"
+    },
+    {
+      "folder": "event-sponsorship-agent",
+      "title": "Event Sponsorship Agent — Telnyx Edge",
+      "description": "A multilingual, multi-channel agent for event sponsorship activations with giveaway entry, product Q&A, demo booking, lead capture, and real-time hot-lead routing.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/event-sponsorship-agent"
     }
   ]
 }
