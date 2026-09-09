@@ -214,7 +214,6 @@ async function handleRoute(req: Request, env: Env): Promise<Response> {
     connection_id: connectionId,
     from: envConfig(env, "TELNYX_FROM_NUMBER") ?? "",
     to: toNumber,
-    timeout_secs: intEnv(envConfig(env, "DIAL_TIMEOUT_SECS"), 30),
   });
   const callId = call.data?.call_control_id ?? "";
   if (callId) {

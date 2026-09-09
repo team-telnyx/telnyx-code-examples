@@ -399,7 +399,7 @@ try {
   const route1 = await call(portB, "POST", "/api/route", { to: "+15551234567" });
   assert(route1.call_id === "cc-1" && route1.connection_id === PRIMARY_ID, `live route unexpected: ${JSON.stringify(route1)}`);
   const dial = phaseB.telnyxMock.dials[0];
-  assert(dial.connection_id === PRIMARY_ID && dial.from === FROM_NUMBER && dial.to === "+15551234567" && dial.timeout_secs === 30, `dial params unexpected: ${JSON.stringify(dial)}`);
+  assert(dial.connection_id === PRIMARY_ID && dial.from === FROM_NUMBER && dial.to === "+15551234567", `dial params unexpected: ${JSON.stringify(dial)}`);
   assert(phaseB.kv.map.get("call:cc-1") === JSON.stringify({ connection_id: PRIMARY_ID, to: "+15551234567" }), `call map not recorded: ${phaseB.kv.map.get("call:cc-1")}`);
   console.log("ok  /api/route (live) → dial recorded + call map in KV");
 
