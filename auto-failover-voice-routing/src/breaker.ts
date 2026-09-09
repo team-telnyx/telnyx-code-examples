@@ -30,12 +30,20 @@ export const BREAKER_KEYS = {
   tripped: "primary:tripped",
 } as const;
 
-/** Read the raw breaker state (no derived status). */
+/** Read the raw breaker state (no derived status). Tolerates KV stores that
+ * reject gets on never-written keys instead of resolving null. */
 export async function readBreaker(kv: KvLike): Promise<BreakerSnapshot> {
+  const read = async (key: string): Promise<string | undefined> => {
+    try {
+      return (await kv.get(key)) ?? undefined;
+    } catch {
+      return undefined;
+    }
+  };
   const [failures, lastFail, tripped] = await Promise.all([
-    kv.get(BREAKER_KEYS.failures),
-    kv.get(BREAKER_KEYS.lastFail),
-    kv.get(BREAKER_KEYS.tripped),
+    read(BREAKER_KEYS.failures),
+    read(BREAKER_KEYS.lastFail),
+    read(BREAKER_KEYS.tripped),
   ]);
   return {
     failures: Number.parseInt(failures ?? "0", 10) || 0,
