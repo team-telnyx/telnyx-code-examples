@@ -38,6 +38,17 @@ type = "TwoFactorAgent"
 [telnyx]
 binding = "TELNYX"
 
+# Secrets survive resets and are readable in BOTH runtimes (function and
+# actor) via env.SECRETS.get(handle). Preferred over [env_vars], which only
+# reach the function runtime's process.env.
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
+
+[[secrets]]
+binding = "TELNYX_FROM_NUMBER"
+name = "TELNYX_FROM_NUMBER"
+
 [storage.kv.KV]
 id = "2daad78d-92e1-4a11-9064-b896a69c0493"
 

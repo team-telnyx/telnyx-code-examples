@@ -9,6 +9,7 @@ declare global {
     AGENT: __TelnyxActorNamespace<TwoFactorAgent>;
     TELNYX: __TelnyxClient;
     KV: __TelnyxKvNamespace;
+    SECRETS: { get(binding: "DEMO_MODE" | "TELNYX_FROM_NUMBER"): Promise<string> };
   }
 }
 
@@ -17,6 +18,7 @@ declare module "@telnyx/edge-runtime" {
     AGENT: __TelnyxActorNamespace<TwoFactorAgent>;
     TELNYX: __TelnyxClient;
     KV: __TelnyxKvNamespace;
+    SECRETS: { get(binding: "DEMO_MODE" | "TELNYX_FROM_NUMBER"): Promise<string> };
   }
 }
 

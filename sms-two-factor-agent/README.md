@@ -77,8 +77,8 @@ Note: KV keys allow only `a-z A-Z 0-9 - _ / = .`, so the E.164 `+` is stripped �
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key — injected automatically by the `[telnyx]` binding; also used by the `telnyx-edge` CLI | [Telnyx Portal → API Keys](https://portal.telnyx.com) |
-| `DEMO_MODE` | `string` | `true` / `false` | no | `true` (default) logs codes to the actor console instead of sending SMS; `false` sends real SMS | set in `telnyx.toml` `[env_vars]` |
-| `TELNYX_FROM_NUMBER` | `string` | `+16282564655` | no (live mode) | SMS-capable sender number in E.164 | buy a number at [telnyx.com](https://telnyx.com/products/number-api) |
+| `DEMO_MODE` | `string` | `true` / `false` | no | `true` (default) logs codes to the actor console instead of sending SMS; `false` sends real SMS — stored as a secret (`telnyx-edge secrets add DEMO_MODE "false"`) | CLI secret store |
+| `TELNYX_FROM_NUMBER` | `string` | `+16282564655` | no (live mode) | SMS-capable sender number in E.164 — stored as a secret | buy a number at [telnyx.com](https://telnyx.com/products/number-api) |
 
 > **Agent / CLI access** — all of the above can be provisioned from the CLI/agent without the portal:
 >
@@ -86,7 +86,11 @@ Note: KV keys allow only `a-z A-Z 0-9 - _ / = .`, so the E.164 `+` is stripped �
 > telnyx auth set-key KEY…               # human CLI auth (or TELNYX_API_KEY env var for agents)
 > telnyx number-orders create --profile international --quantity 1   # buy an SMS-capable number
 > telnyx-edge storage kv create --name sms-two-factor-agent-2fa      # provision the KV namespace
+> telnyx-edge secrets add DEMO_MODE "false"                          # enable live SMS
+> telnyx-edge secrets add TELNYX_FROM_NUMBER "+16282564655"          # sender number
 > ```
+
+> **Why secrets, not env vars:** `[env_vars]` in `telnyx.toml` are injected into the **function runtime's** `process.env` only — the actor runtime has its own empty `process.env`, so the agent can't see them there. Secrets (`[[secrets]]` in `telnyx.toml` + `telnyx-edge secrets add`) are readable in **both** runtimes via `env.SECRETS.get(name)` and survive function resets. The agent resolves config as: explicit args → `SECRETS` → `process.env` fallback.
 
 ## Setup
 
@@ -158,7 +162,7 @@ curl -X POST https://<your-function>.telnyxcompute.com/check \
   -d '{"phone": "+17177247292", "code": "928723"}'
 ```
 
-**Important:** `[env_vars]` in `telnyx.toml` are injected into the **function runtime's** `process.env` only — the actor runtime has its own empty `process.env`. The fetch handler therefore passes `DEMO_MODE` and `TELNYX_FROM_NUMBER` into `sendCode()` explicitly. Do not read those env vars directly inside the agent class.
+**Important:** `[env_vars]` in `telnyx.toml` are injected into the **function runtime's** `process.env` only — the actor runtime has its own empty `process.env`. The agent therefore resolves `DEMO_MODE` and `TELNYX_FROM_NUMBER` from the `SECRETS` binding first (set via `telnyx-edge secrets add`), falling back to the values passed explicitly by the fetch handler, then to `process.env`. Prefer secrets — they survive function resets.
 
 ### Project Structure
 

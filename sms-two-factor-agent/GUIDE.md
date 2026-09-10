@@ -42,9 +42,21 @@ The agent manages the entire lifecycle of a 2FA code: generating the code, stori
    [storage.kv.KV]
    id = "..."                       # from telnyx-edge storage kv create
 
-   [env_vars]
-   DEMO_MODE = "true"               # "false" sends real SMS
-   TELNYX_FROM_NUMBER = "+16282564655"
+   # Secrets: readable in BOTH runtimes via env.SECRETS.get(handle)
+   [[secrets]]
+   binding = "DEMO_MODE"
+   name = "DEMO_MODE"
+
+   [[secrets]]
+   binding = "TELNYX_FROM_NUMBER"
+   name = "TELNYX_FROM_NUMBER"
+   ```
+
+4. Set the secret values (they outlive deploys and resets):
+
+   ```bash
+   telnyx-edge secrets add DEMO_MODE "true"          # "false" sends real SMS
+   telnyx-edge secrets add TELNYX_FROM_NUMBER "+16282564655"
    ```
 
 ## Running the Sample
@@ -80,9 +92,9 @@ With `DEMO_MODE = "true"`, no real SMS is sent. The generated code is logged to 
 
 ### 4. Switching to live mode
 
-Set `DEMO_MODE = "false"` in `telnyx.toml` `[env_vars]` (and set `TELNYX_FROM_NUMBER` to your SMS-capable number), then `telnyx-edge ship` again. Real SMS will now be sent from your number through your 10DLC campaign.
+Set the secrets to live values (`telnyx-edge secrets add DEMO_MODE "false"` and `telnyx-edge secrets add TELNYX_FROM_NUMBER "+1…"`) and re-ship. Real SMS will now be sent from your number through your 10DLC campaign.
 
-> **Important — env vars and actors:** `[env_vars]` are injected into the **function runtime's** `process.env` only. The actor runtime (where `TwoFactorAgent` runs) has its own empty `process.env`. The fetch handler therefore passes `DEMO_MODE` and `TELNYX_FROM_NUMBER` into `sendCode()` as arguments. Reading these env vars directly inside the agent class silently reverts it to demo mode — the API will still return `ok: true` while no SMS is sent. This exact pitfall was hit while building this sample.
+> **Important — env vars and actors:** `[env_vars]` are injected into the **function runtime's** `process.env` only. The actor runtime (where `TwoFactorAgent` runs) has its own empty `process.env`. The agent therefore resolves config from the `SECRETS` binding first (`telnyx-edge secrets add DEMO_MODE "false"`), with the function-passed values as fallback. Reading env vars directly inside the agent class silently reverts it to demo mode — the API still returns `ok: true` while no SMS is sent. This exact pitfall was hit while building this sample.
 
 ## How It Works: Step-by-Step
 

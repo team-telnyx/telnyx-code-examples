@@ -40,6 +40,7 @@ interface Env {
     ): Promise<void>;
     delete(key: string): Promise<void>;
   };
+  SECRETS?: { get(name: string): Promise<string> };
 }
 
 type TwoFactorStub = ActorStub &
@@ -75,12 +76,39 @@ export class TwoFactorAgent extends Agent<Env, TwoFactorState> {
   }
 
   /**
+   * Config resolution order: explicit opts (from the function runtime's
+   * process.env) → SECRETS binding (readable in both runtimes, survives
+   * resets) → this runtime's process.env (local/harness). The actor runtime
+   * has its own empty process.env, so [env_vars] never reach it directly.
+   */
+  private async resolveConfig(
+    opts?: { demoMode?: boolean; fromNumber?: string },
+  ): Promise<{ demoMode: boolean; fromNumber: string }> {
+    const secret = async (name: string): Promise<string | undefined> => {
+      try {
+        return await this.env.SECRETS?.get(name);
+      } catch {
+        return undefined;
+      }
+    };
+    const demoMode =
+      opts?.demoMode ??
+      (await secret("DEMO_MODE")) ??
+      (process.env.DEMO_MODE ?? "true");
+    const fromNumber =
+      opts?.fromNumber ??
+      (await secret("TELNYX_FROM_NUMBER")) ??
+      process.env.TELNYX_FROM_NUMBER ??
+      "+1555XXXXXXXX";
+    return {
+      demoMode: String(demoMode) !== "false",
+      fromNumber,
+    };
+  }
+
+  /**
    * Generate a 6-digit code, store it in KV with a 5-minute TTL, deliver it,
    * and schedule a cleanup task as a safety net.
-   *
-   * `opts` comes from the function runtime's process.env — the actor runtime
-   * has its own (empty) process.env, so [env_vars] must be passed in, not
-   * read here.
    */
   async sendCode(
     phone: string,
@@ -110,8 +138,7 @@ export class TwoFactorAgent extends Agent<Env, TwoFactorState> {
     await this.putCode(phone, code);
 
     // --- Deliver: demo mode logs, live mode sends via the [telnyx] binding ---
-    const demoMode =
-      opts?.demoMode ?? ((process.env.DEMO_MODE ?? "true") !== "false");
+    const { demoMode, fromNumber } = await this.resolveConfig(opts);
     const messageText = `Your verification code is ${code}. It expires in 5 minutes.`;
     if (demoMode) {
       console.log(`[demo] SMS to ${phone}: ${messageText}`);
@@ -119,9 +146,8 @@ export class TwoFactorAgent extends Agent<Env, TwoFactorState> {
       return { status: "sent", demo: true };
     }
 
-    const from = opts?.fromNumber ?? process.env.TELNYX_FROM_NUMBER ?? "+1555XXXXXXXX";
     const res = (await this.env.TELNYX.messages.send({
-      from,
+      from: fromNumber,
       to: phone,
       text: messageText,
     })) as { data?: { id?: string }; id?: string };
