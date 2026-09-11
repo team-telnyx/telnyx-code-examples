@@ -298,7 +298,13 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
       ? stringValue(payload.state)
       : eventType.replace("call.", "");
   log(`Received webhook event: ${eventType}`);
-  await recordEvent(env.FAILOVER_KV, "webhook", `event: ${eventType}`);
+  await recordEvent(
+    env.FAILOVER_KV,
+    "webhook",
+    eventType === "call.hangup"
+      ? `event: call.hangup (cause: ${stringValue(payload.hangup_cause) || "unknown"})`
+      : `event: ${eventType}`,
+  );
   if (eventType === "call.speak.failed" || eventType === "call.speak.started") {
     await recordEvent(
       env.FAILOVER_KV,
