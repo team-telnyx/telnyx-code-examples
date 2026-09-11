@@ -4,11 +4,15 @@ import Telnyx from "telnyx";
 import type { ActorNamespace, ActorStub, IdFromNameOptions, KvNamespace } from "@telnyx/edge-runtime";
 import {
   breakerStatus,
+  incrementFailures,
   readBreaker,
+  resetBreaker,
+  setLastFail,
   shouldRouteToBackup,
+  tripBreaker,
   type BreakerSnapshot,
 } from "./breaker.js";
-import { listEvents, recordEvent, kvSafeId, demoModeEnabled } from "./events.js";
+import { listEvents, recordEvent, kvSafeId, demoModeEnabled, configValue } from "./events.js";
 import { DASHBOARD_HTML } from "./dashboard.js";
 import type { CallControlEvent, CallRoutingMap } from "./failoverAgent.js";
 
@@ -253,6 +257,57 @@ async function currentBreaker(env: Env): Promise<BreakerSnapshot> {
   return env.FAILOVER_KV ? readBreaker(env.FAILOVER_KV) : failoverActor(env).snapshot();
 }
 
+/**
+ * One primary-connection failure: increment, timestamp, trip at threshold —
+ * and page ops. The breaker ops run in the WORKER (the actor's KV writes are
+ * dropped by the Edge runtime); the same `breaker.ts` primitives the actor
+ * would run, executed where the KV binding accepts writes.
+ */
+async function recordFailureWorkerSide(env: Env): Promise<{ snapshot: BreakerSnapshot; trippedNow: boolean }> {
+  const kv = env.FAILOVER_KV;
+  if (!kv) {
+    return failoverActor(env).recordOutcome({
+      data: { event_type: "call.hangup", payload: { hangup_cause: "TIMEOUT", connection_id: primaryConnectionId(env) } },
+    });
+  }
+  const failures = await incrementFailures(kv);
+  const nowSeconds = Date.now() / 1000;
+  await setLastFail(kv, nowSeconds);
+  log(`Primary connection failure count: ${failures}`);
+  let trippedNow = false;
+  const snapshot = await readBreaker(kv);
+  if (failures >= intEnv(envConfig(env, "FAILURE_THRESHOLD"), 3) && !snapshot.tripped) {
+    await tripBreaker(kv, nowSeconds);
+    trippedNow = true;
+    const backupId = backupConnectionId(env);
+    const alertMsg =
+      `[${new Date().toISOString()}] ` +
+      "Circuit breaker TRIPPED for primary SIP connection. " +
+      `Failures: ${failures}. ` +
+      `Auto-failover to backup connection ${backupId}.`;
+    if (await isDemoMode(env)) {
+      log(`[DEMO MODE] SMS alert (not sent): ${alertMsg}`);
+      await recordEvent(kv, "sms_sent", "ops alert SMS (demo — not sent)", "primary");
+    } else {
+      const opsNumber =
+        (await configValue(kv, "ops-alert-number", envConfig(env, "TELNYX_OPS_ALERT_NUMBER"))) ?? "";
+      const from =
+        (await configValue(kv, "sms-from", envConfig(env, "SMS_FROM_NUMBER"))) ||
+        envConfig(env, "TELNYX_FROM_NUMBER") || "";
+      try {
+        await env.TELNYX.messages.send({ from, to: opsNumber, text: alertMsg });
+        log("SMS alert sent to ops.");
+        await recordEvent(kv, "sms_sent", "ops alert SMS sent", "primary");
+      } catch (error: unknown) {
+        log(`Failed to send SMS alert: ${error instanceof Error ? error.message : String(error)}`);
+        await recordEvent(kv, "sms_sent", `ops alert SMS FAILED: ${error instanceof Error ? error.message.slice(0, 120) : String(error)}`, "primary");
+      }
+    }
+  }
+  const after = await readBreaker(kv);
+  return { snapshot: after, trippedNow };
+}
+
 async function putCallMap(env: Env, callControlId: string, map: CallRoutingMap): Promise<void> {
   if (env.FAILOVER_KV) {
     await env.FAILOVER_KV.put(
@@ -291,7 +346,7 @@ async function handleDemoFailure(env: Env): Promise<Response> {
       },
     },
   } as CallControlEvent;
-  const outcome = await failoverActor(env).recordOutcome(synthetic);
+  const outcome = await recordFailureWorkerSide(env);
   await recordEvent(
     env.FAILOVER_KV,
     "failure_counted",
@@ -310,9 +365,12 @@ async function handleDemoFailure(env: Env): Promise<Response> {
   return Response.json({ status: "ok", ...outcome.snapshot, trippedNow: outcome.trippedNow });
 }
 
-/** Reset goes through the actor — the breaker's single writer. */
+/** Reset is a worker-side KV op (the actor's KV writes are dropped by the runtime). */
 async function handleCircuitReset(env: Env): Promise<Response> {
-  const snapshot = await failoverActor(env).resetBreaker();
+  const snapshot = env.FAILOVER_KV
+    ? await resetBreaker(env.FAILOVER_KV)
+    : await failoverActor(env).resetBreaker();
+  await recordEvent(env.FAILOVER_KV, "breaker_reset", "breaker reset to closed", "primary");
   return Response.json({ status: "reset", circuit_state: snapshot });
 }
 
@@ -379,7 +437,7 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
       log(
         `Call failed on primary (hangup_cause=${hangupCause}) — counting toward circuit breaker.`,
       );
-      const outcome = await failoverActor(env).recordOutcome(event);
+      const outcome = await recordFailureWorkerSide(env);
       await recordEvent(
         env.FAILOVER_KV,
         "failure_counted",
@@ -397,21 +455,23 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
       }
     }
   } else if (callState === "failed" || callState === "busy" || callState === "no_answer") {
-    const outcome = await failoverActor(env).recordOutcome(event);
-    await recordEvent(
-      env.FAILOVER_KV,
-      "failure_counted",
-      `call ${callState} on primary — failures: ${outcome.snapshot.failures}`,
-      "primary",
-    );
-    if (outcome.trippedNow) {
+    if (stringValue(payload.connection_id) === primaryConnectionId(env)) {
+      const outcome = await recordFailureWorkerSide(env);
       await recordEvent(
         env.FAILOVER_KV,
-        "breaker_tripped",
-        `failures: ${outcome.snapshot.failures} — auto-failover to backup connection`,
+        "failure_counted",
+        `call ${callState} on primary — failures: ${outcome.snapshot.failures}`,
         "primary",
       );
-      await recordEvent(env.FAILOVER_KV, "sms_sent", "ops alert SMS sent", "primary");
+      if (outcome.trippedNow) {
+        await recordEvent(
+          env.FAILOVER_KV,
+          "breaker_tripped",
+          `failures: ${outcome.snapshot.failures} — auto-failover to backup connection`,
+          "primary",
+        );
+        await recordEvent(env.FAILOVER_KV, "sms_sent", "ops alert SMS sent", "primary");
+      }
     }
   } else if (callState === "answered") {
     // Announce is slow (TTS API) — respond immediately; the actor dispatch is
