@@ -311,13 +311,17 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
   if (eventType === "call.initiated" && stringValue(payload.direction) === "incoming") {
     const callControlId = stringValue(payload.call_control_id);
     const caller = stringValue(payload.from);
-    await putCallMap(env, callControlId, {
-      connection_id: primaryConnectionId(env),
-      to: caller,
-    });
-    await env.TELNYX.calls.actions.answer(callControlId, {});
-    log(`Inbound fraud line answered for caller ${caller.slice(0, 6)}...`);
-    await recordEvent(env.FAILOVER_KV, "call_answered", `inbound fraud line call from ${caller.slice(0, 6)}...`, "primary");
+    // Respond instantly; the answer + caller mapping run in the background so
+    // the greeting starts a full round-trip sooner.
+    void (async () => {
+      await putCallMap(env, callControlId, {
+        connection_id: primaryConnectionId(env),
+        to: caller,
+      });
+      await env.TELNYX.calls.actions.answer(callControlId, {});
+      log(`Inbound fraud line answered for caller ${caller.slice(0, 6)}...`);
+      await recordEvent(env.FAILOVER_KV, "call_answered", `inbound fraud line call from ${caller.slice(0, 6)}...`, "primary");
+    })().catch((error: unknown) => log(`Inbound answer failed: ${error instanceof Error ? error.message : String(error)}`));
     return Response.json({ status: "ok", action: "answering" });
   }
 
