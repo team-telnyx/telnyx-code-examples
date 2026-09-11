@@ -3207,6 +3207,12 @@ examples:
 
   - product: ai
     use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: auto-failover-voice-routing
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
     language: python
     framework: flask
     folder: voice-ivr-with-agent-backend
@@ -3219,16 +3225,21 @@ examples:
 
   - product: ai
     use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: call-quality-monitor
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
     language: typescript
     framework: telnyx-edge
     folder: network-incident-agent
 
   - product: ai
-    use_case: "auto-generated-from-linear"
+    use_case: "agent-message-replay"
     language: typescript
     framework: edge
-    folder: voicemail-to-sms-agent
-    folder: sms-two-factor-agent
+    folder: agent-message-replay
 
   - product: ai
     use_case: "auto-generated-from-linear"
@@ -3241,6 +3252,12 @@ examples:
     language: nodejs
     framework: edge
     folder: omni-channel-lab-inbox-agent
+
+  - product: ai
+    use_case: langchain-streaming-agent
+    language: nodejs
+    framework: edge
+    folder: langchain-streaming-agent
 
   - product: voice
     use_case: ai-call-campaign-orchestrator
@@ -3265,6 +3282,12 @@ examples:
     language: nodejs
     framework: edge
     folder: collaborative-doc-ai-copilot
+
+  - product: ai
+    use_case: rag-corpus-shared-across-agents
+    language: nodejs
+    framework: edge
+    folder: rag-corpus-shared-across-agents
 
   - product: sms
     use_case: edge-cache-invalidation-agent
@@ -3330,4 +3353,27 @@ examples:
     use_case: "auto-generated-from-linear"
     language: typescript
     framework: edge
-    folder: auto-failover-voice-routing
+    folder: edge-cron-scheduler
+  - product: voice
+    use_case: conference-agent-mediator
+    language: typescript
+    framework: edge
+    folder: conference-agent-mediator
+
+  - product: sms
+    use_case: sms-two-factor-agent
+    language: typescript
+    framework: edge
+    folder: sms-two-factor-agent
+
+  - product: ai
+    use_case: patient-agent
+    language: typescript
+    framework: edge
+    folder: patient-agent
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: event-sponsorship-agent

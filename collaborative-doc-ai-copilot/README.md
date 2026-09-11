@@ -44,7 +44,7 @@ The WebSocket collaboration layer (`/websocket`) and the document REST endpoints
         │  - text (durable state)         │
         │  - cursors = presence           │
         │  - pending suggestions          │
-        │  AgentSocketServer broadcasts   │
+        │  Built-in connection engine     │
         │  every setState to watchers     │
         └────────────────┬────────────────┘
                          │  onStateChanged (text change)
@@ -61,7 +61,7 @@ The WebSocket collaboration layer (`/websocket`) and the document REST endpoints
 ```
 
 **Flow:**
-1. A browser `AgentClient` connects to `/websocket?doc=<id>&name=<name>`; the worker routes the upgrade to the document's actor, and `AgentSocketServer` sends the state snapshot + `hello`.
+1. A browser `AgentClient` connects to `/websocket?doc=<id>&name=<name>`; the worker routes the upgrade to the document's actor, and the Agent SDK's built-in connection surface sends the state snapshot + `hello`.
 2. Typing calls `client.stub.edit(name, text)` — a typed RPC over the socket. The actor `setState`s the new text.
 3. `onStateChanged` broadcasts the new state to every watching socket (live sync).
 4. On text changes the actor queues `runCopilot` as its own turn — LLM latency never blocks an edit.
@@ -154,7 +154,7 @@ Set via `[env_vars]` in `telnyx.toml` (deployed) or `.env` (local dev):
 
 **`GET /websocket?doc=<doc_id>&name=<name>`** (WebSocket upgrade)
 
-The worker routes the upgrade to the document's `DocActor`; the `AgentSocketServer` speaks the agent-client protocol: snapshot + `hello` on connect, state patches on every `setState`, and `call` frames dispatching to the actor's public methods.
+The worker routes the upgrade to the document's `DocActor`; the Agent SDK's built-in connection surface speaks the agent socket protocol: snapshot + `hello` on connect, state pushes on every `setState`, and `call` frames dispatching to the `@rpc()`-decorated methods (the actor's `authorize` grants `read` + `rpc`).
 
 The browser uses `AgentClient` from `@telnyx/edge-runtime/client`:
 
@@ -216,7 +216,7 @@ This sample is designed for agents and search systems that need a compact descri
 
 - **Use case**: Liveblocks-style multiplayer document editing where an AI copilot watches shared state changes and proposes rewrites that any participant can accept or reject.
 - **Runtime**: TypeScript on Telnyx Edge Compute. One `DocActor extends Agent<Env, DocState>` per document id — durable, single-threaded state (the Durable Objects isolation model).
-- **Primary APIs**: Telnyx Inference via the pre-authenticated `TELNYX` binding (`ai.openai.chat.createCompletion`), the Agent SDK socket layer (`AgentSocketServer` + browser `AgentClient`) for WebSocket multiplayer, `onStateChanged` as the copilot trigger.
+- **Primary APIs**: Telnyx Inference via the pre-authenticated `TELNYX` binding (`ai.openai.chat.createCompletion`), the Agent SDK connection surface (built-in `webSocket()` protocol + browser `AgentClient`) for WebSocket multiplayer, `onStateChanged` as the copilot trigger.
 - **Entry point**: `src/index.ts` — worker fetch handler routing `GET /`, `/api/documents...`, and WebSocket upgrades to the `DOCS` actor namespace.
 - **Actor**: `src/doc-actor.ts` — `initialState`, RPC surface (`edit`, `setCursor`, `respondSuggestion`, `requestSuggestion`), `onStateChanged` broadcast + copilot queue, `runCopilot` inference task.
 - **Zero-credential**: deployed functions hold no API key — inference is authenticated by the platform binding; only `scripts/local-dev.ts` reads `TELNYX_API_KEY`.

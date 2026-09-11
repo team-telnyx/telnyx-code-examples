@@ -1,114 +1,170 @@
 # Guide: SMS Two-Factor Agent
 
-This guide walks through the `sms-two-factor-agent` example, a TypeScript Edge application that implements a complete two-factor authentication (2FA) flow via SMS. 
+This guide walks through the `sms-two-factor-agent` example, a TypeScript Telnyx Edge Compute application (StatefulActors) that implements a complete two-factor authentication (2FA) flow via SMS.
 
-The agent manages the entire lifecycle of a 2FA code: generating the code, storing it with a strict Time-To-Live (TTL), sending it via Telnyx SMS, verifying the user's reply, and cleaning up expired or rate-limited attempts.
+The agent manages the entire lifecycle of a 2FA code: generating the code, storing it with a strict time-to-live, sending it via Telnyx SMS, verifying the user's reply, and cleaning up expired or rate-limited attempts.
 
 ## Prerequisites
 
-- Node.js (v18 or newer)
-- A Telnyx account with an SMS-enabled number
-- Telnyx API Key (found in the Telnyx Portal)
-- The Telnyx Edge CLI installed globally: `npm install -g @telnyx/edge-cli`
+- Node.js (v18 or newer) and npm
+- A Telnyx account with an SMS-capable number (for US A2P traffic, a registered 10DLC campaign — e.g. Low Volume Mixed)
+- Telnyx API key ([Telnyx Portal → API Keys](https://portal.telnyx.com))
+- Telnyx Edge CLI — install from [github.com/team-telnyx/edge-compute/releases](https://github.com/team-telnyx/edge-compute/releases)
 
 ## Environment Setup
 
-1. Install dependencies:
+1. Authenticate the Edge CLI (it reads `TELNYX_API_KEY` from your environment or its own config):
+
+   ```bash
+   export TELNYX_API_KEY=your_telnyx_api_key_here
+   ```
+
+2. Install dependencies:
+
    ```bash
    npm install
    ```
 
-2. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
+3. There is no `.env` to maintain at runtime — this project is a Telnyx Edge `telnyx.toml` (umbrella) project. Configuration lives in `telnyx.toml`:
 
-3. Edit the `.env` file and add your Telnyx API key:
-   ```env
-   TELNYX_API_KEY=your_telnyx_api_key_here
+   ```toml
+   [edge_compute]
+   func_id = "..."                  # from telnyx-edge new-func
+   func_name = "sms-two-factor-agent"
+
+   [[actors]]
+   binding = "AGENT"
+   type = "TwoFactorAgent"
+
+   [telnyx]
+   binding = "TELNYX"               # injects TELNYX_API_KEY automatically
+
+   [storage.kv.KV]
+   id = "..."                       # from telnyx-edge storage kv create
+
+   [env_vars]
+   DEMO_MODE = "true"               # "false" sends real SMS
+   TELNYX_FROM_NUMBER = "+16282564655"
    ```
 
 ## Running the Sample
 
-To run the application locally in safe demo mode:
+### 1. Smoke test locally (no Edge runtime needed)
 
 ```bash
-npm run dev
+npm run typecheck   # TypeScript contract check
+npm test            # loads the module, verifies the Agent class surface
 ```
 
-By default, this sample runs in **Safe Demo Mode**. No real SMS messages will be sent, protecting you from accidental charges during development. Instead, the agent will log the 2FA code and the intended phone number to the console.
+### 2. Provision and deploy
 
-### Switching to Live Mode
+```bash
+# Register the function with the platform (prints func_id)
+telnyx-edge new-func --actor -l ts -n sms-two-factor-agent
 
-To send real SMS messages via the Telnyx network, you must switch to live mode. 
+# Provision the KV namespace (prints the KV ID)
+telnyx-edge storage kv create --name sms-two-factor-agent-2fa
 
-1. Open `src/index.ts`.
-2. Locate the `TwoFactorAgent` class configuration.
-3. Change the `DEMO_MODE` flag from `true` to `false`.
-4. Ensure your `.env` file contains a valid `TELNYX_API_KEY` and that you own the destination phone numbers.
+# Put both ids into telnyx.toml, then ship (~5-10 min)
+telnyx-edge ship
+
+# Watch for deploy_ok
+telnyx-edge list
+```
+
+The function URL looks like `https://sms-two-factor-agent-<id>.telnyxcompute.com`.
+
+### 3. Demo mode (default)
+
+With `DEMO_MODE = "true"`, no real SMS is sent. The generated code is logged to the actor's console — use this during development and demos where you don't want live text messages.
+
+### 4. Switching to live mode
+
+Set `DEMO_MODE = "false"` in `telnyx.toml` `[env_vars]` (and set `TELNYX_FROM_NUMBER` to your SMS-capable number), then `telnyx-edge ship` again. Real SMS will now be sent from your number through your 10DLC campaign.
+
+> **Important — env vars and actors:** `[env_vars]` are injected into the **function runtime's** `process.env` only. The actor runtime (where `TwoFactorAgent` runs) has its own empty `process.env`. The fetch handler therefore passes `DEMO_MODE` and `TELNYX_FROM_NUMBER` into `sendCode()` as arguments. Reading these env vars directly inside the agent class silently reverts it to demo mode — the API will still return `ok: true` while no SMS is sent. This exact pitfall was hit while building this sample.
 
 ## How It Works: Step-by-Step
 
-The application uses the Telnyx Edge Agent SDK to orchestrate the 2FA flow. The `TwoFactorAgent` extends the base `Agent` class, giving it access to scheduling, state management, and Telnyx bindings.
+The application uses the Telnyx Edge Agent SDK (`@telnyx/edge-runtime`) to orchestrate the 2FA flow. The `TwoFactorAgent` extends the base `Agent` class, giving it durable state, scheduled tasks, and access to bindings.
 
-### 1. The Agent and State Management
+### 0. One durable actor per phone number
 
-The `TwoFactorAgent` class is the core of the application. It maintains an internal `StateStore` to track authentication attempts. This prevents brute-force attacks by rate-limiting how many times a user can request or submit a code from the same phone number.
+The fetch front door sanitizes the E.164 number (strips the leading `+`) and resolves one actor instance per phone via `idFromName("17177247292")`. The platform guarantees one live instance per name with serialized calls — so per-phone rate limiting is race-free and counters survive evictions.
 
-When a request is initiated, the agent checks the `StateStore` to ensure the user hasn't exceeded the attempt limit. If they are within limits, the agent proceeds to code generation.
+### 1. Rate limiting via durable agent state
 
-### 2. Code Generation and KV Storage
+When a code is requested, the agent reads its durable state (`this.getState()`), checks the send-attempt window (5 attempts per 5-minute window, anchored on `last_send_at`), and increments the counter (`this.setState()`). Exceeding the limit returns a 429 without generating a code.
 
-When a user requests a 2FA code (e.g., `POST /verify { phone }`), the agent generates a cryptographically secure random numeric code. 
+### 2. Code generation and KV storage
 
-The code is stored in the Edge KV (Key-Value) store using a TTL (Time-To-Live) of 300 seconds (5 minutes). The KV store operation looks like this:
+The agent generates a 6-digit numeric code and stores it in the bound KV namespace with a 300-second expiry:
 
 ```typescript
-ctx.kv.put('2fa:${phone}', code, { ttl: 300 });
+await this.env.KV.put(kvKey(phone), code, { expirationTtl: 300 });
 ```
 
-This ensures the code automatically expires from the store if not used within 5 minutes, without requiring manual cleanup.
+KV keys allow only `a-z A-Z 0-9 - _ / = .`, so `kvKey()` strips the E.164 `+`: the key for `+17177247292` is `2fa/17177247292`.
 
-### 3. Sending the SMS via Telnyx Binding
+If the KV write path is unavailable (e.g. a KV service outage), the agent falls back to its own durable storage (`this.ctx.storage`) with an `expires_at` timestamp — verification reads KV first, then storage, so the flow keeps working either way.
 
-The application uses the `[telnyx]` binding to send the SMS. Because the binding is injected directly into the Edge environment, you can send messages without manually configuring HTTP clients or passing API keys in your application code.
+### 3. Sending the SMS via Telnyx binding
 
-The SMS dispatch uses the binding's `messages.send()` method:
+In live mode, the agent sends through the `[telnyx]` binding — pre-authenticated, zero-credential:
 
 ```typescript
-await this.env.TELNYX.messages.send({
-  from: '<your_telnyx_number>',
+const res = await this.env.TELNYX.messages.send({
+  from: fromNumber,
   to: phone,
-  text: `Your verification code is: ${code}`
+  text: `Your verification code is ${code}. It expires in 5 minutes.`,
 });
 ```
 
-In demo mode, this step is intercepted and logged to the console instead of hitting the live Telnyx API.
+The response's message id is surfaced in the `POST /verify` response as `message_id` — you can poll `GET /v2/messages/{id}` for delivery status.
 
-### 4. Code Verification
+### 4. Code verification
 
-When the user replies with their code (e.g., `POST /check { phone, code }`), the agent retrieves the stored code from the KV store:
-
-```typescript
-const storedCode = await ctx.kv.get('2fa:${phone}');
-```
-
-The agent compares the `storedCode` with the user-provided code. If they match, the authentication is successful. If they do not match, the agent increments the failed attempt counter in the `StateStore`. 
-
-### 5. Expiry and Cleanup via `this.schedule()`
-
-While the KV store handles its own TTL expiration, the agent also uses the Agent SDK's `schedule()` method to manage cleanup tasks. 
-
-After a successful verification—or after the maximum failed attempts are reached—the agent schedules a task to clean up any residual state in the `StateStore`:
+When the user submits their code (`POST /check { phone, code }`), the agent retrieves the stored code:
 
 ```typescript
-this.schedule('cleanupAttempt', phone, { delay: 300 });
+const storedCode = await this.getCode(phone);
 ```
 
-This ensures the agent's state doesn't grow indefinitely and that users can request new codes after the cooldown period expires.
+A match clears the code from KV/storage and resets both attempt counters. A mismatch increments the fail counter in the agent's durable state and returns `fails_remaining`.
+
+### 5. Expiry and cleanup via `this.schedule()`
+
+KV's `expirationTtl` is the primary expiry. As a safety net, the agent also schedules a durable task after each send:
+
+```typescript
+await this.schedule(300, "expireCode", { phone });
+```
+
+`this.schedule(delaySeconds, methodName, payload)` claims the actor's alarm slot and survives evictions. When it fires, the `expireCode` task handler deletes the code (from KV and storage) and resets the rate-limit window — so a stale code never outlives its TTL even if KV expiry is missed.
+
+## Test Script
+
+```bash
+BASE=https://sms-two-factor-agent-<id>.telnyxcompute.com
+PHONE=+17177247292
+
+# 1. Send a code (real SMS in live mode)
+curl -s -X POST $BASE/verify -H "Content-Type: application/json" -d "{\"phone\": \"$PHONE\"}"
+
+# 2. Wrong code → 401 with fails_remaining
+curl -s -X POST $BASE/check -H "Content-Type: application/json" \
+  -d "{\"phone\": \"$PHONE\", \"code\": \"000000\"}"
+
+# 3. Right code → verified
+curl -s -X POST $BASE/check -H "Content-Type: application/json" \
+  -d "{\"phone\": \"$PHONE\", \"code\": \"<code-from-sms>\"}"
+
+# 4. Rate limit — 6 sends inside the window → 429 on the sixth
+```
 
 ## Next Steps
 
-- Learn more about the [Telnyx Edge SDK and Agent SDK](https://developers.telnyx.com/docs/edge-sdk)
-- Explore the [Telnyx SMS API Documentation](https://developers.telnyx.com/docs/messaging)
-- Read about [KV and State Management on the Edge](https://developers.telnyx.com/docs/edge-kv)
+- [Stateful Actors Quick Start](https://developers.telnyx.com/docs/edge-compute/stateful-actors/quick-start)
+- [Send SMS Guide](https://developers.telnyx.com/docs/messaging/send-sms)
+- [Telnyx Messaging API Reference](https://developers.telnyx.com/api-reference/sms)
+- [Edge Compute CLI](https://github.com/team-telnyx/edge-compute/releases)

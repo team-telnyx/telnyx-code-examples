@@ -55,10 +55,7 @@ export class DocActor extends Agent<Env, DocState> {
   }
 
   async webSocket(ws, req) {
-    this.sockets ??= new AgentSocketServer<DocState>(this, {
-      getState: () => this.getState(),
-    });
-    await this.sockets.attach(ws, req);
+    await super.webSocket(ws, req);
   }
 
   protected async onStateChanged(next: DocState, prev: DocState): Promise<void> {
@@ -72,7 +69,7 @@ Three things are happening:
 
 - **Durable state**: `setState(patch)` merges RFC 7396 merge-patches into the
   actor's storage and fires `onStateChanged`.
-- **Multiplayer**: `AgentSocketServer.attach` speaks the agent-client protocol
+- **Multiplayer**: the built-in connection surface (`authorize` + the default `webSocket`) speaks the agent socket protocol
   on the actor's held sockets — state snapshot + `hello` on connect, new state
   pushed to every watcher on every change.
 - **Typed RPC**: every public async method (`edit`, `setCursor`,

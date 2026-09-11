@@ -1,0 +1,27 @@
+{
+  "name": "edge-cron-scheduler",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Durable UTC cron jobs with Telnyx Agent SDK, actor KV, SQL execution history and SMS failure alerts",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "npm run build && node --env-file-if-exists=.env dist/local/server.js",
+    "start": "npm run dev",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "test:http": "node tests/http-smoke.mjs"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "0.15.2",
+    "cron-parser": "5.10.0",
+    "telnyx": "7.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

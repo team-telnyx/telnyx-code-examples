@@ -1,0 +1,32 @@
+name = "event-sponsorship-agent"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[edge_compute]
+func_id = "21e58f79-9425-4115-a0f9-d99913549c1b"
+func_name = "event-sponsorship-agent"
+
+[[actors]]
+binding = "SPONSOR_AGENT"
+type = "SponsorAgent"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.LEADS_DB]
+id = "1a3fa650-5c3d-477e-9117-fb671b64dc98"
+
+[storage.kv.RATE_LIMIT_KV]
+id = "0588d79f-c33c-4999-8f75-35aab9a4e969"
+
+[env_vars]
+AI_MODEL = "moonshotai/Kimi-K2.6"
+DEMO_MODE = "true"
+SALES_TEAM_NUMBER = "+15550000001"
+FROM_NUMBER = "+15550000000"
+EVENT_NAME = "TechHorizon Summit 2026"
+GIVEAWAY_PRIZE = "Telnyx Developer Kit"
