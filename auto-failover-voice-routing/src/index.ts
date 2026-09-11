@@ -305,28 +305,55 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
       log(
         `Call failed on primary (hangup_cause=${hangupCause}) — counting toward circuit breaker.`,
       );
-      const snapshot = await failoverActor(env).recordOutcome(event);
+      const outcome = await failoverActor(env).recordOutcome(event);
       await recordEvent(
         env.FAILOVER_KV,
         "failure_counted",
-        `hangup_cause=${hangupCause} — failures: ${snapshot.failures}`,
+        `hangup_cause=${hangupCause} — failures: ${outcome.snapshot.failures}`,
         "primary",
       );
+      if (outcome.trippedNow) {
+        await recordEvent(
+          env.FAILOVER_KV,
+          "breaker_tripped",
+          `failures: ${outcome.snapshot.failures} — auto-failover to backup connection`,
+          "primary",
+        );
+        await recordEvent(env.FAILOVER_KV, "sms_sent", "ops alert SMS sent", "primary");
+      }
     }
   } else if (callState === "failed" || callState === "busy" || callState === "no_answer") {
-    const snapshot = await failoverActor(env).recordOutcome(event);
+    const outcome = await failoverActor(env).recordOutcome(event);
     await recordEvent(
       env.FAILOVER_KV,
       "failure_counted",
-      `call ${callState} on primary — failures: ${snapshot.failures}`,
+      `call ${callState} on primary — failures: ${outcome.snapshot.failures}`,
       "primary",
     );
+    if (outcome.trippedNow) {
+      await recordEvent(
+        env.FAILOVER_KV,
+        "breaker_tripped",
+        `failures: ${outcome.snapshot.failures} — auto-failover to backup connection`,
+        "primary",
+      );
+      await recordEvent(env.FAILOVER_KV, "sms_sent", "ops alert SMS sent", "primary");
+    }
   } else if (callState === "answered") {
     await failoverActor(env).handleCallEvent(event);
+    await recordEvent(env.FAILOVER_KV, "call_answered", `fraud alert announced`, null);
   } else if (eventType === "call.speak.ended") {
     await failoverActor(env).handleCallEvent(event);
   } else if (eventType === "call.gather.ended") {
     await failoverActor(env).handleCallEvent(event);
+    await recordEvent(
+      env.FAILOVER_KV,
+      "caller_response",
+      `pressed ${stringValue(payload.digits) || "(nothing)"}`,
+    );
+    if (stringValue(payload.digits)) {
+      await recordEvent(env.FAILOVER_KV, "sms_sent", "customer receipt SMS sent");
+    }
   }
 
   return Response.json({ status: "ok" });

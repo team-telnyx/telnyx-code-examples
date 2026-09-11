@@ -34,6 +34,11 @@ export interface CallRoutingMap {
 
 export type CallStage = "greeting" | "greeting-1" | "greeting-2" | "confirming";
 
+export interface FailureOutcome {
+  snapshot: BreakerSnapshot;
+  trippedNow: boolean;
+}
+
 export interface FailoverState extends Record<string, unknown> {
   failuresHandled: number;
   breakerTrips: number;
@@ -108,13 +113,13 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
    * counter, timestamp it, and trip the breaker (with an ops SMS) once the
    * threshold is crossed. Non-primary connections are never counted.
    */
-  async recordOutcome(event: CallControlEvent): Promise<BreakerSnapshot> {
+  async recordOutcome(event: CallControlEvent): Promise<FailureOutcome> {
     const payload = event.data?.payload ?? {};
     const connectionId = stringValue(payload.connection_id);
     const primary = this.env.TELNYX_PRIMARY_CONNECTION_ID ?? "";
     if (connectionId !== primary) {
       this.log(`Failure on non-primary connection: ${connectionId}`);
-      return readBreaker(this.kvStore());
+      return { snapshot: await readBreaker(this.kvStore()), trippedNow: false };
     }
 
     const kv = this.kvStore();
@@ -129,15 +134,17 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
       updatedAt: Date.now(),
     });
 
+    let trippedNow = false;
     if (failures >= intEnv(this.env.FAILURE_THRESHOLD, 3)) {
       const snapshot = await readBreaker(kv);
       if (!snapshot.tripped) {
         await this.tripBreakerWithAlert(kv, failures, nowSeconds, state.breakerTrips);
+        trippedNow = true;
       } else {
         this.log("Circuit breaker already tripped.");
       }
     }
-    return readBreaker(kv);
+    return { snapshot: await readBreaker(kv), trippedNow };
   }
 
   /**
