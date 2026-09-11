@@ -112,7 +112,12 @@ function makeKv() {
     delete: async (key) => {
       map.delete(key);
     },
-    list: async () => ({ keys: [...map.keys()].map((name) => ({ name })), list_complete: true }),
+    list: async (options = {}) => ({
+      keys: [...map.keys()]
+        .filter((key) => !options.prefix || key.startsWith(options.prefix))
+        .map((name) => ({ name })),
+      list_complete: true,
+    }),
     map,
   };
 }
@@ -138,6 +143,9 @@ function makeTelnyxMock() {
           return { data: { status: "ok" } };
         },
         async gather(callControlId, body) {
+          mock.gathers.push({ callControlId, ...body });
+        },
+        async gatherUsingSpeak(callControlId, body) {
           mock.gathers.push({ callControlId, ...body });
           return { data: { status: "ok" } };
         },
@@ -327,47 +335,50 @@ try {
 
   // ── Call flow: announce → gather → resolve → hangup ─────────────────────
   await webhook(portA, "call.answered", { call_control_id: "call-flow-1", connection_id: PRIMARY_ID });
-  const announce = phaseA.telnyxMock.speaks.at(-1);
-  assert(announce && announce.callControlId === "call-flow-1", `announce speak missing: ${JSON.stringify(phaseA.telnyxMock.speaks)}`);
-  assert(announce.payload_type === "ssml", `announce must use ssml: ${JSON.stringify(announce)}`);
-  assert(announce.voice === TTS_VOICE, `announce voice unexpected: ${announce.voice}`);
+  const announce = phaseA.telnyxMock.gathers.at(-1);
+  assert(announce && announce.callControlId === "call-flow-1", `announce gather_using_speak missing: ${JSON.stringify(phaseA.telnyxMock.gathers)}`);
+  assert(announce.valid_digits === "12" && announce.maximum_digits === 1 && announce.terminating_digit === "", `gather_using_speak digit params unexpected: ${JSON.stringify(announce)}`);
   assert(announce.payload.includes("Meridian Trust Bank's automated fraud alert service"), `fraud alert text missing: ${announce.payload}`);
-  assert(announce.payload.includes('<emotion value="calm" />'), `calm emotion missing (primary leg): ${announce.payload}`);
+  assert(!announce.payload.includes("<emotion"), `announcement must be plain text (no SSML tags): ${announce.payload}`);
   assert(!announce.payload.includes("backup systems"), `primary leg must not carry the backup intro: ${announce.payload}`);
-  console.log("ok  call.answered → fraud alert announced (calm, primary)");
+  console.log("ok  call.answered → gather_using_speak speaks the fraud alert + collects 1/2");
 
-  await webhook(portA, "call.speak.ended", { call_control_id: "call-flow-1" });
-  const gather = phaseA.telnyxMock.gathers.at(-1);
-  assert(gather && gather.callControlId === "call-flow-1", `gather missing: ${JSON.stringify(phaseA.telnyxMock.gathers)}`);
-  assert(gather.valid_digits === "12" && gather.maximum_digits === 1 && gather.terminating_digit === "" && gather.initial_timeout_millis === 10000 && gather.inter_digit_timeout_millis === 5000, `gather params unexpected: ${JSON.stringify(gather)}`);
-  console.log("ok  call.speak.ended (greeting) → DTMF gather started");
+  // Webhook redelivery must NOT re-announce (idempotency guard).
+  await webhook(portA, "call.answered", { call_control_id: "call-flow-1", connection_id: PRIMARY_ID });
+  assert(phaseA.telnyxMock.gathers.filter((g) => g.callControlId === "call-flow-1").length === 1, "redelivered call.answered must not double-announce");
+  console.log("ok  redelivered call.answered → skipped (idempotent)");
 
   await webhook(portA, "call.gather.ended", { call_control_id: "call-flow-1", digits: "2" });
   const resolution = phaseA.telnyxMock.speaks.at(-1);
   assert(resolution && resolution.payload.includes("We've blocked that purchase and frozen your card"), `blocked speech missing: ${resolution?.payload}`);
+  assert(!resolution.payload.includes("<emotion"), `confirmation must be plain text: ${resolution?.payload}`);
   assert(phaseA.telnyxMock.sent.length === 0, "demo mode must not send the customer SMS");
   assert(phaseA.kv.map.get("stage/call-flow-1") === "confirming", `stage should be confirming: ${phaseA.kv.map.get("stage/call-flow-1")}`);
-  console.log("ok  call.gather.ended '2' → card-frozen speech, SMS suppressed in demo");
+  console.log("ok  call.gather.ended '2' → card-frozen speech (plain), SMS suppressed in demo");
+
+  // Redelivered gather.ended must not double-resolve.
+  await webhook(portA, "call.gather.ended", { call_control_id: "call-flow-1", digits: "2" });
+  assert(phaseA.telnyxMock.speaks.filter((s) => s.callControlId === "call-flow-1").length === 1, "redelivered gather.ended must not double-resolve");
+  console.log("ok  redelivered call.gather.ended → skipped (idempotent)");
 
   await webhook(portA, "call.speak.ended", { call_control_id: "call-flow-1" });
   const hangup = phaseA.telnyxMock.hangups.at(-1);
   assert(hangup && hangup.callControlId === "call-flow-1", `hangup missing: ${JSON.stringify(phaseA.telnyxMock.hangups)}`);
   console.log("ok  call.speak.ended (confirming) → hung up");
 
-  // Backup-leg announcement carries the apologetic intro.
+  // Backup-leg announcement carries the backup intro.
   await phaseA.kv.put("call/call-flow-2", JSON.stringify({ connection_id: BACKUP_ID, to: "+15551234567" }));
   await webhook(portA, "call.answered", { call_control_id: "call-flow-2", connection_id: BACKUP_ID });
-  const backupAnnounce = phaseA.telnyxMock.speaks.at(-1);
+  const backupAnnounce = phaseA.telnyxMock.gathers.at(-1);
   assert(backupAnnounce.payload.includes("we're running on our backup systems right now"), `backup intro missing: ${backupAnnounce.payload}`);
-  assert(backupAnnounce.payload.includes('<emotion value="apologetic" />'), `apologetic emotion missing: ${backupAnnounce.payload}`);
-  console.log("ok  call.answered on backup leg → apologetic backup intro");
+  console.log("ok  call.answered on backup leg → backup intro in the announcement");
 
   // ── Dashboard + live events feed ─────────────────────────────────────────
   const dashResponse = await fetch(`http://127.0.0.1:${portA}/`);
   assert(dashResponse.headers.get("content-type")?.includes("text/html") === true, "GET / must serve HTML");
   const dashHtml = await dashResponse.text();
   assert(dashHtml.includes("Auto-Failover Voice Routing"), "dashboard title missing");
-  const events = await call(portA, "GET", "/api/events");
+  const events = await call(portA, "GET", "/api/events?limit=100");
   assert(Array.isArray(events.events) && events.events.length > 0, "events feed empty");
   const kinds = new Set(events.events.map((event) => event.kind));
   for (const kind of [

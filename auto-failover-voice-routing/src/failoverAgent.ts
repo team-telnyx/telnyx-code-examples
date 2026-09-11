@@ -32,7 +32,7 @@ export interface CallRoutingMap {
   to: string;
 }
 
-export type CallStage = "greeting" | "greeting-1" | "greeting-2" | "confirming";
+export type CallStage = "announced" | "confirming";
 
 export interface FailureOutcome {
   snapshot: BreakerSnapshot;
@@ -259,107 +259,102 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
    * call.speak.failed advances through them; the API accepts the command but the
    * playback can fail, so the retry rides the webhook rather than the exception.
    */
+  /**
+   * TTS safety net: the API accepted the speak but playback failed. For the
+   * announcement, re-issue gather_using_speak with the fallback voice; for the
+   * confirmation, just hang up so the caller is not stranded in silence.
+   */
   private async onSpeakFailed(callControlId: string): Promise<{ action: string }> {
     const stage = await this.getStage(callControlId);
     if (stage === "confirming") {
       await this.actionsHangup(callControlId);
       return { action: "hangup-after-failed-confirmation" };
     }
-    if (stage === "greeting") {
-      const map = await this.getCallMap(callControlId);
-      const primary = this.env.TELNYX_PRIMARY_CONNECTION_ID ?? "";
-      await this.announceRouting(callControlId, map?.connection_id || primary, 1);
-      return { action: "retried-plain-ultra" };
+    if (stage === "announced") {
+      await this.announceRouting(callControlId, true);
+      return { action: "retried-with-fallback-voice" };
     }
-    if (stage === "greeting-1") {
-      const map = await this.getCallMap(callControlId);
-      const primary = this.env.TELNYX_PRIMARY_CONNECTION_ID ?? "";
-      await this.announceRouting(callControlId, map?.connection_id || primary, 2);
-      return { action: "retried-plain-naturalhd" };
-    }
-    this.log("All TTS variants failed — hanging up.");
+    this.log("TTS retries exhausted — hanging up.");
     await this.actionsHangup(callControlId);
     return { action: "tts-exhausted" };
   }
 
-  private async announceRouting(callControlId: string, connectionOverride?: string, variant = 0): Promise<void> {
+  /**
+   * The announcement: one `gather_using_speak` command speaks the fraud alert
+   * AND collects the 1/2 keypress — digits work DURING the announcement, so
+   * the caller never waits for a gather window. Plain text, production-proven
+   * speak shape (no payload_type).
+   */
+  private async announceRouting(callControlId: string, isRetry = false): Promise<void> {
     if (!callControlId) return;
     const existingStage = await this.getStage(callControlId);
-    if (variant === 0 && existingStage) {
+    if (!isRetry && existingStage) {
       this.log(`Webhook redelivery — announcement already in progress (stage: ${existingStage}). Skipping.`);
       return;
     }
     const map = await this.getCallMap(callControlId);
     const primary = this.env.TELNYX_PRIMARY_CONNECTION_ID ?? "";
     const backup = this.env.TELNYX_BACKUP_CONNECTION_ID ?? "";
-    const connectionId = connectionOverride ?? (map?.connection_id || primary);
+    const connectionId = map?.connection_id || primary;
     const label = connectionId === backup ? "backup" : "primary";
     let intro = "Good afternoon. This is Meridian Trust Bank's automated fraud alert service.";
-    let emotion = "calm";
     if (label === "backup") {
       intro +=
         " Heads up: we're running on our backup systems right now after a brief " +
         "technical issue, so this call may sound different. Everything is fully operational.";
-      emotion = "apologetic";
     }
     const text =
-      `<emotion value="${emotion}" />${intro} ` +
+      `${intro} ` +
       "This is an urgent notification about your card ending in 4-8-2-1. " +
-      "About an hour ago, we detected a purchase of " +
-      '<break time="0.3s" />one thousand, two hundred and forty dollars and fifty cents' +
-      '<break time="0.3s" /> at an electronics retailer in Miami, Florida. ' +
+      "About an hour ago, we detected a purchase of one thousand, two hundred and forty " +
+      "dollars and fifty cents at an electronics retailer in Miami, Florida. " +
       "If this purchase was you, press 1. " +
       "If you don't recognize it, press 2, and we'll block your card immediately.";
-    await this.putStage(callControlId, variant === 0 ? "greeting" : variant === 1 ? "greeting-1" : "greeting-2");
-    if (await this.speakWithVariant(callControlId, text, variant)) {
-      this.log(`Fraud alert announced via ${label} connection.`);
-      await recordEvent(
-        this.kvStore(),
-        "call_answered",
-        `fraud alert announced via ${label} connection`,
-        label,
-      );
-      const state = await this.getState();
-      await this.setState({ callsAnnounced: state.callsAnnounced + 1, updatedAt: Date.now() });
-    }
-  }
-
-  /** Stage machine: greeting speech → DTMF gather; confirmation speech → hangup. */
-  private async onSpeakEnded(callControlId: string): Promise<{ action: string }> {
-    const stage = await this.getStage(callControlId);
-    if (stage === "greeting") {
-      await this.startCardVerification(callControlId);
-      return { action: "gathering" };
-    }
-    if (stage === "confirming") {
-      try {
-        await this.env.TELNYX.calls.actions.hangup(callControlId, {});
-        this.log("Hung up after notification resolution.");
-      } catch (error: unknown) {
-        this.log(`Failed to hang up after resolution: ${this.errorMessage(error)}`);
-      }
-      return { action: "hung_up" };
-    }
-    return { action: "ignored_no_stage" };
-  }
-
-  /** Collect the caller's 1/2 response after the greeting speech ends. */
-  private async startCardVerification(callControlId: string): Promise<void> {
+    await this.putStage(callControlId, "announced");
+    const voice =
+      (await configValue(this.env.FAILOVER_KV, "tts-voice", this.env.TTS_VOICE)) ||
+      "Telnyx.NaturalHD.Alloy";
     try {
-      await this.env.TELNYX.calls.actions.gather(callControlId, {
+      await this.env.TELNYX.calls.actions.gatherUsingSpeak(callControlId, {
+        payload: text,
+        voice,
+        language: "en-US",
         valid_digits: "12",
         maximum_digits: 1,
         terminating_digit: "",
-        initial_timeout_millis: 10000,
+        timeout_millis: 15000,
         inter_digit_timeout_millis: 5000,
+        command_id: `failover-announce-${Date.now()}`,
       });
-      this.log("Awaiting caller response: press 1 or 2.");
+      this.log(`Fraud alert announced (gather_using_speak) via ${label} connection using ${voice}.`);
+      await recordEvent(
+        this.kvStore(),
+        "call_answered",
+        `fraud alert announced via ${label} connection (${voice})`,
+        label,
+      );
     } catch (error: unknown) {
-      this.log(`Failed to start gather: ${this.errorMessage(error)}`);
+      if (!isRetry) {
+        this.log(`gather_using_speak rejected (${this.errorMessage(error)}) — retrying with the fallback voice.`);
+        await this.announceRouting(callControlId, true);
+        return;
+      }
+      this.log(`Announcement failed on both voices: ${this.errorMessage(error)}`);
+      await recordEvent(this.kvStore(), "webhook", "announcement failed on both voices");
     }
   }
 
-  /** Handle the caller's response: confirm, block, or safe-default, then SMS + speech. */
+  /** Stage machine: announced (gather active) → confirming (resolution spoken) → hangup. */
+  private async onSpeakEnded(callControlId: string): Promise<{ action: string }> {
+    const stage = await this.getStage(callControlId);
+    if (stage === "confirming") {
+      await this.actionsHangup(callControlId);
+      return { action: "hangup-after-confirmation" };
+    }
+    return { action: "gather-active" };
+  }
+
+  /** Resolve the caller's 1/2 response: confirmation speech + SMS receipt. */
   private async resolveCardNotification(callControlId: string, digits: string): Promise<void> {
     const stage = await this.getStage(callControlId);
     if (stage === "confirming") {
@@ -402,99 +397,49 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
       outcome = "no response — card frozen (safe default)";
       this.log("No response received — safe-default froze the card.");
     }
-    await recordEvent(
-      this.kvStore(),
-      "caller_response",
-      `pressed ${digits || "(nothing)"} — ${outcome}`,
-    );
+    await recordEvent(this.kvStore(), "caller_response", `pressed ${digits || "(nothing)"} — ${outcome}`);
     if (caller) {
       await this.sendCustomerSms(caller, sms);
       await recordEvent(this.kvStore(), "sms_sent", `customer receipt SMS — ${outcome}`);
     }
     await this.putStage(callControlId, "confirming");
-    await this.speakWithFallback(callControlId, confirmation);
-    const state = await this.getState();
-    await this.setState({ responsesResolved: state.responsesResolved + 1, updatedAt: Date.now() });
+    await this.speakConfirmation(callControlId, confirmation);
   }
 
-  /** Speak with SSML; fall back to NaturalHD.Alloy if the configured voice errors. */
+  /** Confirmation speech: plain text, Ultra voice with NaturalHD fallback. */
+  private async speakConfirmation(callControlId: string, text: string): Promise<void> {
+    const voice =
+      (await configValue(this.env.FAILOVER_KV, "tts-voice", this.env.TTS_VOICE)) ||
+      "Telnyx.NaturalHD.Alloy";
+    try {
+      await this.env.TELNYX.calls.actions.speak(callControlId, {
+        payload: text,
+        voice,
+        language: "en-US",
+        command_id: `failover-confirm-${Date.now()}`,
+      });
+      return;
+    } catch (error: unknown) {
+      this.log(`Confirmation speak rejected (${this.errorMessage(error)}) — trying the fallback voice.`);
+    }
+    try {
+      await this.env.TELNYX.calls.actions.speak(callControlId, {
+        payload: text,
+        voice: "Telnyx.NaturalHD.Alloy",
+        language: "en-US",
+        command_id: `failover-confirm-fb-${Date.now()}`,
+      });
+    } catch (error: unknown) {
+      this.log(`Fallback confirmation also failed: ${this.errorMessage(error)}`);
+      await this.actionsHangup(callControlId);
+    }
+  }
+
   private async actionsHangup(callControlId: string): Promise<void> {
     try {
       await this.env.TELNYX.calls.actions.hangup(callControlId, {});
     } catch (error: unknown) {
       this.log(`Hangup failed: ${this.errorMessage(error)}`);
-    }
-  }
-
-  private plainText(ssml: string): string {
-    return ssml.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-  }
-
-  private async speakWithVariant(callControlId: string, ssml: string, variant: number): Promise<boolean> {
-    const plain = this.plainText(ssml);
-    const attempts: Array<{ payload: string; payload_type: "ssml" | "text"; voice: string }> = [
-      {
-        payload: ssml,
-        payload_type: "ssml",
-        voice: await configValue(this.env.FAILOVER_KV, "tts-voice", this.env.TTS_VOICE) || "Telnyx.NaturalHD.Alloy",
-      },
-      {
-        payload: plain,
-        payload_type: "text",
-        voice: await configValue(this.env.FAILOVER_KV, "tts-voice", this.env.TTS_VOICE) || "Telnyx.NaturalHD.Alloy",
-      },
-      { payload: plain, payload_type: "text", voice: "Telnyx.NaturalHD.Alloy" },
-    ];
-    const chosen = attempts[Math.min(variant, attempts.length - 1)];
-    if (variant < attempts.length - 1) {
-      await this.putStage(callControlId, variant === 0 ? "greeting" : "greeting-1");
-    } else {
-      await this.putStage(callControlId, "greeting-2");
-    }
-    try {
-      await this.env.TELNYX.calls.actions.speak(callControlId, {
-        payload: chosen.payload,
-        payload_type: chosen.payload_type,
-        voice: chosen.voice,
-        language: "en-US",
-      });
-      this.log(`TTS variant ${variant} sent (${chosen.voice}, ${chosen.payload_type}).`);
-      await recordEvent(
-        this.kvStore(),
-        "call_answered",
-        `tts variant ${variant}: ${chosen.voice} / ${chosen.payload_type}`,
-      );
-      return true;
-    } catch (error: unknown) {
-      this.log(`TTS variant ${variant} rejected: ${this.errorMessage(error)}`);
-      return this.speakWithVariant(callControlId, ssml, variant + 1);
-    }
-  }
-
-  private async speakWithFallback(callControlId: string, text: string): Promise<boolean> {
-    const voice = this.env.TTS_VOICE || "Telnyx.Ultra.Katie";
-    try {
-      await this.env.TELNYX.calls.actions.speak(callControlId, {
-        payload: text,
-        payload_type: "ssml",
-        voice,
-        language: "en-US",
-      });
-      return true;
-    } catch (error: unknown) {
-      this.log(`Primary TTS voice failed, trying fallback: ${this.errorMessage(error)}`);
-      try {
-        await this.env.TELNYX.calls.actions.speak(callControlId, {
-          payload: text,
-          payload_type: "ssml",
-          voice: "Telnyx.NaturalHD.Alloy",
-          language: "en-US",
-        });
-        return true;
-      } catch (fallbackError: unknown) {
-        this.log(`Fallback NaturalHD voice also failed: ${this.errorMessage(fallbackError)}`);
-        return false;
-      }
     }
   }
 
@@ -574,7 +519,7 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
 
   private async getStage(callControlId: string): Promise<CallStage | null> {
     const raw = await this.kvStore().get(this.stageKey(callControlId));
-    return raw === "greeting" || raw === "confirming" ? raw : null;
+    return raw === "announced" || raw === "confirming" ? raw : null;
   }
 
   private async putStage(callControlId: string, stage: CallStage): Promise<void> {

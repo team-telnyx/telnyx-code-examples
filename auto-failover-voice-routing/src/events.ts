@@ -52,14 +52,18 @@ export async function recordEvent(
   );
 }
 
-/** Newest first, capped — every poll the dashboard does is bounded. */
+/** Newest first, capped — walks every list page so the feed never misses events. */
 export async function listEvents(kv: KvNamespace, limit = 30): Promise<OpsEvent[]> {
-  const page = await kv.list({ prefix: EVENT_PREFIX, limit });
-  const keys = page.keys
-    .map((info) => info.name)
-    .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
+  const keys: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await kv.list({ prefix: EVENT_PREFIX, limit: 100, cursor });
+    keys.push(...page.keys.map((info) => info.name));
+    cursor = page.list_complete ? undefined : (page as { cursor?: string }).cursor;
+  } while (cursor && keys.length < 200);
+  keys.sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
   const events: OpsEvent[] = [];
-  for (const key of keys) {
+  for (const key of keys.slice(0, limit)) {
     const raw = await kv.get(key);
     if (!raw) continue;
     try {

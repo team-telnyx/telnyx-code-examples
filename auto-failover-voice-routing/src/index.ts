@@ -149,7 +149,8 @@ export default {
         return await handleCircuitState(env);
       }
       if (req.method === "GET" && url.pathname === "/api/events") {
-        return Response.json({ events: env.FAILOVER_KV ? await listEvents(env.FAILOVER_KV) : [] });
+        const limit = Math.min(Number.parseInt(url.searchParams.get("limit") ?? "", 10) || 30, 100);
+        return Response.json({ events: env.FAILOVER_KV ? await listEvents(env.FAILOVER_KV, limit) : [] });
       }
       if (req.method === "POST" && url.pathname === "/api/circuit-reset") {
         return await handleCircuitReset(env);
@@ -278,12 +279,14 @@ async function handleCircuitReset(env: Env): Promise<Response> {
 // ── Call Control webhook ──────────────────────────────────────────────────
 
 async function handleCallControlWebhook(req: Request, env: Env): Promise<Response> {
+  await recordEvent(env.FAILOVER_KV, "webhook", "webhook received — verifying signature");
   let event: CallControlEvent;
   try {
     event = await verifyWebhook(req, env);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     log(`Webhook rejected: ${message}`);
+    await recordEvent(env.FAILOVER_KV, "webhook", `verification FAILED: ${message}`);
     return Response.json({ error: "Invalid webhook signature" }, { status: 401 });
   }
 
