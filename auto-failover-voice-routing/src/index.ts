@@ -307,6 +307,20 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
     );
   }
 
+  // ── Inbound fraud line: the caller dialed +18337483087 themselves ──────
+  if (eventType === "call.initiated" && stringValue(payload.direction) === "incoming") {
+    const callControlId = stringValue(payload.call_control_id);
+    const caller = stringValue(payload.from);
+    await putCallMap(env, callControlId, {
+      connection_id: primaryConnectionId(env),
+      to: caller,
+    });
+    await env.TELNYX.calls.actions.answer(callControlId, {});
+    log(`Inbound fraud line answered for caller ${caller.slice(0, 6)}...`);
+    await recordEvent(env.FAILOVER_KV, "call_answered", `inbound fraud line call from ${caller.slice(0, 6)}...`, "primary");
+    return Response.json({ status: "ok", action: "answering" });
+  }
+
   if (eventType === "call.hangup") {
     const hangupCause = stringValue(payload.hangup_cause).toUpperCase();
     const callConnection = await getCallConnection(env, callControlId);

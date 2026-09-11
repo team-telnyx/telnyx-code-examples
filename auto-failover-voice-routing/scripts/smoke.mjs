@@ -129,6 +129,7 @@ function makeTelnyxMock() {
     dials: [],
     speaks: [],
     gathers: [],
+    answers: [],
     hangups: [],
     sent: [],
     calls: {
@@ -144,6 +145,9 @@ function makeTelnyxMock() {
         },
         async gather(callControlId, body) {
           mock.gathers.push({ callControlId, ...body });
+        },
+        async answer(callControlId, body) {
+          mock.answers.push({ callControlId, ...body });
         },
         async gatherUsingSpeak(callControlId, body) {
           mock.gathers.push({ callControlId, ...body });
@@ -372,6 +376,29 @@ try {
   const backupAnnounce = phaseA.telnyxMock.gathers.at(-1);
   assert(backupAnnounce.payload.includes("we're running on our backup systems right now"), `backup intro missing: ${backupAnnounce.payload}`);
   console.log("ok  call.answered on backup leg → backup intro in the announcement");
+
+  // ── Inbound fraud line: the caller dials the toll-free themselves ────────
+  await webhook(portA, "call.initiated", {
+    call_control_id: "call-flow-3",
+    direction: "incoming",
+    from: "+15551234567",
+    to: "+18337483087",
+  });
+  assert(phaseA.telnyxMock.answers.some((a) => a.callControlId === "call-flow-3"), `inbound call not answered: ${JSON.stringify(phaseA.telnyxMock.answers)}`);
+  assert(phaseA.kv.map.get("call/call-flow-3") === JSON.stringify({ connection_id: PRIMARY_ID, to: "+15551234567" }), `inbound call map missing: ${phaseA.kv.map.get("call/call-flow-3")}`);
+  console.log("ok  inbound call.initiated → answered + caller mapped for the SMS receipt");
+
+  await webhook(portA, "call.answered", { call_control_id: "call-flow-3", connection_id: PRIMARY_ID });
+  const inboundAnnounce = phaseA.telnyxMock.gathers.at(-1);
+  assert(inboundAnnounce && inboundAnnounce.callControlId === "call-flow-3", `inbound announce missing`);
+  assert(inboundAnnounce.payload.includes("Meridian Trust Bank's automated fraud alert service"), `inbound announce text missing`);
+  assert(!inboundAnnounce.payload.includes("backup systems"), "inbound announce must not carry the backup intro");
+  console.log("ok  inbound call.answered → fraud alert announced to the caller");
+
+  await webhook(portA, "call.gather.ended", { call_control_id: "call-flow-3", digits: "1" });
+  const inboundConfirm = phaseA.telnyxMock.speaks.at(-1);
+  assert(inboundConfirm && inboundConfirm.payload.includes("Thank you for confirming"), `inbound confirmation missing`);
+  console.log("ok  inbound caller pressed 1 → confirmation speech (SMS goes to the caller)");
 
   // ── Dashboard + live events feed ─────────────────────────────────────────
   const dashResponse = await fetch(`http://127.0.0.1:${portA}/`);
