@@ -155,6 +155,9 @@ export default {
       if (req.method === "POST" && url.pathname === "/api/circuit-reset") {
         return await handleCircuitReset(env);
       }
+      if (req.method === "POST" && url.pathname === "/api/demo/failure") {
+        return await handleDemoFailure(env);
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       log(`Request failed: ${message}`);
@@ -268,6 +271,43 @@ async function getCallConnection(env: Env, callControlId: string): Promise<strin
     return raw ? (JSON.parse(raw) as CallRoutingMap).connection_id : "";
   }
   return failoverActor(env).connectionFor(callControlId);
+}
+
+/**
+ * Demo outage trigger: one call = one primary-connection failure, through the
+ * SAME actor method (`recordOutcome`) the carrier failure webhooks hit. In
+ * production the failures arrive from real carrier webhooks; this endpoint
+ * exists so the circuit breaker can be demonstrated without waiting on a
+ * real carrier outage.
+ */
+async function handleDemoFailure(env: Env): Promise<Response> {
+  const synthetic: CallControlEvent = {
+    data: {
+      event_type: "call.hangup",
+      payload: {
+        call_control_id: `demo-failure-${Date.now()}`,
+        connection_id: primaryConnectionId(env),
+        hangup_cause: "TIMEOUT",
+      },
+    },
+  } as CallControlEvent;
+  const outcome = await failoverActor(env).recordOutcome(synthetic);
+  await recordEvent(
+    env.FAILOVER_KV,
+    "failure_counted",
+    `simulated carrier failure — failures: ${outcome.snapshot.failures}`,
+    "primary",
+  );
+  if (outcome.trippedNow) {
+    await recordEvent(
+      env.FAILOVER_KV,
+      "breaker_tripped",
+      `failures: ${outcome.snapshot.failures} — auto-failover to backup connection`,
+      "primary",
+    );
+    await recordEvent(env.FAILOVER_KV, "sms_sent", "ops alert SMS sent", "primary");
+  }
+  return Response.json({ status: "ok", ...outcome.snapshot, trippedNow: outcome.trippedNow });
 }
 
 /** Reset goes through the actor — the breaker's single writer. */
