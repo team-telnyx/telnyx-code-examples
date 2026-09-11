@@ -25,6 +25,11 @@ export interface OpsEvent {
 }
 
 const EVENT_PREFIX = "event/";
+
+/** Edge KV keys allow a-z A-Z 0-9 - _ / = . — call control ids contain colons. */
+export function kvSafeId(id: string): string {
+  return id.replace(/[^a-zA-Z0-9_.\/-]/g, "-");
+}
 const EVENT_TTL_SECONDS = 3600;
 
 export async function recordEvent(

@@ -8,7 +8,7 @@ import {
   shouldRouteToBackup,
   type BreakerSnapshot,
 } from "./breaker.js";
-import { listEvents, recordEvent } from "./events.js";
+import { listEvents, recordEvent, kvSafeId } from "./events.js";
 import { DASHBOARD_HTML } from "./dashboard.js";
 import type { CallControlEvent, CallRoutingMap } from "./failoverAgent.js";
 
@@ -367,6 +367,6 @@ async function verifyWebhook(req: Request, env: Env): Promise<CallControlEvent> 
 // ── Call routing maps (KV) ────────────────────────────────────────────────
 
 function callMapKey(callControlId: string): string {
-  return `call:${callControlId}`;
+  return `call/${kvSafeId(callControlId)}`;
 }
 
