@@ -78,3 +78,24 @@ export async function listEvents(kv: KvNamespace, limit = 30): Promise<OpsEvent[
   }
   return events;
 }
+
+/**
+ * DEMO_MODE override chain: KV `config/demo-mode` wins (runtime-controlled —
+ * flip it with `telnyx-edge storage kv key put` and no re-ship), then env, then
+ * the safe default (demo on).
+ */
+export async function demoModeEnabled(
+  kv: KvLike | undefined,
+  envValue: string | undefined,
+): Promise<boolean> {
+  let override: string | undefined;
+  if (kv) {
+    try {
+      override = (await kv.get("config/demo-mode")) ?? undefined;
+    } catch {
+      override = undefined;
+    }
+  }
+  const value = override ?? envValue ?? "true";
+  return ["true", "1", "yes"].includes(value.toLowerCase());
+}

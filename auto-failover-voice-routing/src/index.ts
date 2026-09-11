@@ -8,7 +8,7 @@ import {
   shouldRouteToBackup,
   type BreakerSnapshot,
 } from "./breaker.js";
-import { listEvents, recordEvent, kvSafeId } from "./events.js";
+import { listEvents, recordEvent, kvSafeId, demoModeEnabled } from "./events.js";
 import { DASHBOARD_HTML } from "./dashboard.js";
 import type { CallControlEvent, CallRoutingMap } from "./failoverAgent.js";
 
@@ -82,9 +82,8 @@ function envConfig(env: Env, key: keyof Env | "TELNYX_OPS_ALERT_NUMBER" | "SMS_F
   return process.env[key] ?? (env as unknown as Record<string, string>)[key];
 }
 
-function isDemoMode(env: Env): boolean {
-  const value = envConfig(env, "DEMO_MODE") ?? "true";
-  return ["true", "1", "yes"].includes(value.toLowerCase());
+async function isDemoMode(env: Env): Promise<boolean> {
+  return demoModeEnabled(env.FAILOVER_KV, envConfig(env, "DEMO_MODE"));
 }
 
 function primaryConnectionId(env: Env): string {
@@ -136,7 +135,7 @@ export default {
       });
     }
     if (req.method === "GET" && url.pathname === "/health") {
-      return Response.json({ status: "healthy", demo_mode: isDemoMode(env) });
+      return Response.json({ status: "healthy", demo_mode: await isDemoMode(env) });
     }
 
     try {
@@ -199,7 +198,7 @@ async function handleRoute(req: Request, env: Env): Promise<Response> {
     useBackup ? "backup" : "primary",
   );
 
-  if (isDemoMode(env)) {
+  if (await isDemoMode(env)) {
     log(
       `[DEMO MODE] Would create call to ${toNumber} via connection ${connectionId} ` +
       `(tripped=${snapshot.tripped}, failures=${snapshot.failures})`,
@@ -344,7 +343,7 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
  */
 async function verifyWebhook(req: Request, env: Env): Promise<CallControlEvent> {
   const body = await req.text();
-  if (isDemoMode(env) || process.env.SKIP_WEBHOOK_VERIFY === "1") {
+  if (await isDemoMode(env) || process.env.SKIP_WEBHOOK_VERIFY === "1") {
     return JSON.parse(body) as CallControlEvent;
   }
   const publicKey = await env.SECRETS?.get("TELNYX_PUBLIC_KEY");

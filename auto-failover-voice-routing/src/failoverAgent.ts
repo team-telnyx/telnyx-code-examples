@@ -9,7 +9,7 @@ import {
   type BreakerSnapshot,
   type KvLike,
 } from "./breaker.js";
-import { recordEvent, kvSafeId } from "./events.js";
+import { recordEvent, kvSafeId, demoModeEnabled } from "./events.js";
 
 
 /**
@@ -80,9 +80,7 @@ function isFailureHangupCause(hangupCause: string): boolean {
   return FAILURE_HANGUP_CAUSES.has(hangupCause.toUpperCase());
 }
 
-function isDemoMode(env: FailoverEnv): boolean {
-  return ["true", "1", "yes"].includes((env.DEMO_MODE ?? "true").toLowerCase());
-}
+
 
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -194,6 +192,10 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
 
   // ── Breaker internals ─────────────────────────────────────────────────────
 
+  private async demoMode(): Promise<boolean> {
+    return demoModeEnabled(this.env.FAILOVER_KV, this.env.DEMO_MODE);
+  }
+
   private async tripBreakerWithAlert(
     kv: KvLike,
     failures: number,
@@ -213,7 +215,7 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
       "Circuit breaker TRIPPED for primary SIP connection. " +
       `Failures: ${failures}. ` +
       `Auto-failover to backup connection ${backupId}.`;
-    if (isDemoMode(this.env)) {
+    if (await this.demoMode()) {
       this.log(`[DEMO MODE] SMS alert (not sent): ${alertMsg}`);
       await this.events.emit("ops.sms.demo", { to: this.env.TELNYX_OPS_ALERT_NUMBER ?? "", text: alertMsg });
       await recordEvent(kv, "sms_sent", "ops alert SMS (demo — not sent)", "primary");
@@ -389,7 +391,7 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
   }
 
   private async sendCustomerSms(toNumber: string, text: string): Promise<void> {
-    if (isDemoMode(this.env)) {
+    if (await this.demoMode()) {
       this.log(`[DEMO MODE] SMS to ${toNumber} (not sent): ${text}`);
       await this.events.emit("customer.sms.demo", { to: toNumber, text });
       return;
