@@ -232,17 +232,20 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
       "Circuit breaker TRIPPED for primary SIP connection. " +
       `Failures: ${failures}. ` +
       `Auto-failover to backup connection ${backupId}.`;
+    const opsNumber =
+      (await configValue(this.env.FAILOVER_KV, "ops-alert-number", this.env.TELNYX_OPS_ALERT_NUMBER)) ?? "";
     if (await this.demoMode()) {
       this.log(`[DEMO MODE] SMS alert (not sent): ${alertMsg}`);
-      await this.events.emit("ops.sms.demo", { to: this.env.TELNYX_OPS_ALERT_NUMBER ?? "", text: alertMsg });
+      await this.events.emit("ops.sms.demo", { to: opsNumber, text: alertMsg });
       await recordEvent(kv, "sms_sent", "ops alert SMS (demo — not sent)", "primary");
     } else {
       try {
-        await this.sendSms(this.env.TELNYX_OPS_ALERT_NUMBER ?? "", alertMsg);
+        await this.sendSms(opsNumber, alertMsg);
         this.log("SMS alert sent to ops.");
         await recordEvent(kv, "sms_sent", "ops alert SMS sent", "primary");
       } catch (error: unknown) {
         this.log(`Failed to send SMS alert: ${this.errorMessage(error)}`);
+        await recordEvent(kv, "sms_sent", `ops alert SMS FAILED: ${this.errorMessage(error).slice(0, 120)}`, "primary");
       }
     }
     await this.setState({
@@ -399,8 +402,16 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
     }
     await recordEvent(this.kvStore(), "caller_response", `pressed ${digits || "(nothing)"} — ${outcome}`);
     if (caller) {
-      await this.sendCustomerSms(caller, sms);
-      await recordEvent(this.kvStore(), "sms_sent", `customer receipt SMS — ${outcome}`);
+      try {
+        await this.sendCustomerSms(caller, sms);
+        await recordEvent(this.kvStore(), "sms_sent", `customer receipt SMS (${outcome})`);
+      } catch (error: unknown) {
+        await recordEvent(
+          this.kvStore(),
+          "sms_sent",
+          `customer receipt SMS FAILED: ${this.errorMessage(error).slice(0, 120)}`,
+        );
+      }
     }
     await this.putStage(callControlId, "confirming");
     await this.speakConfirmation(callControlId, confirmation);
@@ -449,17 +460,21 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
       await this.events.emit("customer.sms.demo", { to: toNumber, text });
       return;
     }
-    try {
-      await this.sendSms(toNumber, text);
-      this.log(`Customer SMS sent to ${toNumber.slice(0, 6)}...`);
-    } catch (error: unknown) {
-      this.log(`Failed to send customer SMS: ${this.errorMessage(error)}`);
-    }
+    await this.sendSms(toNumber, text);
+    this.log(`Customer SMS sent to ${toNumber.slice(0, 6)}...`);
   }
 
-  /** SMS sender: SMS_FROM_NUMBER with TELNYX_FROM_NUMBER fallback. */
+  /**
+   * SMS sender. The from number is KV-first (`config/sms-from`) because env
+   * vars are captured at function creation — vars added later never reach the
+   * runtime, and silently falling back to the unverified toll-free fails at
+   * the carrier. Failures propagate so the caller records the true outcome.
+   */
   private async sendSms(to: string, text: string): Promise<void> {
-    const from = this.env.SMS_FROM_NUMBER || this.env.TELNYX_FROM_NUMBER || "";
+    const from =
+      (await configValue(this.env.FAILOVER_KV, "sms-from", this.env.SMS_FROM_NUMBER)) ||
+      this.env.TELNYX_FROM_NUMBER ||
+      "";
     await this.env.TELNYX.messages.send({ from, to, text });
   }
 
