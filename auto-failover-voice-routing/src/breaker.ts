@@ -2,7 +2,7 @@ import type { KvNamespace } from "@telnyx/edge-runtime";
 
 /**
  * Circuit-breaker state for the primary SIP connection, persisted in Telnyx KV.
- * Keys mirror the original Flask implementation 1:1 so existing dashboards and
+ * Keys use the Edge KV charset (a-z A-Z 0-9 - _ / = .) — no colons so existing dashboards and
  * tooling keep working after the port.
  */
 export interface BreakerSnapshot {
@@ -25,9 +25,9 @@ export interface KvLike {
 }
 
 export const BREAKER_KEYS = {
-  failures: "primary:failures",
-  lastFail: "primary:last_fail",
-  tripped: "primary:tripped",
+  failures: "primary/failures",
+  lastFail: "primary/last_fail",
+  tripped: "primary/tripped",
 } as const;
 
 /** Read the raw breaker state (no derived status). Tolerates KV stores that

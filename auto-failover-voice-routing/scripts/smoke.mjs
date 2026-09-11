@@ -346,7 +346,7 @@ try {
   const resolution = phaseA.telnyxMock.speaks.at(-1);
   assert(resolution && resolution.payload.includes("We've blocked that purchase and frozen your card"), `blocked speech missing: ${resolution?.payload}`);
   assert(phaseA.telnyxMock.sent.length === 0, "demo mode must not send the customer SMS");
-  assert(phaseA.kv.map.get("stage:call-flow-1") === "confirming", `stage should be confirming: ${phaseA.kv.map.get("stage:call-flow-1")}`);
+  assert(phaseA.kv.map.get("stage/call-flow-1") === "confirming", `stage should be confirming: ${phaseA.kv.map.get("stage/call-flow-1")}`);
   console.log("ok  call.gather.ended '2' → card-frozen speech, SMS suppressed in demo");
 
   await webhook(portA, "call.speak.ended", { call_control_id: "call-flow-1" });
@@ -355,7 +355,7 @@ try {
   console.log("ok  call.speak.ended (confirming) → hung up");
 
   // Backup-leg announcement carries the apologetic intro.
-  await phaseA.kv.put("call:call-flow-2", JSON.stringify({ connection_id: BACKUP_ID, to: "+15551234567" }));
+  await phaseA.kv.put("call/call-flow-2", JSON.stringify({ connection_id: BACKUP_ID, to: "+15551234567" }));
   await webhook(portA, "call.answered", { call_control_id: "call-flow-2", connection_id: BACKUP_ID });
   const backupAnnounce = phaseA.telnyxMock.speaks.at(-1);
   assert(backupAnnounce.payload.includes("we're running on our backup systems right now"), `backup intro missing: ${backupAnnounce.payload}`);
@@ -400,7 +400,7 @@ try {
   assert(route1.call_id === "cc-1" && route1.connection_id === PRIMARY_ID, `live route unexpected: ${JSON.stringify(route1)}`);
   const dial = phaseB.telnyxMock.dials[0];
   assert(dial.connection_id === PRIMARY_ID && dial.from === FROM_NUMBER && dial.to === "+15551234567", `dial params unexpected: ${JSON.stringify(dial)}`);
-  assert(phaseB.kv.map.get("call:cc-1") === JSON.stringify({ connection_id: PRIMARY_ID, to: "+15551234567" }), `call map not recorded: ${phaseB.kv.map.get("call:cc-1")}`);
+  assert(phaseB.kv.map.get("call/cc-1") === JSON.stringify({ connection_id: PRIMARY_ID, to: "+15551234567" }), `call map not recorded: ${phaseB.kv.map.get("call/cc-1")}`);
   console.log("ok  /api/route (live) → dial recorded + call map in KV");
 
   // Unknown call hangs up on primary with TIMEOUT: not in the map → not counted.

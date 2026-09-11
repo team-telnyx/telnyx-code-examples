@@ -24,7 +24,7 @@ export interface OpsEvent {
   connection: "primary" | "backup" | null;
 }
 
-const EVENT_PREFIX = "event:";
+const EVENT_PREFIX = "event/";
 const EVENT_TTL_SECONDS = 3600;
 
 export async function recordEvent(

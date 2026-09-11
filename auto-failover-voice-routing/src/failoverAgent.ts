@@ -76,6 +76,11 @@ const FAILURE_HANGUP_CAUSES = new Set([
 /** Call routing maps and stages are call-scoped; a day bounds KV growth. */
 const CALL_MAP_TTL_SECONDS = 86400;
 
+/** Edge KV keys allow a-z A-Z 0-9 - _ / = . — call control ids contain colons. */
+function kvSafeId(callControlId: string): string {
+  return callControlId.replace(/[^a-zA-Z0-9_.\/-]/g, "-");
+}
+
 function isFailureHangupCause(hangupCause: string): boolean {
   return FAILURE_HANGUP_CAUSES.has(hangupCause.toUpperCase());
 }
@@ -431,11 +436,11 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
   }
 
   private callMapKey(callControlId: string): string {
-    return `call:${callControlId}`;
+    return `call/${kvSafeId(callControlId)}`;
   }
 
   private stageKey(callControlId: string): string {
-    return `stage:${callControlId}`;
+    return `stage/${kvSafeId(callControlId)}`;
   }
 
   private async putCallMap(callControlId: string, map: CallRoutingMap): Promise<void> {

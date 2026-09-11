@@ -40,6 +40,7 @@ interface Env {
   FAILURE_THRESHOLD?: string;
   COOLDOWN_SECONDS?: string;
   DIAL_TIMEOUT_SECS?: string;
+  DEBUG_ERRORS?: string;
   SECRETS?: {
     get(binding: "TELNYX_PUBLIC_KEY"): Promise<string>;
   };
@@ -157,6 +158,9 @@ export default {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       log(`Request failed: ${message}`);
+      if (process.env.DEBUG_ERRORS === "1" || env.DEBUG_ERRORS === "1") {
+        return Response.json({ error: "Internal server error", detail: message }, { status: 500 });
+      }
       return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 
