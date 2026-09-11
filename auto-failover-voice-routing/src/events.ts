@@ -99,3 +99,20 @@ export async function demoModeEnabled(
   const value = override ?? envValue ?? "true";
   return ["true", "1", "yes"].includes(value.toLowerCase());
 }
+
+/** KV-first config lookup: `config/<name>` wins, env var is the fallback. */
+export async function configValue(
+  kv: KvLike | undefined,
+  name: string,
+  envFallback: string | undefined,
+): Promise<string | undefined> {
+  if (kv) {
+    try {
+      const override = (await kv.get(`config/${name}`)) ?? undefined;
+      if (override) return override;
+    } catch {
+      // fall through to the env value
+    }
+  }
+  return envFallback;
+}

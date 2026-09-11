@@ -9,7 +9,7 @@ import {
   type BreakerSnapshot,
   type KvLike,
 } from "./breaker.js";
-import { recordEvent, kvSafeId, demoModeEnabled } from "./events.js";
+import { recordEvent, kvSafeId, demoModeEnabled, configValue } from "./events.js";
 
 
 /**
@@ -423,8 +423,16 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
   private async speakWithVariant(callControlId: string, ssml: string, variant: number): Promise<boolean> {
     const plain = this.plainText(ssml);
     const attempts: Array<{ payload: string; payload_type: "ssml" | "text"; voice: string }> = [
-      { payload: ssml, payload_type: "ssml", voice: this.env.TTS_VOICE || "Telnyx.NaturalHD.Alloy" },
-      { payload: plain, payload_type: "text", voice: this.env.TTS_VOICE || "Telnyx.NaturalHD.Alloy" },
+      {
+        payload: ssml,
+        payload_type: "ssml",
+        voice: await configValue(this.env.FAILOVER_KV, "tts-voice", this.env.TTS_VOICE) || "Telnyx.NaturalHD.Alloy",
+      },
+      {
+        payload: plain,
+        payload_type: "text",
+        voice: await configValue(this.env.FAILOVER_KV, "tts-voice", this.env.TTS_VOICE) || "Telnyx.NaturalHD.Alloy",
+      },
       { payload: plain, payload_type: "text", voice: "Telnyx.NaturalHD.Alloy" },
     ];
     const chosen = attempts[Math.min(variant, attempts.length - 1)];
