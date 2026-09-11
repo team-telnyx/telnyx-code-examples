@@ -10,7 +10,7 @@ type = "FailoverAgent"
 # ── Telnyx API binding: pre-authenticated SDK client (env.TELNYX) ──────────
 # Used for Call Control (dial, speak, gather, hangup) and Messaging (SMS).
 [edge_compute]
-func_id = "replace-after-telnyx-edge-new-func"
+func_id = "bcb3109a-c4b5-42bb-acf0-09d71228e258"
 func_name = "auto-failover-voice-routing"
 
 [telnyx]
@@ -21,7 +21,7 @@ binding = "TELNYX"
 #   telnyx-edge storage kv create --name auto-failover-breaker
 # Then paste the returned id below.
 [storage.kv.FAILOVER_KV]
-id = "24ef6983-ceb5-4406-986e-0f7bd50e1bc8"
+id = "00000000-0000-4000-8000-000000000000"
 
 # ── Secrets ────────────────────────────────────────────────────────────────
 [[secrets]]
@@ -34,12 +34,12 @@ name = "TELNYX_PUBLIC_KEY"
 
 # ── Env vars (non-secret config) ───────────────────────────────────────────
 [env_vars]
-DEMO_MODE = "true"
-TELNYX_PRIMARY_CONNECTION_ID = "your_primary_call_control_app_id"
-TELNYX_BACKUP_CONNECTION_ID = "your_backup_call_control_app_id"
-TELNYX_FROM_NUMBER = "+15550001000"
-SMS_FROM_NUMBER = "+15550002000"
-TELNYX_OPS_ALERT_NUMBER = "+15550003000"
+DEMO_MODE = "false"
+TELNYX_PRIMARY_CONNECTION_ID = "3045323916290557607"
+TELNYX_BACKUP_CONNECTION_ID = "3045325380413032355"
+TELNYX_FROM_NUMBER = "+18337483087"
+SMS_FROM_NUMBER = "+16282564467"
+TELNYX_OPS_ALERT_NUMBER = "+14157986793"
 FAILURE_THRESHOLD = "3"
 COOLDOWN_SECONDS = "45"
 DIAL_TIMEOUT_SECS = "20"
