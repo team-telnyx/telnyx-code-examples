@@ -347,8 +347,12 @@ async function handleCallControlWebhook(req: Request, env: Env): Promise<Respons
       await recordEvent(env.FAILOVER_KV, "sms_sent", "ops alert SMS sent", "primary");
     }
   } else if (callState === "answered") {
-    await failoverActor(env).handleCallEvent(event);
-    await recordEvent(env.FAILOVER_KV, "call_answered", `fraud alert announced`, null);
+    // Announce is slow (TTS API) — respond immediately; the actor dispatch is
+    // fire-and-forget and idempotent, so webhook redeliveries cannot double-speak.
+    void failoverActor(env)
+      .handleCallEvent(event)
+      .then(() => recordEvent(env.FAILOVER_KV, "call_answered", "fraud alert announced"))
+      .catch((error: unknown) => log(`Announce dispatch failed: ${error instanceof Error ? error.message : String(error)}`));
   } else if (eventType === "call.speak.ended") {
     await failoverActor(env).handleCallEvent(event);
   } else if (eventType === "call.gather.ended") {

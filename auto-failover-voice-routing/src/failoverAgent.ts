@@ -284,6 +284,11 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
 
   private async announceRouting(callControlId: string, connectionOverride?: string, variant = 0): Promise<void> {
     if (!callControlId) return;
+    const existingStage = await this.getStage(callControlId);
+    if (variant === 0 && existingStage) {
+      this.log(`Webhook redelivery — announcement already in progress (stage: ${existingStage}). Skipping.`);
+      return;
+    }
     const map = await this.getCallMap(callControlId);
     const primary = this.env.TELNYX_PRIMARY_CONNECTION_ID ?? "";
     const backup = this.env.TELNYX_BACKUP_CONNECTION_ID ?? "";
@@ -356,6 +361,11 @@ export class FailoverAgent extends Agent<FailoverEnv, FailoverState> {
 
   /** Handle the caller's response: confirm, block, or safe-default, then SMS + speech. */
   private async resolveCardNotification(callControlId: string, digits: string): Promise<void> {
+    const stage = await this.getStage(callControlId);
+    if (stage === "confirming") {
+      this.log("Webhook redelivery — resolution already in progress. Skipping.");
+      return;
+    }
     const map = await this.getCallMap(callControlId);
     const caller = map?.to ?? "";
     const ref = `MTB-${(Math.floor(Date.now() / 1000) % 100000).toString().padStart(5, "0")}`;
