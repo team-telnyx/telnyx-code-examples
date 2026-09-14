@@ -5,4 +5,3 @@ dist/
 *.log
 .DS_Store
 telnyx-env.d.ts
-package-lock.json
