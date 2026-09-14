@@ -6,10 +6,8 @@ import type { Call, Env } from "./types.js";
 /**
  * Pure functions for per-tenant call state.
  *
- * Like tenantConfigLogic, these don't depend on the Agent base class — they
- * take a plain ctx with just the SQL primitive, so they can be unit-tested
- * with a better-sqlite3 DB. The TenantVoiceActor class is a thin wrapper
- * for Edge deployment.
+ * Accepts an optional `emit` callback that fires on every state change —
+ * the local runner wires this to the SSE bus; tests pass a no-op.
  */
 
 export type TenantVoiceCtx = {
@@ -19,6 +17,10 @@ export type TenantVoiceCtx = {
     };
   };
 };
+
+export type Emit = (event: { kind: "placed" | "updated" | "completed"; call: Call }) => void;
+
+const NOOP_EMIT: Emit = () => {};
 
 function fetchAll<T>(
   ctx: TenantVoiceCtx,
@@ -64,19 +66,27 @@ export function ensureCallsSchema(ctx: TenantVoiceCtx): void {
     )
   `);
   exec(ctx, `CREATE INDEX IF NOT EXISTS calls_by_status ON calls(status);`);
+  exec(ctx, `CREATE INDEX IF NOT EXISTS calls_by_tenant_started ON calls(tenant_id, started_at DESC);`);
 }
 
 export async function startCall(
   ctx: TenantVoiceCtx,
-  args: { tenant_id: string; from_number: string; to_number: string },
+  args: {
+    tenant_id: string;
+    from_number: string;
+    to_number: string;
+    call_control_id?: string | null;
+    started_at?: number;
+  },
+  emit: Emit = NOOP_EMIT,
 ): Promise<Call> {
   ensureCallsSchema(ctx);
-  const id = `call_${Date.now()}_${randomBytes(3).toString("hex")}`;
-  const now = Date.now();
+  const id = `call_${args.started_at ?? Date.now()}_${randomBytes(3).toString("hex")}`;
+  const now = args.started_at ?? Date.now();
   const row: Call = {
     id,
     tenant_id: args.tenant_id,
-    call_control_id: null,
+    call_control_id: args.call_control_id ?? null,
     from_number: args.from_number,
     to_number: args.to_number,
     direction: "outbound",
@@ -96,6 +106,7 @@ export async function startCall(
     row.direction, row.status, row.started_at, row.answered_at, row.ended_at,
     row.duration_seconds, row.failure_reason,
   );
+  emit({ kind: "placed", call: row });
   return row;
 }
 
@@ -104,32 +115,52 @@ export async function getCall(ctx: TenantVoiceCtx, id: string): Promise<Call | n
   return fetchOne<Call>(ctx, `SELECT * FROM calls WHERE id = ?;`, id);
 }
 
-export async function listCalls(ctx: TenantVoiceCtx): Promise<Call[]> {
+export async function getCallByControlId(
+  ctx: TenantVoiceCtx,
+  callControlId: string,
+): Promise<Call | null> {
+  ensureCallsSchema(ctx);
+  return fetchOne<Call>(ctx, `SELECT * FROM calls WHERE call_control_id = ?;`, callControlId);
+}
+
+export async function listCalls(ctx: TenantVoiceCtx, limit = 20): Promise<Call[]> {
   ensureCallsSchema(ctx);
   return fetchAll<Call>(ctx,
-    `SELECT * FROM calls ORDER BY started_at DESC LIMIT 200;`,
+    `SELECT * FROM calls ORDER BY started_at DESC LIMIT ?;`,
+    limit,
   );
 }
 
-export async function hangup(ctx: TenantVoiceCtx, id: string): Promise<Call | null> {
+export async function updateCallStatus(
+  ctx: TenantVoiceCtx,
+  args: { id: string; status: Call["status"]; at?: number },
+  emit: Emit = NOOP_EMIT,
+): Promise<Call | null> {
   ensureCallsSchema(ctx);
-  const existing = fetchOne<Call>(ctx, `SELECT * FROM calls WHERE id = ?;`, id);
-  if (!existing) return null;
-  if (existing.status === "completed" || existing.status === "failed") {
-    return existing;
+  const now = args.at ?? Date.now();
+  if (args.status === "answered") {
+    exec(ctx, `UPDATE calls SET status = ?, answered_at = ? WHERE id = ?;`, args.status, now, args.id);
+  } else if (args.status === "completed" || args.status === "failed") {
+    const existing = fetchOne<Call>(ctx, `SELECT * FROM calls WHERE id = ?;`, args.id);
+    const duration = existing ? Math.max(0, Math.floor((now - existing.started_at) / 1000)) : 0;
+    exec(ctx,
+      `UPDATE calls SET status = ?, ended_at = ?, duration_seconds = ? WHERE id = ?;`,
+      args.status, now, duration, args.id,
+    );
+  } else {
+    exec(ctx, `UPDATE calls SET status = ? WHERE id = ?;`, args.status, args.id);
   }
-  const now = Date.now();
-  const duration = Math.max(
-    0,
-    Math.floor((now - existing.started_at) / 1000),
-  );
-  exec(ctx,
-    `UPDATE calls
-       SET status = 'completed', ended_at = ?, duration_seconds = ?
-     WHERE id = ?;`,
-    now, duration, id,
-  );
-  return getCall(ctx, id);
+  const updated = await getCall(ctx, args.id);
+  if (updated) emit({ kind: updated.status === "completed" || updated.status === "failed" ? "completed" : "updated", call: updated });
+  return updated;
+}
+
+export async function hangup(
+  ctx: TenantVoiceCtx,
+  id: string,
+  emit: Emit = NOOP_EMIT,
+): Promise<Call | null> {
+  return updateCallStatus(ctx, { id, status: "completed" }, emit);
 }
 
 export async function activeCount(ctx: TenantVoiceCtx): Promise<number> {
@@ -140,30 +171,53 @@ export async function activeCount(ctx: TenantVoiceCtx): Promise<number> {
   return row?.n ?? 0;
 }
 
+export async function rateLimitUsedThisMinute(ctx: TenantVoiceCtx, tenantId: string): Promise<number> {
+  ensureCallsSchema(ctx);
+  const sinceMs = Date.now() - 60_000;
+  const row = fetchOne<{ n: number }>(ctx,
+    `SELECT COUNT(*) AS n FROM calls WHERE tenant_id = ? AND started_at >= ?;`,
+    tenantId, sinceMs,
+  );
+  return row?.n ?? 0;
+}
+
+export async function deleteCalls(ctx: TenantVoiceCtx): Promise<void> {
+  exec(ctx, `DELETE FROM calls;`);
+}
+
 /**
- * Thin Agent wrappers so the Edge runtime can instantiate the actor via
- * `telnyx.toml`'s [actors.*] class names. Methods delegate to the pure
- * functions above; the actor adds nothing — no setState, no alarm, no
- * queue. The runtime still wires ctx/env via super(), which the pure
- * functions don't need.
+ * Thin Agent wrapper for the Edge runtime. Methods delegate to the pure
+ * functions above; the actor adds no behavior of its own.
  */
 export class TenantVoiceActor extends Agent<Env, never> {
   protected override initialState(): never {
     return undefined as never;
   }
-  startCall(args: { tenant_id: string; from_number: string; to_number: string }): Promise<Call> {
+  startCall(args: Parameters<typeof startCall>[1]): Promise<Call> {
     return startCall(this.ctx as unknown as TenantVoiceCtx, args);
   }
   getCall(id: string): Promise<Call | null> {
     return getCall(this.ctx as unknown as TenantVoiceCtx, id);
   }
-  listCalls(): Promise<Call[]> {
-    return listCalls(this.ctx as unknown as TenantVoiceCtx);
+  getCallByControlId(id: string): Promise<Call | null> {
+    return getCallByControlId(this.ctx as unknown as TenantVoiceCtx, id);
+  }
+  listCalls(limit?: number): Promise<Call[]> {
+    return listCalls(this.ctx as unknown as TenantVoiceCtx, limit);
+  }
+  updateCallStatus(args: Parameters<typeof updateCallStatus>[1]): Promise<Call | null> {
+    return updateCallStatus(this.ctx as unknown as TenantVoiceCtx, args);
   }
   hangup(id: string): Promise<Call | null> {
     return hangup(this.ctx as unknown as TenantVoiceCtx, id);
   }
   activeCount(): Promise<number> {
     return activeCount(this.ctx as unknown as TenantVoiceCtx);
+  }
+  rateLimitUsedThisMinute(tenantId: string): Promise<number> {
+    return rateLimitUsedThisMinute(this.ctx as unknown as TenantVoiceCtx, tenantId);
+  }
+  deleteCalls(): Promise<void> {
+    return deleteCalls(this.ctx as unknown as TenantVoiceCtx);
   }
 }

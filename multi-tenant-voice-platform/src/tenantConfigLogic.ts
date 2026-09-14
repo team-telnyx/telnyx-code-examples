@@ -147,4 +147,16 @@ export async function resetRateLimit(
   await ctx.setState({ ...state, rate_limits: { windows } });
 }
 
-export type { Env, Tenant };
+export async function rateLimitUsedThisMinute(
+  ctx: TenantConfigCtx,
+  tenantId: string,
+): Promise<number> {
+  await initSchema(ctx);
+  const window = (await ctx.getState<{ seeded: boolean; rate_limits: RateLimitState }>()).rate_limits.windows[tenantId];
+  if (!window) return 0;
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (nowSec - window.window_start >= 60) return 0;
+  return window.count;
+}
+
+export type { Env, Tenant } from "./types.js";

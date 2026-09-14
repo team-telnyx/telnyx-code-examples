@@ -3,7 +3,6 @@
  *
  * Three persistence layers, all backed by Edge Compute primitives:
  *   - SQL DB  → shared tenants table (config + limits)
- *   - KV      → per-tenant rate-limit counters
  *   - Actor   → per-tenant call state (one StatefulActor instance per tenant)
  */
 
@@ -18,31 +17,66 @@ export type Tenant = {
   updated_at: number;
 };
 
+export type CallStatus = "queued" | "ringing" | "answered" | "completed" | "failed";
+
 export type Call = {
   id: string;
   tenant_id: string;
   call_control_id: string | null;
   from_number: string;
   to_number: string;
-  direction: "inbound" | "outbound";
-  status: "queued" | "ringing" | "answered" | "completed" | "failed";
+  direction: "outbound";
+  status: CallStatus;
   started_at: number;
   answered_at: number | null;
   ended_at: number | null;
   duration_seconds: number | null;
-  /** Failure reason if status='failed'. */
   failure_reason: string | null;
 };
 
-export type RateLimitDecision = {
-  allowed: boolean;
-  current: number;
-  limit: number;
-  retry_after_seconds: number;
-  window_started_at: number;
+/** Dashboard snapshot — the entire UI state in one response. */
+export type TenantDashboard = {
+  tenant_id: string;
+  name: string;
+  rate_limit_per_minute: number;
+  max_concurrent_calls: number;
+  /** How many calls have been placed against this tenant in the current minute. */
+  rate_limit: { used: number; limit: number };
+  /** Calls currently in queued/ringing/answered state. */
+  active_calls: number;
+  /** Newest first, capped. */
+  recent_calls: Call[];
 };
 
-/** Bound on Edge — see telnyx.toml. */
+export type DashboardSnapshot = {
+  tenants: TenantDashboard[];
+};
+
+export type DashboardUpdate = {
+  reason: "call_placed" | "call_updated" | "call_completed";
+  tenant_id: string;
+  at: number;
+};
+
+/** Telnyx `call.*` webhook payload — fields we read. */
+export type CallWebhookPayload = {
+  data?: {
+    event_type?: string;
+    id?: string;
+    occurred_at?: string;
+    payload?: {
+      call_control_id?: string;
+      call_leg_id?: string;
+      call_session_id?: string;
+      from?: { phone_number?: string };
+      to?: { phone_number?: string };
+      direction?: string;
+      hangup_cause?: string;
+    };
+  };
+};
+
+/** Bound on Edge — see telnyx.toml. Minimal for our local runner. */
 export type Env = {
   TENANT_CONFIG: {
     idFromName(name: string): {
@@ -58,19 +92,16 @@ export type Env = {
         tenant_id: string;
         from_number: string;
         to_number: string;
+        call_control_id?: string | null;
       }): Promise<Call>;
       getCall(id: string): Promise<Call | null>;
-      listCalls(): Promise<Call[]>;
+      listCalls(limit?: number): Promise<Call[]>;
       hangup(id: string): Promise<Call | null>;
       activeCount(): Promise<number>;
+      rateLimitUsedThisMinute(tenantId: string): Promise<number>;
     };
   };
-  TELNYX?: {
-    calls?: {
-      create?(args: Record<string, unknown>): Promise<unknown>;
-    };
-  };
+  LIVE_MODE?: boolean;
+  TELNYX_API_KEY?: string;
+  DEMO_MODE?: boolean;
 };
-
-export const KV_RATE_KEY = (tenantId: string) => `tenant:${tenantId}:rate:minute`;
-export const KV_WINDOW_KEY = (tenantId: string) => `tenant:${tenantId}:rate:window`;
