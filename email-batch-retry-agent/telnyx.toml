@@ -1,0 +1,25 @@
+name = "email-batch-retry-agent"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "BATCH_AGENT"
+type    = "BatchAgent"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "OPERATOR_NUMBER"
+name    = "OPERATOR_NUMBER"
+
+[[secrets]]
+binding = "TELNYX_SENDER"
+name    = "TELNYX_SENDER"
+
+[storage.kv.RESULT_KV]
+id = "<kv-namespace-uuid>"
+
+[env_vars]
+MOCK_MODE = "true"
