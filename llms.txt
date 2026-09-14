@@ -345,6 +345,7 @@
 
 ## AI Assistants
 
+- [A2A Identity Actor — Persistent Agent Identity & OAuth Token Lifecycle](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/a2a-identity-actor/README.md): A stateful Telnyx Edge actor that owns its OAuth identity, auto-refreshes tokens, authorizes peers, and persists multi-turn A2A conversations.
 - [AI Adventure Game](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/adventure-game-python/README.md): AI Adventure Game — a text-based choose-your-own-adventure game where every scene and choice is generated in real time by Telnyx AI Inference.
 - [Agent Fleet Shared Workspace (CloudFS)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-fleet-shared-workspace/README.md)
 - [Replay Agent Conversations Live — WebSocket Streaming Replays on Telnyx Edge](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-message-replay/README.md): Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step.

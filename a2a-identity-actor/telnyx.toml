@@ -1,0 +1,36 @@
+name = "a2a-identity-actor"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "IDENTITY_ACTOR"
+type    = "IdentityAgent"
+
+[[secrets]]
+binding = "AMP_CLIENT_ID"
+name    = "AMP_CLIENT_ID"
+
+[[secrets]]
+binding = "AMP_CLIENT_SECRET"
+name    = "AMP_CLIENT_SECRET"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.kv.PEER_REGISTRY]
+id = "<kv-namespace-uuid>"
+
+[storage.kv.CONVERSATION_STORE]
+id = "<kv-namespace-uuid>"
+
+[env_vars]
+AMP_TOKEN_URL = "https://access-management-platform.ingress.prod.telnyx.io/oauth/token"
+AMP_A2A_URL = "https://access-management-platform.ingress.prod.telnyx.io/a2a/message"
+AMP_INTROSPECT_URL = "https://access-management-platform.ingress.prod.telnyx.io/oauth/introspect"
+OPERATOR_NUMBER = "+15550000000"
+TELNYX_SENDER = "+15550000001"
+DEMO_MODE = "true"

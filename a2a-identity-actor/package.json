@@ -1,0 +1,19 @@
+{
+  "name": "a2a-identity-actor",
+  "version": "1.0.0",
+  "description": "A2A identity actor with OAuth token lifecycle, peer authorization, and multi-turn conversation state",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "npx tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
