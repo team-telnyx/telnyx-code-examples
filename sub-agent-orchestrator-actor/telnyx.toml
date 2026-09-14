@@ -1,0 +1,32 @@
+name = "sub-agent-orchestrator-actor"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "ORCHESTRATOR"
+type    = "OrchestratorAgent"
+
+[[actors]]
+binding = "TRANSCRIBER"
+type    = "TranscriberAgent"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "OPERATOR_NUMBER"
+name    = "OPERATOR_NUMBER"
+
+[[secrets]]
+binding = "TELNYX_SENDER"
+name    = "TELNYX_SENDER"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.kv.JOB_KV]
+id = "<kv-namespace-uuid>"
+
+[env_vars]
+MOCK_AUDIO_URLS = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3,https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3,https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3,https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3,https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"

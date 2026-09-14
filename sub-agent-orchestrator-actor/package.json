@@ -1,0 +1,20 @@
+{
+  "name": "sub-agent-orchestrator-actor",
+  "version": "1.0.0",
+  "description": "Persistent parent actor that spawns child transcriber actors, tracks their lifecycle, and compiles results — demonstrating edge-runtime 0.15.2 spawn()/children()/destroy() primitives.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "npx tsx smoke_test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

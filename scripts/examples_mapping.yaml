@@ -3383,3 +3383,9 @@ examples:
     language: nodejs
     framework: edge
     folder: omni-channel-inbox-agent
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: sub-agent-orchestrator-actor
