@@ -1,0 +1,20 @@
+{
+  "name": "venue-sales-concierge",
+  "version": "1.0.0",
+  "description": "AI-powered venue sales concierge on Telnyx Edge",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "vitest run",
+    "smoke": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,25 @@
+name = "venue-sales-concierge"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "CONCIERGE"
+type = "ConciergeAgent"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.kv.FAQ_KV]
+id = "<kv-namespace-uuid>"
+
+[storage.sqldb.AVAILABILITY_DB]
+id = "<sqldb-instance-uuid>"
+
+[env_vars]
+DEMO_MODE = "true"
+FROM_NUMBER = "+1555XXXXXXXX"
+VENUE_EMAIL = "bookings@venue.example"
