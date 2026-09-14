@@ -3377,3 +3377,9 @@ examples:
     language: typescript
     framework: edge
     folder: event-sponsorship-agent
+
+  - product: voice
+    use_case: omni-channel-inbox-agent
+    language: nodejs
+    framework: edge
+    folder: omni-channel-inbox-agent

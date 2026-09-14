@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-11T19:14:54Z",
-  "example_count": 549,
+  "generated_at": "2026-09-14T19:20:17Z",
+  "example_count": 550,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -4946,6 +4946,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/event-sponsorship-agent"
+    },
+    {
+      "folder": "omni-channel-inbox-agent",
+      "title": "Omni-Channel Inbox Agent",
+      "description": "Build a Telnyx Edge Compute agent that runs a lab-results intake workflow across fax, voice, email, and SMS — one durable StatefulActor per patient with a human-in-the-loop inbox and live engagement analytics.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omni-channel-inbox-agent"
     }
   ]
 }
