@@ -11,6 +11,10 @@ telnyx_products: [Email, SMS, Agents]
 
 A durable, stateful agent that sends email batches via the Telnyx Email API, tracks per-message state, and self-wakes to retry failures with exponential backoff.
 
+## The Story
+
+The actor IS the email campaign. It is born the moment an operator hands it a list of recipients, and from that instant it carries the full weight of every message's fate within its own persistent memory. Through idle stretches and sudden restarts, it holds its ground, waking itself to nudge stuck messages forward while others sail through cleanly. Some recipients reject it, and it patiently waits, tries again, and waits longer, never forgetting a single failure or a single success. When every message has reached its final destination or exhausted its chances, the campaign quietly concludes, its story complete, having survived the chaos of the world around it. The rest of this README is the API surface of that story.
+
 ## Why Telnyx
 
 Telnyx provides the **AI Communications Infrastructure** that powers this sample. The Telnyx Email API handles batch message delivery with idempotency-key support, while the Telnyx Edge Agent SDK provides the durable actor runtime — persistent state, self-waking schedules, and queues — that makes a resilient email campaign possible. Telnyx SMS completes the loop by notifying the operator when the campaign finishes.
