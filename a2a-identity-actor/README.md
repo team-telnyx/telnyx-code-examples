@@ -11,6 +11,10 @@ telnyx_products: [Agent SDK, A2A Messaging, SMS, OAuth]
 
 A stateful Telnyx Edge agent that acts as a durable identity boundary: it registers with AMP via OAuth client credentials, self-refreshes tokens before expiry, authorizes peers, and persists multi-turn A2A conversations.
 
+## The Story
+
+The actor IS the agent's identity. It comes into being when a new agent is first created, carrying its own credentials and a promise of continuity from the very first moment. Through its life, it grows from a tentative, initializing presence into a trusted, active participant in conversations, periodically renewing its own access to the world before that access can lapse. It survives restarts that would reset a stateless process, idle stretches where it waits patiently for the next word, and partial failures where it must hold messages in a fragile queue until it can re-assert itself. Even when trust is revoked, it does not vanish—it records its own end, preserving the memory of every exchange it ever held, so that its story remains complete. The rest of this README is the API surface of that story.
+
 ## Why Telnyx
 
 Telnyx provides the **AI Communications Infrastructure** needed to build agents that are not just stateless inference endpoints, but durable, authenticated participants in a multi-agent ecosystem. With the Telnyx Edge Agent SDK, you get a stateful actor runtime with built-in scheduling, durable storage, and zero-credential access to Telnyx APIs — so your agent can own its OAuth lifecycle, persist conversation state across hours or days, and alert operators via SMS when its identity degrades. No cron jobs, no external state servers, no glue code.
