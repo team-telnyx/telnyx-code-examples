@@ -11,6 +11,10 @@ telnyx_products: [Edge Runtime, Agent SDK, SMS, AI, Inference]
 
 A durable parent actor that spawns child actors for parallel transcription jobs, tracks each child's lifecycle (PENDING → RUNNING → COMPLETED → FAILED), persists results to KV, and self-cleans on completion. Built on the `spawn()`, `children()`, and `destroy()` primitives introduced in `@telnyx/edge-runtime` 0.15.2.
 
+## The Story
+
+The actor IS the transcription workflow. It comes into being when a job is first requested, carrying the seed of a task that will outlive any single request, and it begins to grow by reaching out to create smaller workers, each one given a piece of the work. Over time, it watches them succeed or stumble, updating its own understanding of the world with each result, and it keeps its composure even when the system around it restarts or goes quiet for a while — it simply waits, wakes, and continues. When every piece has been gathered, it closes its own chapter, tidies up after itself, and fades away; if some workers fail, it still finishes, but with an honest record of what went wrong. It survives not because it is fast, but because it is persistent — a single thread of memory that weathers every storm until its story is done. The rest of this README is the API surface of that story.
+
 ## Why Telnyx
 
 Telnyx provides the **AI Communications Infrastructure** that makes this sample possible — a single platform where durable edge actors, AI inference, and SMS notifications work together. The Telnyx Edge Runtime gives you persistent, stateful actors that can spawn and manage child actors, while the Telnyx API handles operator notifications and AI-powered transcription summaries. No external orchestration services, no glue code — just one platform for the entire workflow.
