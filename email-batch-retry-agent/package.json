@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "deploy": "telnyx-edge ship",
+    "demo:ui": "node scripts/demo-dashboard.mjs",
     "types": "telnyx-edge types",
     "smoke": "npx tsx smoke_test.ts"
   },

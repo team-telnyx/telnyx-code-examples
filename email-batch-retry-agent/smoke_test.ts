@@ -7,7 +7,7 @@
  */
 
 import { BatchAgent } from "./src/index";
-import type { Env } from "./src/index";
+import type { CampaignState, Env } from "./src/index";
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -28,7 +28,7 @@ async function runSmokeTest(): Promise<void> {
   );
 
   // 2. Required methods exist on the prototype
-  const proto = BatchAgent.prototype as Record<string, unknown>;
+  const proto = BatchAgent.prototype as unknown as Record<string, unknown>;
   const requiredMethods = [
     "fetch",
     "sendBatch",
@@ -63,16 +63,10 @@ async function runSmokeTest(): Promise<void> {
   // 4. Env type is exported
   assert(typeof ({} as Env) === "object", "Env type is exported");
 
-  // 5. Verify constants via a quick static check (not exported, but we can
-  //    verify the class shape implies the constants exist)
-  const instance = new BatchAgent();
-  assert(
-    typeof instance.initialState === "function",
-    "BatchAgent instance has initialState"
-  );
-
-  // 6. Verify initialState returns the expected shape
-  const initialState = instance.initialState();
+  // 5. initialState returns the expected shape. The Agent base constructor
+  //    eagerly wires durable storage from the actor context, so instances can
+  //    only be constructed by the runtime — check the method on the prototype.
+  const initialState = (BatchAgent.prototype.initialState as () => CampaignState)();
   assert(
     initialState.status === "CREATED",
     "initialState returns CREATED status"
