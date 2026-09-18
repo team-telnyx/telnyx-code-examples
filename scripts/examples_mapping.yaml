@@ -725,6 +725,12 @@ examples:
     folder: changelog-generator-python
 
   - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: email-batch-retry-agent
+
+  - product: ai
     use_case: error-explainer
     language: python
     framework: flask
@@ -1071,6 +1077,12 @@ examples:
     language: python
     framework: flask
     folder: missions-ai-task-runner-python
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: multi-agent-debate
 
   - product: ai
     use_case: multi-channel-ai-helpdesk-with-ticketing
@@ -3378,6 +3390,11 @@ examples:
     framework: edge
     folder: event-sponsorship-agent
 
+  - product: ai
+    use_case: venue-sales-concierge
+    language: nodejs
+    framework: edge
+    folder: venue-sales-concierge
   - product: voice
     use_case: omni-channel-inbox-agent
     language: nodejs
@@ -3385,7 +3402,7 @@ examples:
     folder: omni-channel-inbox-agent
 
   - product: ai
-    use_case: "auto-generated-from-linear"
+    use_case: sub-agent-orchestration
     language: typescript
     framework: edge
-    folder: email-batch-retry-agent
+    folder: sub-agent-orchestrator-actor

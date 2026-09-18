@@ -1,0 +1,20 @@
+{
+  "name": "multi-agent-debate",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Two AI agents debate a topic with live WebSocket streaming and audience voting",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "npm run build && node scripts/start.mjs",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

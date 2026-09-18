@@ -1,0 +1,25 @@
+name = "multi-agent-debate"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+# ── Stateful actors: one DebateRoom per debate, one DebateAgent per debater ──
+[[actors]]
+binding = "DEBATE_ROOM"
+type = "DebateRoom"
+
+[[actors]]
+binding = "DEBATER"
+type = "DebateAgent"
+
+# ── Telnyx API binding: pre-authenticated SDK client (env.TELNYX) ──────────
+# Used inside the actors for zero-credential AI Inference:
+#   this.env.TELNYX.ai.openai.chat.createCompletion(...)
+[telnyx]
+binding = "TELNYX"
+
+# ── Env vars (non-secret config) ───────────────────────────────────────────
+# DEMO_MODE=false switches the debaters to live inference via the TELNYX
+# binding; every other value keeps the demo on canned arguments.
+[env_vars]
+AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
+DEMO_MODE = "true"
