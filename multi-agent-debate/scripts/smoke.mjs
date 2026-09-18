@@ -186,15 +186,17 @@ function assert(condition, message) {
 const workerEnv = makeEnv();
 const { server, port } = await startServer(workerEnv);
 const topic = `Smoke debate ${Date.now()}`;
+const requestedDebateId = `smoke-${Date.now()}`;
 
 try {
   const health = await call(port, "GET", "/health");
   assert(health.body.status === "ok", `health check unexpected: ${JSON.stringify(health.body)}`);
   console.log("ok  GET  /health");
 
-  const started = await call(port, "POST", "/debate", { topic });
+  const started = await call(port, "POST", "/debate", { topic, debateId: requestedDebateId });
   assert(started.ok, `POST /debate failed: ${JSON.stringify(started.body)}`);
   assert(started.body.debateId, "start did not return a debateId");
+  assert(started.body.debateId === requestedDebateId, `expected caller-supplied debateId "${requestedDebateId}", got "${started.body.debateId}"`);
   assert(started.body.status === "voting", `expected phase "voting", got "${started.body.status}"`);
   const debateId = started.body.debateId;
   console.log(`ok  POST /debate  → ${debateId} (voting)`);

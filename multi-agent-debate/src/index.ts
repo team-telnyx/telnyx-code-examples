@@ -86,7 +86,7 @@ export default {
       if (req.method === "POST" && url.pathname === "/debate") {
         const body = await jsonBody(req);
         const topic = stringValue(body.topic) || DEFAULT_TOPIC;
-        const debateId = newDebateId();
+        const debateId = stringValue(body.debateId) || newDebateId();
         const state = await room(env, debateId).start({
           debateId,
           topic,

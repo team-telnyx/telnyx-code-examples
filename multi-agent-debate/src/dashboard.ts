@@ -42,11 +42,15 @@ Arguments and the tally stream live over WebSocket; votes go over HTTP.</div>
   <input id="topic" placeholder="Resolved: AI will benefit humanity">
   <button onclick="startDebate()">Start debate</button>
   <button onclick="endDebate()">End &amp; declare winner</button>
+  <br><br>
+  <input id="debateIdInput" placeholder="Existing debate id">
+  <button onclick="loadDebate()">Load existing debate</button>
   <div id="status"></div>
 </div>
 
 <div class="card" id="liveCard" style="display:none">
   <div id="topicLabel"></div>
+  <div class="sub">Debate ID: <code id="debateIdLabel"></code></div>
   <div class="tally">Pro <b id="proCount">0</b> &middot; Con <b id="conCount">0</b> <span class="phase" id="phase"></span></div>
   <div class="bar"><div class="pro" id="proBar"></div><div class="con" id="conBar"></div></div>
   <div>
@@ -121,18 +125,34 @@ function connectWS() {
   sock.onopen = () => status("Live (WebSocket) — arguments and votes push in real time.");
   sock.onclose = () => { sock = null; };
 }
+async function showDebate(id) {
+  debateId = id;
+  if (sock) { sock.close(); sock = null; }
+  liveState = await api("/debate/" + debateId);
+  if (!liveState || !liveState.debateId) throw new Error("Debate not found");
+  document.getElementById("liveCard").style.display = "block";
+  document.getElementById("topicLabel").textContent = "Topic: " + liveState.topic;
+  document.getElementById("topic").value = liveState.topic || "";
+  document.getElementById("debateIdInput").value = debateId;
+  document.getElementById("debateIdLabel").textContent = debateId;
+  renderFromState(liveState);
+  connectWS();
+}
 async function startDebate() {
   try {
     const topic = document.getElementById("topic").value.trim() || "Resolved: AI will benefit humanity";
     const r = await api("/debate", { topic });
-    debateId = r.debateId;
-    liveState = null;
-    document.getElementById("liveCard").style.display = "block";
-    document.getElementById("topicLabel").textContent = "Topic: " + topic;
-    connectWS();
-    renderFromState(await api("/debate/" + debateId));
+    await showDebate(r.debateId);
     status("Debate started — arguments stream below, then voting opens.");
   } catch (e) { status("Start failed: " + e.message, true); }
+}
+async function loadDebate() {
+  try {
+    const id = document.getElementById("debateIdInput").value.trim();
+    if (!id) { status("Paste a debate id first.", true); return; }
+    await showDebate(id);
+    status("Loaded persisted debate state for " + id + ".");
+  } catch (e) { status("Load failed: " + e.message, true); }
 }
 async function vote(side) {
   if (!debateId) { status("Start a debate first.", true); return; }
@@ -145,7 +165,7 @@ async function vote(side) {
 async function endDebate() {
   if (!debateId) { status("Start a debate first.", true); return; }
   try {
-    const r = await api("/debate/" + debateId + "/end");
+    const r = await api("/debate/" + debateId + "/end", {});
     renderFromState(await api("/debate/" + debateId));
     status(r.winner === "tie" ? "Debate ended — tie." : "Debate ended — winner: " + r.winner + ".");
   } catch (e) { status("End failed: " + e.message, true); }

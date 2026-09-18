@@ -15,6 +15,7 @@ Creates a new debate session with two opposing agents and begins the turn-based 
 | Field       | Type     | Required | Description                                      |
 |-------------|----------|----------|--------------------------------------------------|
 | `topic`     | `string` | No       | The debate topic. Defaults to `"Resolved: AI will benefit humanity"`. |
+| `debateId`  | `string` | No       | Client-supplied debate id (1-64 letters, numbers, `_`, `.`, `-`). Supply one to attach a WebSocket audience to `/agents/room/{debateId}` *before* the argument turns are composed, so every turn streams in real time. Defaults to a server-generated id. |
 
 #### Example Request
 
