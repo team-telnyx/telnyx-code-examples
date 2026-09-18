@@ -19,7 +19,11 @@ The use case behind the sample: a clinic-network transcription service loses its
 - `GET /console` — the engineering view: actor names, attempt counts, KV keys, `RESUMED`/`ALREADY_DONE` badges, and the KV-first write order
 A durable parent actor that spawns child actors for parallel transcription jobs, tracks each child's lifecycle (PENDING → RUNNING → COMPLETED → FAILED), persists results to KV, and self-cleans on completion. Built on the `spawn()`, `children()`, and `destroy()` primitives introduced in `@telnyx/edge-runtime` 0.15.2.
 
-## Why Telnyx
+## The Story
+
+A medical transcription service handles thousands of patient consultation recordings daily, routing each file through speech-to-text processing for a network of clinics. If a single file is lost or a job stalls mid-batch, a clinician could miss a critical diagnosis, a patient could be billed incorrectly, or the clinic could fall out of compliance with record-keeping regulations. The actor IS the transcription workflow. It comes into being when a clinic uploads a batch of recordings, carrying the job's full intent in its durable state, then spawns a small worker for each file, tracking every one as it processes. When the server reboots mid-batch during a power outage, the actor simply wakes up, sees which workers finished and which never reported back, and re-spawns the missing ones without losing a single transcript. It survives idle stretches between batches and partial failures — if one file is corrupted, it marks that worker as failed, keeps the rest moving, and delivers a final report that honestly lists what succeeded and what didn't. The rest of this README is the API surface of that story.
+
+Why Telnyx
 
 Telnyx provides the **AI Communications Infrastructure** that makes this sample possible — a single platform where durable edge actors, AI inference, and SMS notifications work together. The Telnyx Edge Runtime gives you persistent, stateful actors that can spawn and manage child actors, while the Telnyx API handles operator notifications and AI-powered transcription summaries. No external orchestration services, no glue code — just one platform for the entire workflow.
 
