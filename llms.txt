@@ -561,7 +561,7 @@
 - [eSIM Provisioning with PHP and Laravel](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-esim-php/README.md)
 - [Provision eSIM](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-esim-python/README.md): Provision eSIM profiles over the air.
 - [eSIM Provisioning with Ruby and Sinatra](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-esim-ruby/README.md)
-- [SIMAgent - The Actor IS the SIM](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sim-agent/README.md): A durable Telnyx Edge Agent that embodies a SIM card, tracking data usage, proactively alerting on thresholds, and auto-provisioning plan upgrades via SMS and Call Control.
+- [SIMAgent — The Actor IS the SIM](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sim-agent/README.md): A durable Telnyx Edge Agent that embodies a SIM card, tracking data usage, proactively alerting on thresholds, and auto-provisioning plan upgrades via SMS and Call Control.
 - [SIM Fleet Data Usage Anomaly Detector](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sim-fleet-data-usage-anomaly-detector-python/README.md): SIM Fleet Data Usage Anomaly Detector - monitor IoT SIM usage, AI detects anomalies, SMS alerts.
 - [Device Location with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-csharp/README.md)
 - [Device Location with Go and Gin](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/track-iot-device-location-go/README.md)

@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-17T23:01:40Z",
-  "example_count": 554,
+  "generated_at": "2026-09-18T21:53:48Z",
+  "example_count": 555,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -4955,6 +4955,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/patient-agent"
+    },
+    {
+      "folder": "sim-agent",
+      "title": "SIMAgent — The Actor IS the SIM",
+      "description": "A durable Telnyx Edge Agent that embodies a SIM card, tracking data usage, proactively alerting on thresholds, and auto-provisioning plan upgrades via SMS and Call Control.",
+      "product": "iot",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sim-agent"
     },
     {
       "folder": "event-sponsorship-agent",
