@@ -12,8 +12,8 @@ Telnyx AI Assistant is the better fit for this use case because the assistant
 owns turn-taking, speech recognition, interruption handling, and natural
 conversation.
 
-The Python app is still useful: it lets developers create the assistant,
-inspect the workflow prompt, and wire a phone number from code.
+The Python app is still useful: it lets developers create the assistant, show a
+demo-safe workflow view, and wire a phone number from code.
 
 ## What It Builds
 
@@ -55,13 +55,20 @@ pip install -r requirements.txt
 python app.py
 ```
 
-## Step 3: Review The Workflow
+## Step 3: Review The Demo Workflow
 
 ```bash
 curl http://localhost:5000/workflow | python3 -m json.tool
 ```
 
-Use this endpoint when recording. It shows the workflow the assistant will use.
+Use this endpoint when recording. It shows the public demo flow without exposing
+the full assistant prompt.
+
+For the exact caller lines to say during the call:
+
+```bash
+curl http://localhost:5000/demo/call-script | python3 -m json.tool
+```
 
 ## Step 4: Provision The Assistant
 
@@ -98,6 +105,17 @@ or:
 ```text
 no, please cancel it.
 ```
+
+## Step 6: Show The After-Call JSON
+
+After the call, open this endpoint for a clean ending screen:
+
+```bash
+curl http://localhost:5000/demo/call-summary | python3 -m json.tool
+```
+
+It returns the caller utterances, detected reasons, save offer, outcome, and
+next step as JSON.
 
 ## Production Notes
 
