@@ -66,7 +66,6 @@ const MAX_ATTEMPTS = 3; // 1 initial send + 2 retries
 const EMAIL_BATCH_URL = "https://api.telnyx.com/v2/email_messages/batch";
 const EMAIL_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
 const FROM_NAME = "Email Batch Retry Agent";
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // --- Telnyx Email Batch API (207 Multi-Status) shapes ----------------------
 
@@ -155,7 +154,7 @@ export class BatchAgent extends Agent<Env, CampaignState> {
       if (!to || !subject || !text) {
         return Response.json({ error: "Each message requires to, subject, text" }, { status: 400 });
       }
-      if (!EMAIL_PATTERN.test(to)) {
+      if (!isValidEmailAddress(to)) {
         return Response.json({ error: `Invalid 'to' email address: ${to}` }, { status: 400 });
       }
       if (parsed.some((p) => p.to.toLowerCase() === to.toLowerCase())) {
@@ -615,6 +614,16 @@ function describeApiError(body: unknown, status: number): string {
 function maskPhone(value: string): string {
   const digits = value.replace(/\D/g, "");
   return digits.length >= 4 ? `***${digits.slice(-4)}` : "***";
+}
+
+function isValidEmailAddress(value: string): boolean {
+  if (value.length > 320 || value.includes(" ") || value.includes("\t") || value.includes("\n")) return false;
+  const at = value.indexOf("@");
+  if (at <= 0 || at !== value.lastIndexOf("@")) return false;
+  const local = value.slice(0, at);
+  const domain = value.slice(at + 1);
+  if (!local || !domain || domain.startsWith(".") || domain.endsWith(".")) return false;
+  return domain.includes(".") && !domain.split(".").some((part) => part.length === 0);
 }
 
 // --- Worker entry point -------------------------------------------------------
