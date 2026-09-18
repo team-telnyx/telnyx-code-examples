@@ -1,4 +1,4 @@
-import { TwoFactorAgent } from './src/index';
+import { TwoFactorAgent } from './src/index.ts';
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -17,11 +17,8 @@ assert(
 
 // Verify prototype methods exist (Agent SDK contract)
 const proto = TwoFactorAgent.prototype;
-assert(typeof proto.onRequest === 'function', 'TwoFactorAgent must implement onRequest()');
-assert(typeof proto.onScheduled === 'function', 'TwoFactorAgent must implement onScheduled()');
-
-// Verify internal handlers exist
-assert(typeof proto.handleSendCode === 'function', 'Missing handleSendCode method');
-assert(typeof proto.handleVerifyCode === 'function', 'Missing handleVerifyCode method');
+assert(typeof proto.sendCode === 'function', 'Missing sendCode method');
+assert(typeof proto.verifyCode === 'function', 'Missing verifyCode method');
+assert(typeof proto.expireCode === 'function', 'Missing expireCode (scheduled handler) method');
 
 console.log('✅ All smoke test assertions passed. Module loads correctly.');

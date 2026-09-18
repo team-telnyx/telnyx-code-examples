@@ -1,0 +1,21 @@
+{
+  "name": "auto-failover-voice-routing",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Auto-failover voice routing with a circuit breaker on Telnyx Edge Compute Agent SDK — routes outbound calls over a primary SIP connection, counts failures from Call Control webhooks, trips to a backup connection at threshold, and half-opens after a cooldown.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "npm run build && node scripts/start.mjs",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "*",
+    "telnyx": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

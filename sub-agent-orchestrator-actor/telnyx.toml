@@ -1,0 +1,43 @@
+name = "sub-agent-orchestrator-actor"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[edge_compute]
+func_id = "fdaba2c6-493a-410c-8554-50505c41d331"
+func_name = "sub-agent-orchestrator-actor"
+
+[[actors]]
+binding = "ORCHESTRATOR"
+type    = "OrchestratorAgent"
+
+[[actors]]
+binding = "TRANSCRIBER"
+type    = "TranscriberAgent"
+
+[[actors]]
+binding = "PARENT"
+type    = "OrchestratorAgent"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "OPERATOR_NUMBER"
+name    = "OPERATOR_NUMBER"
+
+[[secrets]]
+binding = "TELNYX_SENDER"
+name    = "TELNYX_SENDER"
+
+[storage.kv.JOB_KV]
+id = "7218d5ef-6392-4125-91a6-20388eb5b375"
+
+[env_vars]
+MOCK_AUDIO_URLS = "https://upload.wikimedia.org/wikipedia/commons/b/bb/Neil_Armstrong_small_step.wav,https://upload.wikimedia.org/wikipedia/commons/6/6d/Address_to_the_Nation_Excerpt.ogg,https://upload.wikimedia.org/wikipedia/commons/4/40/Portion_of_a_speech_by_Harding.ogg,https://upload.wikimedia.org/wikipedia/commons/f/f7/Speech_Prosody_audio_example.wav,https://upload.wikimedia.org/wikipedia/commons/a/a5/Booker_T._Washington_reading_an_excerpt_from_his_1895_Atlanta_Compromise_speech.mp3"
+TRANSCRIPTION_MODEL = "distil-whisper/distil-large-v2"
+STUCK_TIMEOUT_SECONDS = "300"
+MAX_CHILD_ATTEMPTS = "3"
+DEMO_DELAY_MS = "2500"
+DEMO_HANG_FILES = ""
+DEMO_HANG_MS = "8000"

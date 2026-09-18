@@ -155,6 +155,7 @@ def main() -> None:
         "greeting": "hi, you have reached the ai pci protected payment collection line. i can explain your account status, answer basic billing questions, help set up a payment plan, and start secure keypad payment collection when you are ready. to protect your account, what is your full name?",
         "description": "ai pci protected payment collection assistant that explains account status, supports payment plans, and starts telnyx pay over voice for secure keypad card entry.",
         "enabled_features": ["telephony"],
+        "telephony_settings": {"disable_dtmf": True},
         "tool_ids": [pay_tool_id],
     }
     assistant_id = find_assistant(api_key, assistant_name)

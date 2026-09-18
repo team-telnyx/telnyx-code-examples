@@ -1,0 +1,44 @@
+# Scaffold with: telnyx-edge new-func --actor --name=rag-corpus-shared-across-agents
+# Then copy the bindings below into the generated telnyx.toml so func_id is assigned.
+
+name = "rag-corpus-shared-across-agents"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+# The shared knowledge base. ONE corpus actor per corpus id — every persona
+# agent addresses the same actor, so every personality answers from the same
+# embedded document store.
+[[actors]]
+binding = "CORPUS"
+type = "CorpusAgent"
+
+# One actor per (corpus, persona) pair. Each persona keeps its own durable
+# conversation history but reads the same shared corpus.
+[[actors]]
+binding = "PERSONAS"
+type = "PersonaAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+# Cloud Storage bucket used as the document source for `ingestBucket`.
+# Documents live under keys like knowledge/<doc>.txt.
+[storage.cloudstorage.KNOWLEDGE]
+bucket_name = "replace-with-your-bucket"
+region = "us-east-1"
+
+[edge_compute]
+func_id = "replace-with-your-function-id"
+func_name = "rag-corpus-shared-across-agents"
+
+[env_vars]
+# Chat model used by every persona agent.
+AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
+# Embedding model used by the corpus agent (see the Telnyx model catalog).
+EMBEDDING_MODEL = "thenlper/gte-large"
+# Bucket key prefix scanned by POST /api/corpus/<id>/ingest-bucket.
+KNOWLEDGE_PREFIX = "knowledge/"
+# Retrieval + chunking knobs.
+TOP_K = "4"
+CHUNK_SIZE = "800"
+CHUNK_OVERLAP = "150"

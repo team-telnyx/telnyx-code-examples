@@ -1,0 +1,21 @@
+name = "edge-cron-scheduler"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "CRON_AGENT"
+type = "CronAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[env_vars]
+DEMO_MODE = "true"
+TELNYX_PHONE_NUMBER = "+18005550100"
+NOTIFICATION_PHONE_NUMBER = "+18005550101"
+TELNYX_CONNECTION_ID = "your_connection_id"
+WEBHOOK_HOSTS = "example.com"
+
+[[secrets]]
+binding = "SCHEDULER_TOKEN"
+name = "SCHEDULER_TOKEN"

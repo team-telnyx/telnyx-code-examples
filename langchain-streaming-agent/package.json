@@ -1,0 +1,33 @@
+{
+  "name": "langchain-streaming-agent",
+  "version": "0.1.0",
+  "description": "LangChain tool-calling agent with real-time token streaming over WebSocket on Telnyx Edge Compute: a StreamingAgent Agent SDK class wraps a LangChain agent whose LLM is the zero-credential Telnyx Inference binding (stream: true), and every token, tool call, and tool result is pushed live to browser clients via the agent event stream.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "local:dev": "esbuild scripts/local-dev.ts --bundle --platform=node --format=esm --packages=external --target=es2022 --outfile=node_modules/.cache/local-dev.mjs --log-level=warning && node node_modules/.cache/local-dev.mjs",
+    "typecheck": "tsc --noEmit",
+    "types": "telnyx-edge types",
+    "ship": "telnyx-edge ship",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.3.0",
+    "@telnyx/edge-runtime": "^0.13.0",
+    "langchain": "^0.3.0",
+    "telnyx": "^7.17.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.18.0",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.0",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

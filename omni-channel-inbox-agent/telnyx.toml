@@ -1,0 +1,53 @@
+# If you are creating a fresh deployable function, scaffold first:
+# telnyx-edge new-func --actor --name=omni-channel-inbox-agent
+# Then copy the bindings below into the generated telnyx.toml so func_id is assigned.
+
+name = "omni-channel-inbox-agent"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "INBOX"
+type = "InboxAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "ADMIN_TOKEN"
+name = "ADMIN_TOKEN"
+
+[[secrets]]
+binding = "EMAIL_FROM"
+name = "EMAIL_FROM"
+
+[[secrets]]
+binding = "TELNYX_EMAIL_INBOX_ID"
+name = "TELNYX_EMAIL_INBOX_ID"
+
+[edge_compute]
+func_id = "replace-with-your-function-id"
+func_name = "omni-channel-inbox-agent"
+
+[env_vars]
+DEMO_MODE = "true"
+FROM_NUMBER = "+15551234567"
+FAX_NUMBER = "+15551234568"
+TEXML_APP_ID = "<Call Control / TeXML application id>"
+FAX_APP_ID = "<Fax application id>"
+VOICE_ASSISTANT_ID = "<AI assistant id>"
+AI_MODEL = "zai-org/GLM-5.2"
+TTS_VOICE = "Telnyx.Ultra.f786b574-daa5-4673-aa0c-cbe3e8534c02"
+DEMO_PATIENT_EMAIL = "patient@example.com"
+DEMO_PATIENT_PHONE = "+15551234567"
+DEMO_PATIENT_NAME = "Jane"
+PORTAL_URL = "https://portal.example.com"
+PUBLIC_BASE_URL = "<your-deployed-function-url>"

@@ -1,0 +1,25 @@
+{
+  "name": "venue-sales-concierge",
+  "version": "2.0.0",
+  "description": "AI-powered venue sales concierge on Telnyx Edge Compute — a Telnyx-branded microsite, an SMS/voice concierge on per-planner Stateful Actors, live SQLDB availability, lead qualification, in-browser voice AI, email brochures, and scheduled one-week follow-up calls.",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
