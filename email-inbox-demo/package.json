@@ -1,0 +1,31 @@
+{
+  "name": "email-inbox-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A focused inbound-email demo for the Telnyx Email API. Create inboxes on verified domains, receive messages through email.received webhooks, list and read them, and watch the UI update live. Includes a DEMO_MODE that simulates realistic inbound so the UI feels alive without a real inbox or ngrok.",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "npm run build && node --env-file-if-exists=.env dist/src/server.js",
+    "start": "npm run dev",
+    "test": "npm run build && node --test dist/tests/*.test.js"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "0.15.2",
+    "better-sqlite3": "11.7.0",
+    "dotenv": "16.4.7",
+    "express": "4.21.2",
+    "telnyx": "7.20.0",
+    "tweetnacl": "1.0.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.12",
+    "@types/express": "4.17.21",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

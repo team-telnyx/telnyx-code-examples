@@ -3,12 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-03T01:56:41Z",
-  "example_count": 523,
-  "generated_at": "2026-08-31T22:08:00Z",
-  "example_count": 522,
-  "generated_at": "2026-09-02T20:37:33Z",
-  "example_count": 539,
+  "generated_at": "2026-09-17T23:01:40Z",
+  "example_count": 554,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1046,6 +1042,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/changelog-generator-python"
     },
     {
+      "folder": "email-batch-retry-agent",
+      "title": "Telnyx Email Batch Sender with Partial Failure Retry",
+      "description": "A durable, stateful agent that sends email batches via the Telnyx Email API, tracks per-message state, and self-wakes to retry failures with exponential backoff.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/email-batch-retry-agent"
+    },
+    {
       "folder": "error-explainer-python",
       "title": "AI Error Explainer",
       "description": "AI Error Explainer — paste a stack trace, get a root-cause hypothesis, confidence, severity, and a suggested fix via Telnyx AI Inference.",
@@ -1566,6 +1571,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/missions-ai-task-runner-python"
+    },
+    {
+      "folder": "multi-agent-debate",
+      "title": "Multi-Agent Debate with Live WebSocket Streaming",
+      "description": "Two AI agents debate a topic with turn-based arguments, live WebSocket broadcasting, and audience voting tallied in SQL.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multi-agent-debate"
     },
     {
       "folder": "multi-channel-ai-helpdesk-with-ticketing-python",
@@ -4700,6 +4714,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/agent-fleet-shared-workspace"
     },
     {
+      "folder": "auto-failover-voice-routing",
+      "title": "Auto-Failover Voice Routing with Circuit Breaker",
+      "description": "Telecom-native circuit breaker pattern using Telnyx Call Control, KV state, and SMS alerts for automatic SIP failover.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/auto-failover-voice-routing"
+    },
+    {
       "folder": "voice-ivr-with-agent-backend",
       "title": "Voice IVR with Agent Backend",
       "description": "A natural language IVR system where the Telnyx Agent handles backend logic and an LLM powers dynamic menu options.",
@@ -4718,6 +4741,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/shipment-agent"
     },
     {
+      "folder": "call-quality-monitor",
+      "title": "Call Quality Monitor",
+      "description": "Monitor call quality metrics (MOS, jitter, latency) via Telnyx webhooks, store historical data in SQLite, and view live alerts on an SSE dashboard.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/call-quality-monitor"
+    },
+    {
       "folder": "network-incident-agent",
       "title": "Network Incident Agent on Telnyx Edge",
       "description": "A durable incident actor that assesses severity, proactively sends SMS, answers calls with incident context, writes an RCA to CloudFS, and checks for recurrence.",
@@ -4727,20 +4759,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/network-incident-agent"
     },
     {
-      "folder": "voicemail-to-sms-agent",
-      "title": "Voicemail-to-SMS Agent",
-      "description": "An Edge-based agent that transcribes, summarizes, and texts voicemail summaries to the mailbox owner.",
+      "folder": "agent-message-replay",
+      "title": "Replay Agent Conversations Live — WebSocket Streaming Replays on Telnyx Edge",
+      "description": "Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step.",
       "product": "ai",
       "language": "typescript",
       "framework": "edge",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voicemail-to-sms-agent"
-      "folder": "sms-two-factor-agent",
-      "title": "SMS Two-Factor Authentication Agent",
-      "description": "Agent-managed SMS two-factor authentication with code generation, KV storage, and scheduled expiry.",
-      "product": "ai",
-      "language": "typescript",
-      "framework": "edge",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-agent"
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/agent-message-replay"
     },
     {
       "folder": "webhook-aggregator-fanout",
@@ -4759,6 +4784,15 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omni-channel-lab-inbox-agent"
+    },
+    {
+      "folder": "langchain-streaming-agent",
+      "title": "LangChain Streaming Agent",
+      "description": "A LangChain tool-calling agent on Telnyx Edge Compute that streams every token, tool call, and result over WebSocket — powered by the zero-credential Telnyx Inference binding.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/langchain-streaming-agent"
     },
     {
       "folder": "ai-call-campaign-orchestrator",
@@ -4795,6 +4829,15 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/collaborative-doc-ai-copilot"
+    },
+    {
+      "folder": "rag-corpus-shared-across-agents",
+      "title": "RAG Corpus Shared Across Agents",
+      "description": "Multiple AI agent personalities answering over ONE shared RAG corpus on Telnyx Edge Compute — a CorpusAgent embeds documents into per-actor SQL, and PersonaAgent actors retrieve, cite, and answer with their own voice through the zero-credential Telnyx Inference binding.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/rag-corpus-shared-across-agents"
     },
     {
       "folder": "edge-cache-invalidation-agent",
@@ -4876,6 +4919,78 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-event-microsite"
+    },
+    {
+      "folder": "edge-cron-scheduler",
+      "title": "Edge Cron Scheduler with Telnyx SMS Notifications",
+      "description": "A durable UTC cron scheduler with actor KV, SQL execution history, and Telnyx SMS failure alerts.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-cron-scheduler"
+    },
+    {
+      "folder": "conference-agent-mediator",
+      "title": "Conference Agent Mediator",
+      "description": "An AI meeting facilitator on Telnyx Edge that joins conference calls, transcribes participants in real time, mediates turn-taking, and sends post-call summaries via SMS.",
+      "product": "voice",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/conference-agent-mediator"
+    },
+    {
+      "folder": "sms-two-factor-agent",
+      "title": "SMS Two-Factor Authentication Agent",
+      "description": "Agent-managed SMS two-factor authentication with code generation, KV storage, and scheduled expiry.",
+      "product": "sms",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sms-two-factor-agent"
+    },
+    {
+      "folder": "patient-agent",
+      "title": "Patient Agent",
+      "description": "",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/patient-agent"
+    },
+    {
+      "folder": "event-sponsorship-agent",
+      "title": "Event Sponsorship Agent — Telnyx Edge",
+      "description": "A multilingual, multi-channel agent for event sponsorship activations with giveaway entry, product Q&A, demo booking, lead capture, and real-time hot-lead routing.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/event-sponsorship-agent"
+    },
+    {
+      "folder": "venue-sales-concierge",
+      "title": "Venue Sales Concierge — AI Booking Agent for Hotels, Resorts & Event Venues",
+      "description": "Telnyx-branded venue microsite + AI sales concierge on Edge Compute — per-planner Stateful Actors carry conversations across SMS and voice, live SQLDB availability, lead qualification, in-browser WebRTC voice, email brochures, and automated one-week follow-up calls.",
+      "product": "ai",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/venue-sales-concierge"
+    },
+    {
+      "folder": "omni-channel-inbox-agent",
+      "title": "Omni-Channel Inbox Agent",
+      "description": "Build a Telnyx Edge Compute agent that runs a lab-results intake workflow across fax, voice, email, and SMS — one durable StatefulActor per patient with a human-in-the-loop inbox and live engagement analytics.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omni-channel-inbox-agent"
+    },
+    {
+      "folder": "sub-agent-orchestrator-actor",
+      "title": "Sub-Agent Orchestrator Actor — Durable Multi-Agent Workflows on Telnyx Edge",
+      "description": "A persistent parent actor that spawns child actors for parallel transcription jobs, tracks their lifecycle, resumes interrupted runs without redoing finished work, persists a per-file scorecard to KV, and self-cleans on completion — built on @telnyx/edge-runtime 0.15.2.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/sub-agent-orchestrator-actor"
     }
   ]
 }

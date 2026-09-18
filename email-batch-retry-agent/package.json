@@ -1,0 +1,20 @@
+{
+  "name": "email-batch-retry-agent",
+  "version": "1.0.0",
+  "description": "Durable email campaign actor with partial-failure retry and exponential backoff",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "demo:ui": "node scripts/demo-dashboard.mjs",
+    "types": "telnyx-edge types",
+    "smoke": "npx tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

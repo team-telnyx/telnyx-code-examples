@@ -1,0 +1,41 @@
+name = "conference-agent-mediator"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "CONFERENCE"
+type = "ConferenceAgent"
+
+[[actors]]
+binding = "REGISTRY"
+type = "ConferenceRegistry"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "SMS_FROM"
+name = "SMS_FROM"
+
+[[secrets]]
+binding = "SMS_TO"
+name = "SMS_TO"
+
+# Optional live-mode flip without a redeploy:
+#   telnyx-edge secrets add DEMO_MODE false   → live conference speak + SMS
+#   telnyx-edge secrets delete DEMO_MODE      → back to demo mode
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
+
+[env_vars]
+AI_MODEL = "zai-org/GLM-5.2"
+DEMO_MODE = "true"
+
+[edge_compute]
+func_id = "0af4c24e-2879-4a2a-95ee-f9b0d4a73de7"
+func_name = "conference-agent-mediator"

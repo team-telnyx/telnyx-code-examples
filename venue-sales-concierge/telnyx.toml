@@ -1,0 +1,72 @@
+# Scaffold: telnyx-edge new-func --actor --name=venue-sales-concierge
+# Then copy the bindings below into the generated telnyx.toml so func_id is assigned.
+
+name = "venue-sales-concierge"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# ── Function identity (created via `telnyx-edge new-func -l ts -n venue-sales-concierge`) ──
+[edge_compute]
+func_id = "284d5457-8c80-4a72-aa90-dcb2beb3f974"
+func_name = "venue-sales-concierge"
+
+# ── Stateful Actors: one durable ConciergeAgent per planner phone number ───
+[[actors]]
+binding = "CONCIERGE"
+type = "ConciergeAgent"
+
+# ── Telnyx API binding: pre-authenticated SDK client (env.TELNYX) ──────────
+# Zero-credential AI Inference + Messaging + Call Control inside the function:
+#   env.TELNYX.ai.openai.chat.createCompletion(...)
+# env.TELNYX.messages.send(...) / env.TELNYX.calls.dial(...)
+# Declaring this block also injects TELNYX_API_KEY as an environment variable,
+# which the REST helpers (email, assistants) use.
+[telnyx]
+binding = "TELNYX"
+
+# ── Telnyx KV: venue content + assistant id + webhook dedupe ───────────────
+# Created via: telnyx-edge storage kv create --name venue-sales-concierge-data
+# The microsite HTML, the concierge prompts, the voice assistant's webhook
+# tool, and the webhook dedupe locks ALL read this namespace.
+[storage.kv.VENUE_KV]
+id = "a0ce461a-31b0-48c1-82f8-b49e960b807f"
+
+# ── Telnyx SQLDB: live availability, inquiries, qualified leads, conversions
+# Created via the Telnyx SQLDB product (Mission Control → SQL Database), then
+# paste the instance id here.
+[storage.sqldb.AVAILABILITY_DB]
+id = "9584949c-be55-4fb8-8b3a-337ef7d1d5da"
+
+# ── Secrets (telnyx-edge secrets add ...) ──────────────────────────────────
+#   TELNYX_PUBLIC_KEY — org public key for Ed25519 webhook verification:
+#     curl -H "Authorization: Bearer $TELNYX_API_KEY" \
+#       https://api.telnyx.com/v2/public_key
+#     telnyx-edge secrets add TELNYX_PUBLIC_KEY "$PUBLIC_KEY"
+#   TELNYX_CONNECTION_ID — Call Control connection for the follow-up calls:
+#     Mission Control → Voice → Programmable Voice → create a connection,
+#     point its webhook URL at https://<your-function-url>/webhooks/voice
+#     telnyx-edge secrets add TELNYX_CONNECTION_ID "$CONNECTION_ID"
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "TELNYX_CONNECTION_ID"
+name = "TELNYX_CONNECTION_ID"
+
+# ── Env vars (non-secret config) ───────────────────────────────────────────
+[env_vars]
+# "true" (default) simulates outbound SMS/emails/calls — safe to deploy.
+# Flip to "false" to send real SMS/emails/placed calls from the venue number.
+DEMO_MODE = "true"
+# This function's public URL — actors report inquiries/bookings back here.
+PUBLIC_ORIGIN = "https://venue-sales-concierge-284d5457-8.telnyxcompute.com"
+# The venue's Telnyx number (send SMS from it + attach to the Call Control
+# connection for the follow-up calls).
+TELNYX_SMS_FROM = "+1555XXXXXXX"
+EMAIL_FROM = "onboarding@mail.telnyx.com"
+# Venue sales inbox for qualified-lead notifications.
+EMAIL_TO = "sales@venue.example"
+# Telnyx-hosted inference models (no BYOK needed).
+AI_MODEL = "moonshotai/Kimi-K2.6"
+ASSISTANT_MODEL = "moonshotai/Kimi-K2.6"

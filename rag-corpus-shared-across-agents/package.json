@@ -1,0 +1,30 @@
+{
+  "name": "rag-corpus-shared-across-agents",
+  "version": "0.1.0",
+  "description": "Multiple AI agent personalities answering over ONE shared RAG corpus on Telnyx Edge Compute: a CorpusAgent chunks documents (Cloud Storage bucket or direct upload), embeds them via the zero-credential Telnyx Inference binding, stores vectors in per-actor SQL, and serves similarity search to any number of PersonaAgent actors.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "local:dev": "vite-node scripts/local-dev.ts",
+    "typecheck": "tsc --noEmit",
+    "types": "telnyx-edge types",
+    "ship": "telnyx-edge ship",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.13.0",
+    "telnyx": "^7.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.4",
+    "vite-node": "^2.0.0",
+    "vitest": "^2.0.0",
+    "ws": "^8.18.0",
+    "@types/ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
