@@ -3,7 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-23T20:24:29Z",
+  "generated_at": "2026-09-23T23:04:52Z",
   "example_count": 556,
   "examples": [
     {
@@ -4995,7 +4995,7 @@
     {
       "folder": "omni-channel-inbox-agent",
       "title": "Omni-Channel Inbox Agent",
-      "description": "Build a Telnyx Edge Compute agent that runs a lab-results intake workflow across fax, voice, email, and SMS — one durable StatefulActor per patient with a human-in-the-loop inbox and live engagement analytics.",
+      "description": "Build a Telnyx Edge Compute agent that runs a lab-results intake workflow across fax, voice, email, and SMS — with verified channel identity resolution and shared customer context.",
       "product": "voice",
       "language": "nodejs",
       "framework": "edge",
