@@ -42,6 +42,7 @@ export type Sender =
 /** Row in the `conversations` SQLite table (per-actor). */
 export interface ConversationRow extends Record<string, SqlValue> {
   id: string;
+  case_id: string;
   customer_id: string;
   customer_label: string | null;
   channel: Channel;

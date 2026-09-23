@@ -61,8 +61,18 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
     if (this.schemaInitialized) return;
     const sql = this.ctx.storage.sql;
     sql.exec(`
+      CREATE TABLE IF NOT EXISTS cases (
+        id TEXT PRIMARY KEY,
+        customer_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'open',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+    sql.exec(`
       CREATE TABLE IF NOT EXISTS conversations (
         id            TEXT PRIMARY KEY,
+        case_id       TEXT,
         customer_id   TEXT NOT NULL,
         customer_label TEXT,
         channel       TEXT NOT NULL,
@@ -81,6 +91,30 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
     sql.exec(
       `CREATE INDEX IF NOT EXISTS conv_by_customer ON conversations(customer_id);`,
     );
+    try {
+      sql.exec(`ALTER TABLE conversations ADD COLUMN case_id TEXT;`);
+    } catch {
+      // column already exists on actors created before the case migration
+    }
+    for (const legacy of this.fetchAll<{ id: string; customer_id: string }>(
+      `SELECT id, customer_id FROM conversations WHERE case_id IS NULL;`,
+    )) {
+      const legacyCaseId = this.newId("case");
+      const now = Date.now();
+      sql.exec(
+        `INSERT INTO cases (id, customer_id, status, created_at, updated_at)
+         VALUES (?, ?, 'open', ?, ?);`,
+        legacyCaseId,
+        legacy.customer_id,
+        now,
+        now,
+      );
+      sql.exec(
+        `UPDATE conversations SET case_id = ? WHERE id = ?;`,
+        legacyCaseId,
+        legacy.id,
+      );
+    }
     sql.exec(
       `CREATE INDEX IF NOT EXISTS conv_by_last_message ON conversations(last_message_at DESC);`,
     );
@@ -176,6 +210,22 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
         updated_at    INTEGER NOT NULL
       );
     `);
+    sql.exec(`
+      CREATE TABLE IF NOT EXISTS graph_runs (
+        id TEXT PRIMARY KEY,
+        case_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        state_json TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+    sql.exec(`
+      CREATE TABLE IF NOT EXISTS webhook_events (
+        event_id TEXT PRIMARY KEY,
+        claimed_at INTEGER NOT NULL
+      );
+    `);
     this.schemaInitialized = true;
   }
 
@@ -194,8 +244,8 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
 
   /**
    * Find or create a conversation for an inbound message on a channel.
-   * Conversations stay channel-labelled for delivery and UI filtering, but all
-   * conversations in this actor share the same durable context and customer record.
+   * One open conversation/case is reused across all channels in this actor.
+   * Individual messages retain their channel so the correct adapter can send.
    */
   async findOrCreateConversation(args: {
     channel: Channel;
@@ -208,26 +258,25 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
     const state = await this.getState();
     const customerId = state.customer_id || "unknown";
 
-    // Reuse the actor's currently open conversation if it matches the channel.
+    // Reuse one open case regardless of channel. Message.channel controls the
+    // outbound adapter; the conversation is the unified operator timeline.
     if (state.open_conversation_id) {
       const existing = this.fetchOne<ConversationRow>(
         `SELECT * FROM conversations WHERE id = ?;`,
         state.open_conversation_id,
       );
-      if (existing && existing.channel === args.channel && existing.status === "open") {
+      if (existing && existing.status !== "closed") {
         return existing;
       }
     }
 
-    // Otherwise look for an open conversation on the same channel.
-    const byChannel = this.fetchOne<ConversationRow>(
+    const byCustomer = this.fetchOne<ConversationRow>(
       `SELECT * FROM conversations
-       WHERE customer_id = ? AND channel = ? AND status = 'open'
+       WHERE customer_id = ? AND status <> 'closed'
        ORDER BY last_message_at DESC NULLS LAST LIMIT 1;`,
       customerId,
-      args.channel,
     );
-    if (byChannel) return byChannel;
+    if (byCustomer) return byCustomer;
 
     return this.createConversation(args);
   }
@@ -244,12 +293,22 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
     const customerId = state.customer_id || "unknown";
     const now = this.sqlNow();
     const id = this.newId("conv");
+    const caseId = this.newId("case");
+    sql.exec(
+      `INSERT INTO cases (id, customer_id, status, created_at, updated_at)
+       VALUES (?, ?, 'open', ?, ?);`,
+      caseId,
+      customerId,
+      now,
+      now,
+    );
     sql.exec(
       `INSERT INTO conversations
-         (id, customer_id, customer_label, channel, status, agent_id, assignee,
+         (id, case_id, customer_id, customer_label, channel, status, agent_id, assignee,
           last_channel, last_message_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'open', ?, NULL, ?, ?, ?, ?);`,
+       VALUES (?, ?, ?, ?, ?, 'open', ?, NULL, ?, ?, ?, ?);`,
       id,
+      caseId,
       customerId,
       args.customerLabel ?? null,
       args.channel,
@@ -283,6 +342,12 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
       now,
       conversationId,
     );
+    this.ctx.storage.sql.exec(
+      `UPDATE cases SET updated_at = ?
+       WHERE id = (SELECT case_id FROM conversations WHERE id = ?);`,
+      now,
+      conversationId,
+    );
   }
 
   async setConversationStatus(
@@ -297,6 +362,13 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
       conversationId,
     );
     const state = await this.getState();
+    this.ctx.storage.sql.exec(
+      `UPDATE cases SET status = ?, updated_at = ?
+       WHERE id = (SELECT case_id FROM conversations WHERE id = ?);`,
+      status,
+      this.sqlNow(),
+      conversationId,
+    );
     if (state.open_conversation_id === conversationId && status === "closed") {
       await this.setState({ ...state, open_conversation_id: null });
     }
@@ -415,6 +487,11 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
         draft: async (state) => this.createDraftFromContext(state.input, state.context),
         requiresApproval: (state) => state.channel === "email",
       },
+    );
+    await this.persistGraphState(
+      conversation.case_id || conversation.id,
+      graph as unknown as Record<string, unknown>,
+      graph.status,
     );
     let reply = graph.draft ?? "";
     if (!reply) reply = "Could you say a bit more about that?";
@@ -1108,6 +1185,49 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
       channel,
       Date.now(),
       Date.now(),
+    );
+  }
+
+  /** Set the canonical customer id on this actor before creating a case. */
+  async bindCustomer(customerId: string): Promise<void> {
+    await this.ensureSchema();
+    const state = await this.getState();
+    if (!state.customer_id || state.customer_id === "unknown") {
+      await this.setState({ ...state, customer_id: customerId });
+    }
+  }
+
+  /** Claim a webhook once so provider retries cannot duplicate interactions. */
+  async claimWebhook(eventId: string): Promise<boolean> {
+    await this.ensureSchema();
+    try {
+      this.ctx.storage.sql.exec(
+        `INSERT INTO webhook_events (event_id, claimed_at) VALUES (?, ?);`,
+        eventId,
+        Date.now(),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async persistGraphState(
+    caseId: string,
+    state: Record<string, unknown>,
+    status: string,
+  ): Promise<void> {
+    await this.ensureSchema();
+    const now = Date.now();
+    this.ctx.storage.sql.exec(
+      `INSERT INTO graph_runs (id, case_id, status, state_json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?);`,
+      this.newId("graph"),
+      caseId,
+      status,
+      JSON.stringify(state),
+      now,
+      now,
     );
   }
 

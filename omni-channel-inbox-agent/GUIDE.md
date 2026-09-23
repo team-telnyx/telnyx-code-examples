@@ -1,6 +1,6 @@
 # Guide — Run the Omni-Channel Lab-Results Journey
 
-This guide walks the full patient journey end-to-end on Telnyx Edge Compute. A canonical customer actor stores shared context across voice, SMS, email, and fax metadata. Channel-labelled inbox threads remain separate for routing, while the graph sees the same customer history.
+This guide walks the full patient journey end-to-end on Telnyx Edge Compute. A canonical customer actor stores one unified case timeline across voice, SMS, email, and fax metadata. Messages retain their source channel only for correct delivery.
 
 ## Prerequisites
 

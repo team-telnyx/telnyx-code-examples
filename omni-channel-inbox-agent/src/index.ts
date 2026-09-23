@@ -42,6 +42,9 @@ type InboxAgentStub = ActorStub &
     | "listConversations"
     | "listMessages"
     | "registerCustomer"
+    | "bindCustomer"
+    | "claimWebhook"
+    | "persistGraphState"
     | "registerIdentity"
     | "resolveIdentity"
     | "listRegisteredCustomers"
@@ -169,6 +172,12 @@ async function resolveCustomerActor(
 ): Promise<string> {
   const registryStub = env.INBOX.idFromName("operator-default");
   return (await registryStub.resolveIdentity(channel, address)) ?? fallback;
+}
+
+async function claimWebhookOnce(env: Env, eventId: string | undefined): Promise<boolean> {
+  if (!eventId) return true;
+  const registryStub = env.INBOX.idFromName("operator-default");
+  return registryStub.claimWebhook(eventId);
 }
 
 function escapeHtmlPort(value: string): string {
@@ -440,6 +449,27 @@ export default {
       return Response.json({ conversations: rows });
     }
 
+    if (url.pathname === "/api/identity/link" && req.method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as {
+        channel?: string;
+        address?: string;
+        customer_id?: string;
+      };
+      if (!body.channel || !body.address || !body.customer_id) {
+        return Response.json(
+          { error: "channel, address, and customer_id are required" },
+          { status: 400 },
+        );
+      }
+      const customerId = actorNameForCustomer(body.customer_id);
+      const registryStub = env.INBOX.idFromName("operator-default");
+      await registryStub.registerIdentity(body.channel, body.address, customerId);
+      const customerStub = env.INBOX.idFromName(customerId);
+      await customerStub.bindCustomer(customerId);
+      await registryStub.registerCustomer(customerId, body.channel);
+      return Response.json({ linked: true, customer_id: customerId });
+    }
+
     if (url.pathname === "/api/messages" && req.method === "GET") {
       const conversationId = url.searchParams.get("conversation_id");
       if (!conversationId) {
@@ -448,12 +478,8 @@ export default {
           { status: 400 },
         );
       }
-      // We don't yet have a customer-id-from-conversation lookup; in v1 the UI
-      // opens a specific customer inbox via /api/conversations POST, then asks
-      // for messages by conversation id on that same actor. For the cross-customer
-      // admin view in v1, we accept the operator-default actor and look up the
-      // conversation's customer_id from the row first. For now, the UI passes
-      // customer_id as a query param to disambiguate.
+      // The unified case timeline is actor-local. The UI passes customer_id so
+      // the handler can address the canonical customer actor directly.
       const customerId = url.searchParams.get("customer_id");
       const actorName = customerId
         ? actorNameForCustomer(customerId)
@@ -573,14 +599,17 @@ export default {
       if (!conv) {
         return Response.json({ error: "conversation not found" }, { status: 404 });
       }
-      const channel = conv.conversation.channel;
+      const conversationMessages = await stub.listMessages(body.conversation_id);
+      const lastInbound = [...conversationMessages]
+        .reverse()
+        .find((m) => m.message.direction === "inbound");
+      const channel = lastInbound?.message.channel ?? conv.conversation.last_channel;
       let parentMessageIdHdr: string | null = null;
       if (channel === "email") {
-        const msgs: MessageView[] = await stub.listMessages(body.conversation_id);
-        const lastInbound = [...msgs]
+        const lastInboundEmail = [...conversationMessages]
           .reverse()
           .find((m) => m.message.direction === "inbound" && m.message.channel === "email");
-        parentMessageIdHdr = lastInbound?.message.message_id_hdr ?? null;
+        parentMessageIdHdr = lastInboundEmail?.message.message_id_hdr ?? null;
       }
       try {
         await sendReplyOnChannel(
@@ -848,6 +877,7 @@ export default {
 
       const actorName = customerIdForChannel("sms", patientPhone);
       const stub = env.INBOX.idFromName(actorName);
+      await stub.bindCustomer(actorName);
       const appt = await stub.bookAppointment({
         patientPhone,
         patientName,
@@ -1351,8 +1381,14 @@ async function handleVoiceWebhook(req: Request, env: Env): Promise<Response> {
   const event = (body as { data?: Record<string, unknown> })?.data;
   const eventType = event?.event_type as string | undefined;
   const payload = (event?.payload ?? {}) as Record<string, unknown>;
+  const callControlId = payload.call_control_id as string;
   if (!eventType) {
     return Response.json({ error: "no event_type in payload" }, { status: 400 });
+  }
+  const voiceEventId = (event?.id as string | undefined) ??
+    `${callControlId}:${eventType}:${String(event?.occurred_at ?? "")}`;
+  if (!(await claimWebhookOnce(env, voiceEventId))) {
+    return Response.json({ action: "duplicate", event_id: voiceEventId });
   }
   let apiKey: string;
   try {
@@ -1364,7 +1400,6 @@ async function handleVoiceWebhook(req: Request, env: Env): Promise<Response> {
     );
   }
 
-  const callControlId = payload.call_control_id as string;
   const callerNumber = (payload.from as string) ?? "unknown";
   const actorName = actorNameForCustomer(callerNumber);
   const stub = env.INBOX.idFromName(actorName);
@@ -1531,8 +1566,7 @@ async function handleVoiceWebhook(req: Request, env: Env): Promise<Response> {
 
   // ── call.hangup ─────────────────────────────────────────────────────
   if (eventType === "call.hangup") {
-    // Look up the conversation by the actor (one per customer). In v1 with the
-    // bindVoiceCall pattern, the actor has the open_conversation_id in state.
+    // Look up the unified case conversation by the canonical customer actor.
     const state = await stub.getDebugState();
     if (state.open_conversation_id) {
       await stub.setConversationStatus(state.open_conversation_id, "closed");
@@ -1558,6 +1592,9 @@ async function handleEmailWebhook(req: Request, env: Env): Promise<Response> {
   if (payload.data?.event_type !== "email.received") {
     return Response.json({ action: "ignored", event_type: payload.data?.event_type });
   }
+  if (!(await claimWebhookOnce(env, payload.data.id))) {
+    return Response.json({ action: "duplicate", event_id: payload.data.id });
+  }
 
   const m = payload.data.payload ?? {};
   const fromEmail = extractMailbox(m.from);
@@ -1582,6 +1619,7 @@ async function handleEmailWebhook(req: Request, env: Env): Promise<Response> {
   );
   const stub = env.INBOX.idFromName(emailActorName);
   try {
+    await stub.bindCustomer(emailActorName);
     await stub.receiveInbound({
       channel: "email",
       body: bodyText,
@@ -1740,6 +1778,9 @@ async function handleFaxWebhook(req: Request, env: Env): Promise<Response> {
   if (eventType !== "fax.ended") {
     return Response.json({ action: "ignored", event_type: eventType });
   }
+  if (!(await claimWebhookOnce(env, payload.data?.id ?? payload.data?.payload?.id))) {
+    return Response.json({ action: "duplicate", event_id: payload.data?.id });
+  }
   const p = (payload.data?.payload ?? {}) as FaxReceivedPayload & {
     to?: string;
     from?: string;
@@ -1776,6 +1817,7 @@ async function handleFaxWebhook(req: Request, env: Env): Promise<Response> {
     patientActor ??
     (await resolveCustomerActor(env, "fax", toNumber, actorNameForCustomer(toNumber)));
   const stub = env.INBOX.idFromName(actorName);
+  await stub.bindCustomer(actorName);
   const state = await stub.getDebugState();
   if (!state.customer_id) {
     await stub.bindVoiceCall({
@@ -1835,6 +1877,9 @@ async function handleMessagingWebhook(req: Request, env: Env): Promise<Response>
   if (eventType !== "message.received") {
     return Response.json({ action: "ignored", event_type: eventType });
   }
+  if (!(await claimWebhookOnce(env, event?.id as string | undefined))) {
+    return Response.json({ action: "duplicate", event_id: event?.id });
+  }
 
   const actorName = await resolveCustomerActor(
     env,
@@ -1843,6 +1888,7 @@ async function handleMessagingWebhook(req: Request, env: Env): Promise<Response>
     customerIdForChannel("sms", fromNumber),
   );
   const stub = env.INBOX.idFromName(actorName);
+  await stub.bindCustomer(actorName);
   let draft: MessageRow | null = null;
   try {
     ({ draft } = await stub.receiveInbound({

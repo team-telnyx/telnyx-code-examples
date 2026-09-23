@@ -126,7 +126,7 @@ Wire the webhooks in the portal (or via API): Call Control/TeXML app → `<PUBLI
 With `DEMO_MODE = "true"` explicitly set for local testing:
 
 - `POST /api/demo/simulate-fax` simulates the lab fax (no real fax needed) — the document appears in the inbox with a generated `LAB-YYYYMMDD-NNN` reference.
-- The admin inbox at `/` shows the channel-labelled conversations for the demo patient; the AI context is shared across all of them through the canonical actor.
+- The admin inbox at `/` shows one unified case timeline for the demo patient; every message retains its source channel for correct delivery.
 - **Accept** deletes the original fax from Telnyx storage (`DELETE /v2/faxes/{id}`) and drafts the results-ready email. Privacy by construction: the AI only ever sees document metadata, never lab content.
 - **Approve & send** delivers email from your configured sender, tracked with a self-hosted pixel. Low-risk SMS replies are auto-sent; email remains human-approved.
 - **Book appointment** texts the patient an SMS confirmation (date computed dynamically, no floor info) — text it back "what floor?" and the agent answers from the appointment record.
@@ -139,10 +139,11 @@ Run the whole journey: book → visit → fax → review → accept → approve 
 The sample separates three concepts:
 
 - `customer_id`: the long-lived canonical actor and cross-channel memory boundary.
-- `conversation_id`: a channel-labelled inbox thread used for delivery and operator filtering.
-- graph state: the active workflow state, including drafts and human approval.
+- `case_id`: the unified customer case and operator timeline.
+- `conversation_id`: the inbox record for that case; individual messages retain their channel for delivery.
+- graph state: the durable workflow checkpoints, including drafts and human approval.
 
-Every inbound message is persisted before the graph runs. The graph rebuilds context from actor-local SQL across voice, SMS, email, and fax metadata; it does not rely on a channel-local transcript. Phone and email aliases registered for the same customer resolve to the same actor. Fax routing requires an explicit mapping. An unknown identity is not guessed into an existing customer.
+Every inbound message is persisted before the graph runs. The graph rebuilds context from actor-local SQL across voice, SMS, email, and fax metadata; it does not rely on a channel-local transcript. All channels for a resolved customer attach to one open case and one operator timeline. Phone and email aliases registered for the same customer resolve to the same actor. Fax routing requires an explicit mapping. An unknown identity is not guessed into an existing customer.
 
 The implementation follows the LangGraph model of explicit state transitions and resumable approval, but does not bundle `@langchain/langgraph` into Edge Compute. If you move orchestration to a Node service, `src/omniGraph.ts` is the replacement boundary for a full LangGraph `StateGraph` with a persistent checkpointer and customer-scoped store.
 
@@ -163,6 +164,7 @@ All `/api/*` routes are demo endpoints (no auth in demo mode; add your own auth 
 | `POST` | `/webhooks/email` | `email.received` webhook (inbound replies) |
 | `POST` | `/webhooks/messaging` | `message.received` webhook (inbound SMS + rule-based auto-replies) |
 | `GET` | `/api/conversations` | List conversations (filter: `channel`, `status`) |
+| `POST` | `/api/identity/link` | Explicitly link a verified channel address to a canonical customer actor |
 | `GET` | `/api/messages?conversation_id=&customer_id=` | Thread messages |
 | `POST` | `/api/draft/edit` | Edit an AI draft before approval |
 | `POST` | `/api/draft/approve` | Approve and send on the draft's channel |
