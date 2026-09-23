@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telnyx Email Dashboard</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #16181d; --muted: #6b7280; --border: #e5e7eb;
+    --accent: #00c08b; --warn-bg: #fff7e6; --warn-border: #f5c26b; --err: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1115; --card: #181b21; --text: #e8eaed; --muted: #9aa0a6; --border: #2a2e36;
+      --warn-bg: #2b2412; --warn-border: #8a6d2b; --err: #ff7b6b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 16px 0; }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: default; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 16px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 16px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .kpi .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .val { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kpi .sub { color: var(--muted); font-size: 12px; }
+  .note { background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: 10px; padding: 12px 14px; margin-top: 16px; }
+  .note code { font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .scroll { overflow-x: auto; }
+  .err { color: var(--err); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Telnyx Email API Dashboard</h1>
+  <div class="muted" id="cfg">Loading configuration…</div>
+
+  <div class="row">
+    <button id="send">Send test email</button>
+    <span id="sendStatus" class="muted"></span>
+    <span style="flex:1"></span>
+    <span class="muted" id="polled">Polling every 10s</span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card">
+    <h2>Sent messages</h2>
+    <div class="scroll"><table><thead><tr><th>Created</th><th>Message ID</th><th>Latest status</th></tr></thead><tbody id="msgs"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h2>Event log</h2>
+    <div class="scroll"><table><thead><tr><th>Occurred</th><th>Event</th><th>Message ID</th></tr></thead><tbody id="events"></tbody></table></div>
+    <div id="errors" class="err"></div>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmt = (t) => t ? new Date(t).toLocaleString() : "—";
+const rate = (v) => v == null ? "—" : v + "%";
+
+const KPIS = [
+  ["Delivery rate", "delivery", "delivered", "sent", "of sent"],
+  ["Open rate", "open", "opened", "delivered", "of delivered"],
+  ["Click rate", "click", "clicked", "delivered", "of delivered"],
+  ["Bounce rate", "bounce", "bounced", "sent", "of sent"],
+  ["Unsubscribe rate", "unsubscribe", "unsubscribed", "delivered", "of delivered"],
+];
+
+async function loadConfig() {
+  const c = await fetch("/api/config").then((r) => r.json());
+  $("cfg").textContent = `Configured sender ${c.from} → configured recipient ${c.to}`;
+}
+
+async function poll() {
+  try {
+    const s = await fetch("/api/stats").then((r) => r.json());
+    if (s.error) throw new Error(s.error);
+    $("kpis").innerHTML = KPIS.map(([label, key, num, den, sub]) => `
+      <div class="kpi"><div class="label">${label}</div>
+      <div class="val">${rate(s.rates[key])}</div>
+      <div class="sub">${s.counts[num]} ${sub} (${s.counts[den]})</div></div>`).join("");
+    $("msgs").innerHTML = s.messages.length
+      ? s.messages.map((m) => `<tr><td>${fmt(m.created_at)}</td><td>${esc(m.id)}</td><td>${esc(m.status)}</td></tr>`).join("")
+      : `<tr><td colspan="3" class="muted">No messages yet — send a test email.</td></tr>`;
+    $("events").innerHTML = s.events.length
+      ? s.events.map((e) => `<tr><td>${fmt(e.occurred_at)}</td><td>${esc(e.type)}</td><td>${esc(e.email_id)}</td></tr>`).join("")
+      : `<tr><td colspan="3" class="muted">No events yet.</td></tr>`;
+    $("errors").textContent = s.errors.length ? "Polling errors: " + s.errors.join(" · ") : "";
+    $("polled").textContent = `Last polled ${new Date(s.polled_at).toLocaleTimeString()} · every 10s`;
+  } catch (e) {
+    $("errors").textContent = "Polling failed: " + e.message;
+  }
+}
+
+$("send").onclick = async () => {
+  $("send").disabled = true;
+  $("sendStatus").textContent = "Sending…";
+  try {
+    const r = await fetch("/api/send", { method: "POST" }).then((r) => r.json());
+    $("sendStatus").innerHTML = r.ok
+      ? `Queued <code>${esc(r.message.id)}</code>`
+      : `<span class="err">Send failed: ${esc(r.error)}</span>`;
+    poll();
+  } finally {
+    $("send").disabled = false;
+  }
+};
+
+loadConfig();
+poll();
+setInterval(poll, 10000);
+</script>
+</body>
+</html>

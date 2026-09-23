@@ -40,6 +40,10 @@ CATEGORY_META: dict[str, tuple[str, str]] = {
         "https://telnyx.com/products/sms-api",
         "Send and receive text messages with the [Telnyx SMS API]({url}) - build autoresponders, implement 2FA, and manage bulk messaging campaigns.",
     ),
+    "Email": (
+        "https://telnyx.com/products/email-api",
+        "Send, track, and automate email workflows with the [Telnyx Email API]({url}) - transactional messages, templates, tracking, and event-driven dashboards.",
+    ),
     "AI Assistants": (
         "https://telnyx.com/ai-assistants",
         "Create, manage, and chat with [Telnyx AI Assistants]({url}) - LLM-powered agents for voice and messaging automation.",

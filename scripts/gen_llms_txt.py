@@ -49,12 +49,13 @@ SUMMARY = (
 PRODUCT_CATEGORY = {
     "voice": "Voice AI",
     "sms": "SMS & MMS",
+    "email": "Email",
     "verify": "SMS & MMS",
     "ai": "AI Assistants",
     "sip": "SIP Trunking",
     "iot": "IoT & SIM Management",
 }
-CATEGORY_ORDER = ["Voice AI", "SMS & MMS", "AI Assistants", "SIP Trunking", "IoT & SIM Management"]
+CATEGORY_ORDER = ["Voice AI", "SMS & MMS", "Email", "AI Assistants", "SIP Trunking", "IoT & SIM Management"]
 
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---", re.DOTALL)
 

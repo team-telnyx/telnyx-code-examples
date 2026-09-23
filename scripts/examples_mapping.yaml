@@ -3289,6 +3289,12 @@ examples:
     framework: flask
     folder: ai-email-agent-python
 
+  - product: email
+    use_case: setup-email-api
+    language: nodejs
+    framework: node
+    folder: setup-email-api-nodejs
+
   - product: sms
     use_case: audio-transcribe-summarize-sms
     language: nodejs

@@ -343,6 +343,10 @@
 - [White-Label Appointment Platform](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/white-label-appointment-platform-python/README.md): Multi-tenant SaaS that gives any service business their own AI phone line with booking, reminders, and calendar sync. Each tenant has own number, greeting, and config.
 - [x402 USDC Account Funder](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/x402-usdc-account-funder-python/README.md): X402 USDC Account Funder - fund your Telnyx account with USDC cryptocurrency on the Base blockchain.
 
+## Email
+
+- [Set Up the Telnyx Email API](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md): Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events.
+
 ## AI Assistants
 
 - [AI Adventure Game](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/adventure-game-python/README.md): AI Adventure Game — a text-based choose-your-own-adventure game where every scene and choice is generated in real time by Telnyx AI Inference.
