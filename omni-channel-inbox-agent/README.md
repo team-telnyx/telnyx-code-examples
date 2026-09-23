@@ -1,7 +1,7 @@
 ---
 name: omni-channel-inbox-agent
 title: "Omni-Channel Inbox Agent"
-description: "Build a Telnyx Edge Compute agent that runs a lab-results intake workflow across fax, voice, email, and SMS — one durable StatefulActor per patient with a human-in-the-loop inbox and live engagement analytics."
+description: "Build a Telnyx Edge Compute agent that runs a lab-results intake workflow across fax, voice, email, and SMS — with verified channel identity resolution and shared customer context."
 language: nodejs
 framework: telnyx-edge
 telnyx_products: [Edge Compute, AI Inference, Voice, Messaging, Fax, Email]
@@ -10,7 +10,7 @@ channel: [fax, voice, email, sms]
 
 # Omni-Channel Inbox Agent
 
-Build a Telnyx Edge Compute agent that runs a **lab-results intake workflow** across fax, voice, email, and SMS. The lab faxes a result to the clinic; a human reviews the document and accepts it (the original PDF is deleted from Telnyx, only a reference survives); the AI drafts every follow-up message; and a human approves each one before it goes out. One durable StatefulActor per patient holds the whole journey — appointment, fax documents, email status, and every conversation — in actor-local SQL.
+Build a Telnyx Edge Compute agent that runs a **lab-results intake workflow** across fax, voice, email, and SMS. The lab faxes a result to the clinic; a human reviews the document and accepts it (the original PDF is deleted from Telnyx, only a reference survives); and a shared, LangGraph-style workflow drafts responses from the same customer context regardless of channel. One durable StatefulActor per canonical customer holds the appointment, fax metadata, email status, and cross-channel interaction history in actor-local SQL.
 
 The sample includes a full admin inbox UI (Telnyx-branded), a live Email Insights dashboard with self-hosted open tracking, and a patient portal page, so you can run the entire journey end-to-end in demo mode before wiring real channels.
 
@@ -24,6 +24,8 @@ The sample includes a full admin inbox UI (Telnyx-branded), a live Email Insight
 - **Telnyx Fax API**: `fax.ended` webhook, fax download, and `DELETE /v2/faxes/{id}` (privacy by construction).
 - **Telnyx Email API**: `POST /v2/email_messages` (send), inbox reply threading, `email.received` webhook, message events (delivery).
 - **Telnyx Messaging API**: `message.received` webhook, `POST /v2/messages` (SMS replies and appointment confirmations).
+- **Shared context graph**: normalize → resolve identity → load durable context → draft → approval/send. The graph is implemented without Node-only dependencies so it remains Edge Compute compatible.
+- **Identity registry**: verified phone and email aliases resolve to one canonical customer actor. Fax routing requires an explicit patient/CRM mapping; an unknown fax is never merged by destination number.
 - **Ed25519 webhook verification**: `telnyx.webhooks.unwrap()` for every inbound webhook.
 
 ## Architecture
@@ -36,8 +38,8 @@ The sample includes a full admin inbox UI (Telnyx-branded), a live Email Insight
         |                                        |
         v                                        v
   +----------------------------------------------------------+
-  |              InboxAgent (one actor per patient)           |
-  |  ctx.storage.sql: conversations | messages | documents    |
+  |        InboxAgent (one actor per canonical customer)      |
+  |  identity registry | shared graph | messages | documents   |
   |                    | appointments | customers             |
   +----------------------------------------------------------+
         |                    |                     |
@@ -60,16 +62,16 @@ Telnyx gives you AI Communications Infrastructure across voice, messaging, fax, 
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `DEMO_MODE` | `string` | `true` | no | Skips Ed25519 webhook signature verification for local testing. Set `false` in production. | - |
-| `FROM_NUMBER` | `string` | `+15551234567` | voice + SMS | Telnyx phone number for voice calls and outbound SMS. | [My Numbers](https://portal.telnyx.com/numbers/my-numbers) |
-| `FAX_NUMBER` | `string` | `+15551234568` | fax | Telnyx number that receives lab-result faxes. | [My Numbers](https://portal.telnyx.com/numbers/my-numbers) |
+| `DEMO_MODE` | `string` | `false` | no | Skips Ed25519 webhook signature verification for local testing. Set explicitly to `true` only for local demos. | - |
+| `FROM_NUMBER` | `string` | `<your-telnyx-phone-number>` | voice + SMS | Telnyx phone number for voice calls and outbound SMS. | [My Numbers](https://portal.telnyx.com/numbers/my-numbers) |
+| `FAX_NUMBER` | `string` | `<your-telnyx-fax-number>` | fax | Telnyx number that receives lab-result faxes. | [My Numbers](https://portal.telnyx.com/numbers/my-numbers) |
 | `TEXML_APP_ID` | `string` | `1234567890` | voice | Call Control / TeXML application id wired to `/webhooks/voice`. | [Voice API Apps](https://portal.telnyx.com/voice-api/applications) |
 | `FAX_APP_ID` | `string` | `1234567890` | fax | Fax application id wired to `/webhooks/fax`. | [Fax API Apps](https://portal.telnyx.com/fax/applications) |
 | `VOICE_ASSISTANT_ID` | `string` | `assistant-…` | no | Optional AI assistant persona id. | [AI Assistants](https://portal.telnyx.com/ai/assistants) |
 | `AI_MODEL` | `string` | `zai-org/GLM-5.2` | no | Telnyx Inference model for drafts. | [Inference models](https://developers.telnyx.com/docs/inference/models) |
 | `TTS_VOICE` | `string` | `Telnyx.Ultra.…` | no | TTS voice for Call Control speak. | - |
 | `DEMO_PATIENT_EMAIL` | `string` | `patient@example.com` | demo | Patient identity the demo journey routes to. | - |
-| `DEMO_PATIENT_PHONE` | `string` | `+15551234567` | demo | Patient phone the unified actor is keyed by. | - |
+| `DEMO_PATIENT_PHONE` | `string` | `<demo-patient-phone>` | demo | Patient phone the unified actor is keyed by. | - |
 | `DEMO_PATIENT_NAME` | `string` | `Jane` | demo | Patient display name for appointment SMS. | - |
 | `PORTAL_URL` | `string` | `https://portal.example.com` | no | Portal base URL rewritten into tracked email links. | - |
 | `PUBLIC_BASE_URL` | `string` | `https://your-func.telnyxcompute.com` | yes | Deployed function URL used for open-tracking pixels and click redirects. | Output of `telnyx-edge ship` |
@@ -121,16 +123,30 @@ Wire the webhooks in the portal (or via API): Call Control/TeXML app → `<PUBLI
 
 ## Demo Mode
 
-With `DEMO_MODE = "true"`:
+With `DEMO_MODE = "true"` explicitly set for local testing:
 
 - `POST /api/demo/simulate-fax` simulates the lab fax (no real fax needed) — the document appears in the inbox with a generated `LAB-YYYYMMDD-NNN` reference.
-- The admin inbox at `/` shows every conversation (fax / email / SMS / voice) for the demo patient, with amber AI drafts awaiting approval.
+- The admin inbox at `/` shows the channel-labelled conversations for the demo patient; the AI context is shared across all of them through the canonical actor.
 - **Accept** deletes the original fax from Telnyx storage (`DELETE /v2/faxes/{id}`) and drafts the results-ready email. Privacy by construction: the AI only ever sees document metadata, never lab content.
-- **Approve & send** delivers the email from your configured sender, tracked with a self-hosted pixel.
+- **Approve & send** delivers email from your configured sender, tracked with a self-hosted pixel. Low-risk SMS replies are auto-sent; email remains human-approved.
 - **Book appointment** texts the patient an SMS confirmation (date computed dynamically, no floor info) — text it back "what floor?" and the agent answers from the appointment record.
 - `/insights` shows Sent / Delivered / Open rate from live tracking events.
 
 Run the whole journey: book → visit → fax → review → accept → approve email → call the hotline → open the email → watch the open rate move on the dashboard.
+
+## Context and identity guarantees
+
+The sample separates three concepts:
+
+- `customer_id`: the long-lived canonical actor and cross-channel memory boundary.
+- `conversation_id`: a channel-labelled inbox thread used for delivery and operator filtering.
+- graph state: the active workflow state, including drafts and human approval.
+
+Every inbound message is persisted before the graph runs. The graph rebuilds context from actor-local SQL across voice, SMS, email, and fax metadata; it does not rely on a channel-local transcript. Phone and email aliases registered for the same customer resolve to the same actor. Fax routing requires an explicit mapping. An unknown identity is not guessed into an existing customer.
+
+The implementation follows the LangGraph model of explicit state transitions and resumable approval, but does not bundle `@langchain/langgraph` into Edge Compute. If you move orchestration to a Node service, `src/omniGraph.ts` is the replacement boundary for a full LangGraph `StateGraph` with a persistent checkpointer and customer-scoped store.
+
+RCS and WhatsApp are not implemented by this example and are intentionally excluded from `ENABLED_CHANNELS`.
 
 ## API Reference
 
@@ -170,7 +186,7 @@ All `/api/*` routes are demo endpoints (no auth in demo mode; add your own auth 
 | Call connects but no greeting | TTS voice unavailable | Try `TTS_VOICE = "Telnyx.KokoroTTS.af"` |
 | No transcript after speaking | Transcription engine mismatch | This sample uses the `Google` engine on `transcription_start`; the `Telnyx` engine does not emit `call.transcription` webhooks on the legacy action |
 | Inbound SMS not stored | Real Telnyx payloads send `from` as an object | Fixed in this sample's webhook parser (handles string, object, and array shapes) |
-| Webhook returns 401 | Ed25519 signature mismatch | Confirm `TELNYX_PUBLIC_KEY` matches your org (`GET /v2/public_key`) or keep `DEMO_MODE=true` |
+| Webhook returns 401 | Ed25519 signature mismatch | Confirm `TELNYX_PUBLIC_KEY` matches your org (`GET /v2/public_key`) or explicitly set `DEMO_MODE=true` for local testing only |
 | Open rate stays 0% | Telnyx shared email domains have tracking locked | This sample self-hosts the tracking pixel on the Edge function; or verify a custom domain and enable `tracking.open_tracking` |
 | `email_inbox: null` on /health | Email secret missing | `telnyx-edge secrets add TELNYX_EMAIL_INBOX_ID <id>` |
 

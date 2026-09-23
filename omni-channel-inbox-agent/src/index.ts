@@ -36,11 +36,14 @@ type InboxAgentStub = ActorStub &
     | "markSent"
     | "markFailed"
     | "recordHumanReply"
+    | "recordOutboundNotification"
     | "takeOverVoice"
     | "releaseVoice"
     | "listConversations"
     | "listMessages"
     | "registerCustomer"
+    | "registerIdentity"
+    | "resolveIdentity"
     | "listRegisteredCustomers"
     | "receiveFaxDocument"
     | "listDocuments"
@@ -100,7 +103,7 @@ function getPublicKey(): string | null {
 }
 
 function isDemoMode(): boolean {
-  return (process.env.DEMO_MODE ?? "true").toLowerCase() === "true";
+  return (process.env.DEMO_MODE ?? "false").toLowerCase() === "true";
 }
 
 /**
@@ -156,6 +159,16 @@ function decodeClientState(clientState: unknown): Record<string, string> {
 
 function actorNameForCustomer(raw: string): string {
   return (raw ?? "").replace(/[^0-9a-zA-Z]/g, "");
+}
+
+async function resolveCustomerActor(
+  env: Env,
+  channel: string,
+  address: string,
+  fallback: string,
+): Promise<string> {
+  const registryStub = env.INBOX.idFromName("operator-default");
+  return (await registryStub.resolveIdentity(channel, address)) ?? fallback;
 }
 
 function escapeHtmlPort(value: string): string {
@@ -275,7 +288,7 @@ export default {
     if (url.pathname === "/health") {
       return Response.json({
         status: "ok",
-        channels: ["voice", "email"],
+        channels: ["voice", "email", "sms", "fax"],
         from_number: process.env.FROM_NUMBER ?? null,
         voice_assistant_id: process.env.VOICE_ASSISTANT_ID ?? null,
         email_inbox: process.env.TELNYX_EMAIL_INBOX_ID ? "set" : null,
@@ -844,6 +857,8 @@ export default {
       });
       const registryStub = env.INBOX.idFromName("operator-default");
       await registryStub.registerCustomer(actorName, "sms");
+      await registryStub.registerIdentity("sms", patientPhone, actorName);
+      if (patientEmail) await registryStub.registerIdentity("email", patientEmail, actorName);
 
       let smsSent = false;
       let smsError: string | null = null;
@@ -856,6 +871,11 @@ export default {
             patientPhone,
             `Hi ${patientName}! You're booked for ${appointmentTime} — ${location}. Reply with any questions.`,
           );
+          await stub.recordOutboundNotification({
+            channel: "sms",
+            body: `Hi ${patientName}! You're booked for ${appointmentTime} — ${location}. Reply with any questions.`,
+            customerLabel: patientPhone,
+          });
           smsSent = true;
         } catch (e) {
           smsError = e instanceof Error ? e.message : "sms failed";
@@ -893,6 +913,11 @@ export default {
           patientPhone,
           `Thanks for coming in today, ${patientName}! Your visit is all set — lab results will land in your email within 1–3 business days.`,
         );
+        await stub.recordOutboundNotification({
+          channel: "sms",
+          body: `Thanks for coming in today, ${patientName}! Your visit is all set — lab results will land in your email within 1–3 business days.`,
+          customerLabel: patientPhone,
+        });
         smsSent = true;
       } catch (e) {
         smsError = e instanceof Error ? e.message : "sms failed";
@@ -1353,6 +1378,8 @@ async function handleVoiceWebhook(req: Request, env: Env): Promise<Response> {
     });
     const registryStub = env.INBOX.idFromName("operator-default");
     await registryStub.registerCustomer(actorName, "voice");
+    await registryStub.registerIdentity("voice", callerNumber, actorName);
+    await registryStub.registerIdentity("sms", callerNumber, actorName);
     const answerResp = await answerCall(apiKey, callControlId);
     if (!answerResp.ok) {
       return Response.json(
@@ -1543,12 +1570,16 @@ async function handleEmailWebhook(req: Request, env: Env): Promise<Response> {
   const customerActorName = customerIdForChannel("email", fromEmail);
   const demoPatientEmail = (process.env.DEMO_PATIENT_EMAIL ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
   const unifiedPatientActor = demoPatientActorName();
-  const emailActorName =
+  const emailActorName = await resolveCustomerActor(
+    env,
+    "email",
+    fromEmail,
     unifiedPatientActor &&
     demoPatientEmail &&
     customerIdForChannel("email", fromEmail) === demoPatientEmail
       ? unifiedPatientActor
-      : customerActorName;
+      : customerActorName,
+  );
   const stub = env.INBOX.idFromName(emailActorName);
   try {
     await stub.receiveInbound({
@@ -1562,6 +1593,7 @@ async function handleEmailWebhook(req: Request, env: Env): Promise<Response> {
     });
     const registryStub = env.INBOX.idFromName("operator-default");
     await registryStub.registerCustomer(emailActorName, "email");
+    await registryStub.registerIdentity("email", fromEmail, emailActorName);
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : "store failed" },
@@ -1740,7 +1772,9 @@ async function handleFaxWebhook(req: Request, env: Env): Promise<Response> {
   )}`;
 
   const patientActor = demoPatientActorName();
-  const actorName = patientActor ?? actorNameForCustomer(toNumber);
+  const actorName =
+    patientActor ??
+    (await resolveCustomerActor(env, "fax", toNumber, actorNameForCustomer(toNumber)));
   const stub = env.INBOX.idFromName(actorName);
   const state = await stub.getDebugState();
   if (!state.customer_id) {
@@ -1771,7 +1805,7 @@ async function handleFaxWebhook(req: Request, env: Env): Promise<Response> {
   });
 }
 
-// ── Messaging webhook stub (v2) ──────────────────────────────────────────
+// ── Messaging webhook ───────────────────────────────────────────────────
 async function handleMessagingWebhook(req: Request, env: Env): Promise<Response> {
   let body: unknown;
   try {
@@ -1802,16 +1836,23 @@ async function handleMessagingWebhook(req: Request, env: Env): Promise<Response>
     return Response.json({ action: "ignored", event_type: eventType });
   }
 
-  const actorName = customerIdForChannel("sms", fromNumber);
+  const actorName = await resolveCustomerActor(
+    env,
+    "sms",
+    fromNumber,
+    customerIdForChannel("sms", fromNumber),
+  );
   const stub = env.INBOX.idFromName(actorName);
+  let draft: MessageRow | null = null;
   try {
-    await stub.receiveInbound({
+    ({ draft } = await stub.receiveInbound({
       channel: "sms",
       body: text,
       customerLabel: fromNumber,
-    });
+    }));
     const registryStub = env.INBOX.idFromName("operator-default");
     await registryStub.registerCustomer(actorName, "sms");
+    await registryStub.registerIdentity("sms", fromNumber, actorName);
   } catch (e) {
     return Response.json(
       { error: e instanceof Error ? e.message : "store failed" },
@@ -1819,62 +1860,14 @@ async function handleMessagingWebhook(req: Request, env: Env): Promise<Response>
     );
   }
 
-  // Auto-answer inbound SMS — short, conversational, specific to the patient's
-  // own record. Clinical questions escalate per the assistant's rules.
+  // SMS now uses the same graph and durable cross-channel context as voice and
+  // email. Low-risk SMS is auto-approved; sensitive workflows can use the
+  // normal draft approval endpoint instead.
   const apiKey = getApiKey();
-  const record = await stub.getPatientRecord();
-  const lower = text.toLowerCase();
-  const appt = record.appointment as Record<string, unknown> | null;
-  const location = (appt?.location as string) ?? "500 University Ave";
-  const floorMatch = location.match(/Floor \d/i);
-  const floor = floorMatch ? floorMatch[0] : "Floor 2";
-  let reply: string;
-
-  if (/floor|which floor|what floor/.test(lower)) {
-    reply = `Floor 2 — elevator's just past the main entrance. See you Friday!`;
-  } else if (/where|located|location|address|directions|parking/.test(lower)) {
-    reply = `We're at ${location} — you're on ${floor}. Parking's in the garage downstairs.`;
-  } else if (/received|status|results|lab|reference|LAB-\d/i.test(text)) {
-    const emailedDoc = record.lab_documents.find((d) => d.email_sent_at);
-    if (emailedDoc) {
-      const sentDate = new Date(emailedDoc.email_sent_at as number).toLocaleDateString("en-US");
-      reply = `Your results are ready! We emailed you a link to the patient portal on ${sentDate} — log in there to view them. Can't share them over text, but staff can help.`;
-    } else {
-      reply = "Nothing sent yet — results usually land in your email 1–3 business days after your visit. I'll flag it if there's a delay.";
-    }
-  } else if (/appointment|reschedule|cancel|time|when/.test(lower)) {
-    if (appt) {
-      reply = `You're all set for ${appt.appointment_time} — ${floor}, ${location}. Need to change anything?`;
-    } else {
-      reply = "I don't see an appointment on file yet — staff will reach out to get one booked for you.";
-    }
-  } else if (/thank|thanks|thx/.test(lower)) {
-    reply = "Anytime! 👋";
-  } else if (/hi|hello|hey/.test(lower) && lower.length < 12) {
-    reply = "Hey! What can I help you with — appointment, directions, or lab results?";
-  } else {
-    reply = "I can help with appointment info, directions, or lab result status — medical questions go to our staff, they'll follow up!";
-  }
-
-  await sendSms(apiKey, toNumber || (process.env.FROM_NUMBER ?? ""), fromNumber, reply);
-
-  // Mirror the outbound reply into the conversation.
-  try {
-    const convs = await stub.listConversations({ channel: "sms", limit: 1 });
-    const convId = convs[0]?.conversation.id;
-    if (convId) {
-      await stub.recordHumanReply({
-        conversationId: convId,
-        channel: "sms",
-        body: reply,
-        operatorId: "ai-agent",
-      });
-    }
-  } catch {
-    // conversation may not exist yet on first contact — inbound was already stored
-  }
-
-  return Response.json({ action: "sms_replied", reply });
+  if (!draft) return Response.json({ action: "sms_stored", reply: null });
+  await sendSms(apiKey, toNumber || (process.env.FROM_NUMBER ?? ""), fromNumber, draft.body);
+  await stub.markSent(draft.id);
+  return Response.json({ action: "sms_replied", reply: draft.body });
 }
 
 async function sendSms(

@@ -4,10 +4,9 @@
  * Conventions:
  * - One actor instance per customer, addressed via `env.INBOX.idFromName(customerId)`.
  * - Customer id: E.164 number (voice/SMS/RCS/WhatsApp) or lowercased email address.
- * - Channel-typed conversations; messages within a conversation share a channel.
- * - v1: voice is live; email + SMS/RCS/WhatsApp are stubbed.
- * - v1.1: email goes live (gated on Telnyx Email API GA).
- * - v2: SMS/RCS/WhatsApp go live (gated on compliance registrations).
+ * - A customer actor is the long-lived cross-channel memory boundary.
+ * - Conversations remain channel-labelled for routing, while the actor context is shared.
+ * - RCS and WhatsApp are intentionally not enabled until their adapters are implemented.
  */
 
 import type { SqlValue } from "@telnyx/edge-runtime";
@@ -16,7 +15,7 @@ import type { SqlValue } from "@telnyx/edge-runtime";
 export type Channel = "voice" | "email" | "sms" | "rcs" | "whatsapp" | "fax";
 
 /** Channels enabled in v1. Stubs return ChannelDisabledError for the rest. */
-export const ENABLED_CHANNELS: ReadonlyArray<Channel> = ["voice", "email", "fax"];
+export const ENABLED_CHANNELS: ReadonlyArray<Channel> = ["voice", "email", "sms", "fax"];
 
 /** Conversation lifecycle. */
 export type ConversationStatus =

@@ -17,6 +17,7 @@ import {
   ENABLED_CHANNELS,
   customerIdForChannel,
 } from "./types";
+import { runOmniGraph } from "./omniGraph";
 
 const SCHEMA_VERSION = "v1";
 const SYSTEM_PROMPT =
@@ -24,7 +25,7 @@ const SYSTEM_PROMPT =
   "Telnyx line. Keep replies short, warm, and useful. Ask one clarifying question at a " +
   "time if needed. Never mention APIs, webhooks, or implementation details. If you are " +
   "unsure, say so plainly. Your reply will be reviewed by a human operator before it " +
-  "goes out, so draft it as if the customer will see it verbatim.";
+  "goes out, so draft it as if the customer will see it verbatim. Some low-risk SMS replies may be auto-sent.";
 
 /**
  * InboxAgent — one durable actor instance per customer.
@@ -35,13 +36,9 @@ const SYSTEM_PROMPT =
  *  - this.setState/getState: actor-level summary (customer_id, enabled_channels, counts).
  *
  * Channel coverage (per PRD v1):
- *  - voice: live (inbound call → assistant → transcript → draft reply → operator approves → TTS)
- *  - email: stubbed (receiveEmail stores inbound + logs; sendEmail throws ChannelDisabledError)
- *  - sms/rcs/whatsapp: stubbed (receiveX stores inbound + logs; sendX throws ChannelDisabledError)
- *
- * The v1 stubs persist inbound messages so nothing is lost while we wait for the v1.1 / v2
- * channel enables. v1.1 flips email on once the Telnyx Email API is GA; v2 flips the
- * messaging channels on once the carrier registrations complete.
+ *  - voice: live (inbound call → assistant → transcript → shared-context draft → TTS)
+ *  - email and SMS use the same graph/context path as voice.
+ *  - RCS and WhatsApp are intentionally not enabled; adapters are not included.
  */
 export class InboxAgent extends Agent<InboxEnv, InboxState> {
   private schemaInitialized = false;
@@ -197,9 +194,8 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
 
   /**
    * Find or create a conversation for an inbound message on a channel.
-   * If the customer has an open conversation on a different channel, we still
-   * create a new one per channel — cross-channel identity unification is v2
-   * (see PRD Open Decisions #1).
+   * Conversations stay channel-labelled for delivery and UI filtering, but all
+   * conversations in this actor share the same durable context and customer record.
    */
   async findOrCreateConversation(args: {
     channel: Channel;
@@ -344,7 +340,7 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
   }): Promise<{ inbound: MessageRow; draft: MessageRow | null }> {
     await this.ensureSchema();
     if (!ENABLED_CHANNELS.includes(args.channel)) {
-      // v1 stubs still persist inbound messages so nothing is lost before v1.1/v2.
+      // Unsupported channels are retained for auditability, but do not draft.
       console.warn(
         `[inbox] channel '${args.channel}' is stubbed in ${SCHEMA_VERSION}; ` +
           `inbound message stored but no auto-reply will be drafted`,
@@ -389,10 +385,11 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
     );
     if (!inbound) throw new Error("failed to store inbound message");
 
-    // Append to LLM context only for voice in v1 (email/SMS/etc. drafts come in v1.1+).
+    // Every enabled channel enters the same graph. The actor is the durable
+    // customer memory boundary; channel-specific adapters only deliver events.
     let draft: MessageRow | null = null;
     if (ENABLED_CHANNELS.includes(args.channel)) {
-      draft = await this.draftReply(conv, args.body);
+      draft = await this.draftReply(conv, args.body, args.channel);
     }
     return { inbound, draft };
   }
@@ -404,52 +401,23 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
   async draftReply(
     conversation: ConversationRow,
     userText: string,
+    channel: Channel = conversation.channel,
   ): Promise<MessageRow> {
-    await this.messages.add("user", userText);
-    const history = await this.messages.toOpenAI();
-    const record = await this.getPatientRecord();
-    let systemPrompt = SYSTEM_PROMPT;
-    const contextParts: string[] = [];
-    const appt = record.appointment as Record<string, unknown> | null;
-    if (appt) {
-      if (appt.patient_name) contextParts.push(`patient: ${String(appt.patient_name)}`);
-      if (appt.appointment_time) contextParts.push(`appointment: ${String(appt.appointment_time)}`);
-      if (appt.location) contextParts.push(`location: ${String(appt.location)}`);
-      if (appt.status) contextParts.push(`appointment status: ${String(appt.status)}`);
-    }
-    for (const d of (record.lab_documents ?? []).slice(0, 3)) {
-      const emailed = d.email_sent_at
-        ? `results were EMAILED to the patient's email on file on ${new Date(d.email_sent_at as number).toLocaleDateString("en-US")}`
-        : "results are READY and in review — they will be emailed to the patient shortly (within 1-3 business days)";
-      contextParts.push(`lab document ${d.reference}: status ${d.status}, ${emailed}`);
-    }
-    if (contextParts.length) {
-      systemPrompt =
-        SYSTEM_PROMPT +
-        "\n\nKnown patient details you may reference when asked: " +
-        contextParts.join("; ") +
-        ". " +
-        "When the patient asks about their lab results: if the results were emailed, confirm it, mention the case reference, and reassure them to check spam. " +
-        "If the results are in review (not yet emailed), reassure them the results are ready and will land in their inbox shortly (within 1-3 business days). " +
-        "NEVER tell the patient to call back, hang up, or contact another office or department — you ARE the office. " +
-        "If asked something not covered here, say you will check with the front desk team and follow up.";
-    }
-    let reply = "";
-    try {
-      const completion = await this.env.TELNYX.ai.openai.chat.createCompletion({
-        model: this.env.AI_MODEL ?? "zai-org/GLM-5.2",
-        messages: [{ role: "system", content: systemPrompt }, ...history],
-        max_tokens: 300,
-        temperature: 0.5,
-      });
-      reply = completion.choices[0]?.message?.content?.trim() ?? "";
-    } catch {
-      reply =
-        "Thanks for reaching out — I want to make sure I get this right. " +
-        "Could you share a little more about what you need?";
-    }
+    const graph = await runOmniGraph(
+      {
+        customerId: conversation.customer_id,
+        caseId: conversation.id,
+        channel: channel as "voice" | "email" | "sms" | "fax",
+        input: userText,
+      },
+      {
+        loadContext: async () => this.getSharedContext(),
+        draft: async (state) => this.createDraftFromContext(state.input, state.context),
+        requiresApproval: (state) => state.channel === "email",
+      },
+    );
+    let reply = graph.draft ?? "";
     if (!reply) reply = "Could you say a bit more about that?";
-    await this.messages.add("assistant", reply);
 
     const now = this.sqlNow();
     const draftId = this.newId("msg");
@@ -460,11 +428,11 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
        VALUES (?, ?, ?, 'outbound', 'draft', 'agent', NULL, ?, NULL, NULL, NULL, NULL, NULL, ?);`,
       draftId,
       conversation.id,
-      conversation.channel,
+      channel,
       reply,
       now,
     );
-    await this.touchConversation(conversation.id, conversation.channel);
+    await this.touchConversation(conversation.id, channel);
     await this.setConversationStatus(conversation.id, "awaiting_human");
 
     const draft = this.fetchOne<MessageRow>(
@@ -587,6 +555,36 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
     return msg;
   }
 
+  /** Persist a system/agent notification so proactive sends enter shared context. */
+  async recordOutboundNotification(args: {
+    channel: Channel;
+    body: string;
+    customerLabel?: string | null;
+  }): Promise<MessageRow> {
+    await this.ensureSchema();
+    const conv = await this.findOrCreateConversation({
+      channel: args.channel,
+      customerLabel: args.customerLabel,
+    });
+    const now = this.sqlNow();
+    const id = this.newId("msg");
+    this.ctx.storage.sql.exec(
+      `INSERT INTO messages
+       (id, conversation_id, channel, direction, status, sender_kind, sender_op_id,
+        body, subject, message_id_hdr, in_reply_to, references_hdr, call_control_id, ts)
+       VALUES (?, ?, ?, 'outbound', 'sent', 'agent', NULL, ?, NULL, NULL, NULL, NULL, NULL, ?);`,
+      id,
+      conv.id,
+      args.channel,
+      args.body,
+      now,
+    );
+    await this.touchConversation(conv.id, args.channel);
+    const msg = this.fetchOne<MessageRow>(`SELECT * FROM messages WHERE id = ?;`, id);
+    if (!msg) throw new Error("failed to record outbound notification");
+    return msg;
+  }
+
   // ── Voice-specific lifecycle ─────────────────────────────────────────
 
   /**
@@ -629,11 +627,8 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
     await this.setConversationStatus(conversationId, "open");
   }
 
-  // ── Channel send stubs ────────────────────────────────────────────────
-  // The actor never calls the channel API directly — that's the fetch handler's
-  // job because it has the API key + call_control_id. These methods exist so v1
-  // can fail loudly on disabled channels and v2 can flip them on cleanly.
-  // Email is enabled via the native Telnyx Email API in the fetch handler.
+  // ── Unsupported channel send stubs ───────────────────────────────────
+  // RCS and WhatsApp remain explicit failures until real adapters are added.
 
   async sendSMS(): Promise<never> {
     throw new ChannelDisabledError("sms", SCHEMA_VERSION);
@@ -1114,6 +1109,95 @@ export class InboxAgent extends Agent<InboxEnv, InboxState> {
       Date.now(),
       Date.now(),
     );
+  }
+
+  /** Register a verified channel address against the canonical customer actor. */
+  async registerIdentity(channel: string, address: string, customerId: string): Promise<void> {
+    await this.ensureSchema();
+    this.ctx.storage.sql.exec(
+      `CREATE TABLE IF NOT EXISTS customer_identities (
+        channel TEXT NOT NULL,
+        address TEXT NOT NULL,
+        customer_id TEXT NOT NULL,
+        verified INTEGER NOT NULL DEFAULT 0,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (channel, address)
+      );`,
+    );
+    this.ctx.storage.sql.exec(
+      `INSERT INTO customer_identities (channel, address, customer_id, verified, updated_at)
+       VALUES (?, ?, ?, 1, ?)
+       ON CONFLICT(channel, address) DO UPDATE SET customer_id = excluded.customer_id,
+       verified = 1, updated_at = excluded.updated_at;`,
+      channel,
+      address.trim().toLowerCase(),
+      customerId,
+      Date.now(),
+    );
+  }
+
+  async resolveIdentity(channel: string, address: string): Promise<string | null> {
+    await this.ensureSchema();
+    this.ctx.storage.sql.exec(
+      `CREATE TABLE IF NOT EXISTS customer_identities (
+        channel TEXT NOT NULL,
+        address TEXT NOT NULL,
+        customer_id TEXT NOT NULL,
+        verified INTEGER NOT NULL DEFAULT 0,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (channel, address)
+      );`,
+    );
+    const row = this.fetchOne<{ customer_id: string }>(
+      `SELECT customer_id FROM customer_identities WHERE channel = ? AND address = ? AND verified = 1;`,
+      channel,
+      address.trim().toLowerCase(),
+    );
+    return row?.customer_id ?? null;
+  }
+
+  /** Shared context is rebuilt from durable SQL, not a channel-local message log. */
+  private async getSharedContext(): Promise<Record<string, unknown>> {
+    await this.ensureSchema();
+    const patientRecord = await this.getPatientRecord();
+    const messages = this.fetchAll<MessageRow>(
+      `SELECT * FROM messages ORDER BY ts DESC LIMIT 40;`,
+    ).reverse();
+    return { appointment: patientRecord.appointment, lab_documents: patientRecord.lab_documents, messages };
+  }
+
+  private async createDraftFromContext(
+    userText: string,
+    context: Record<string, unknown>,
+  ): Promise<string> {
+    const record = context as Awaited<ReturnType<InboxAgent["getPatientRecord"]>> & {
+      messages: MessageRow[];
+    };
+    const history = (record.messages ?? []).map((m) => ({
+      role: m.sender_kind === "customer" ? "user" : "assistant",
+      content: `[${m.channel}] ${m.body}`,
+    }));
+    const appointment = record.appointment as Record<string, unknown> | null;
+    const documents = (record.lab_documents ?? []) as Array<Record<string, unknown>>;
+    const facts = [
+      appointment ? `appointment: ${JSON.stringify(appointment)}` : "",
+      documents.length ? `lab documents: ${JSON.stringify(documents)}` : "",
+    ].filter(Boolean).join("; ");
+    try {
+      const completion = await this.env.TELNYX.ai.openai.chat.createCompletion({
+        model: this.env.AI_MODEL ?? "zai-org/GLM-5.2",
+        messages: [
+          { role: "system", content: `${SYSTEM_PROMPT}\nShared customer context: ${facts}` },
+          ...history,
+          { role: "user", content: userText },
+        ],
+        max_tokens: 300,
+        temperature: 0.5,
+      });
+      return completion.choices[0]?.message?.content?.trim() ?? "";
+    } catch {
+      return "Thanks for reaching out — I want to make sure I get this right. Could you share a little more about what you need?";
+    }
   }
 
   async listRegisteredCustomers(): Promise<

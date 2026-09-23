@@ -1,6 +1,6 @@
 # Guide — Run the Omni-Channel Lab-Results Journey
 
-This guide walks the full patient journey end-to-end on Telnyx Edge Compute. Everything runs on one durable actor per patient — the same actor remembers the appointment, the fax documents, the email status, and every conversation.
+This guide walks the full patient journey end-to-end on Telnyx Edge Compute. A canonical customer actor stores shared context across voice, SMS, email, and fax metadata. Channel-labelled inbox threads remain separate for routing, while the graph sees the same customer history.
 
 ## Prerequisites
 
@@ -61,7 +61,9 @@ Run `POST /api/demo/reset` between takes — it sweeps conversations, messages, 
 
 ## Production notes
 
-- Set `DEMO_MODE=false` and store `TELNYX_PUBLIC_KEY` to enforce Ed25519 webhook verification.
+- Keep `DEMO_MODE=false` and store `TELNYX_PUBLIC_KEY` to enforce Ed25519 webhook verification. Set `DEMO_MODE=true` only in a local, non-production environment.
+- Register or link verified phone/email/fax identities before production use; the sample never guesses that two unknown identities are the same person.
+- RCS and WhatsApp are not included; add production adapters before advertising those channels.
 - Add real authentication in front of the `/api/*` routes before exposing the admin UI.
 - Register the fax sender and patient identities for production routing (this demo routes everything to one demo patient for simplicity).
 - Telnyx shared email domains have open/click tracking locked; use a verified custom domain with `tracking.open_tracking = true`, or keep the self-hosted pixel.
