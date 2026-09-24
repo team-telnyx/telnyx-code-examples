@@ -86,9 +86,9 @@ The app does not return the API key to the browser. It also masks configured ema
 
 ## Related Examples
 
-- [`ai-email-agent-python`](../ai-email-agent-python/README.md) - inbound email reply automation with the Telnyx Email API.
-- [`email-batch-retry-agent`](../email-batch-retry-agent/README.md) - durable batch email sending and retry logic.
+- [`ai-email-agent-python`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-email-agent-python/README.md) - inbound email reply automation with the Telnyx Email API.
+- [`email-batch-retry-agent`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-batch-retry-agent/README.md) - durable batch email sending and retry logic.
 
 ## Agent Discovery
 
-For broader API discovery, use the Telnyx developer docs and the repo-level [`llms.txt`](../llms.txt). This example is intentionally small so agents and developers can inspect the complete send and event-polling flow in one file.
+For broader API discovery, use the Telnyx developer docs and the repo-level [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt). This example is intentionally small so agents and developers can inspect the complete send and event-polling flow in one file.
