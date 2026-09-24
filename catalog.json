@@ -3,7 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-24T19:45:13Z",
+  "generated_at": "2026-09-24T19:50:07Z",
   "example_count": 558,
   "examples": [
     {
@@ -4823,7 +4823,7 @@
     },
     {
       "folder": "setup-email-api-nodejs",
-      "title": "Set Up the Telnyx Email API",
+      "title": "Setup Email API",
       "description": "Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events.",
       "product": "email",
       "language": "nodejs",

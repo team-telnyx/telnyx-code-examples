@@ -345,7 +345,7 @@
 
 ## Email
 
-- [Set Up the Telnyx Email API](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md): Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events.
+- [Setup Email API](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md): Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events.
 
 ## AI Assistants
 

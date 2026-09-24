@@ -1,13 +1,13 @@
 ---
 name: setup-email-api-nodejs
-title: "Set Up the Telnyx Email API"
+title: "Setup Email API"
 description: "Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events."
 language: nodejs
 framework: node
 telnyx_products: [Email]
 ---
 
-# Set Up the Telnyx Email API
+# Setup Email API
 
 A tiny local Node.js sample that sends one email with the Telnyx Email API, polls the message event feed, and displays delivery, open, click, bounce, and unsubscribe rates.
 
