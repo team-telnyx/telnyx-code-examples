@@ -391,7 +391,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(152 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(153 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -493,6 +493,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [edge-event-microsite](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-event-microsite/README.md) | Node.js | Event microsite + AI concierge on Telnyx Edge Compute — one KV store powers the site, the SMS/WhatsApp concierge, lead qualification, in-browser voice AI, feedback transcription, and the sponsor report. |
 | [edge-outage-hotline-typescript](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-outage-hotline-typescript/README.md) | Typescript | Regional outage-reporting hotline on Telnyx Edge Compute — one Stateful Actor per region aggregates callers' reports into SQL, dedupes them with Durable KV, classifies each report with Telnyx's decision model endpoint in one call, and serves a live incident dashboard with a measured model accuracy report card. |
 | [email-batch-retry-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-batch-retry-agent/README.md) | Typescript | A durable, stateful agent that sends email batches via the Telnyx Email API, tracks per-message state, and self-wakes to retry failures with exponential backoff. |
+| [email-schedule-rescheduler](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-schedule-rescheduler/README.md) | Python | Schedule an email, reschedule it to a new future time, and verify invalid reschedule attempts are rejected with a 422 error. |
 | [error-explainer-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/error-explainer-python/README.md) | Python | AI Error Explainer — paste a stack trace, get a root-cause hypothesis, confidence, severity, and a suggested fix via Telnyx AI Inference. |
 | [event-microsite-that-takes-calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/event-microsite-that-takes-calls/README.md) | Python | A Flask event microsite backed by Telnyx KV that lets attendees text, call, or talk in-browser to an AI concierge, broadcasts schedule changes, qualifies exhibitor leads, and transcribes post-event feedback into a sponsor report. |
 | [event-sponsorship-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/event-sponsorship-agent/README.md) | Typescript | A multilingual, multi-channel agent for event sponsorship activations with giveaway entry, product Q&A, demo booking, lead capture, and real-time hot-lead routing. |
