@@ -13,7 +13,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Set dummy env vars so the app can import without real credentials
 os.environ.setdefault("TELNYX_API_KEY", "test_dummy_key")
-os.environ.setdefault("ANTHROPIC_API_KEY", "test_dummy_key")
 os.environ.setdefault("TELNYX_FROM_NUMBER", "+15555550100")
 os.environ.setdefault("TELNYX_EMAIL_FROM", "test@example.com")
 os.environ.setdefault("CONNECTION_ID", "test_connection")
@@ -84,18 +83,20 @@ def test_conversation_history_ordering():
 def test_tools_defined():
     """Verify all four tools are defined."""
     import app
-    tool_names = {t["name"] for t in app.TOOLS}
+    tool_names = {t["function"]["name"] for t in app.TOOLS}
     assert tool_names == {"send_email", "send_sms", "make_call", "resolve_issue"}
 
 
 def test_tool_schemas_valid():
-    """Verify each tool has a valid input_schema with required fields."""
+    """Verify each tool has a valid schema with required fields."""
     import app
     for tool in app.TOOLS:
-        assert "name" in tool
-        assert "description" in tool
-        assert "input_schema" in tool
-        schema = tool["input_schema"]
+        assert tool["type"] == "function"
+        fn = tool["function"]
+        assert "name" in fn
+        assert "description" in fn
+        assert "parameters" in fn
+        schema = fn["parameters"]
         assert schema["type"] == "object"
         assert "properties" in schema
         assert "required" in schema
