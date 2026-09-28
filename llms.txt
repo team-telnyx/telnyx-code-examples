@@ -350,6 +350,7 @@
 ## AI Assistants
 
 - [AI Adventure Game](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/adventure-game-python/README.md): AI Adventure Game — a text-based choose-your-own-adventure game where every scene and choice is generated in real time by Telnyx AI Inference.
+- [After-Hours Answering Line](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/after-hours-answering/README.md)
 - [Agent Fleet Shared Workspace (CloudFS)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-fleet-shared-workspace/README.md)
 - [Replay Agent Conversations Live — WebSocket Streaming Replays on Telnyx Edge](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-message-replay/README.md): Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step.
 - [Agent with Tool Calling](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-with-tool-calling/README.md): Build a Telnyx Edge Compute Agent SDK app where an LLM chooses send_sms, make_call, and check_status tools, dispatches them with toolCallId, and returns a final response.

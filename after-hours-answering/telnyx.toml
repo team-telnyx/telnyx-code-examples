@@ -1,0 +1,24 @@
+```toml
+name = "after-hours-answering"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "AFTER_HOURS_LINE"
+type = "AfterHoursLine"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.AFTERHOURS_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+CLINIC_NAME = "Riverbend Family Health"
+CLINIC_LINE = "+15551234567"
+DEMO_MODE = "true"
+```

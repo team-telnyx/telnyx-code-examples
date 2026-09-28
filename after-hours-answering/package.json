@@ -1,0 +1,22 @@
+```json
+{
+  "name": "after-hours-answering",
+  "version": "1.0.0",
+  "description": "Durable after-hours answering line for healthcare clinics using Telnyx Edge Actors",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "vitest run",
+    "smoke": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+```
