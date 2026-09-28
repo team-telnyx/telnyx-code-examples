@@ -3436,3 +3436,9 @@ examples:
     language: python
     framework: flask
     folder: email-schedule-rescheduler
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: text-back-front-desk
