@@ -1,0 +1,20 @@
+```json
+{
+  "name": "order-status-self-service",
+  "version": "1.0.0",
+  "description": "Durable OrderAgent actor — customer texts/calls the store line, gets plain-language order status from durable SQL state; carrier webhooks proactively text delays before the customer asks.",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "vitest run",
+    "smoke": "vitest run smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0"
+  }
+}
+```

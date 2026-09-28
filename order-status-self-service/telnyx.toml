@@ -1,0 +1,23 @@
+```toml
+name = "order-status-self-service"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "CUSTOMERS"
+type = "OrderAgent"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.ORDERS_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+DEMO_MODE = "true"
+SMS_FROM = "+1555XXXXXXXX"
+```
