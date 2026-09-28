@@ -393,7 +393,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(159 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(160 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -477,6 +477,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [chat-with-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-python/README.md) | Python | Send messages to a Telnyx AI Assistant and receive responses. Supports conversation history and streaming. |
 | [chat-with-ai-assistant-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-ruby/README.md) | Ruby | Chat with a Telnyx AI Assistant and maintain conversation context over a production-ready Sinatra endpoint using the Telnyx Ruby SDK. |
 | [click-to-call-webrtc-with-ai-assist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/click-to-call-webrtc-with-ai-assist-python/README.md) | Python | Click-to-Call WebRTC with AI Assist - browser-based calling with real-time AI coaching sidebar. |
+| [clinic-triage-handoff](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clinic-triage-handoff/README.md) | Typescript | A durable Telnyx Edge actor that classifies inbound clinic calls and hands off to billing, clinical, or after-hours sub-agents with full conversation context preserved. |
 | [clone-ai-assistant-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-csharp/README.md) | C# | --- |
 | [clone-ai-assistant-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-go/README.md) | Go | --- |
 | [clone-ai-assistant-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-java/README.md) | Java | --- |

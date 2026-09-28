@@ -1,0 +1,36 @@
+```toml
+name = "clinic-triage-handoff"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "TRIAGE_ROUTER"
+type = "TriageRouter"
+
+[[actors]]
+binding = "BILLING_AGENT"
+type = "BillingAgent"
+
+[[actors]]
+binding = "CLINICAL_AGENT"
+type = "ClinicalAgent"
+
+[[actors]]
+binding = "AFTERHOURS_AGENT"
+type = "AfterHoursAgent"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.ROUTING_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+AI_MODEL = "gpt-4o-mini"
+CLINIC_LINE_E164 = "+15551234567"
+DEMO_MODE = "true"
+```
