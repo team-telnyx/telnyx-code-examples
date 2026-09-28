@@ -1,0 +1,22 @@
+```toml
+name = "text-back-front-desk"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "FRONT_DESK"
+type = "FrontDesk"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.APPOINTMENTS_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+FRONT_DESK_NUMBER = "+1555XXXXXXXX"
+```
