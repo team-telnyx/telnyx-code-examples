@@ -280,7 +280,7 @@ def voice_webhook():
                 session["status"] = "specialist_confirmation"
                 speak(
                     call_control_id,
-                    "okay, that dispute is open. i have noted your contact information, and a confirmation email is on its way. since this is after hours, a human billing specialist will be able to pick up the case and continue from here when they are available.",
+                    "okay, i will use the phone number you are calling from for updates. that dispute is open, and a confirmation email is on its way. since this is after hours, a human billing specialist will be able to pick up the case and continue from here when they are available.",
                     SPECIALIST_VOICE,
                 )
                 return jsonify({"status": "specialist_confirmation"})
