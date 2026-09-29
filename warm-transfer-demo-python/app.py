@@ -16,7 +16,7 @@ BILLING_VOICE = os.getenv(
     "BILLING_VOICE", "Telnyx.Ultra.f786b574-daa5-4673-aa0c-cbe3e8534c02"
 )
 SPECIALIST_VOICE = os.getenv(
-    "SPECIALIST_VOICE", "Telnyx.Ultra.00967b2f-88a6-4a31-8153-110a92134b9f"
+    "SPECIALIST_VOICE", "Telnyx.Ultra.0d42f0f6-c019-4082-b250-1c16133d1c82"
 )
 
 active_calls = {}
@@ -175,7 +175,7 @@ def voice_webhook():
                 transfer_sessions[call_control_id]["status"] = "answered"
                 speak(
                     call_control_id,
-                    "hi, this is the cedar harbor bank billing specialist. i am reviewing the billing issue now and connecting you with the specialist line.",
+                    "hi, this is the cedar harbor bank billing specialist. i have the details about your duplicate invoice and can help you open the dispute.",
                     SPECIALIST_VOICE,
                 )
                 transfer_sessions[call_control_id]["status"] = "target_intro"
@@ -223,7 +223,7 @@ def voice_webhook():
                 active_calls[call_control_id]["status"] = "specialist_offer"
                 speak(
                     call_control_id,
-                    "thanks for explaining that. if you would like to open a dispute for that invoice, i can transfer you to a billing specialist who can take a closer look. would you like me to connect you now? you can say yes, connect me, or no.",
+                    "thanks for explaining that. if you would like to open a dispute for that invoice, i can transfer you to a billing specialist who can take a closer look. would you like me to connect you now?",
                     BILLING_VOICE,
                 )
                 return jsonify({"status": "specialist_offer"})
