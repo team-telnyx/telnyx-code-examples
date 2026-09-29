@@ -271,13 +271,10 @@ def voice_webhook():
             result = gather_result(data)
             session = transfer_sessions[call_control_id]
             if session.get("status") == "collecting_specialist_name":
-                customer_name = str(result.get("customer_name", "")).strip()
-                if not customer_name:
-                    customer_name = "there"
                 session["status"] = "specialist_phone_prompt"
                 speak(
                     call_control_id,
-                    "thanks, " + customer_name + ". can we use the phone number you are calling from for updates?",
+                    "thanks, can we use the phone number you are calling from?",
                     SPECIALIST_VOICE,
                 )
                 return jsonify({"status": "specialist_phone_prompt"})

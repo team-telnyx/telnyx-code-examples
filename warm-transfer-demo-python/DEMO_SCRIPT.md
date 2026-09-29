@@ -46,8 +46,7 @@ Caller:
 
 Specialist:
 
-> thanks, anusha testing now. can we use the phone number you are calling from
-> for updates?
+> thanks, can we use the phone number you are calling from?
 
 Caller:
 
