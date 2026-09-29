@@ -270,7 +270,7 @@ def voice_webhook():
         if event_type == "call.ai_gather.ended" and call_control_id in transfer_sessions:
             result = gather_result(data)
             session = transfer_sessions[call_control_id]
-            if session.get("status") == "collecting_specialist_name":
+            if session.get("status") == "collecting_specialist_name" or "customer_name" in result:
                 session["status"] = "specialist_phone_prompt"
                 speak(
                     call_control_id,
@@ -278,7 +278,7 @@ def voice_webhook():
                     SPECIALIST_VOICE,
                 )
                 return jsonify({"status": "specialist_phone_prompt"})
-            if session.get("status") == "collecting_specialist_phone":
+            if session.get("status") == "collecting_specialist_phone" or "phone_confirmation" in result:
                 session["status"] = "specialist_confirmation"
                 speak(
                     call_control_id,
