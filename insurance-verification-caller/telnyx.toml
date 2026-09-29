@@ -1,0 +1,35 @@
+name = "insurance-verification-caller"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "VERIFY_JOB"
+type = "VerifyJob"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.kv.ATTEMPTS_KV]
+id = "<kv-namespace-uuid>"
+
+[storage.sqldb.JOBS_DB]
+id = "<sqldb-instance-uuid>"
+
+[env_vars]
+CARRIER_E164 = "+1555XXXXXXXX"
+MOCK_CARRIER_E164 = "+1555XXXXXXXX"
+CARRIER_NUMBER_ID = "<carrier_number_id>"
+OUTBOUND_CALLER_ID = "<outbound_caller_id>"
+FRONTDESK_E164 = "+1555XXXXXXXX"
+HOLD_MAX_MS = "180000"
+ANSWER_SILENCE_MS = "4000"
+VM_KEYWORDS = "voicemail,leave a message,after the tone"
+MENU_LOOP_MAX = "3"
+MAX_ATTEMPTS = "3"
+JEV_MODEL = "telnyx/decision-flash"
+JEV_ENDPOINT = "https://api.telnyx.com/v2/ai/typesafe/v1/systemone"
+</arg_value>

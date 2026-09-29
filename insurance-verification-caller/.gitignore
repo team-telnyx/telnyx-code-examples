@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+.env.local
+.env.production
+package-lock.json
+</arg_value>
