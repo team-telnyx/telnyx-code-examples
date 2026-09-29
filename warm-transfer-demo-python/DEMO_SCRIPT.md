@@ -38,9 +38,20 @@ Presenter:
 Specialist leg:
 
 > hi, this is the cedar harbor bank billing specialist. i have the details about
-> the duplicate invoice. i can open the dispute case and submit the form for
-> you. once it is submitted, you will receive a confirmation email, and someone
-> will follow up with you soon.
+> the duplicate invoice. before i open the dispute, may i have your full name,
+> and is the phone number on file still the best number for updates?
+
+Caller:
+
+> my name is alex jordan, and the phone number on file is fine.
+
+Specialist:
+
+> thanks, alex jordan. i am going to open the dispute with this information and
+> use the phone number on file for updates. since this is after hours, the case
+> will be queued now. you will receive a confirmation email, and when a human
+> billing specialist is available, they will be able to pick it up and continue
+> right away.
 
 Presenter:
 
@@ -61,6 +72,8 @@ Presenter:
    original-call mapping in `transfer_sessions`.
 7. The specialist `call.answered` event plays the second voice.
 8. The specialist `call.speak.ended` event calls `bridge_calls()`.
+9. The specialist gathers the caller's name and contact preference.
+10. The specialist confirms the after-hours dispute handoff to a human team.
 
 ## Test checklist
 
@@ -70,7 +83,8 @@ Presenter:
 - Answer the specialist leg on a second phone or softphone, or use call waiting
   for the one-phone demo.
 - Confirm the specialist uses the second voice and explains the dispute process.
-- Confirm the caller can answer the specialist's follow-up question.
+- Give the specialist your name and confirm that the phone number on file is okay.
+- Confirm it explains the after-hours queue and human specialist follow-up.
 - Confirm the two call legs bridge.
 
 With one phone, the specialist destination can be the same mobile number only

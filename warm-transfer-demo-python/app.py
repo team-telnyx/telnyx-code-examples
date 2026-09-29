@@ -75,21 +75,25 @@ def gather_transfer_consent(call_control_id: str) -> None:
     )
 
 
-def gather_specialist_follow_up(call_control_id: str, billing_issue: str) -> None:
+def gather_specialist_details(call_control_id: str, billing_issue: str) -> None:
     client.calls.actions.gather_using_ai(
         call_control_id=call_control_id,
         parameters={
             "type": "object",
             "properties": {
-                "follow_up": {
+                "customer_name": {
                     "type": "string",
-                    "description": "the caller's answer or follow-up question for the billing specialist",
+                    "description": "the caller's full name",
+                },
+                "phone_confirmation": {
+                    "type": "string",
+                    "description": "whether the phone number on file is still correct or the caller provided a different preferred number",
                 }
             },
-            "required": ["follow_up"],
+            "required": ["customer_name", "phone_confirmation"],
         },
         assistant={
-            "instructions": "act as a billing dispute specialist. listen to the caller's answer or question about the duplicate invoice and return it in follow_up without adding advice",
+            "instructions": "act as a billing dispute specialist. collect the caller's full name and whether the phone number on file is okay for updates. return the name in customer_name and the contact preference in phone_confirmation without adding advice",
             "model": os.getenv("TELNYX_AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct"),
         },
         message_history=[
@@ -195,12 +199,12 @@ def voice_webhook():
                     bridge_calls(session["original_call_id"], call_control_id)
                     return jsonify({"status": "transfer_completed"})
                 if session.get("status") == "specialist_opening":
-                    gather_specialist_follow_up(
+                    gather_specialist_details(
                         call_control_id,
                         session.get("billing_issue", "duplicate invoice"),
                     )
-                    session["status"] = "collecting_specialist_follow_up"
-                    return jsonify({"status": "specialist_listening"})
+                    session["status"] = "collecting_specialist_details"
+                    return jsonify({"status": "specialist_collecting_details"})
                 if session.get("status") == "specialist_confirmation":
                     session["status"] = "completed"
                     return jsonify({"status": "specialist_completed"})
@@ -247,10 +251,13 @@ def voice_webhook():
 
         if event_type == "call.ai_gather.ended" and call_control_id in transfer_sessions:
             session = transfer_sessions[call_control_id]
-            if session.get("status") == "collecting_specialist_follow_up":
+            if session.get("status") == "collecting_specialist_details":
+                customer_name = str(result.get("customer_name", "")).strip()
+                if not customer_name:
+                    customer_name = "there"
                 speak(
                     call_control_id,
-                    "thanks, i have noted that. i will include it with the dispute case and submit the form now. you will receive a confirmation email, and someone will follow up with you soon. is there anything else i can help you with today?",
+                    "thanks, " + customer_name + ". i am going to open the dispute with this information and use the phone number on file for updates. since this is after hours, the case will be queued now. you will receive a confirmation email, and when a human billing specialist is available, they will be able to pick it up and continue right away.",
                     SPECIALIST_VOICE,
                 )
                 session["status"] = "specialist_confirmation"
