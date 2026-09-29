@@ -71,7 +71,7 @@ def gather_transfer_consent(call_control_id: str) -> None:
             "instructions": "return yes when the caller agrees, accepts, says sure, says yes please, says connect me, or otherwise requests the billing specialist. return no only when the caller explicitly declines or says they want to continue without a specialist",
             "model": os.getenv("TELNYX_AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct"),
         },
-        greeting="if you would like to open a dispute for that invoice, i can transfer you to a billing specialist who can take a closer look. would you like me to connect you now?",
+        greeting="would you like me to connect you now?",
         voice=BILLING_VOICE,
         user_response_timeout_ms=10000,
     )
