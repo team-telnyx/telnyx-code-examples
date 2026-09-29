@@ -37,21 +37,28 @@ Presenter:
 
 Specialist leg:
 
-> hi, this is the cedar harbor bank billing specialist. i have the details about
-> the duplicate invoice. before i open the dispute, may i have your full name,
-> and is the phone number on file still the best number for updates?
+> i have the context about your duplicate dispute, and i am able to open a
+> dispute for you. what is your name?
 
 Caller:
 
-> my name is alex jordan, and the phone number on file is fine.
+> my name is anusha testing now.
 
 Specialist:
 
-> thanks, alex jordan. i am going to open the dispute with this information and
-> use the phone number on file for updates. since this is after hours, the case
-> will be queued now. you will receive a confirmation email, and when a human
-> billing specialist is available, they will be able to pick it up and continue
-> right away.
+> thanks, anusha testing now. can we use the phone number you are calling from
+> for updates?
+
+Caller:
+
+> yes, you can use the number i am calling from.
+
+Specialist:
+
+> okay, that dispute is open. i have noted your contact information, and a
+> confirmation email is on its way. since this is after hours, a human billing
+> specialist will be able to pick up the case and continue from here when they
+> are available.
 
 Presenter:
 
@@ -72,8 +79,9 @@ Presenter:
    original-call mapping in `transfer_sessions`.
 7. The specialist `call.answered` event plays the second voice.
 8. The specialist `call.speak.ended` event calls `bridge_calls()`.
-9. The specialist gathers the caller's name and contact preference.
-10. The specialist confirms the after-hours dispute handoff to a human team.
+9. The specialist gathers the caller's name.
+10. The specialist confirms whether to use the caller's phone number.
+11. The specialist confirms the after-hours dispute handoff to a human team.
 
 ## Test checklist
 
@@ -83,7 +91,7 @@ Presenter:
 - Answer the specialist leg on a second phone or softphone, or use call waiting
   for the one-phone demo.
 - Confirm the specialist uses the second voice and explains the dispute process.
-- Give the specialist your name and confirm that the phone number on file is okay.
+- Give the specialist your name and confirm that the calling number is okay.
 - Confirm it explains the after-hours queue and human specialist follow-up.
 - Confirm the two call legs bridge.
 
