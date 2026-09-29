@@ -2106,6 +2106,12 @@ examples:
     framework: flask
     folder: warm-transfer-python
 
+  - product: voice
+    use_case: ai-billing-warm-transfer
+    language: python
+    framework: flask
+    folder: ai-billing-warm-transfer-python
+
   # ─────────────────────────────────────────────────────────────────────
   # Phase 2, Tier A: Complete full-language sets (2 examples)
   # ─────────────────────────────────────────────────────────────────────
@@ -3300,6 +3306,12 @@ examples:
     language: nodejs
     framework: node
     folder: setup-email-api-nodejs
+
+  - product: sms
+    use_case: setup-email-api
+    language: python
+    framework: flask
+    folder: setup-email-api-python
 
   - product: sms
     use_case: audio-transcribe-summarize-sms
