@@ -1,0 +1,18 @@
+{
+  "name": "spam-smishing-filter",
+  "version": "1.0.0",
+  "description": "10DLC spam/smishing filter using Telnyx Decision Models + Agent SDK",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

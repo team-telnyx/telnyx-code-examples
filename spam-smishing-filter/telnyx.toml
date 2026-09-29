@@ -1,0 +1,23 @@
+name = "spam-smishing-filter"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "SPAM_FILTER"
+type = "SpamFilter"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.SPAM_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+SPAM_PERMANENT_BLOCK_N = "5"
+SPAM_BLOCK_SCORE = "4"
+COOLDOWN_MS = "3600000"
+DEMO_MODE = "true"
