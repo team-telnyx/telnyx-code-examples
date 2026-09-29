@@ -71,6 +71,8 @@ def gather_transfer_consent(call_control_id: str) -> None:
             "instructions": "return yes when the caller agrees, accepts, says sure, says yes please, says connect me, or otherwise requests the billing specialist. return no only when the caller explicitly declines or says they want to continue without a specialist",
             "model": os.getenv("TELNYX_AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct"),
         },
+        greeting="if you would like to open a dispute for that invoice, i can transfer you to a billing specialist who can take a closer look. would you like me to connect you now?",
+        voice=BILLING_VOICE,
         user_response_timeout_ms=10000,
     )
 
@@ -242,13 +244,9 @@ def voice_webhook():
             status = active_calls[call_control_id].get("status")
             if status == "collecting_billing_issue":
                 active_calls[call_control_id]["billing_issue"] = result.get("billing_issue", "")
-                active_calls[call_control_id]["status"] = "specialist_offer"
-                speak(
-                    call_control_id,
-                    "thanks for explaining that. if you would like to open a dispute for that invoice, i can transfer you to a billing specialist who can take a closer look. would you like me to connect you now?",
-                    BILLING_VOICE,
-                )
-                return jsonify({"status": "specialist_offer"})
+                active_calls[call_control_id]["status"] = "collecting_transfer_consent"
+                gather_transfer_consent(call_control_id)
+                return jsonify({"status": "collecting_transfer_consent"})
 
             choice = str(result.get("route_to_specialist", "")).strip().lower()
             if status == "collecting_transfer_consent" and choice == "yes":
