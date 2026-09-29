@@ -132,7 +132,7 @@ def gather_result(data: dict) -> dict:
 
 def dial_specialist(original_call_id: str) -> dict:
     specialist_number = os.getenv("HUMAN_TRANSFER_NUMBER")
-    from_number = os.getenv("TELNYX_PHONE_NUMBER")
+    from_number = os.getenv("SPECIALIST_FROM_NUMBER", os.getenv("TELNYX_PHONE_NUMBER"))
     connection_id = os.getenv("TELNYX_CONNECTION_ID")
     if not all((specialist_number, from_number, connection_id)):
         raise ValueError(

@@ -7,6 +7,7 @@
 | `TELNYX_API_KEY` | Telnyx API key |
 | `TELNYX_CONNECTION_ID` | Call Control Application ID |
 | `TELNYX_PHONE_NUMBER` | Telnyx caller ID and transfer origin |
+| `SPECIALIST_FROM_NUMBER` | Separate Telnyx caller ID for the specialist call-waiting leg |
 | `HUMAN_TRANSFER_NUMBER` | Specialist destination |
 | `TELNYX_AI_MODEL` | Model used for bounded gather results |
 | `BILLING_VOICE` | Ultra voice for the billing agent |
