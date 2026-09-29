@@ -136,9 +136,10 @@ def dial_specialist(original_call_id: str) -> dict:
 
 
 def bridge_calls(original_call_id: str, specialist_call_id: str) -> None:
-    client.calls.actions.transfer(
-        call_control_id=original_call_id,
-        to=specialist_call_id,
+    client.calls.actions.bridge(
+        call_control_id_to_bridge=original_call_id,
+        call_control_id_to_bridge_with=specialist_call_id,
+        prevent_double_bridge=True,
     )
     session = transfer_sessions[specialist_call_id]
     speak(
