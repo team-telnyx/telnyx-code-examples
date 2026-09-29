@@ -75,6 +75,33 @@ def gather_transfer_consent(call_control_id: str) -> None:
     )
 
 
+def gather_specialist_follow_up(call_control_id: str, billing_issue: str) -> None:
+    client.calls.actions.gather_using_ai(
+        call_control_id=call_control_id,
+        parameters={
+            "type": "object",
+            "properties": {
+                "follow_up": {
+                    "type": "string",
+                    "description": "the caller's answer or follow-up question for the billing specialist",
+                }
+            },
+            "required": ["follow_up"],
+        },
+        assistant={
+            "instructions": "act as a billing dispute specialist. listen to the caller's answer or question about the duplicate invoice and return it in follow_up without adding advice",
+            "model": os.getenv("TELNYX_AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct"),
+        },
+        message_history=[
+            {
+                "role": "assistant",
+                "content": "the caller reported this billing issue: " + billing_issue,
+            }
+        ],
+        user_response_timeout_ms=10000,
+    )
+
+
 def gather_result(data: dict) -> dict:
     event = data.get("data", {}) or {}
     payload = event.get("payload", event) if isinstance(event, dict) else {}
@@ -109,7 +136,13 @@ def bridge_calls(original_call_id: str, specialist_call_id: str) -> None:
         call_control_id=original_call_id,
         to=specialist_call_id,
     )
-    transfer_sessions[specialist_call_id]["status"] = "completed"
+    session = transfer_sessions[specialist_call_id]
+    speak(
+        specialist_call_id,
+        "hi, this is the cedar harbor bank billing specialist. i have the details about the duplicate invoice. i can open the dispute case and submit the form for you. once it is submitted, you will receive a confirmation email, and someone will follow up with you soon. is there anything else you would like me to include with the dispute?",
+        SPECIALIST_VOICE,
+    )
+    session["status"] = "specialist_opening"
 
 
 @app.get("/healthz")
@@ -161,6 +194,16 @@ def voice_webhook():
                 if session.get("status") == "target_intro":
                     bridge_calls(session["original_call_id"], call_control_id)
                     return jsonify({"status": "transfer_completed"})
+                if session.get("status") == "specialist_opening":
+                    gather_specialist_follow_up(
+                        call_control_id,
+                        session.get("billing_issue", "duplicate invoice"),
+                    )
+                    session["status"] = "collecting_specialist_follow_up"
+                    return jsonify({"status": "specialist_listening"})
+                if session.get("status") == "specialist_confirmation":
+                    session["status"] = "completed"
+                    return jsonify({"status": "specialist_completed"})
 
             if call_control_id in active_calls:
                 status = active_calls[call_control_id].get("status")
@@ -188,6 +231,9 @@ def voice_webhook():
             choice = str(result.get("route_to_specialist", "")).strip().lower()
             if status == "collecting_transfer_consent" and choice == "yes":
                 specialist_call_id = dial_specialist(call_control_id)
+                transfer_sessions[specialist_call_id]["billing_issue"] = active_calls[
+                    call_control_id
+                ].get("billing_issue", "duplicate invoice")
                 active_calls[call_control_id]["status"] = "connecting_specialist"
                 return jsonify({"status": "specialist_requested", "specialist_call_id": specialist_call_id})
             if status == "collecting_transfer_consent" and choice == "no":
@@ -198,6 +244,17 @@ def voice_webhook():
             active_calls[call_control_id]["status"] = "specialist_offer"
             speak(call_control_id, "please say yes if you want a billing specialist, or no if you want to continue here.", BILLING_VOICE)
             return jsonify({"status": "choice_unclear"})
+
+        if event_type == "call.ai_gather.ended" and call_control_id in transfer_sessions:
+            session = transfer_sessions[call_control_id]
+            if session.get("status") == "collecting_specialist_follow_up":
+                speak(
+                    call_control_id,
+                    "thanks, i have noted that. i will include it with the dispute case and submit the form now. you will receive a confirmation email, and someone will follow up with you soon. is there anything else i can help you with today?",
+                    SPECIALIST_VOICE,
+                )
+                session["status"] = "specialist_confirmation"
+                return jsonify({"status": "specialist_follow_up_complete"})
 
         if event_type == "call.hangup":
             active_calls.pop(call_control_id, None)
