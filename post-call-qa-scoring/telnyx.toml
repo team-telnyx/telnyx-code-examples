@@ -1,0 +1,26 @@
+```toml
+name = "post-call-qa-scoring"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "QA_AGENT"
+type    = "QAAgent"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.QA_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+QA_COACHING_FLOOR = "3.0"
+TEAM_LEAD_E164 = "+1555XXXXXXXX"
+DIGEST_HOUR_UTC = "17"
+CALL_METADATA_AGENT_KEY = "agentId"
+AGENT_NUMBER_MAP = "{}"
+```

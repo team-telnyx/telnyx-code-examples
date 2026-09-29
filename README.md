@@ -391,7 +391,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(153 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(155 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -522,12 +522,13 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [multi-model-inference-switcher](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-model-inference-switcher/README.md) | Node.js | Switch between LLM models at runtime via a KV feature flag — no redeploy. Agent SDK + zero-credential inference + admin UI with live model switching. |
 | [multi-party-ai-training-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-party-ai-training-call-python/README.md) | Python | AI plays customer roles for sales/support practice. Multiple trainees join, AI rotates scenarios and scores each trainee. |
 | [network-incident-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/network-incident-agent/README.md) | Typescript | A durable incident actor that assesses severity, proactively sends SMS, answers calls with incident context, writes an RCA to CloudFS, and checks for recurrence. |
-| [omnichannel-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-receptionist-python/README.md) | Python | One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference. |
 | [omnichannel-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-agent-python/README.md) | Python | One AI agent that proactively emails, texts, and calls customers using Claude tool-calling, Telnyx Email/SMS/Voice APIs, and SQLite for persistent cross-channel context. |
+| [omnichannel-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-receptionist-python/README.md) | Python | One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference. |
 | [outbound-hold-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/outbound-hold-agent-python/README.md) | Python | Call a business, navigate IVRs with a Telnyx AI Assistant, pause the assistant during hold, monitor with transcription, and resume with context when a representative answers. |
 | [patient-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/patient-agent/README.md) | Typescript | --- |
 | [persistent-state-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/persistent-state-agent/README.md) | Node.js | --- |
 | [policy-renewal-campaign-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/policy-renewal-campaign-python/README.md) | Python | Automated multi-channel renewal reminders. 60 days: SMS. 30 days: AI voice call reviewing coverage changes. 7 days: urgent SMS. Agent reviews lapsed policies for win-back. |
+| [post-call-qa-scoring](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/post-call-qa-scoring/README.md) | Typescript | Durable per-agent quality profiles that grade support call transcripts, track rolling trends, flag coaching needs, and text daily digests. |
 | [quiz-generator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/quiz-generator-python/README.md) | Python | AI Quiz Generator — turn any article or text into a multiple-choice quiz with answer key and explanations via Telnyx AI Inference. |
 | [rag-corpus-shared-across-agents](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/rag-corpus-shared-across-agents/README.md) | Node.js | Multiple AI agent personalities answering over ONE shared RAG corpus on Telnyx Edge Compute — a CorpusAgent embeds documents into per-actor SQL, and PersonaAgent actors retrieve, cite, and answer with their own voice through the zero-credential Telnyx Inference binding. |
 | [restaurant-reservation-waitlist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/restaurant-reservation-waitlist-python/README.md) | Python | AI answers calls, checks table availability, books or adds to waitlist, texts when table is ready. Host reviews large party requests. |

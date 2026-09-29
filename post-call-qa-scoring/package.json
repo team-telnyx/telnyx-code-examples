@@ -1,0 +1,20 @@
+```json
+{
+  "name": "post-call-qa-scoring",
+  "version": "1.0.0",
+  "description": "Durable per-agent post-call QA scoring with Jev Decision Models, rolling trend, coaching flags, and daily digest",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
+```
