@@ -1,0 +1,27 @@
+```toml
+name = "two-channel-otp"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "SESSIONS"
+type = "AuthSession"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.LOCKS]
+id = "<locks-database-uuid>"
+
+[env_vars]
+VERIFICATION_LINE_E164 = "+1555XXXXXXXX"
+SECURITY_REVIEW_E164 = "+1555XXXXXXXX"
+STT_TIMEOUT_MS = "6000"
+CODE_TTL_SECONDS = "120"
+MAX_FAILURES = "3"
+DEMO_MODE = "true"
+```
