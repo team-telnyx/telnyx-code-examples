@@ -195,6 +195,9 @@ def voice_webhook():
         if event_type == "call.answered":
             if call_control_id in transfer_sessions:
                 session = transfer_sessions[call_control_id]
+                if session.get("status") != "connecting":
+                    return jsonify({"status": "duplicate_call_answered"})
+                session["status"] = "bridging"
                 bridge_calls(session["original_call_id"], call_control_id)
                 return jsonify({"status": "transfer_bridged"})
             elif call_control_id in active_calls:
@@ -210,15 +213,15 @@ def voice_webhook():
             if call_control_id in transfer_sessions:
                 session = transfer_sessions[call_control_id]
                 if session.get("status") == "specialist_opening":
+                    session["status"] = "collecting_specialist_name"
                     gather_specialist_name(
                         call_control_id,
                         session.get("billing_issue", "duplicate invoice"),
                     )
-                    session["status"] = "collecting_specialist_name"
                     return jsonify({"status": "specialist_collecting_name"})
                 if session.get("status") == "specialist_phone_prompt":
-                    gather_specialist_phone_confirmation(call_control_id)
                     session["status"] = "collecting_specialist_phone"
+                    gather_specialist_phone_confirmation(call_control_id)
                     return jsonify({"status": "specialist_collecting_phone"})
                 if session.get("status") == "specialist_confirmation":
                     session["status"] = "completed"
@@ -271,20 +274,20 @@ def voice_webhook():
                 customer_name = str(result.get("customer_name", "")).strip()
                 if not customer_name:
                     customer_name = "there"
+                session["status"] = "specialist_phone_prompt"
                 speak(
                     call_control_id,
                     "thanks, " + customer_name + ". can we use the phone number you are calling from for updates?",
                     SPECIALIST_VOICE,
                 )
-                session["status"] = "specialist_phone_prompt"
                 return jsonify({"status": "specialist_phone_prompt"})
             if session.get("status") == "collecting_specialist_phone":
+                session["status"] = "specialist_confirmation"
                 speak(
                     call_control_id,
                     "okay, that dispute is open. i have noted your contact information, and a confirmation email is on its way. since this is after hours, a human billing specialist will be able to pick up the case and continue from here when they are available.",
                     SPECIALIST_VOICE,
                 )
-                session["status"] = "specialist_confirmation"
                 return jsonify({"status": "specialist_confirmation"})
 
         if event_type == "call.hangup":
@@ -293,7 +296,11 @@ def voice_webhook():
 
         return jsonify({"status": "received"})
     except (telnyx.APIStatusError, ValueError) as error:
+        app.logger.exception("telnyx command failed")
         return jsonify({"error": str(error)}), 502
+    except Exception:
+        app.logger.exception("unexpected webhook error")
+        return jsonify({"status": "received"})
 
 
 if __name__ == "__main__":
