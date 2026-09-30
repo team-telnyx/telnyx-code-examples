@@ -1,0 +1,26 @@
+{
+  "name": "trustedrouter-telnyx-receipt-verifier-nodejs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser receipt explorer: Telnyx-only, ZDR-pinned inference through TrustedRouter with locally verified signed receipts, deployable to Telnyx Edge Compute.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "tsx index.ts",
+    "dev": "tsx watch index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@lore-hex/trusted-router": "^0.9.0",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <title>TrustedRouter · Telnyx Receipt Explorer</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:," />
+</head>
+<body>
+  <main class="page">
+    <header class="masthead">
+      <h1>TrustedRouter → Telnyx Receipt Explorer</h1>
+      <p class="tagline">
+        Every request is pinned to a Telnyx route with a zero-data-retention floor,
+        and every response carries a signed receipt you can verify locally.
+      </p>
+    </header>
+
+    <section class="card" id="error-card" hidden>
+      <div class="error-banner" id="error-banner" role="alert"></div>
+    </section>
+
+    <section class="card" id="fallback-card" hidden>
+      <p class="notice">
+        <strong>Fallback catalog:</strong> the live TrustedRouter catalog could not be
+        fetched. The model list below is recent fallback data and is revalidated at
+        inference time.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Request</h2>
+      <div class="field">
+        <label for="access-token">
+          Demo access token
+          <span id="token-required-note" class="muted">(required for this deployment)</span>
+          <span id="token-optional-note" class="muted hidden">(not required by this deployment)</span>
+        </label>
+        <input
+          id="access-token"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Paste the demo access token (stays in this browser tab)"
+        />
+        <p class="hint">Stored in <code>sessionStorage</code> only. It is sent to this application's server, never to third parties.</p>
+      </div>
+
+      <div class="field">
+        <label for="model">Model <span class="muted">(Telnyx ZDR routes only)</span></label>
+        <select id="model" name="model"></select>
+        <p class="hint" id="catalog-meta"></p>
+      </div>
+
+      <div class="field">
+        <label for="prompt">Prompt</label>
+        <textarea
+          id="prompt"
+          rows="5"
+          placeholder="Ask something short. The exact bytes you send are what the receipt signs."
+        ></textarea>
+        <div class="prompt-meta">
+          <button type="button" id="sample-btn" class="ghost">Insert sample prompt</button>
+          <span id="char-counter" class="muted">0 / 4000</span>
+        </div>
+      </div>
+
+      <div class="routing-summary" aria-readonly="true">
+        <div class="routing-item"><span class="routing-key">Provider</span><span class="routing-value">Telnyx only</span></div>
+        <div class="routing-item"><span class="routing-key">Fallbacks</span><span class="routing-value">disabled</span></div>
+        <div class="routing-item"><span class="routing-key">Privacy floor</span><span class="routing-value">ZDR</span></div>
+        <div class="routing-item"><span class="routing-key">Receipt</span><span class="routing-value">signed, per request</span></div>
+      </div>
+
+      <button type="button" id="submit-btn" class="primary">Run inference &amp; verify receipt</button>
+    </section>
+
+    <section class="card" id="response-card" hidden>
+      <h2>Model response</h2>
+      <div class="response-text" id="output"></div>
+      <dl class="meta-grid" id="response-meta"></dl>
+    </section>
+
+    <section class="card" id="verification-card" hidden>
+      <h2>Receipt verification</h2>
+      <div id="verification-state" class="verification-state"></div>
+      <ul class="check-list" id="verification-checklist"></ul>
+      <details id="verification-details">
+        <summary>Technical details (safe receipt claims + compact receipt)</summary>
+        <pre class="code" id="verification-claims"></pre>
+        <p class="hint">Compact JWS receipt (response header <code>x-inference-receipt</code>):</p>
+        <pre class="code" id="verification-compact"></pre>
+        <p class="hint">
+          This page never displays the TrustedRouter API key. The receipt contains no
+          credentials, no prompt text, and no completion text.
+        </p>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>What this proves — and what it does not</h2>
+      <ul class="privacy-list">
+        <li>
+          The selected Telnyx route is <strong>required</strong> to satisfy TrustedRouter's
+          provider-level ZDR classification; if no such route exists, the request fails
+          closed instead of silently degrading.
+        </li>
+        <li>
+          ZDR is a provider <strong>policy claim</strong> for Telnyx-hosted hosted-chat
+          routes: content is processed in memory and discarded after the response.
+          Request metadata may still be retained.
+        </li>
+        <li>
+          Signed receipts prove <strong>integrity and routing</strong> — that this exact
+          request produced this exact response on the named model, provider, and signing
+          chain. They do <strong>not</strong> prove confidentiality.
+        </li>
+        <li>
+          This application's server receives your prompt <em>before</em> it reaches
+          TrustedRouter. The receipt never covers the browser-to-server hop.
+        </li>
+        <li>
+          The application does not intentionally persist or log prompt or completion
+          content.
+        </li>
+      </ul>
+    </section>
+
+    <footer class="footnote">
+      <p>
+        Runs locally or on
+        <a href="https://developers.telnyx.com/docs/edge-compute/quickstart" rel="noopener noreferrer">Telnyx Edge Compute</a>.
+        Receipts add the receipt-enabled service fee (see
+        <a href="https://trustedrouter.com/docs/receipts" rel="noopener noreferrer">TrustedRouter docs</a>).
+      </p>
+    </footer>
+  </main>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

@@ -1366,6 +1366,24 @@ examples:
     framework: edge
     folder: multi-model-inference-switcher
 
+  - product: ai
+    use_case: trustedrouter-receipt-verifier
+    language: typescript
+    framework: edge
+    folder: trustedrouter-telnyx-receipt-verifier-nodejs
+
+  - product: ai
+    use_case: ai-email-agent
+    language: python
+    framework: flask
+    folder: ai-email-agent-python
+
+  - product: sms
+    use_case: audio-transcribe-summarize-sms
+    language: nodejs
+    framework: edge
+    folder: audio-transcribe-summarize-sms
+
   - product: sms
     use_case: sentiment-analysis-agent
     language: nodejs

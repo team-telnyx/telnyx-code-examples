@@ -212,3 +212,33 @@ The dashboard at `/` is the screen-record target — it shows every step of the 
 - [Telnyx AI Inference docs](https://developers.telnyx.com/docs/inference/chat-completions)
 - [Telnyx AI repo](https://github.com/team-telnyx/ai) — Agent Toolkit, MCP server, Skills (incl. `telnyx-email-curl`, `telnyx-email-inbound-curl`, `telnyx-email-domains-curl`, `telnyx-email-suppressions-curl`)
 - [Telnyx Python SDK](https://github.com/team-telnyx/telnyx-python) — used here for Ed25519 webhook verification
+
+## Why Telnyx
+
+Telnyx is an **AI Communications Infrastructure** platform — voice, messaging, email, and AI inference on one private global network. One API key provisions email domains, runs AI Inference, and delivers replies, so an autonomous email agent runs on a single integrated platform instead of a patchwork of vendors.
+
+## Troubleshooting
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Emails not arriving | Domain not verified / DNS records pending | Check the domain status in the Telnyx Portal and complete DNS verification |
+| 401 from Telnyx API | Missing or invalid `TELNYX_API_KEY` | Confirm the key in `.env` has the Email + Inference scopes |
+| Webhook signature rejected | Public key mismatch | Re-fetch `GET /v2/public_key` and update `TELNYX_PUBLIC_KEY` |
+| Agent replies but no draft content | Model returned empty content | Check the `AI_MODEL` id against the Inference model list |
+
+## Related Examples
+
+- [AI Voicemail Smart Router (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-smart-router-python/README.md)
+- [AI Support Email Triage (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-python/README.md)
+
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **Agent signup**: [telnyx.com/agent-signup.md](https://telnyx.com/agent-signup.md) — automated account provisioning via agent mail; get an API key with no human intervention
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **Telnyx AI repo**: [github.com/team-telnyx/ai](https://github.com/team-telnyx/ai)
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI (human)**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`

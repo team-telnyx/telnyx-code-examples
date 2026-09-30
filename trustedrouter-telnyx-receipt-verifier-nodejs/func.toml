@@ -1,0 +1,14 @@
+# Telnyx Edge Compute manifest — buildpack project mode.
+# The buildpack runs the TypeScript entrypoint `index.ts` at this project root,
+# which starts its own HTTP server on process.env.PORT.
+#
+# func_id is assigned by `telnyx-edge new-func --from-dir=. --name=<name>` at
+# scaffold time. This func_id belongs to the maintainer's deployment; replace
+# it with your own by running `telnyx-edge new-func` on your copy.
+[edge_compute]
+func_id = "937b690d-96b0-4c81-9cca-123a5373eca1"
+func_name = "trustedrouter-telnyx-receipt-verifier"
+
+# Secrets are injected as environment variables; never put real values here.
+#   telnyx-edge secrets add TRUSTEDROUTER_API_KEY "<key>"
+#   telnyx-edge secrets add DEMO_ACCESS_TOKEN "<token>"

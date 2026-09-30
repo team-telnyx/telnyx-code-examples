@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-08-19T18:45:06Z",
-  "example_count": 519,
+  "generated_at": "2026-09-30T00:05:23Z",
+  "example_count": 522,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -2003,6 +2003,33 @@
       "language": "nodejs",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/multi-model-inference-switcher"
+    },
+    {
+      "folder": "trustedrouter-telnyx-receipt-verifier-nodejs",
+      "title": "TrustedRouter → Telnyx Receipt Explorer",
+      "description": "Browser receipt explorer: send a prompt through TrustedRouter pinned to Telnyx-only zero-data-retention routes, then locally verify the signed inference receipt (signature, exact request/response hashes, nonce, freshness, attestation). Deployable to Telnyx Edge Compute.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/trustedrouter-telnyx-receipt-verifier-nodejs"
+    },
+    {
+      "folder": "ai-email-agent-python",
+      "title": "AI Email Agent",
+      "description": "AI Email Agent — autonomous inbound email reply bot on the Telnyx Email API. A customer emails in, the AI drafts a reply, the Email API sends it back. One platform, one API key, one agent.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-email-agent-python"
+    },
+    {
+      "folder": "audio-transcribe-summarize-sms",
+      "title": "Audio Transcribe → Summarize → SMS",
+      "description": "Upload a voicemail audio file → transcribe via STT → summarize with LLM → text the summary via SMS. Agent SDK pipeline on Telnyx Edge Compute with zero-credential inference and messaging.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/audio-transcribe-summarize-sms"
     },
     {
       "folder": "sentiment-analysis-agent",
