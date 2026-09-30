@@ -3,6 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
+  "generated_at": "2026-09-30T18:08:23Z",
+  "example_count": 560,
   "generated_at": "2026-09-30T05:08:14Z",
   "example_count": 561,
   "examples": [
@@ -5047,6 +5049,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/email-schedule-rescheduler"
     },
     {
+      "folder": "post-call-qa-scoring",
+      "title": "Post-Call QA Scoring with Jev Decision Models",
+      "description": "Durable per-agent quality profiles that grade support call transcripts, track rolling trends, flag coaching needs, and text daily digests.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/post-call-qa-scoring"
       "folder": "chargeback-adjudication",
       "title": "Chargeback Adjudication with Telnyx Decision Models",
       "description": "A durable actor that adjudicates payment chargebacks using Telnyx Decision Models, manages regulatory deadlines, and maintains an append-only audit ledger.",
