@@ -1,17 +1,19 @@
-```json
 {
   "compilerOptions": {
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM"],
-    "types": ["@telnyx/edge-runtime"],
+    "outDir": "./dist",
+    "rootDir": ".",
     "strict": true,
-    "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "lib": ["ES2022"],
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
-  "include": ["src/**/*.ts", "smoke_test.ts"]
+  "include": ["src/**/*", "smoke_test.ts"],
+  "exclude": ["dist", "node_modules"]
 }
-```

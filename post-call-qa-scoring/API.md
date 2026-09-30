@@ -9,6 +9,7 @@ This document describes the HTTP endpoints exposed by the `post-call-qa-scoring`
 1. [POST /webhook/call-conversation-ended](#post-webhookcall-conversation-ended)
 2. [POST /webhook/transcription-saved](#post-webhooktranscription-saved)
 3. [POST /demo/trigger](#post-demotrigger)
+4. [GET /health/liveness and /health/readiness](#get-healthliveness-and-healthreadiness)
 
 ---
 
@@ -55,17 +56,31 @@ curl -X POST https://<edge-function-url>/webhook/call-conversation-ended \
 
 ### Response Schema
 
-#### 200 OK
+#### 200 OK (grading scheduled)
 
 ```json
 {
-  "status": "scored",
+  "status": "grade_scheduled",
   "agentId": "agent-001",
-  "callId": "call_abc123"
+  "callId": "call_abc123",
+  "digestEnabled": true
+}
+```
+
+The grading runs on the actor's stable scheduled task `grade:<callId>`. Re-delivered webhooks are no-ops:
+
+```json
+{
+  "status": "already_recorded",
+  "agentId": "agent-001",
+  "callId": "call_abc123",
+  "digestEnabled": true
 }
 ```
 
 #### 200 OK (no transcript)
+
+The payload carried no transcript. The call is NOT scored (no false zero); the `transcription-saved` fallback delivers the finalized transcript later.
 
 ```json
 {
@@ -86,7 +101,7 @@ curl -X POST https://<edge-function-url>/webhook/call-conversation-ended \
 
 ## POST /webhook/transcription-saved
 
-Handles the Telnyx `transcription-saved` webhook as a fallback when the transcript was not embedded in the `call-conversation-ended` payload. Fetches the finalized transcript and dispatches scoring to the per-agent `QAAgent` actor.
+Handles the Telnyx `transcription-saved` webhook as a fallback when the transcript was not embedded in the `call-conversation-ended` payload. Delivers the finalized transcript to the same per-agent `QAAgent` actor; the call's dedup marker makes whichever delivery arrives first the one that schedules grading.
 
 ### Request Body Schema
 
@@ -123,13 +138,22 @@ curl -X POST https://<edge-function-url>/webhook/transcription-saved \
 
 ### Response Schema
 
-#### 200 OK
+#### 200 OK (grading scheduled)
 
 ```json
 {
-  "status": "scored",
+  "status": "grade_scheduled",
   "agentId": "agent-002",
-  "callId": "call_xyz789"
+  "callId": "call_xyz789",
+  "digestEnabled": true
+}
+```
+
+#### 200 OK (no transcript)
+
+```json
+{
+  "status": "no_transcript"
 }
 ```
 
@@ -138,7 +162,7 @@ curl -X POST https://<edge-function-url>/webhook/transcription-saved \
 | Code | Description |
 |---|---|
 | 200 | Webhook processed successfully. |
-| 400 | Missing `call_control.id` or `transcript` in payload. |
+| 400 | Malformed request body. |
 | 404 | Route not found. |
 | 500 | Internal server error. |
 
@@ -170,13 +194,15 @@ curl -X POST https://<edge-function-url>/demo/trigger \
 
 ### Response Schema
 
-#### 200 OK
+#### 200 OK (grading scheduled)
 
 ```json
 {
-  "status": "demo_scored",
+  "status": "grade_scheduled",
   "agentId": "demo-agent",
-  "callId": "demo_1719000000000"
+  "callId": "demo_1719000000000",
+  "digestEnabled": true,
+  "demo": true
 }
 ```
 
@@ -191,9 +217,15 @@ curl -X POST https://<edge-function-url>/demo/trigger \
 
 ---
 
+## GET /health/liveness and /health/readiness
+
+Platform health probes. Both return `200 ok` with a plain-text body.
+
+---
+
 ## Notes
 
 - **Agent Resolution**: The agent ID is resolved from `data.payload.metadata.<CALL_METADATA_AGENT_KEY>` (default key: `"agentId"`). If not found, the system falls back to `AGENT_NUMBER_MAP` (a JSON mapping of phone numbers to agent IDs). If neither is available, the actor is keyed by `called_number` and digest notifications are suppressed (log-only mode).
-- **Exactly-Once Guarantee**: Each call is graded exactly once via a stable scheduled task `grade:<callId>` and a `UNIQUE` constraint on `scores.callId` in the SQL database. Re-delivered webhooks are no-ops.
-- **Jev Failure Handling**: If the Jev Decision Models API fails after 3 retry attempts (with 10s/30s/60s backoff), the call is recorded with `status="ungraded"` and surfaced in the daily digest.
-- **Daily Digest**: Each `QAAgent` actor sends a one-liner digest to `TEAM_LEAD_E164` at 17:00 UTC (configurable via `DIGEST_HOUR_UTC`).
+- **Exactly-Once Guarantee**: Each call is recorded with a `pending` row whose `call_id` is the `PRIMARY KEY` (UNIQUE) before a stable scheduled task `grade:<callId>` is queued — a re-delivered webhook re-schedules the same task id (the SDK replaces the pending task) and the UNIQUE row makes the repeat a no-op. Either mechanism alone prevents double-grading; together they are the durable backstop.
+- **Jev Failure Handling**: If the Jev Decision Models API fails after 3 retry attempts (with 10s/30s/60s backoff, honoring `Retry-After`), the call is recorded with `status="ungraded"` and the last error, surfaced in the daily digest. There is no infinite retry.
+- **Daily Digest**: Each `QAAgent` actor sends a one-liner digest to `TEAM_LEAD_E164` at 17:00 UTC (configurable via `DIGEST_HOUR_UTC`). N agents ⇒ N texts; actors keyed only by a fallback identity are suppressed (log-only).

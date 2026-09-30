@@ -1,4 +1,3 @@
-```json
 {
   "name": "post-call-qa-scoring",
   "version": "1.0.0",
@@ -7,14 +6,15 @@
   "scripts": {
     "deploy": "telnyx-edge ship",
     "types": "telnyx-edge types",
+    "typecheck": "tsc --noEmit",
     "test": "tsx smoke_test.ts"
   },
   "dependencies": {
-    "@telnyx/edge-runtime": "^0.15.1"
+    "@telnyx/edge-runtime": "^0.16.0"
   },
   "devDependencies": {
-    "tsx": "^4.0.0",
-    "@types/node": "^20.0.0"
-  }
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  },
+  "license": "MIT"
 }
-```

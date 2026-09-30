@@ -25,12 +25,12 @@ Telnyx provides **AI Communications Infrastructure** — the real-time, programm
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /v2/ai/typesafe/v1/systemone` | Jev Decision Models — grades transcript into `choice`, `noul`, `score` |
+| `POST /v2/ai/typesafe/v1/systemone` | Jev Decision Models — grades transcript into `choice`, `noul`, `score` in one shared-`state` call |
 | `call-conversation-ended` webhook | Receives ended call payload with embedded transcript |
-| `transcription-saved` webhook | Fallback: fetches finalized transcript if not embedded in payload |
-| `send-a-message` (via `TELNYX` binding) | Sends per-agent daily digest and breach alerts to team lead |
-| Agent SDK `schedule()` | Daily digest tick (`digest:<agentId>`) + exactly-once grading guard (`grade:<callId>`) |
-| Agent SDK `SQL` | Durable `scores` table (callId UNIQUE) + `breaches` table |
+| `transcription-saved` webhook | Fallback: delivers the finalized transcript if not embedded in the ended payload |
+| `send-a-message` (via `TELNYX` binding) | Sends per-agent daily digest and immediate breach alerts to the team lead |
+| Agent SDK `schedule()` | Daily digest tick (stable id `digest`) + exactly-once grading guard (`grade:<callId>`) |
+| Agent SDK SQL (`this.ctx.storage.sql`) | Durable `scores` table (`call_id` PRIMARY KEY) + `breaches` table, private per actor |
 
 ## Architecture
 
@@ -40,11 +40,11 @@ Telnyx provides **AI Communications Infrastructure** — the real-time, programm
 │                                                                     │
 │  ┌──────────────────┐     ┌──────────────────┐                     │
 │  │  Webhook Handler │     │  Demo Trigger    │                     │
-│  │  (Edge Function) │     │  /demo/trigger   │                     │
-│  │                  │     │                  │                     │
-│  │  POST /webhook/  │     │  POST /demo/     │                     │
-│  │  call-conversation│    │  trigger         │                     │
-│  │  -ended           │     │  (synthetic)     │                     │
+│  │  (Worker fetch)  │     │  /demo/trigger   │                     │
+│  │                  │     │  (synthetic)     │                     │
+│  │  POST /webhook/  │     │                  │                     │
+│  │  call-conversation│    │                  │                     │
+│  │  -ended           │    │                  │                     │
 │  │  POST /webhook/  │     │                  │                     │
 │  │  transcription-  │     │                  │                     │
 │  │  saved           │     │                  │                     │
@@ -55,35 +55,43 @@ Telnyx provides **AI Communications Infrastructure** — the real-time, programm
 │  ┌──────────────────────────────────────────┐                      │
 │  │  env.QA_AGENT.idFromName(agentId)        │                      │
 │  │  → one QAAgent per agent (durable)       │                      │
+│  │  → born on first delivery, self-provision│                      │
 │  └──────────────────┬───────────────────────┘                      │
-│                     │                                              │
+│                     │ stub.recordCallEnded(...)                    │
 │                     ▼                                              │
 │  ┌─────────────────────────────────────────────────────────────┐  │
-│  │  QAAgent (extends Agent<Env, AgentState>)                   │  │
+│  │  QAAgent (extends Agent<Env, QAAgentState>)                 │  │
 │  │                                                             │  │
-│  │  onCallEnded(callId, transcript, agentId)                   │  │
-│  │    ├── graded(callId) → fast-path check                     │  │
-│  │    ├── judgeWithJev(transcript) → POST /systemone           │  │
-│  │    │     ├── 3 retries: 10s / 30s / 60s backoff             │  │
-│  │    │     └── on failure → INSERT status="ungraded"          │  │
-│  │    ├── insertScore() → SQL INSERT (callId UNIQUE)           │  │
+│  │  recordCallEnded(callId, transcript, agentId)               │  │
+│  │    ├── findScore(callId) → fast-path dedup check            │  │
+│  │    ├── INSERT pending row → scores (call_id PRIMARY KEY)    │  │
+│  │    ├── bootstrap digest schedule (stable id "digest")       │  │
+│  │    └── schedule gradeCall → stable id grade:<callId>        │  │
+│  │                                                             │  │
+│  │  gradeCall({callId, attempt})  [scheduled task]             │  │
+│  │    ├── buildJevRequest(transcript) → POST /systemone        │  │
+│  │    │     ├── questions object: choice + noul + score        │  │
+│  │    │     ├── 429/5xx → 10s/30s/60s backoff (Retry-After)    │  │
+│  │    │     └── exhausted → status="ungraded" + last_error     │  │
+│  │    ├── UPDATE scores → status="graded"                      │  │
 │  │    ├── recomputeTrend() → 5-call rolling avg + trend        │  │
 │  │    │     ├── avg < floor → flag for coaching                │  │
 │  │    │     └── avg >= floor → auto-clear flag                 │  │
-│  │    └── flagBreach() → if noul > 0.8 → breaches table        │  │
+│  │    └── noul > 0.8 → breaches table + immediate alert SMS    │  │
 │  │                                                             │  │
-│  │  digest() → text one-liner to TEAM_LEAD_E164                 │  │
-│  │  scheduledDigest() → daily at DIGEST_HOUR_UTC                │  │
+│  │  runDigest()  [daily at DIGEST_HOUR_UTC]                    │  │
+│  │    ├── re-arm next 17:00 UTC (chain survives crashes)       │  │
+│  │    └── text one-liner to TEAM_LEAD_E164                     │  │
 │  │                                                             │  │
-│  │  State: { agent, flagged, rolling, lastDigestTs }            │  │
-│  │  SQL: scores(callId UNIQUE) + breaches                       │  │
+│  │  State: setState/getState (rolling, flagged, worstCategory) │  │
+│  │  SQL: scores(call_id PRIMARY KEY) + breaches (per actor)    │  │
 │  └─────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────┐  │
 │  │  External Services                                            │  │
 │  │  ┌──────────────────┐  ┌──────────────────┐  ┌────────────┐ │  │
-│  │  │ Jev Decision     │  │ Telnyx Messaging │  │ SQL Store  │ │  │
-│  │  │ Models API       │  │ (TELNYX binding) │  │ (QA_DB)    │ │  │
+│  │  │ Jev Decision     │  │ Telnyx Messaging │  │ Agent SQL  │ │  │
+│  │  │ Models API       │  │ (TELNYX binding) │  │ (per actor)│ │  │
 │  │  │ /systemone       │  │ send-a-message   │  │            │ │  │
 │  │  └──────────────────┘  └──────────────────┘  └────────────┘ │  │
 │  └─────────────────────────────────────────────────────────────┘  │
@@ -92,14 +100,37 @@ Telnyx provides **AI Communications Infrastructure** — the real-time, programm
 
 ## Environment Variables
 
+All configuration flows through Telnyx `[[secrets]]` (read via `this.env.SECRETS.get()`), declared in `telnyx.toml`:
+
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `AGENT_NUMBER_MAP` | `string` | `{"+15551234567":"agent-001"}` | **yes** | JSON map of phone numbers to agent IDs, used as fallback when agent ID is not in call metadata | — |
-| `CALL_METADATA_AGENT_KEY` | `string` | `agentId` | **yes** | Key name in call metadata payload to extract the agent ID (default: "agentId") | — |
-| `DIGEST_HOUR_UTC` | `string` | `17` | **yes** | UTC hour (0-23) at which each agent's daily digest is texted (default: 17) | — |
-| `QA_COACHING_FLOOR` | `string` | `3.0` | **yes** | Rolling average score threshold below which an agent is flagged for coaching (default: 3.0) | — |
-| `TEAM_LEAD_E164` | `string` | `+15551234567` | **yes** | E.164 phone number of the team lead who receives daily digest texts | — |
+| `AGENT_NUMBER_MAP` | `string` | `{"+15551234567":"agent-001"}` | no | JSON map of phone numbers to agent IDs, used as fallback when the agent ID is not in call metadata | — |
+| `CALL_METADATA_AGENT_KEY` | `string` | `agentId` | no | Key name in call metadata to extract the agent ID (default: `agentId`) | — |
+| `DIGEST_HOUR_UTC` | `string` | `17` | no | UTC hour (0–23) at which each agent's daily digest is texted (default: `17`) | — |
+| `QA_COACHING_FLOOR` | `string` | `3.0` | no | Rolling average threshold below which an agent is flagged for coaching (default: `3.0` on the 0–5 scale) | — |
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key for authenticating Jev Decision Models API calls | [Telnyx Portal](https://portal.telnyx.com/) |
+| `TELNYX_FROM_NUMBER` | `string` | `+15550001001` | **yes** | Number you own with messaging enabled; sender for digest and breach-alert SMS | [Telnyx Portal](https://portal.telnyx.com/) |
+| `TEAM_LEAD_E164` | `string` | `+15551234567` | **yes** | E.164 phone number of the team lead who receives daily digest texts | — |
+
+> **Agent / CLI access:** provision the pieces this example needs from the CLI:
+>
+> ```bash
+> # Buy a number for digest/alert sending (Telnyx CLI — human or agent)
+> telnyx available-phone-numbers list --country US --features sms
+> telnyx number-orders create --phone-number +15550001001
+>
+> # Attach a messaging profile so the TELNYX binding can send SMS
+> telnyx messaging-profiles create --name qa-digests --enabled true
+>
+> # Set the secrets this example reads (telnyx-edge CLI)
+> telnyx-edge secrets add TELNYX_API_KEY "<your_api_key>"
+> telnyx-edge secrets add TELNYX_FROM_NUMBER "+15550001001"
+> telnyx-edge secrets add TEAM_LEAD_E164 "+15551234567"
+> telnyx-edge secrets add QA_COACHING_FLOOR "3.0"
+> telnyx-edge secrets add DIGEST_HOUR_UTC "17"
+> telnyx-edge secrets add CALL_METADATA_AGENT_KEY "agentId"
+> telnyx-edge secrets add AGENT_NUMBER_MAP '{"+15551234567":"agent-001"}'
+> ```
 
 ## Setup
 
@@ -116,41 +147,60 @@ cp .env.example .env
 
 # Edit .env and fill in your values
 # TELNYX_API_KEY — from https://portal.telnyx.com/
+# TELNYX_FROM_NUMBER — a number you own with messaging enabled
 # TEAM_LEAD_E164 — your team lead's phone number in E.164 format
 # AGENT_NUMBER_MAP — JSON mapping of phone numbers to agent IDs
 # CALL_METADATA_AGENT_KEY — key in call metadata (default: "agentId")
 # DIGEST_HOUR_UTC — hour of day for digest (default: 17)
 # QA_COACHING_FLOOR — score threshold for coaching flag (default: 3.0)
 
-# Authenticate with Telnyx Edge CLI
-telnyx-edge auth api-key set <your_api_key>
+# Type-check the agent and worker sources
+npm run typecheck
 
-# Generate type definitions from telnyx.toml bindings
-npm run types
-
-# Run the smoke test to verify the module loads
-npx tsx smoke_test.ts
+# Run the smoke test (pure logic: Jev request/response, scoring, routing)
+npm test
 
 # Deploy to Telnyx Edge
 npm run deploy
 ```
 
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# Provision a number with messaging for the digest/alert sender
+telnyx available-phone-numbers list --country US --features sms
+telnyx number-orders create --phone-number +15550001001
+
+# Attach a messaging profile
+telnyx-edge secrets add TELNYX_API_KEY "<your_api_key>"
+telnyx-edge secrets add TELNYX_FROM_NUMBER "+15550001001"
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
+
 ## API Reference
+
+The typed endpoint reference lives in [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/post-call-qa-scoring/API.md); the walkthrough in [GUIDE.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/post-call-qa-scoring/GUIDE.md). Summary:
 
 ### Webhook Endpoints
 
 #### `POST /webhook/call-conversation-ended`
 
-Receives the `call-conversation-ended` callback from Telnyx. The transcript is expected to be embedded in the payload (`data.transcript`).
+Receives the `call-conversation-ended` callback. The transcript is read from the payload (`data.payload.transcript`); a payload without a transcript returns `{"status": "no_transcript"}` and is NOT scored.
 
-**Request Body:**
 ```json
 {
   "data": {
-    "event": "call.conversation.ended",
     "payload": {
-      "call_control": { "id": "call_abc123" },
-      "called_number": "+15551234567",
+      "call_control_id": "call_abc123",
+      "called_number": "+15559998888",
       "metadata": { "agentId": "agent-001" },
       "transcript": "Agent: Thank you for calling..."
     }
@@ -158,112 +208,94 @@ Receives the `call-conversation-ended` callback from Telnyx. The transcript is e
 }
 ```
 
-**Response:**
+Response — grading scheduled on the actor's stable task:
+
 ```json
-{ "status": "scored", "agentId": "agent-001", "callId": "call_abc123" }
+{ "status": "grade_scheduled", "agentId": "agent-001", "callId": "call_abc123", "digestEnabled": true }
 ```
 
 #### `POST /webhook/transcription-saved`
 
-Fallback webhook for when the transcript is not embedded in the `call-conversation-ended` payload. Fetches the finalized transcript and triggers scoring.
-
-**Response:**
-```json
-{ "status": "scored", "agentId": "agent-001", "callId": "call_abc123" }
-```
+Fallback webhook when the transcript was not embedded in the ended-call payload. Same routing; whichever delivery arrives first records the call.
 
 #### `POST /demo/trigger`
 
-Triggers the full pipeline with a synthetic call — no real Telnyx call required. Uses a canned support transcript by default.
+Triggers the full pipeline with a synthetic call — no real Telnyx calls required. Body: `{"agentId": "demo-agent", "callId": "demo_12345", "transcript": "..."}` (all optional; defaults provided).
 
-**Request Body (optional):**
-```json
-{
-  "agentId": "demo-agent",
-  "callId": "demo_12345",
-  "transcript": "Agent: Thank you for calling Telnyx Support..."
-}
-```
-
-**Response:**
-```json
-{ "status": "demo_scored", "agentId": "demo-agent", "callId": "demo_12345" }
-```
-
-### Actor Methods
+### Actor Methods (RPC on the `QAAgent` stub)
 
 | Method | Description |
 |---|---|
-| `onCallEnded(callId, transcript, agentId)` | Entry point: checks if already graded, calls Jev, inserts score, recomputes trend, flags breaches |
-| `graded(callId)` | Fast-path check: returns true if callId already exists in scores table |
-| `judgeWithJev(transcript, callId)` | Calls Jev Decision Models API with 3-retry backoff (10s/30s/60s); returns `JevResult` or null |
-| `retryJev(payload)` | Scheduled task handler for Jev retry attempts |
-| `insertScore(agentId, callId, result)` | Inserts graded result into SQL scores table (INSERT OR IGNORE for exactly-once) |
-| `insertUnrated(callId, agentId, status, error)` | Inserts ungraded row when Jev fails permanently |
-| `recomputeTrend(agentId)` | Recomputes 5-call rolling average; sets/clears coaching flag based on floor |
-| `flagBreach(callId, agentId, result)` | Inserts breach record when noul > 0.8 |
-| `digest()` | Texts one-liner digest to TEAM_LEAD_E164 with avg, coaching status, breach, ungraded alerts |
-| `scheduledDigest()` | Schedules next daily digest at DIGEST_HOUR_UTC |
+| `recordCallEnded(callId, transcript, agentId, digestEnabled)` | Entry point: dedup check, writes the `pending` row, bootstraps the digest schedule, schedules `grade:<callId>` |
+| `gradeCall({callId, attempt})` | Scheduled task: calls Jev, applies the grade, recomputes the trend, flags breaches. Retries 10s/30s/60s, then records `ungraded` |
+| `runDigest()` | Scheduled task: re-arms the next 17:00 UTC run, then texts this actor's one-liner to `TEAM_LEAD_E164` |
 
-### JevResult Interface
+### Scoring Model
 
 ```typescript
 interface JevResult {
-  choice: string;   // "pass" or "fail_<category>"
-  noul: number;     // 0–1, hard compliance breach score
-  score: number;    // 0–5, quality score
+  choice: string;   // "pass" or "fail_<category>" — e.g. fail_compliance, fail_empathy
+  noul: number;     // 0–1, hard compliance breach score (>0.8 flags manager review)
+  score: number;    // 0–5, quality score from the 6-entry rubric
 }
 ```
 
-### ScoreRow Interface
+### Durable Tables (per-actor SQL)
 
-```typescript
-interface ScoreRow {
-  agentId: string;
-  callId: string;
-  ts: number;
-  choice: string;
-  noul: number;
-  score: number;
-  status: string;    // "graded" or "ungraded"
-  lastError?: string; // error message if status="ungraded"
-}
+```sql
+scores(call_id TEXT PRIMARY KEY, agent_id TEXT, ts INTEGER, choice TEXT,
+       noul REAL, score REAL, status TEXT, transcript TEXT, last_error TEXT)
+breaches(agent_id TEXT, call_id TEXT, ts INTEGER, noul REAL, choice TEXT)
 ```
+
+`status` is `pending` (recorded, awaiting grade), `graded`, or `ungraded` (with `last_error`). The `call_id` PRIMARY KEY is the exactly-once backstop.
 
 ## Troubleshooting
 
 | Issue | Cause | Solution |
 |---|---|---|
-| Agent not receiving digest texts | `TEAM_LEAD_E164` not set or invalid | Verify the phone number is in E.164 format (e.g., `+15551234567`) |
-| All calls show as "ungraded" | `TELNYX_API_KEY` missing or invalid | Check the secret is set via `telnyx-edge secrets add TELNYX_API_KEY "value"` |
-| Coaching flag never clears | Rolling average stuck below floor | Check `QA_COACHING_FLOOR` value; ensure new calls are being scored |
-| Breach not flagged | `noul` value below 0.8 threshold | Verify Jev response parsing; check transcript quality |
-| Duplicate scores in history | UNIQUE constraint not enforced | Ensure `scores` table is created with `callId TEXT PRIMARY KEY` |
+| Agent not receiving digest texts | `TEAM_LEAD_E164` / `TELNYX_FROM_NUMBER` not set, or the from-number lacks messaging | Verify both E.164 values and that the from-number has an active messaging profile |
+| All calls show as "ungraded" | `TELNYX_API_KEY` missing or invalid | Check the secret is set via `telnyx-edge secrets add TELNYX_API_KEY "value"`; the digest surfaces the `last_error` (`missing_api_key`, `jev_http_4xx`) |
+| Coaching flag never clears | Rolling average stuck below floor | Check `QA_COACHING_FLOOR` value; ensure new calls are being graded (not `ungraded`) |
+| Breach not flagged | `noul` value at or below the 0.8 threshold | Verify Jev response parsing; check transcript quality and breach wording in the `noul` instructions |
+| Duplicate scores in history | Not possible by design — but verify | The `call_id` PRIMARY KEY rejects duplicates; check that the same call isn't arriving with different IDs |
 | Agent ID not resolved | Metadata key mismatch | Set `CALL_METADATA_AGENT_KEY` to match your call metadata, or configure `AGENT_NUMBER_MAP` |
-| No transcript received | Transcript not in payload | Ensure `call-conversation-ended` webhook has transcript enabled, or rely on `transcription-saved` fallback |
-| Digest fires at wrong time | `DIGEST_HOUR_UTC` misconfigured | Set to desired UTC hour (0-23) |
+| Digest suppressed unexpectedly | Actor keyed by fallback identity | The agent ID must come from call metadata or `AGENT_NUMBER_MAP`; fallback-keyed actors are log-only by design |
+| No transcript received | Transcript not in payload | Ensure `call-conversation-ended` has transcript enabled, or rely on the `transcription-saved` fallback |
+| Digest fires at wrong time | `DIGEST_HOUR_UTC` misconfigured | Set to the desired UTC hour (0–23); the tick re-arms daily |
+| Type errors in `src/agent.ts` | Missing dependencies | Run `npm install`, then `npm run typecheck` — the `Agent` and related types ship in `@telnyx/edge-runtime` |
+| Schedule not firing | Actor not deployed | Schedules survive actor evictions but need a live Edge Compute deployment to wake |
 
 ## Agent Discovery
 
-- [Telnyx Agent SDK Signup](https://telnyx.com/agent-signup.md)
-- [Telnyx AI GitHub Repository](https://github.com/team-telnyx/ai)
-- [Telnyx LLM Documentation](https://telnyx.com/llms.txt)
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **Agent signup**: [telnyx.com/agent-signup.md](https://telnyx.com/agent-signup.md) — automated account provisioning via agent mail; get an API key with no human intervention
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **Telnyx AI repo**: [github.com/team-telnyx/ai](https://github.com/team-telnyx/ai)
+- **Agent SDK docs**: [developers.telnyx.com/docs/agent-sdk](https://developers.telnyx.com/docs/agent-sdk)
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI (human)**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Related Examples
 
-- **call-control-transfer** — Warm transfer between agents using Call Control
-- **ai-voice-agent** — Real-time AI voice assistant with speech-to-speech
-- **network-quality-scoring** — DEV-834: Scores network quality metrics (distinct from this sample)
-- **sms-auto-responder** — Automated SMS responses using Messaging API
-- **realtime-transcription** — Live transcription of calls with confidence scoring
+- [edge-customer-agent-typescript](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-customer-agent-typescript/README.md) — The Entity Agent pattern: one durable actor per customer
+- [edge-url-summarizer](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-url-summarizer/README.md) — Cached URL summarization with Stateful Actors
+- [edge-voicemail-to-action-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-voicemail-to-action-python/README.md) — Voicemail triage at the edge
+- [edge-webhook-aggregator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-webhook-aggregator-python/README.md) — Multi-tenant webhook consolidation
 
 ## Resources
 
 - [Telnyx Decision Models Documentation](https://developers.telnyx.com/docs/inference/decision-models)
-- [Telnyx Call Control API Reference](https://developers.telnyx.com/api-reference/callbacks/call-conversation-ended)
-- [Telnyx Messaging API Reference](https://developers.telnyx.com/docs/messaging/messages/send-message)
-- [Telnyx Agent SDK SQL Documentation](https://developers.telnyx.com/docs/agent-sdk/sql)
-- [Telnyx Agent SDK Scheduled Tasks Documentation](https://developers.telnyx.com/docs/agent-sdk/scheduled-tasks)
+- [Decision Models API Reference](https://developers.telnyx.com/api-reference/decision-models/evaluate-decision-models-typesafe-compatible)
+- [Call Control `call-conversation-ended` Callback](https://developers.telnyx.com/api-reference/callbacks/call-conversation-ended)
+- [Telnyx Messaging — Send a Message](https://developers.telnyx.com/docs/messaging/messages/send-message)
+- [Telnyx Agent SDK — SQL Storage](https://developers.telnyx.com/docs/agent-sdk/sql)
+- [Telnyx Agent SDK — Scheduled Tasks](https://developers.telnyx.com/docs/agent-sdk/scheduled-tasks)
+- [Telnyx Agent SDK Documentation](https://developers.telnyx.com/docs/agent-sdk)
 - [Telnyx Edge CLI Documentation](https://developers.telnyx.com/docs/edge)
+- [Telnyx SMS API Product](https://telnyx.com/products/sms-api)
 - [Telnyx Pricing](https://telnyx.com/pricing)
 - [Telnyx Developer Portal](https://developers.telnyx.com)
