@@ -66,7 +66,14 @@ export function buildDecisionQuestions(): Record<string, unknown> {
     noul: {
       type: "noul",
       instructions:
-        "Does the transcript contain a hard compliance breach — e.g. a legally required disclosure is missing or a prohibited statement is made? 1 = yes, breach present; 0 = no breach.",
+        "Evaluate whether the support call contains a HARD compliance breach that requires manager review: " +
+        "(1) the agent speaks sensitive payment data aloud — a full card number, CVV, or a one-time verification code; " +
+        "(2) the agent gives legal, medical, or regulated financial advice; " +
+        "(3) the agent uses threatening, discriminatory, or abusive language; " +
+        "(4) the agent promises refunds, credits, or waivers without authorization; " +
+        "(5) the agent shares account details or personal information without verifying the caller's identity; " +
+        "(6) the agent makes false or misleading statements about the company's products or policies. " +
+        "Answer 1 if any of these occurred; answer 0 only if none did.",
     },
     score: {
       type: "score",

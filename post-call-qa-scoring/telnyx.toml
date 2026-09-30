@@ -24,6 +24,10 @@ name = "post-call-qa-scoring"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
 
+[edge_compute]
+func_id   = "9e620e79-66d5-4641-a7dd-4dc8423b48e3"
+func_name = "post-call-qa-scoring"
+
 [[actors]]
 binding = "QA_AGENT"
 type    = "QAAgent"
