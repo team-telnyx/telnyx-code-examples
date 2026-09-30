@@ -89,7 +89,7 @@ def check_verification(phone_number, code):
         resp = requests.post(
             "https://api.telnyx.com/v2/verifications/by_phone_number/{}/actions/verify".format(phone_number, timeout=10),
             headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            json={"code": code},
+            json={"code": code, "verify_profile_id": VERIFY_PROFILE_ID},
             timeout=10,
         )
         if resp.ok:

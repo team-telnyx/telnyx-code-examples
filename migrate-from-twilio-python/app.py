@@ -52,7 +52,8 @@ def migrate_messaging():
         resp = requests.post(f"{TELNYX_API}/messaging_profiles", headers=telnyx_headers,
             json={"name": data.get("name", "Migrated from Twilio"),
                 "webhook_url": data.get("webhook_url", ""),
-                "webhook_api_version": "2"}, timeout=15)
+                "webhook_api_version": "2",
+                "whitelisted_destinations": data.get("whitelisted_destinations", ["US"])}, timeout=15)
         result = resp.json()
         migration_log.append({"action": "create_messaging_profile",
             "profile_id": result.get("data", {}).get("id"),

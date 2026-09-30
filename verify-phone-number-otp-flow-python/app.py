@@ -68,7 +68,7 @@ def check_verification():
     try:
         resp = requests.post("https://api.telnyx.com/v2/verifications/by_phone_number/" + phone + "/actions/verify",
             headers={"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"},
-            json={"code": code}, timeout=10)
+            json={"code": code, "verify_profile_id": VERIFY_PROFILE_ID}, timeout=10)
         if resp.ok:
             verifications[phone] = {"status": "verified", "verified_at": time.time()}
             return jsonify({"status": "verified"}), 200
