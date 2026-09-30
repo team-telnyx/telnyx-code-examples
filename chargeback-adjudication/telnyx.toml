@@ -1,0 +1,22 @@
+name = "chargeback-adjudication"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "DISPUTES"
+type = "DisputeCase"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.DISPUTE_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+RESPONSE_DEADLINE_DAYS = "7"
+REVIEWER_ONCALL_E164 = "+1555XXXXXXXX"
+DEMO_MODE = "true"
