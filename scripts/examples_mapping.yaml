@@ -3444,10 +3444,12 @@ examples:
     folder: email-schedule-rescheduler
 
   - product: ai
-    use_case: "auto-generated-from-linear"
+    use_case: post-call-qa-scoring
     language: typescript
     framework: edge
     folder: post-call-qa-scoring
+
+  - product: ai
     use_case: chargeback-adjudication
     language: typescript
     framework: edge

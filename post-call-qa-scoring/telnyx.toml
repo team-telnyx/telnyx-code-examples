@@ -1,7 +1,7 @@
 # Post-Call QA Scoring — one durable QAAgent actor per support agent.
 #
 # The actor IS the agent's quality profile: it grades each ended call with
-# the Jev Decision Models API, owns per-agent SQL score history (private to
+# the Telnyx Decision Models API, owns per-agent SQL score history (private to
 # the actor — no [[storage.sqldb]] block needed; agent SQL lives at
 # this.ctx.storage.sql), tracks the 5-call rolling trend, flags coaching
 # and compliance breaches, and texts a daily digest to the team lead.

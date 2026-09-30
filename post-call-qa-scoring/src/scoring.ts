@@ -142,7 +142,7 @@ export function buildDigestLine(input: DigestInput): string {
   }
 
   if (input.lastStatus === "ungraded") {
-    line += ` ungraded: ${input.lastError || "jev_failed"}`;
+    line += ` ungraded: ${input.lastError || "decision_failed"}`;
   }
 
   if (input.lastNoul !== null && input.lastNoul !== undefined && input.lastNoul > BREACH_THRESHOLD) {

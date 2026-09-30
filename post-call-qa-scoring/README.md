@@ -1,13 +1,13 @@
 ---
 name: post-call-qa-scoring
-title: "Post-Call QA Scoring with Jev Decision Models"
+title: "Post-Call QA Scoring with Telnyx Decision Models"
 description: "Durable per-agent quality profiles that grade support call transcripts, track rolling trends, flag coaching needs, and text daily digests."
 language: typescript
 framework: edge
 telnyx_products: [Agent SDK, Decision Models, Call Control, Messaging]
 ---
 
-# Post-Call QA Scoring with Jev Decision Models
+# Post-Call QA Scoring with Telnyx Decision Models
 
 Durable per-agent quality profiles that grade support call transcripts, track rolling trends, flag coaching needs, and text daily digests.
 
@@ -15,7 +15,7 @@ Durable per-agent quality profiles that grade support call transcripts, track ro
 
 A regional bank's customer support desk handles thousands of calls each week, where a single missed compliance disclosure or poor interaction can trigger regulatory fines, customer churn, or reputational damage. Supervisors need to know not just whether an agent passed or failed a single call, but whether their performance is trending up or down over time — because coaching based on a single call is guesswork, but coaching based on a durable trend is precision.
 
-The actor IS the agent's quality profile. When a support call ends, the QAAgent actor is born for that agent via `idFromName(agentId)`, receives the transcript, and asks the Jev Decision Models API to grade it — pass or fail with a failing category, a hard compliance breach score (noul), and a 0–5 quality score. The actor appends each result to its durable SQL history, recomputes a 5-call rolling average, and if the average dips below the coaching floor, flags the agent for coaching — auto-clearing the flag when performance recovers. If a compliance breach is detected, the call is flagged for manager review regardless of pass/fail. At 17:00 UTC each day, the actor texts its own one-liner digest to the team lead. The actor survives pod reboots, platform restarts, and weeks of calls — because a trend needs history, and history needs durability. The rest of this README is the API surface of that story.
+The actor IS the agent's quality profile. When a support call ends, the QAAgent actor is born for that agent via `idFromName(agentId)`, receives the transcript, and asks the Telnyx Decision Models API to grade it — pass or fail with a failing category, a hard compliance breach score (noul), and a 0–5 quality score. The actor appends each result to its durable SQL history, recomputes a 5-call rolling average, and if the average dips below the coaching floor, flags the agent for coaching — auto-clearing the flag when performance recovers. If a compliance breach is detected, the call is flagged for manager review regardless of pass/fail. At 17:00 UTC each day, the actor texts its own one-liner digest to the team lead. The actor survives pod reboots, platform restarts, and weeks of calls — because a trend needs history, and history needs durability. The rest of this README is the API surface of that story.
 
 ## Why Telnyx
 
@@ -25,7 +25,7 @@ Telnyx provides **AI Communications Infrastructure** — the real-time, programm
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /v2/ai/typesafe/v1/systemone` | Jev Decision Models — grades transcript into `choice`, `noul`, `score` in one shared-`state` call |
+| `POST /v2/ai/typesafe/v1/systemone` | Telnyx Decision Models — grades transcript into `choice`, `noul`, `score` in one shared-`state` call |
 | `call-conversation-ended` webhook | Receives ended call payload with embedded transcript |
 | `transcription-saved` webhook | Fallback: delivers the finalized transcript if not embedded in the ended payload |
 | `send-a-message` (via `TELNYX` binding) | Sends per-agent daily digest and immediate breach alerts to the team lead |
@@ -69,7 +69,7 @@ Telnyx provides **AI Communications Infrastructure** — the real-time, programm
 │  │    └── schedule gradeCall → stable id grade:<callId>        │  │
 │  │                                                             │  │
 │  │  gradeCall({callId, attempt})  [scheduled task]             │  │
-│  │    ├── buildJevRequest(transcript) → POST /systemone        │  │
+│  │    ├── buildDecisionRequest(transcript) → POST /systemone        │  │
 │  │    │     ├── questions object: choice + noul + score        │  │
 │  │    │     ├── 429/5xx → 10s/30s/60s backoff (Retry-After)    │  │
 │  │    │     └── exhausted → status="ungraded" + last_error     │  │
@@ -90,7 +90,7 @@ Telnyx provides **AI Communications Infrastructure** — the real-time, programm
 │  ┌─────────────────────────────────────────────────────────────┐  │
 │  │  External Services                                            │  │
 │  │  ┌──────────────────┐  ┌──────────────────┐  ┌────────────┐ │  │
-│  │  │ Jev Decision     │  │ Telnyx Messaging │  │ Agent SQL  │ │  │
+│  │  │ Decision Models      │  │ Telnyx Messaging │  │ Agent SQL  │ │  │
 │  │  │ Models API       │  │ (TELNYX binding) │  │ (per actor)│ │  │
 │  │  │ /systemone       │  │ send-a-message   │  │            │ │  │
 │  │  └──────────────────┘  └──────────────────┘  └────────────┘ │  │
@@ -108,7 +108,7 @@ All configuration flows through Telnyx `[[secrets]]` (read via `this.env.SECRETS
 | `CALL_METADATA_AGENT_KEY` | `string` | `agentId` | no | Key name in call metadata to extract the agent ID (default: `agentId`) | — |
 | `DIGEST_HOUR_UTC` | `string` | `17` | no | UTC hour (0–23) at which each agent's daily digest is texted (default: `17`) | — |
 | `QA_COACHING_FLOOR` | `string` | `3.0` | no | Rolling average threshold below which an agent is flagged for coaching (default: `3.0` on the 0–5 scale) | — |
-| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key for authenticating Jev Decision Models API calls | [Telnyx Portal](https://portal.telnyx.com/) |
+| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key for authenticating Telnyx Decision Models API calls | [Telnyx Portal](https://portal.telnyx.com/) |
 | `TELNYX_FROM_NUMBER` | `string` | `+15550001001` | **yes** | Number you own with messaging enabled; sender for digest and breach-alert SMS | [Telnyx Portal](https://portal.telnyx.com/) |
 | `TEAM_LEAD_E164` | `string` | `+15551234567` | **yes** | E.164 phone number of the team lead who receives daily digest texts | — |
 
@@ -157,7 +157,7 @@ cp .env.example .env
 # Type-check the agent and worker sources
 npm run typecheck
 
-# Run the smoke test (pure logic: Jev request/response, scoring, routing)
+# Run the smoke test (pure logic: Decision Models request/response, scoring, routing)
 npm test
 
 # Deploy to Telnyx Edge
@@ -227,13 +227,13 @@ Triggers the full pipeline with a synthetic call — no real Telnyx calls requir
 | Method | Description |
 |---|---|
 | `recordCallEnded(callId, transcript, agentId, digestEnabled)` | Entry point: dedup check, writes the `pending` row, bootstraps the digest schedule, schedules `grade:<callId>` |
-| `gradeCall({callId, attempt})` | Scheduled task: calls Jev, applies the grade, recomputes the trend, flags breaches. Retries 10s/30s/60s, then records `ungraded` |
+| `gradeCall({callId, attempt})` | Scheduled task: calls the Decision Models API, applies the grade, recomputes the trend, flags breaches. Retries 10s/30s/60s, then records `ungraded` |
 | `runDigest()` | Scheduled task: re-arms the next 17:00 UTC run, then texts this actor's one-liner to `TEAM_LEAD_E164` |
 
 ### Scoring Model
 
 ```typescript
-interface JevResult {
+interface DecisionResult {
   choice: string;   // "pass" or "fail_<category>" — e.g. fail_compliance, fail_empathy
   noul: number;     // 0–1, hard compliance breach score (>0.8 flags manager review)
   score: number;    // 0–5, quality score from the 6-entry rubric
@@ -255,9 +255,9 @@ breaches(agent_id TEXT, call_id TEXT, ts INTEGER, noul REAL, choice TEXT)
 | Issue | Cause | Solution |
 |---|---|---|
 | Agent not receiving digest texts | `TEAM_LEAD_E164` / `TELNYX_FROM_NUMBER` not set, or the from-number lacks messaging | Verify both E.164 values and that the from-number has an active messaging profile |
-| All calls show as "ungraded" | `TELNYX_API_KEY` missing or invalid | Check the secret is set via `telnyx-edge secrets add TELNYX_API_KEY "value"`; the digest surfaces the `last_error` (`missing_api_key`, `jev_http_4xx`) |
+| All calls show as "ungraded" | `TELNYX_API_KEY` missing or invalid | Check the secret is set via `telnyx-edge secrets add TELNYX_API_KEY "value"`; the digest surfaces the `last_error` (`missing_api_key`, `decision_http_4xx`) |
 | Coaching flag never clears | Rolling average stuck below floor | Check `QA_COACHING_FLOOR` value; ensure new calls are being graded (not `ungraded`) |
-| Breach not flagged | `noul` value at or below the 0.8 threshold | Verify Jev response parsing; check transcript quality and breach wording in the `noul` instructions |
+| Breach not flagged | `noul` value at or below the 0.8 threshold | Verify Decision Models response parsing; check transcript quality and breach wording in the `noul` instructions |
 | Duplicate scores in history | Not possible by design — but verify | The `call_id` PRIMARY KEY rejects duplicates; check that the same call isn't arriving with different IDs |
 | Agent ID not resolved | Metadata key mismatch | Set `CALL_METADATA_AGENT_KEY` to match your call metadata, or configure `AGENT_NUMBER_MAP` |
 | Digest suppressed unexpectedly | Actor keyed by fallback identity | The agent ID must come from call metadata or `AGENT_NUMBER_MAP`; fallback-keyed actors are log-only by design |
