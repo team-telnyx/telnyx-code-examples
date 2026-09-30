@@ -17,9 +17,8 @@ app = Flask(__name__)
 
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "audiobooks")
-DEFAULT_VOICE = os.getenv("DEFAULT_VOICE", "nova")
+DEFAULT_VOICE = os.getenv("DEFAULT_VOICE", "Telnyx.KokoroTTS.af_nova")
 # Region selects the Telnyx Cloud Storage endpoint host,
 # e.g. us-central-1 -> us-central-1.telnyxcloudstorage.com
 REGION = os.getenv("TELNYX_STORAGE_REGION", "us-central-1")
@@ -39,11 +38,11 @@ s3 = boto3.client(
 )
 
 NARRATOR_VOICES = {
-    "warm_female": "nova",
-    "deep_male": "onyx",
-    "neutral_male": "echo",
-    "bright_female": "shimmer",
-    "calm_neutral": "alloy",
+    "warm_female": "Telnyx.KokoroTTS.af_nova",
+    "deep_male": "Telnyx.KokoroTTS.am_onyx",
+    "neutral_male": "Telnyx.KokoroTTS.am_echo",
+    "bright_female": "Telnyx.KokoroTTS.af_bella",
+    "calm_neutral": "Telnyx.KokoroTTS.af_alloy",
 }
 
 books = {}
@@ -73,9 +72,9 @@ def inference(messages, max_tokens=4000):
 
 
 def tts_generate(text, voice=None):
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL, "voice": voice or DEFAULT_VOICE,
-        "text": text, "output_format": "mp3"
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
+        "voice": voice or DEFAULT_VOICE,
+        "text": text
     }, timeout=60)
     resp.raise_for_status()
     return resp.content

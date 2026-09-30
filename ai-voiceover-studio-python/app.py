@@ -17,7 +17,6 @@ app = Flask(__name__)
 
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "voiceovers")
 API = "https://api.telnyx.com/v2"
 HEADERS = {"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}
@@ -39,11 +38,11 @@ s3 = boto3.client(
 )
 
 VOICES = {
-    "warm_narrator": {"id": "nova", "desc": "Warm, approachable female — explainers, brand stories"},
-    "authoritative": {"id": "onyx", "desc": "Deep, confident male — documentaries, corporate"},
-    "conversational": {"id": "echo", "desc": "Natural, mid-range male — podcasts, tutorials"},
-    "energetic": {"id": "shimmer", "desc": "Bright, upbeat female — ads, promos, social"},
-    "neutral_pro": {"id": "alloy", "desc": "Clean, neutral — IVR, e-learning, medical"},
+    "warm_narrator": {"id": "Telnyx.KokoroTTS.af_nova", "desc": "Warm, approachable female — explainers, brand stories"},
+    "authoritative": {"id": "Telnyx.KokoroTTS.am_onyx", "desc": "Deep, confident male — documentaries, corporate"},
+    "conversational": {"id": "Telnyx.KokoroTTS.am_echo", "desc": "Natural, mid-range male — podcasts, tutorials"},
+    "energetic": {"id": "Telnyx.KokoroTTS.af_bella", "desc": "Bright, upbeat female — ads, promos, social"},
+    "neutral_pro": {"id": "Telnyx.KokoroTTS.af_alloy", "desc": "Clean, neutral — IVR, e-learning, medical"},
 }
 
 STYLES = {
@@ -81,9 +80,9 @@ def inference(messages, max_tokens=4000):
     return resp.json()["choices"][0]["message"]["content"]
 
 
-def tts_generate(text, voice="nova"):
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL, "voice": voice, "text": text, "output_format": "mp3"
+def tts_generate(text, voice="Telnyx.KokoroTTS.af_nova"):
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
+        "voice": voice, "text": text
     }, timeout=60)
     resp.raise_for_status()
     return resp.content
