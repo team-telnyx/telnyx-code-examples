@@ -48,7 +48,7 @@ def create_campaign():
                 "usecase": data.get("usecase", "MIXED"),
                 "description": data.get("description"),
                 "sample_message": data.get("sample_message", ["Your appointment is tomorrow at 2pm. Reply CONFIRM."]),
-                "phone_numbers": data.get("phone_numbers", [])})
+                "phone_numbers": data.get("phone_numbers", [])}, timeout=15)
         result = resp.json()
         campaigns.append(result)
         return jsonify(result), resp.status_code

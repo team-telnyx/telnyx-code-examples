@@ -17,7 +17,7 @@ def create_mission():
         resp = requests.post(f"{API}/ai/missions", headers=headers,
             json={"name": data.get("name"), "description": data.get("description"),
                 "status": data.get("status", "draft"),
-                "tasks": data.get("tasks", [])})
+                "tasks": data.get("tasks", [])}, timeout=15)
         result = resp.json()
         local_missions.append(result)
         return jsonify(result), resp.status_code
@@ -37,6 +37,7 @@ def list_missions():
 @app.route("/missions/<mission_id>", methods=["GET"])
 def get_mission(mission_id):
     try:
+        # nosemgrep: python.django.security.injection.ssrf.ssrf-injection-requests -- URL is the constant Telnyx API base; only the path segment is route-derived.
         resp = requests.get(f"{API}/ai/missions/{mission_id}", headers=headers, timeout=15)
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
@@ -47,9 +48,10 @@ def get_mission(mission_id):
 def add_task(mission_id):
     data = request.get_json()
     try:
+        # nosemgrep: python.django.security.injection.ssrf.ssrf-injection-requests -- URL is the constant Telnyx API base; only the path segment is route-derived.
         resp = requests.post(f"{API}/ai/missions/{mission_id}/tasks", headers=headers,
             json={"name": data.get("name"), "type": data.get("type", "action"),
-                "config": data.get("config", {}), "depends_on": data.get("depends_on", [])})
+                "config": data.get("config", {}), "depends_on": data.get("depends_on", [])}, timeout=15)
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
         app.logger.exception("Failed to add task to mission")
@@ -58,6 +60,7 @@ def add_task(mission_id):
 @app.route("/missions/<mission_id>/run", methods=["POST"])
 def run_mission(mission_id):
     try:
+        # nosemgrep: python.django.security.injection.ssrf.ssrf-injection-requests -- URL is the constant Telnyx API base; only the path segment is route-derived.
         resp = requests.post(f"{API}/ai/missions/{mission_id}/runs", headers=headers, json={}, timeout=15)
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
@@ -67,6 +70,7 @@ def run_mission(mission_id):
 @app.route("/missions/<mission_id>/runs", methods=["GET"])
 def list_runs(mission_id):
     try:
+        # nosemgrep: python.django.security.injection.ssrf.ssrf-injection-requests -- URL is the constant Telnyx API base; only the path segment is route-derived.
         resp = requests.get(f"{API}/ai/missions/{mission_id}/runs", headers=headers, timeout=15)
         return jsonify(resp.json()), resp.status_code
     except Exception as e:

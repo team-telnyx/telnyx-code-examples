@@ -34,7 +34,7 @@ def lookup_cnam(phone_number: str) -> dict:
         "Content-Type": "application/json"
     }
 
-    response = requests.get(url, headers=headers, params={"type": "caller-name"})
+    response = requests.get(url, headers=headers, params={"type": "caller-name"}, timeout=15)
 
     if response.status_code == 401:
         raise ValueError("Invalid API key")
