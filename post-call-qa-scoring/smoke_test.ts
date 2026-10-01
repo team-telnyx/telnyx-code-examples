@@ -13,14 +13,14 @@
  */
 
 import {
-  buildJevRequest,
+  buildDecisionRequest,
   CHOICE_CRITERIA,
-  isTransientJevStatus,
-  jevBackoffSeconds,
-  JEV_ENDPOINT,
-  JEV_MODEL,
-  MAX_JEV_ATTEMPTS,
-  parseJevResponse,
+  isTransientDecisionStatus,
+  gradingBackoffSeconds,
+  DECISION_MODELS_ENDPOINT,
+  DECISION_MODEL,
+  MAX_GRADING_RETRIES,
+  parseDecisionResponse,
   SCORE_CRITERIA,
 } from "./src/judging";
 import {
@@ -34,6 +34,7 @@ import {
   type ScoreRowLite,
 } from "./src/scoring";
 import { DEFAULT_AGENT_KEY, resolveCall } from "./src/routing";
+import { hasDisclosure, mockGrade } from "./src/mock-judging";
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -45,10 +46,10 @@ function assert(condition: boolean, message: string): void {
   }
 }
 
-// ── Jev request shape (real Decision Models API contract) ────────────────
+// ── Decision Models request shape (real Decision Models API contract) ────────────────
 
-const req = buildJevRequest("Agent: hello. Customer: hi.");
-assert(req.model === JEV_MODEL, "request uses telnyx/decision-flash");
+const req = buildDecisionRequest("Agent: hello. Customer: hi.");
+assert(req.model === DECISION_MODEL, "request uses telnyx/decision-flash");
 assert(!Array.isArray(req.questions), "questions is an object, not an array");
 assert(
   typeof req.questions.choice === "object" &&
@@ -76,10 +77,10 @@ assert(
 );
 assert(req.state === null || typeof req.state === "object", "state is JSON-shaped");
 
-// ── Jev response parsing (doc-shaped response, no data wrapper) ──────────
+// ── Decision Models response parsing (doc-shaped response, no data wrapper) ──────────
 
 const docResponse = {
-  model: JEV_MODEL,
+  model: DECISION_MODEL,
   answers: {
     choice: { type: "choice", choice: "fail_empathy", probabilities: {}, confidence: 0.9 },
     noul: { type: "noul", noul: 0.92 },
@@ -87,31 +88,31 @@ const docResponse = {
   },
   usage: { input_tokens: 267, output_tokens: 4 },
 };
-const parsed = parseJevResponse(docResponse);
+const parsed = parseDecisionResponse(docResponse);
 assert(parsed !== null, "parses a doc-shaped response");
 assert(parsed?.choice === "fail_empathy", "reads answers.choice.choice");
 assert(parsed?.noul === 0.92, "reads answers.noul.noul");
 assert(parsed?.score === 1.4, "reads answers.score.score");
-assert(parseJevResponse({}) === null, "rejects a response without answers");
-assert(parseJevResponse(null) === null, "rejects a null response");
+assert(parseDecisionResponse({}) === null, "rejects a response without answers");
+assert(parseDecisionResponse(null) === null, "rejects a null response");
 assert(
-  parseJevResponse({ answers: { choice: { choice: "bogus_category" } } })?.choice === "pass",
+  parseDecisionResponse({ answers: { choice: { choice: "bogus_category" } } })?.choice === "pass",
   "coerces an unknown choice to pass (never invents a failing category)",
 );
 assert(
-  parseJevResponse({ answers: { choice: { choice: "pass" } } })?.noul === 0,
+  parseDecisionResponse({ answers: { choice: { choice: "pass" } } })?.noul === 0,
   "defaults noul to 0 when absent",
 );
 
 // ── Retry policy: 10 / 30 / 60 then terminal ungraded ────────────────────
 
-assert(jevBackoffSeconds(0) === 10, "backoff attempt 0 → 10s");
-assert(jevBackoffSeconds(1) === 30, "backoff attempt 1 → 30s");
-assert(jevBackoffSeconds(2) === 60, "backoff attempt 2 → 60s");
-assert(jevBackoffSeconds(3) === null, "backoff exhausted → terminal (ungraded), no infinite retry");
-assert(MAX_JEV_ATTEMPTS === 3, "max 3 Jev retries");
-assert(isTransientJevStatus(429) && isTransientJevStatus(502), "429/5xx are retried");
-assert(!isTransientJevStatus(400) && !isTransientJevStatus(401), "4xx are terminal");
+assert(gradingBackoffSeconds(0) === 10, "backoff attempt 0 → 10s");
+assert(gradingBackoffSeconds(1) === 30, "backoff attempt 1 → 30s");
+assert(gradingBackoffSeconds(2) === 60, "backoff attempt 2 → 60s");
+assert(gradingBackoffSeconds(3) === null, "backoff exhausted → terminal (ungraded), no infinite retry");
+assert(MAX_GRADING_RETRIES === 3, "max 3 Decision Models retries");
+assert(isTransientDecisionStatus(429) && isTransientDecisionStatus(502), "429/5xx are retried");
+assert(!isTransientDecisionStatus(400) && !isTransientDecisionStatus(401), "4xx are terminal");
 
 // ── Rolling window, trend, coaching flag ─────────────────────────────────
 
@@ -143,7 +144,7 @@ assert(rolling2.trend === "declining", "trend declining when recent half is wors
 const improving = [row(5, 5), row(5, 4), row(1, 3), row(1, 2), row(1, 1)];
 assert(computeRolling(improving).trend === "improving", "trend improving when recent half is better");
 
-const withUngraded = [row(1, 5, "fail_process", "ungraded", "jev_http_500"), row(5, 4), row(5, 3), row(5, 2), row(5, 1), row(5, 0)];
+const withUngraded = [row(1, 5, "fail_process", "ungraded", "decision_http_500"), row(5, 4), row(5, 3), row(5, 2), row(5, 1), row(5, 0)];
 const rolling3 = computeRolling(withUngraded);
 assert(rolling3.avg === 5, "ungraded rows never counted as a false zero");
 assert(rolling3.worstCategory === null, "ungraded rows contribute no failing category");
@@ -195,9 +196,9 @@ const ungradedLine = buildDigestLine({
   cleared: false,
   floor: 3.0,
   lastStatus: "ungraded",
-  lastError: "jev_http_502",
+  lastError: "decision_http_502",
 });
-assert(ungradedLine.includes("ungraded: jev_http_502"), "digest surfaces ungraded calls with the last error");
+assert(ungradedLine.includes("ungraded: decision_http_502"), "digest surfaces ungraded calls with the last error");
 
 const breachLine = buildDigestLine({
   agentId: "agent-003",
@@ -278,6 +279,27 @@ const customKeyBody = {
   data: { payload: { call_id: "call_5", transcript: "Agent: hi", metadata: { qa_agent: "agent-009" } } },
 };
 assert(resolveCall(customKeyBody, "qa_agent", null)?.agentId === "agent-009", "CALL_METADATA_AGENT_KEY is honored");
+
+// ── Mock grading (local dev only; production uses real Decision Models) ─────────────
+
+const goodCall = "Agent: I understand, let me walk you through it. Is there anything else I can help with? This call may be recorded for quality purposes.";
+const good = mockGrade(goodCall);
+assert(good.choice === "pass", "mock: empathy + resolution + disclosure → pass");
+assert(good.noul === 0, "mock: disclosure present → no breach");
+assert(good.score >= 4 && good.score <= 5, "mock: clean call scores high");
+
+const badCall = "Agent: Just restart your router.";
+const bad = mockGrade(badCall);
+assert(bad.choice === "fail_compliance", "mock: missing disclosure → fail_compliance");
+assert(bad.noul === 0.95, "mock: missing disclosure → hard breach (noul 0.95)");
+assert(bad.score <= 1, "mock: breach + empathy + resolution defects → very low score");
+const coldCall = "Agent: We received your request. This call may be recorded.";
+const cold = mockGrade(coldCall);
+assert(cold.choice === "fail_empathy" || cold.choice === "fail_resolution", "mock: cold call lands in a failing category");
+assert(cold.noul === 0, "mock: disclosure present → no breach even when empathy fails");
+assert(hasDisclosure("recorded for quality purposes") === true, "mock: disclosure marker detection");
+assert(hasDisclosure("no notice at all here") === false, "mock: no marker → no disclosure");
+assert(mockGrade(goodCall).score === good.score, "mock: grading is deterministic");
 
 // ── Summary ──────────────────────────────────────────────────────────────
 

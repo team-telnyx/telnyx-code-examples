@@ -20,7 +20,7 @@ post-call-qa-scoring/
 ├── src/
 │   ├── index.ts          # Worker entry: webhook routing + demo trigger
 │   ├── agent.ts          # QAAgent — the durable quality-profile actor
-│   ├── judging.ts        # Jev request build + response parse (pure)
+│   ├── judging.ts        # Decision Models request build + response parse (pure)
 │   ├── scoring.ts        # Rolling window, coaching, digest line (pure)
 │   └── routing.ts        # Webhook payload → agent identity resolution (pure)
 ├── smoke_test.ts         # Runs the pure modules on Node (no edge-runtime import)
@@ -39,7 +39,7 @@ All configuration flows through Telnyx `[[secrets]]` (read via `this.env.SECRETS
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `TELNYX_API_KEY` | Yes (live) | — | Telnyx API key for Jev Decision Models calls |
+| `TELNYX_API_KEY` | Yes (live) | — | Telnyx API key for Decision Models calls |
 | `TELNYX_FROM_NUMBER` | Yes (live) | — | Number you own with messaging enabled; the digest/alert sender |
 | `QA_COACHING_FLOOR` | No | `3.0` | 5-call rolling average below this flags an agent for coaching |
 | `TEAM_LEAD_E164` | Yes (live) | — | E.164 phone number that receives daily digest SMS |
@@ -87,9 +87,9 @@ The actor does **not** accumulate per-event transcription callbacks. It reads th
 
 If no transcript is present, the worker logs `no_transcript` and returns without recording or scoring — no false zero scores. The `transcription-saved` fallback delivers the finalized transcript later; whichever delivery arrives first records the call, and the second is a no-op.
 
-### 4. Jev Decision Models Grading (`gradeCall`)
+### 4. Telnyx Decision Models Grading (`gradeCall`)
 
-The actor calls Jev via raw `fetch` to `POST https://api.telnyx.com/v2/ai/typesafe/v1/systemone` (see `src/judging.ts`). `questions` is an **object** keyed by question name, each with `type` + `instructions` and — for `choice` and `score` — a `criteria` block:
+The actor calls the Decision Models API via raw `fetch` to `POST https://api.telnyx.com/v2/ai/typesafe/v1/systemone` (see `src/judging.ts`). `questions` is an **object** keyed by question name, each with `type` + `instructions` and — for `choice` and `score` — a `criteria` block:
 
 ```json
 {
@@ -130,7 +130,7 @@ An unknown `choice` value is coerced to `pass` — the sample never invents a fa
 
 #### Retry Logic
 
-Jev failures use bounded backoff. Attempt 0 is the initial call; failures schedule the next attempt at 10s / 30s / 60s (honoring a `Retry-After` header when present). After the 3rd retry fails, the call is recorded with `status="ungraded"` and `last_error="jev_failed_after_retries"`. No infinite retries. Non-transient failures (4xx other than 429, malformed responses) go straight to `ungraded`.
+Decision Models API failures use bounded backoff. Attempt 0 is the initial call; failures schedule the next attempt at 10s / 30s / 60s (honoring a `Retry-After` header when present). After the 3rd retry fails, the call is recorded with `status="ungraded"` and `last_error="decision_failed_after_retries"`. No infinite retries. Non-transient failures (4xx other than 429, malformed responses) go straight to `ungraded`.
 
 ### 5. Durable Score History (`scores` SQL table)
 
@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS scores(
 )
 ```
 
-A `pending` row is written BEFORE the grading task is scheduled, so a re-delivered webhook finds the row and no-ops. Once Jev returns, the row is updated to `graded` (or `ungraded`). The `call_id` PRIMARY KEY rejects duplicates even across restarts.
+A `pending` row is written BEFORE the grading task is scheduled, so a re-delivered webhook finds the row and no-ops. Once the Decision Models API returns, the row is updated to `graded` (or `ungraded`). The `call_id` PRIMARY KEY rejects duplicates even across restarts.
 
 ### 6. Rolling Trend & Coaching Flag (`recomputeTrend`)
 
@@ -198,10 +198,10 @@ Or on recovery:
 [demo-agent] avg=4.1/3.0 trend=improving cleared (avg 4.1)
 ```
 
-Or if Jev failed:
+Or if the Decision Models API failed:
 
 ```
-[demo-agent] avg=n/a trend=flat ungraded: jev_http_502
+[demo-agent] avg=n/a trend=flat ungraded: decision_http_502
 ```
 
 N agents ⇒ N texts, each prefixed with the agent's identity. Actors keyed only by a fallback identity (no metadata, no number map) suppress the digest (log-only).
@@ -217,7 +217,7 @@ The in-actor row check (`findScore`) is only a fast path — never the guarantee
 
 ### 10. Interruption Resilience
 
-If the Edge function is killed between the Jev call and the score update:
+If the Edge function is killed between the Decision Models API call and the score update:
 
 - The `grade:<callId>` scheduled task survives the restart (it's durable).
 - On re-activation the SDK re-arms pending tasks; the transcript is read from the durable `pending` row, not the task payload.
@@ -241,7 +241,7 @@ curl -X POST https://<edge-function-url>/demo/trigger \
   }'
 ```
 
-Omit the body entirely for the canned support transcript. The actor grades the transcript via Jev (using the API key from secrets), inserts the score, recomputes the trend, and — if `TEAM_LEAD_E164` and `TELNYX_FROM_NUMBER` are set — sends a digest SMS.
+Omit the body entirely for the canned support transcript. The actor grades the transcript via Decision Models (using the API key from secrets), inserts the score, recomputes the trend, and — if `TEAM_LEAD_E164` and `TELNYX_FROM_NUMBER` are set — sends a digest SMS.
 
 **Alternative demo trigger (inbound demo number):** bind a second Telnyx number to a tiny inbound Edge function that answers, plays a canned script (~20 s), and hangs up — simulating an ended call. The synthetic POST path is the network-free equivalent.
 
@@ -293,7 +293,7 @@ The Edge runtime doesn't have a `telnyx-edge dev` command for local serving. To 
 | Primitive | How It's Used |
 |---|---|
 | **Agent SDK** (`Agent<Env, AgentState>`) | `QAAgent` extends `Agent`; owns per-agent score history, rolling trend, coaching/breach flags, and daily digest. Survives weeks of calls and pod restarts. |
-| **Jev Decision Models** | `POST /v2/ai/typesafe/v1/systemone` with `{model, state, questions}` — returns `choice`, `noul`, `score` in one shared-state call. |
+| **Telnyx Decision Models** | `POST /v2/ai/typesafe/v1/systemone` with `{model, state, questions}` — returns `choice`, `noul`, `score` in one shared-state call. |
 | **Call Control** | `call-conversation-ended` webhook (transcript embedded in payload) + `transcription-saved` (fallback). |
 | **Messaging** | `this.env.TELNYX.messages.send({ to, from, text })` — per-agent daily digest line to `TEAM_LEAD_E164`; immediate breach alerts. |
 | **Agent SQL** | `this.ctx.storage.sql.exec()` — private per-actor `scores` table (call_id PRIMARY KEY) and `breaches` table. |
@@ -305,7 +305,7 @@ The Edge runtime doesn't have a `telnyx-edge dev` command for local serving. To 
 ## Next Steps
 
 - [Telnyx Agent SDK Documentation](https://developers.telnyx.com/docs/agent-sdk) — Learn about durable actors, SQL storage, scheduled tasks, and state management.
-- [Jev Decision Models](https://developers.telnyx.com/docs/inference/decision-models) — Full reference for the `systemone` endpoint, question types, and response formats.
+- [Telnyx Decision Models](https://developers.telnyx.com/docs/inference/decision-models) — Full reference for the `systemone` endpoint, question types, and response formats.
 - [Call Control Webhooks](https://developers.telnyx.com/api-reference/callbacks/call-conversation-ended) — Understand the `call-conversation-ended` and `transcription-saved` payload structures.
 - [Telnyx Messaging API](https://developers.telnyx.com/docs/messaging/messages/send-message) — Send SMS messages via the `TELNYX` binding.
 - [Telnyx Edge CLI](https://developers.telnyx.com/docs/edge) — Deploy, manage secrets, and monitor your Edge functions.

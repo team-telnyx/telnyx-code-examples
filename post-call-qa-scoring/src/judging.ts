@@ -1,5 +1,5 @@
 /**
- * Jev Decision Models — request construction and response parsing.
+ * Telnyx Decision Models — request construction and response parsing.
  *
  * Pure module (no runtime imports) so the smoke test can run it on Node.
  * Reference: https://developers.telnyx.com/docs/inference/decision-models
@@ -10,12 +10,12 @@
  * with one entry per question: `answers.<name>.choice|noul|score`.
  */
 
-export const JEV_ENDPOINT = "https://api.telnyx.com/v2/ai/typesafe/v1/systemone";
-export const JEV_MODEL = "telnyx/decision-flash";
+export const DECISION_MODELS_ENDPOINT = "https://api.telnyx.com/v2/ai/typesafe/v1/systemone";
+export const DECISION_MODEL = "telnyx/decision-flash";
 
 /** Bounded retry policy: 3 attempts with 10s / 30s / 60s backoff. */
-export const MAX_JEV_ATTEMPTS = 3;
-export const JEV_BACKOFF_SECONDS = [10, 30, 60] as const;
+export const MAX_GRADING_RETRIES = 3;
+export const GRADING_BACKOFF_SECONDS = [10, 30, 60] as const;
 
 export const PASS = "pass";
 export const FAIL_PREFIX = "fail_";
@@ -42,20 +42,20 @@ export const CHOICE_CRITERIA: Record<string, string> = {
   fail_resolution: "Failed to resolve or meaningfully advance the customer's issue",
 };
 
-export interface JevResult {
+export interface DecisionResult {
   choice: string;
   noul: number;
   score: number;
 }
 
-export interface JevRequest {
+export interface DecisionRequest {
   model: string;
   state: Record<string, unknown>;
   questions: Record<string, unknown>;
 }
 
 /** Build the `questions` object — all three types share one `state` call. */
-export function buildJevQuestions(): Record<string, unknown> {
+export function buildDecisionQuestions(): Record<string, unknown> {
   return {
     choice: {
       type: "choice",
@@ -66,7 +66,14 @@ export function buildJevQuestions(): Record<string, unknown> {
     noul: {
       type: "noul",
       instructions:
-        "Does the transcript contain a hard compliance breach — e.g. a legally required disclosure is missing or a prohibited statement is made? 1 = yes, breach present; 0 = no breach.",
+        "Evaluate whether the support call contains a HARD compliance breach that requires manager review: " +
+        "(1) the agent speaks sensitive payment data aloud — a full card number, CVV, or a one-time verification code; " +
+        "(2) the agent gives legal, medical, or regulated financial advice; " +
+        "(3) the agent uses threatening, discriminatory, or abusive language; " +
+        "(4) the agent promises refunds, credits, or waivers without authorization; " +
+        "(5) the agent shares account details or personal information without verifying the caller's identity; " +
+        "(6) the agent makes false or misleading statements about the company's products or policies. " +
+        "Answer 1 if any of these occurred; answer 0 only if none did.",
     },
     score: {
       type: "score",
@@ -78,26 +85,26 @@ export function buildJevQuestions(): Record<string, unknown> {
 }
 
 /** Build the full request body; the transcript rides in the shared `state`. */
-export function buildJevRequest(transcript: string): JevRequest {
+export function buildDecisionRequest(transcript: string): DecisionRequest {
   return {
-    model: JEV_MODEL,
+    model: DECISION_MODEL,
     state: { transcript },
-    questions: buildJevQuestions(),
+    questions: buildDecisionQuestions(),
   };
 }
 
 /**
- * Backoff delay for a Jev attempt. Returns `null` once attempts are
+ * Backoff delay for a Decision Models attempt. Returns `null` once attempts are
  * exhausted — the caller should then record the call as `ungraded`
  * (terminal, no infinite retry).
  */
-export function jevBackoffSeconds(attempt: number): number | null {
-  if (attempt < 0 || attempt >= JEV_BACKOFF_SECONDS.length) return null;
-  return JEV_BACKOFF_SECONDS[attempt];
+export function gradingBackoffSeconds(attempt: number): number | null {
+  if (attempt < 0 || attempt >= GRADING_BACKOFF_SECONDS.length) return null;
+  return GRADING_BACKOFF_SECONDS[attempt];
 }
 
 /** 429 and 5xx-class responses are worth retrying; 4xx are not. */
-export function isTransientJevStatus(status: number): boolean {
+export function isTransientDecisionStatus(status: number): boolean {
   return status === 429 || status >= 500;
 }
 
@@ -107,7 +114,7 @@ function asNumber(value: unknown, fallback: number): number {
 }
 
 /**
- * Parse the Jev response into a JevResult.
+ * Parse the Decision Models response into a DecisionResult.
  *
  * Shape per the Decision Models docs: `{ model, answers: { <name>: { choice?
  * | noul? | score?, probabilities?, confidence? } }, usage }` — no `data`
@@ -115,7 +122,7 @@ function asNumber(value: unknown, fallback: number): number {
  * `pass` (conservative: never invent a failing category). Returns `null`
  * when the response is structurally unusable.
  */
-export function parseJevResponse(data: unknown): JevResult | null {
+export function parseDecisionResponse(data: unknown): DecisionResult | null {
   if (!data || typeof data !== "object") return null;
   const answers = (data as { answers?: unknown }).answers;
   if (!answers || typeof answers !== "object") return null;

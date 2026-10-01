@@ -40,6 +40,15 @@ const DEMO_TRANSCRIPT =
   "Customer: No, that's perfect. Thank you! " +
   "Agent: You're welcome. Have a great day!";
 
+/** Secret reads degrade to null in local dev (no SECRETS binding). */
+async function getSecret(env: EnvShape, handle: string): Promise<string | null> {
+  try {
+    return await env.SECRETS.get(handle);
+  } catch {
+    return null;
+  }
+}
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -50,7 +59,7 @@ function json(body: unknown, status = 200): Response {
 async function loadNumberMap(
   env: EnvShape,
 ): Promise<Record<string, string> | null> {
-  const raw = await env.SECRETS.get("AGENT_NUMBER_MAP");
+  const raw = await getSecret(env, "AGENT_NUMBER_MAP");
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -91,7 +100,7 @@ async function handleCallWebhook(req: Request, env: EnvShape): Promise<Response>
   const body = (await req.json().catch(() => null)) as unknown;
   if (!body) return json({ error: "invalid_json" }, 400);
 
-  const agentKey = (await env.SECRETS.get("CALL_METADATA_AGENT_KEY")) || DEFAULT_AGENT_KEY;
+  const agentKey = (await getSecret(env, "CALL_METADATA_AGENT_KEY")) || DEFAULT_AGENT_KEY;
   const numberMap = await loadNumberMap(env);
   return routeToAgent(body, env, agentKey, numberMap);
 }
@@ -106,7 +115,7 @@ async function handleDemoTrigger(req: Request, env: EnvShape): Promise<Response>
 
   // Synthesize a call-conversation-ended payload with the agent identity in
   // metadata so the demo actor gets digest capability.
-  const agentKey = (await env.SECRETS.get("CALL_METADATA_AGENT_KEY")) || DEFAULT_AGENT_KEY;
+  const agentKey = (await getSecret(env, "CALL_METADATA_AGENT_KEY")) || DEFAULT_AGENT_KEY;
   const synthetic = {
     data: {
       event: "call.conversation.ended",

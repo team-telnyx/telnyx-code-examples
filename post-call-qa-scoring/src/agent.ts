@@ -4,7 +4,7 @@
  * The actor IS a support agent's quality record. One durable actor per
  * agent, addressed by `idFromName(agentId)` (resolved from call metadata,
  * with a phone-number map fallback). It grades each ended call with the
- * Jev Decision Models API, appends every score to its own SQL history,
+ * Telnyx Decision Models API, appends every score to its own SQL history,
  * tracks the 5-call rolling average + trend, flags slipping agents for
  * coaching (auto-clearing on recovery), flags compliance breaches for
  * manager review independently of pass/fail, and texts a daily digest.
@@ -13,7 +13,7 @@
  * `grade:<callId>` (a re-delivered webhook re-schedules the same id; the
  * SDK replaces the pending task), backed by a UNIQUE `call_id` PRIMARY
  * KEY on the `scores` table where the pending row is written before the
- * task is scheduled. Jev failures retry on a 10s / 30s / 60s schedule
+ * task is scheduled. Decision Models API failures retry on a 10s / 30s / 60s schedule
  * (max 3 retries, honoring `Retry-After`); after that the call is
  * recorded `ungraded` with the last error — surfaced in the digest,
  * never retried forever.
@@ -32,13 +32,14 @@ import {
 } from "@telnyx/edge-runtime";
 
 import {
-  buildJevRequest,
-  isTransientJevStatus,
-  JEV_ENDPOINT,
-  parseJevResponse,
-  type JevResult,
-  jevBackoffSeconds,
+  buildDecisionRequest,
+  isTransientDecisionStatus,
+  DECISION_MODELS_ENDPOINT,
+  parseDecisionResponse,
+  type DecisionResult,
+  gradingBackoffSeconds,
 } from "./judging";
+import { mockGrade } from "./mock-judging";
 import {
   BREACH_THRESHOLD,
   buildDigestLine,
@@ -166,6 +167,24 @@ export class QAAgent extends Agent<Env, QAAgentState> {
   // ── Entry point (RPC from the worker) ─────────────────────────────────
 
   /**
+   * Secret reads are defensive: in local dev (`telnyx-edge dev`) the
+   * SECRETS binding is undefined, so reads must degrade to "unset" rather
+   * than throwing.
+   */
+  private async getSecret(handle: string): Promise<string | null> {
+    try {
+      return await this.env.SECRETS.get(handle);
+    } catch {
+      return null;
+    }
+  }
+
+  /** The TELNYX binding only exists in a real deployment (not local dev). */
+  private hasTelnyxBinding(): boolean {
+    return typeof (this.env as unknown as Record<string, unknown>).TELNYX !== "undefined";
+  }
+
+  /**
    * Record an ended call and schedule its one-time grading. The `pending`
    * row is the durable dedup marker: a re-delivery of the same call
    * finds the row and no-ops, and the stable `grade:<callId>` task id
@@ -227,45 +246,53 @@ export class QAAgent extends Agent<Env, QAAgentState> {
       return;
     }
 
-    const apiKey = await this.env.SECRETS.get("TELNYX_API_KEY");
+    const apiKey = await this.getSecret("TELNYX_API_KEY");
     if (!apiKey) {
-      await this.markUngraded(payload.callId, "missing_api_key");
+      if (this.hasTelnyxBinding()) {
+        // Real deployment without a key: park honestly, never mock in prod.
+        await this.markUngraded(payload.callId, "missing_api_key");
+        return;
+      }
+      // Local dev (no SECRETS, no TELNYX binding): deterministic mock grade.
+      const mock = mockGrade(transcript);
+      console.log(`mock_grading call=${payload.callId} (set TELNYX_API_KEY for real Decision Models grading)`);
+      await this.applyGrade(payload.callId, mock);
       return;
     }
 
     let res: Response;
     try {
-      res = await fetch(JEV_ENDPOINT, {
+      res = await fetch(DECISION_MODELS_ENDPOINT, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(buildJevRequest(transcript)),
+        body: JSON.stringify(buildDecisionRequest(transcript)),
       });
     } catch {
-      await this.retryOrPark(payload.callId, payload.attempt, "jev_network_error");
+      await this.retryOrPark(payload.callId, payload.attempt, "decision_network_error");
       return;
     }
 
     if (!res.ok) {
-      if (isTransientJevStatus(res.status)) {
+      if (isTransientDecisionStatus(res.status)) {
         await this.retryOrPark(
           payload.callId,
           payload.attempt,
-          `jev_http_${res.status}`,
+          `decision_http_${res.status}`,
           res.headers.get("Retry-After"),
         );
       } else {
-        await this.markUngraded(payload.callId, `jev_http_${res.status}`);
+        await this.markUngraded(payload.callId, `decision_http_${res.status}`);
       }
       return;
     }
 
     const data = (await res.json().catch(() => null)) as unknown;
-    const result = parseJevResponse(data);
+    const result = parseDecisionResponse(data);
     if (!result) {
-      await this.markUngraded(payload.callId, "jev_invalid_response");
+      await this.markUngraded(payload.callId, "decision_invalid_response");
       return;
     }
 
@@ -324,7 +351,7 @@ export class QAAgent extends Agent<Env, QAAgentState> {
 
   // ── Internal helpers ──────────────────────────────────────────────────
 
-  /** Schedule the next Jev attempt (10/30/60), or park the call ungraded. */
+  /** Schedule the next Decision Models API attempt (10/30/60), or park the call ungraded. */
   private async retryOrPark(
     callId: string,
     attempt: number,
@@ -332,9 +359,9 @@ export class QAAgent extends Agent<Env, QAAgentState> {
     retryAfterHeader?: string | null,
   ): Promise<void> {
     // Attempts exhausted → park, regardless of any Retry-After header.
-    const backoff = jevBackoffSeconds(attempt);
+    const backoff = gradingBackoffSeconds(attempt);
     if (backoff === null) {
-      await this.markUngraded(callId, "jev_failed_after_retries");
+      await this.markUngraded(callId, "decision_failed_after_retries");
       return;
     }
     const headerDelay = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
@@ -343,7 +370,7 @@ export class QAAgent extends Agent<Env, QAAgentState> {
     await this.schedule(delay, "gradeCall", { callId, attempt: attempt + 1 }, {
       id: stableGradeId(callId),
     });
-    console.log(`jev_retry_scheduled call=${callId} attempt=${attempt + 1} delay=${delay} reason=${reason}`);
+    console.log(`decision_retry_scheduled call=${callId} attempt=${attempt + 1} delay=${delay} reason=${reason}`);
   }
 
   private async markUngraded(callId: string, error: string): Promise<void> {
@@ -355,7 +382,7 @@ export class QAAgent extends Agent<Env, QAAgentState> {
     console.log(`call_ungraded call=${callId} error=${error}`);
   }
 
-  private async applyGrade(callId: string, result: JevResult): Promise<void> {
+  private async applyGrade(callId: string, result: DecisionResult): Promise<void> {
     this.ctx.storage.sql.exec(
       "UPDATE scores SET ts = ?, choice = ?, noul = ?, score = ?, status = 'graded', last_error = '' WHERE call_id = ?",
       Date.now(),
@@ -413,8 +440,8 @@ export class QAAgent extends Agent<Env, QAAgentState> {
   }
 
   private async sendDigest(text: string): Promise<void> {
-    const to = await this.env.SECRETS.get("TEAM_LEAD_E164");
-    const from = await this.env.SECRETS.get("TELNYX_FROM_NUMBER");
+    const to = await this.getSecret("TEAM_LEAD_E164");
+    const from = await this.getSecret("TELNYX_FROM_NUMBER");
     if (!to || !from) {
       console.log("digest_not_configured: TEAM_LEAD_E164 and TELNYX_FROM_NUMBER required");
       return;
@@ -429,13 +456,13 @@ export class QAAgent extends Agent<Env, QAAgentState> {
   }
 
   private async coachingFloor(): Promise<number> {
-    const raw = await this.env.SECRETS.get("QA_COACHING_FLOOR");
+    const raw = await this.getSecret("QA_COACHING_FLOOR");
     const n = raw ? parseFloat(raw) : NaN;
     return Number.isFinite(n) ? n : DEFAULT_COACHING_FLOOR;
   }
 
   private async digestHour(): Promise<number> {
-    const raw = await this.env.SECRETS.get("DIGEST_HOUR_UTC");
+    const raw = await this.getSecret("DIGEST_HOUR_UTC");
     const n = raw ? parseInt(raw, 10) : NaN;
     return Number.isInteger(n) && n >= 0 && n <= 23 ? n : DEFAULT_DIGEST_HOUR;
   }
