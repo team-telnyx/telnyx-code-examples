@@ -73,7 +73,7 @@ def lookup_cnam(phone_number: str) -> dict:
     # Remove the + prefix for the API endpoint
     clean_number = phone_number[1:]
     
-    url = f"https://api.telnyx.com/v2/cnam_lookups/{clean_number}"
+    url = f"https://api.telnyx.com/v2/number_lookup/{clean_number}"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"

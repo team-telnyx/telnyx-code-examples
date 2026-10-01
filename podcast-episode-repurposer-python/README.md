@@ -15,7 +15,7 @@ Upload a recorded episode, STT transcribes, AI Inference extracts key quotes and
 
 ## Telnyx API Endpoints Used
 
-- **STT Transcribe**: `POST /v2/ai/transcribe` -- [ref](https://developers.telnyx.com/api/inference/transcribe)
+- **STT Transcribe**: `POST /v2/ai/audio/transcriptions` -- [ref](https://developers.telnyx.com/api-reference/speech-to-text-commands/transcribe-audio)
 - **AI Inference**: `POST /v2/ai/chat/completions` -- [ref](https://developers.telnyx.com/api/inference/chat-completions)
 - **TTS Generate**: `POST /v2/text-to-speech/speech` -- [ref](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices)
 - **Send SMS**: `POST /v2/messages` -- [ref](https://developers.telnyx.com/api/messaging/send-message)

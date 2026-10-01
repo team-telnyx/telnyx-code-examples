@@ -52,7 +52,8 @@ def create_webinar():
 @app.route("/webinars/<room_id>/recordings", methods=["GET"])
 def get_recordings(room_id):
     try:
-        resp = requests.get(f"{API}/rooms/{room_id}/recordings", headers=headers, timeout=15)
+        resp = requests.get(f"{API}/room_recordings", headers=headers,
+            params={"filter[room_id]": room_id}, timeout=15)
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
         app.logger.exception("Failed to retrieve recordings")

@@ -15,7 +15,7 @@ def create_brand():
     data = request.get_json()
     try:
         # nosemgrep: python.django.security.injection.ssrf.ssrf-injection-requests -- URL is the constant Telnyx API base; only the JSON body is request-derived.
-        resp = requests.post(f"{API}/brand", headers=headers,
+        resp = requests.post(f"{API}/10dlc/brand", headers=headers,
             json={"entity_type": data.get("entity_type", "PRIVATE_PROFIT"),
                 "display_name": data.get("display_name"),
                 "company_name": data.get("company_name"),
@@ -33,7 +33,7 @@ def create_brand():
 @app.route("/brands", methods=["GET"])
 def list_brands():
     try:
-        resp = requests.get(f"{API}/brand", headers=headers, timeout=15)
+        resp = requests.get(f"{API}/10dlc/brand", headers=headers, timeout=15)
         return jsonify(resp.json()), resp.status_code
     except Exception as e:
         app.logger.exception("Failed to list brands")
@@ -43,7 +43,7 @@ def list_brands():
 def create_campaign():
     data = request.get_json()
     try:
-        resp = requests.post(f"{API}/phoneNumberCampaign", headers=headers,
+        resp = requests.post(f"{API}/10dlc/phoneNumberCampaign", headers=headers,
             json={"telnyx_brand_id": data.get("brand_id"),
                 "usecase": data.get("usecase", "MIXED"),
                 "description": data.get("description"),

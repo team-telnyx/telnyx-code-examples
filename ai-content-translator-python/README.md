@@ -19,17 +19,17 @@ translation workflow.
 ## What It Does
 
 - Accepts an audio file upload (mp3, wav, m4a, ogg, flac, webm) plus source and target language codes
-- Calls Telnyx STT (`/v2/ai/transcribe`) to transcribe the audio in the source language (or auto-detect)
+- Calls Telnyx STT (`/v2/ai/audio/transcriptions`) to transcribe the audio in the source language (or auto-detect)
 - Calls Telnyx AI Inference (`/v2/ai/chat/completions`) to translate the transcript with a TTS-friendly system prompt
-- Calls Telnyx TTS (`/v2/ai/generate`) to render the translated text into the target language
+- Calls Telnyx TTS (`/v2/text-to-speech/speech`) to render the translated text into the target language
 - Concatenates the per-chunk TTS audio into one file and exposes a download URL
 - Returns a JSON response with the job id, both transcripts, the audio URL, and a preview of each transcript
 
 ## Telnyx API Endpoints Used
 
-- **STT Transcribe** — `POST /v2/ai/transcribe` — [reference](https://developers.telnyx.com/api/inference/transcribe)
+- **STT Transcribe** — `POST /v2/ai/audio/transcriptions` — [reference](https://developers.telnyx.com/api-reference/speech-to-text-commands/transcribe-audio)
 - **AI Inference: Chat Completions** — `POST /v2/ai/chat/completions` — [reference](https://developers.telnyx.com/api/inference/chat-completions)
-- **TTS Generate** — `POST /v2/ai/generate` — [reference](https://developers.telnyx.com/api/inference/generate)
+- **TTS Generate** — `POST /v2/text-to-speech/speech` — [reference](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices)
 
 ## Architecture
 

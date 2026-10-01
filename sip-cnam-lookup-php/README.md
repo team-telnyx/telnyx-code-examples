@@ -94,7 +94,7 @@ class CnamLookupService
         // Note: CNAM lookups are performed via REST API, not SDK method
         $response = $this->client->request(
             'GET',
-            "/v2/cnam_lookups/{$phoneNumber}",
+            "/v2/number_lookup/{$phoneNumber}",
             []
         );
 

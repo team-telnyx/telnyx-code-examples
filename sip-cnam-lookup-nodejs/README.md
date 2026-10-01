@@ -63,7 +63,7 @@ async function lookupCNAM(phoneNumber) {
 
   // Call the CNAM lookup endpoint via REST
   // The SDK does not have a dedicated CNAM method, so we use the underlying HTTP client
-  const response = await client.get(`/v2/cnam_lookups/${cleanNumber}`);
+  const response = await client.get(`/v2/number_lookup/${cleanNumber}?type=caller-name`);
 
   // Extract serializable data from the response
   return {
