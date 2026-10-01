@@ -49,7 +49,7 @@ def inference(messages, max_tokens=2000):
 
 
 def transcribe(audio_bytes):
-    resp = requests.post(f"{API}/ai/transcribe", headers={
+    resp = requests.post(f"{API}/ai/audio/transcriptions", headers={
         "Authorization": f"Bearer {TELNYX_API_KEY}"
     }, files={"file": ("audio.mp3", audio_bytes, "audio/mpeg")},
     data={"model": STT_MODEL, "language": "en", "timestamps": True, "diarize": True},

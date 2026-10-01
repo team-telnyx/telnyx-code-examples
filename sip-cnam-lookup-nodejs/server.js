@@ -32,15 +32,19 @@ async function lookupCNAM(phoneNumber) {
     throw new Error("Invalid phone number format");
   }
 
-  // Call the CNAM lookup endpoint via REST
-  const response = await client.get(`/v2/cnam_lookups/${cleanNumber}`);
+  // Remove the + prefix for the API endpoint path
+  const cleanPath = cleanNumber.slice(1);
+
+  // Call the Number Lookup endpoint with caller-name type
+  const response = await client.get(`/v2/number_lookup/${cleanPath}?type=caller-name`);
 
   // Extract serializable data from the response
+  const d = response.data || {};
   return {
-    phone_number: response.data.phone_number,
-    cnam: response.data.cnam,
-    carrier_name: response.data.carrier_name || null,
-    last_updated: response.data.last_updated || null,
+    phone_number: d.phone_number || cleanNumber,
+    cnam: (d.caller_name || {}).caller_name || null,
+    carrier_name: (d.carrier || {}).name || null,
+    carrier_type: (d.carrier || {}).type || null,
   };
 }
 
