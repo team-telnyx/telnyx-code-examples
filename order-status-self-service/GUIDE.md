@@ -1,181 +1,136 @@
-# Order Status Self-Service — Developer Guide
+# Guide — Order Status Self-Service (Durable Actor)
 
-A step-by-step tutorial for the `order-status-self-service` sample: a durable per-customer actor that answers "where's my order?" via SMS and proactively texts delay notices before the customer asks.
+A step-by-step walkthrough of DEV-1189: a durable `OrderAgent` per customer E.164 that answers "where's my order?" from its own SQL state, remembers the thread, and texts delays **before** the customer asks.
 
 ## Prerequisites
 
-- Node.js 18+
-- `telnyx-edge` CLI (`npm i -g telnyx-edge`)
-- A Telnyx account with a messaging profile and phone number
-- TypeScript familiarity
+- Node.js 18+, npm
+- Telnyx Edge CLI ([releases](https://github.com/team-telnyx/edge-compute/releases))
+- A Telnyx account with an SMS-capable number (10DLC campaign required for US A2P traffic)
 
-## Project Layout
-
-```
-order-status-self-service/
-├── src/index.ts          # OrderAgent class + Edge fetch handler
-├── package.json
-├── tsconfig.json
-├── telnyx.toml
-├── .env.example
-├── smoke_test.ts
-└── GUIDE.md
-```
-
-## Environment Setup
-
-1. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-2. **Configure bindings**
-
-   Edit `telnyx.toml` — the actor binding (`CUSTOMERS`), the Telnyx API binding (`TELNYX`), and the SQL database binding (`ORDERS_DB`) are declared there. Regenerate types:
-
-   ```bash
-   telnyx-edge types
-   ```
-
-   This produces `telnyx-env.d.ts` with typed `Env` bindings.
-
-3. **Set secrets**
-
-   ```bash
-   telnyx-edge secrets add TELNYX_API_KEY "your_api_key_here"
-   ```
-
-   The `TELNYX` binding is zero-credential — the platform injects auth from the secret. No API key appears in code.
-
-4. **Demo mode (default)**
-
-   `DEMO_MODE=true` is the default. In demo mode the actor **logs** SMS messages instead of sending real ones, and uses a built-in plain-language interpreter instead of calling the LLM. No charges are incurred.
-
-   To switch to **live mode**, set `DEMO_MODE=false` (or unset it) and provide a real `SMS_FROM` number:
-
-   ```bash
-   telnyx-edge secrets add DEMO_MODE "false"
-   telnyx-edge secrets add SMS_FROM "+1555XXXXXXXX"
-   ```
-
-   In live mode, `this.env.TELNYX.ai.openai.chat.createCompletion` is called to generate the one-line plain-language answer, and `this.env.TELNYX.messages.send` dispatches real SMS.
-
-## How It Works
-
-### 1. The Actor Is the Customer
-
-The `OrderAgent` class (defined in `src/index.ts`) extends `Agent<Env, CustomerState>`. Each customer gets exactly one durable actor, provisioned on demand via `env.CUSTOMERS.idFromName(customerE164)`. The actor's durable state holds:
-
-- `customer` — the E.164 phone number
-- `linked` — array of order IDs linked to this customer
-- `lastNotified` — the last order ID that received a proactive delay text (exactly-once guard)
-
-The actor also owns an **agent SQL table** `orders(orderId, status, eta, ts)` — the durable order record that survives eviction between interactions.
-
-### 2. Linking an Order (`linkOrder` RPC)
-
-When a storefront completes a purchase, it calls the `/rpc/linkOrder` endpoint. The Edge `fetch` handler extracts `customerE164` from the query string, resolves the actor stub via `env.CUSTOMERS.idFromName(customerE164)`, and invokes `stub.linkOrder(customerE164, orderId, carrier)`.
-
-Inside `linkOrder`:
-- The actor's `customer` field is set.
-- The `orderId` is appended to `linked` (idempotent).
-- The `orders` SQL schema is ensured (`ensureSchema`).
-- A `pending` row is inserted for the order.
-
-### 3. Carrier Webhook Seam (`onCarrier`)
-
-Carrier status webhooks (shipped / delayed / delivered) arrive at `/webhook/carrier`. The fetch handler routes them to `stub.onCarrier(event)`.
-
-`onCarrier` does three things:
-1. **Idempotency check** — queries the existing `orders` row for this `orderId`. If the `status` and `ts` match a previously recorded event, it returns early (no double-text on webhook redelivery).
-2. **State update** — `INSERT OR REPLACE` into the `orders` SQL table with the new status, ETA, and timestamp.
-3. **Proactive action**:
-   - For `shipped` / `delivered`: sends a status SMS immediately via `sendSms`.
-   - For `delayed`: calls `this.schedule(0, "notifyDelay", { event }, { id: "delay:" + event.orderId })` — a zero-delay scheduled task that wakes the actor to send the delay notice.
-
-### 4. Inbound Self-Service (`onInboundMessage`)
-
-When the customer texts "where's my order?", Telnyx delivers an `inbound-message` callback to `/webhook/inbound`. The fetch handler routes it to `stub.onInboundMessage(msg)`.
-
-`onInboundMessage`:
-1. Queries the `orders` SQL table for all orders linked to this customer (`ORDER BY ts DESC`).
-2. Calls `answerSms(msg, rows)` which:
-   - Returns a "no orders linked" message if the table is empty.
-   - Otherwise calls `interpretStatus(latest)` to produce a one-line plain-language answer.
-3. Sends the answer back via `sendSms(msg.from, answer)`.
-
-### 5. Plain-Language Interpretation (`interpretStatus`)
-
-In **live mode**, `interpretStatus` calls `this.env.TELNYX.ai.openai.chat.createCompletion` with a prompt that turns the raw `status` + `eta` into a single customer-friendly sentence (e.g., "On the way — out for delivery tomorrow, slightly earlier than the original ETA.").
-
-In **demo mode**, a built-in `demoInterpretation` switch statement returns canned responses — no LLM call, no charges.
-
-### 6. Proactive Delay Notification (`notifyDelay`)
-
-The scheduled task `notifyDelay` is the actor's self-wake mechanism for delay events:
-
-1. **Exactly-once guard** — if `this.state.lastNotified === payload.event.orderId`, it returns immediately (the delay was already notified).
-2. Sends the delay SMS via `sendSms(this.state.customer, this.delaySms(payload.event))`.
-3. Updates `lastNotified` to the order ID via `setState`.
-
-This guarantees the customer receives the delay notice **exactly once**, even if the webhook is redelivered or the actor is evicted and re-woken.
-
-### 7. Follow-Up In-Thread
-
-Because the actor is durable and owns message history, a follow-up text like "will it make it by Friday?" arrives at the same `/webhook/inbound` endpoint. The fetch handler resolves the same actor stub (same `customerE164`), and `onInboundMessage` reads the current `orders` SQL state — no re-identification needed. The actor answers from its durable state.
-
-### 8. Restart Proof
-
-If the Edge function is killed between a carrier webhook and the proactive text:
-- The `orders` SQL state is already persisted (written before the `schedule` call).
-- On the customer's next inbound message, the actor is re-woken with full state.
-- The `lastNotified` guard prevents a duplicate delay notification.
-
-## Telnyx Primitives Used
-
-| Primitive | How It's Used |
-|---|---|
-| **Agent SDK** (`Agent<Env, CustomerState>`) | The durable per-customer entity. Owns state + SQL + scheduling. |
-| **Agent SQL** (`this.sql` / `this.env.ORDERS_DB`) | `orders(orderId, status, eta, ts)` table — durable order state. |
-| **`this.schedule()`** | Zero-delay task to wake the actor for proactive delay notification. |
-| **Two-way SMS** (`inbound-message` + `send-a-message`) | Inbound: customer asks "where's my order?". Outbound: status answer + proactive delay notice. |
-| **Inference** (`this.env.TELNYX.ai.openai.chat.createCompletion`) | Converts raw order state into a one-line plain-language answer. |
-| **Webhook seam** (Edge `fetch` → `stub.onCarrier`) | Carrier status webhooks trigger proactive state updates + texts. |
-| **Actor namespace** (`env.CUSTOMERS.idFromName`) | One durable actor per customer, self-provisioned on first contact. |
-
-## Demo Flow Walkthrough
-
-1. **Customer places an order** → storefront calls `/rpc/linkOrder?customer=+15551234567` with `{ orderId, carrier }` → `OrderAgent` is born via `idFromName`, `orders` table gets a `pending` row.
-2. **Carrier webhook (shipped)** → `/webhook/carrier` → `onCarrier` updates SQL to `shipped` + sends proactive SMS: "Your order is on the way — out for delivery Tue."
-3. **Customer texts "where's my order?"** → `/webhook/inbound` → `onInboundMessage` reads SQL + sends: "On the way — out for delivery tomorrow. (Order ORD-123)"
-4. **Follow-up: "will it make it by Friday?"** → same actor, same thread → answers from ETA in SQL state.
-5. **Day 3 — carrier webhook (delay)** → `onCarrier` schedules `notifyDelay` → actor wakes → texts: "Heads up — your order is delayed to Fri; here's why and your new ETA."
-6. **Restart proof** — kill the worker between webhook and text → SQL state intact → next inbound re-wakes actor → delay notification sent exactly once.
-
-## Running the Smoke Test
+## 1. Local verification
 
 ```bash
-npx tsx smoke_test.ts
+cd order-status-self-service
+npm install
+npm run typecheck
+npm test
 ```
 
-This verifies the `OrderAgent` class shape, method existence (`linkOrder`, `onCarrier`, `onInboundMessage`, `notifyDelay`), and that the module loads without error.
+Expected: `✅ smoke_test.ts: All checks passed`.
 
-## Deploying
+## 2. Provision and deploy
 
 ```bash
+export TELNYX_API_KEY=your_telnyx_api_key_here
+
+# Register the actor function (prints a func_id)
+telnyx-edge new-func --actor -l ts -n order-status-self-service
+# → copy the printed func_id into telnyx.toml [edge_compute]
+
+# Ship (~5-10 min: upload, build, deploy)
 telnyx-edge ship
+# → note the deployed URL: https://<your-function>.telnyxcompute.com
+
+# Point the messaging profile's inbound webhook at the deployed function:
+#   inbound-message callback → https://<your-function>.telnyxcompute.com/webhook/inbound
 ```
 
-This deploys the Edge worker with the actor bindings declared in `telnyx.toml`.
+Demo mode (`DEMO_MODE=true`, the default) logs every SMS to the actor console instead of sending — no charges.
 
-## Next Steps
+## 3. The demo flow
 
-- [Telnyx Agent SDK docs](https://developers.telnyx.com/docs/agent-sdk)
-- [Agent SQL reference](https://developers.telnyx.com/docs/agent-sdk/sql)
-- [Calling LLMs from agents](https://developers.telnyx.com/docs/agent-sdk/concepts/calling-llms)
-- [Stateful actors on Telnyx Edge](https://developers.telnyx.com/docs/edge-compute/stateful-actors)
-- [Send SMS via Telnyx API](https://developers.telnyx.com/docs/messaging/messages/send-message)
-- [Inbound message webhook reference](https://developers.telnyx.com/api-reference/callbacks/inbound-message)
-- [Agent memory (Cloudflare pattern)](https://blog.cloudflare.com/introducing-agent-memory)
-- [Voice self-service pattern](https://developers.cloudflare.com/agents/examples/voice-agent/)
+All commands assume `BASE=https://<your-function>.telnyxcompute.com` and customer `+15551234567`.
+
+### Step 1 — Storefront links an order (the actor is born)
+
+```bash
+curl -X POST "$BASE/rpc/linkOrder?customer=%2B15551234567" \
+  -H "Content-Type: application/json" \
+  -d '{"orderId": "ORD-1001", "carrier": "medship"}'
+# → {"ok":true,"orderId":"ORD-1001","customer":"+15551234567"}
+```
+
+One durable actor per customer: `env.CUSTOMERS.idFromName("15551234567")` self-provisions the entity, its `orders` SQL table, and its thread.
+
+### Step 2 — Carrier ships the order (proactive text, the customer never asked)
+
+```bash
+curl -X POST "$BASE/webhook/carrier?customer=%2B15551234567" \
+  -H "Content-Type: application/json" \
+  -d '{"kind": "shipped", "orderId": "ORD-1001", "eta": "Tue", "ts": 1767225600000}'
+# → {"ok":true,"duplicate":false}
+# [demo] SMS to +15551234567: Your order ORD-1001 is on the way — out for delivery Tue.
+```
+
+`onCarrier` upserts the durable `orders` row and texts immediately for `shipped`/`delivered`.
+
+### Step 3 — Customer asks "where's my order?" (inbound self-service)
+
+```bash
+curl -X POST "$BASE/webhook/inbound" \
+  -H "Content-Type: application/json" \
+  -d '{"data": {"event_type": "message.received", "payload": {"from": {"phone_number": "+15551234567"}, "text": "where'"'"'s my order?"}}}'
+# → {"ok":true,"answer":"On the way — out for delivery, ETA Tue. (Order ORD-1001)"}
+# [demo] SMS to +15551234567: On the way — out for delivery, ETA Tue. (Order ORD-1001)
+```
+
+The actor reads its own durable SQL (`SELECT * FROM orders WHERE customer = ? ORDER BY ts DESC`) — no app, no portal.
+
+### Step 4 — Follow-up in-thread (no re-identification)
+
+```bash
+curl -X POST "$BASE/webhook/inbound" \
+  -H "Content-Type: application/json" \
+  -d '{"data": {"event_type": "message.received", "payload": {"from": {"phone_number": "+15551234567"}, "text": "will it make it by Friday?"}}}'
+# → {"ok":true,"answer":"Order ORD-1001 should arrive by Tue."}
+```
+
+The answer comes from the actor's durable state + the persisted MessageLog thread — the same actor instance, same conversation memory.
+
+### Step 5 — Carrier reports a delay (proactive notice BEFORE the customer asks)
+
+```bash
+curl -X POST "$BASE/webhook/carrier?customer=%2B15551234567" \
+  -H "Content-Type: application/json" \
+  -d '{"kind": "delayed", "orderId": "ORD-1001", "eta": "Fri", "ts": 1767484800000, "reason": "weather hold"}'
+# → {"ok":true,"duplicate":false}
+# [demo] SMS to +15551234567: Heads up — your order ORD-1001 is delayed to Fri: weather hold. We're on it.
+```
+
+The `delayed` event wakes the actor via `this.schedule(0, "notifyDelay", ...)`; the `lastNotified` guard makes the notice exactly-once.
+
+### Step 6 — Redelivery is safe (idempotency)
+
+```bash
+curl -X POST "$BASE/webhook/carrier?customer=%2B15551234567" \
+  -H "Content-Type: application/json" \
+  -d '{"kind": "delayed", "orderId": "ORD-1001", "eta": "Fri", "ts": 1767484800000, "reason": "weather hold"}'
+# → {"ok":true,"duplicate":true}   ← dropped, NO second SMS
+```
+
+A redelivered carrier webhook (same `status` + `ts`) is detected and dropped before any SMS is sent. Even if a *different* delay event for the same order arrives, `notifyDelay`'s `lastNotified` guard suppresses the duplicate.
+
+## 4. Restart-proof demo
+
+To demonstrate the durability contract:
+
+1. Complete Steps 1–2 (order linked + shipped) — the `orders` row and thread are now durable.
+2. Kill the Edge function (e.g. `telnyx-edge reset-func order-status-self-service --yes`, or stop `telnyx-edge dev`) **between** a delayed carrier webhook and the proactive text.
+3. Send the delayed webhook (Step 5) — the scheduled task is persisted; when the function comes back, `notifyDelay` fires and the notice is sent.
+4. Redeliver the same webhook (Step 6) — dropped, no double text. A fresh inbound text re-wakes the actor with its full SQL state and thread.
+
+## 5. Going live
+
+1. Set `DEMO_MODE = "false"` and `SMS_FROM = "+1..."` in `telnyx.toml` `[env_vars]` (or `.env` for local dev).
+2. Re-ship: `telnyx-edge ship`.
+3. Live mode sends real SMS via `this.env.TELNYX.messages.send()` and answers via Telnyx-hosted inference (`zai-org/GLM-5.2` by default — no BYOK key needed).
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| 400 on `/webhook/inbound` | Body isn't the Telnyx `message.received` shape | Send `data.event_type` + `data.payload.from.phone_number` + `data.payload.text` |
+| No SMS in the console | Wrong customer E.164 in `?customer=` | The actor is keyed by the customer's E.164; use the same value everywhere |
+| 500 on actor calls | `SMS_FROM` missing in live mode | Set `SMS_FROM` in `[env_vars]` and re-ship |
+| Typecheck failures after editing | Invented SDK APIs | Only `this.ctx.storage.sql`, `this.messages`, `this.getState()/setState()`, and `this.schedule()` exist — see `node_modules/@telnyx/edge-runtime/dist/agent/agent.d.ts` |

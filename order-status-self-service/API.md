@@ -1,223 +1,156 @@
 # API Reference — Order Status Self-Service
 
-This document describes the HTTP endpoints exposed by the `order-status-self-service` Edge Worker. All routes are handled by the default `fetch` export in `src/index.ts`, which routes incoming requests to the appropriate `OrderAgent` method via the `CUSTOMERS` actor namespace.
+This document describes the HTTP endpoints exposed by the `order-status-self-service` Edge function. All routes are handled by the default `fetch` export in `src/index.ts`, which routes incoming requests to the appropriate `OrderAgent` method via the `CUSTOMERS` actor namespace (`env.CUSTOMERS.idFromName(customerE164)` — one durable actor per customer E.164).
 
----
+## Routes
 
-## Routes Overview
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/rpc/linkOrder` | Links a customer's order to their durable `OrderAgent` (one actor per customer E.164). |
-| `POST` | `/webhook/carrier` | Receives carrier status webhooks (shipped / delayed / delivered) and updates durable order state. |
-| `POST` | `/webhook/inbound` | Receives Telnyx `inbound-message` callbacks and answers the customer from durable state. |
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/rpc/linkOrder` | Storefront RPC — links a customer's order to their durable actor |
+| `POST` | `/webhook/carrier` | Carrier status webhook (`shipped` / `delayed` / `delivered`) |
+| `POST` | `/webhook/inbound` | Telnyx `message.received` (inbound-message) callback |
+| `GET` | `/health` | Health check |
 
 ---
 
 ## POST /rpc/linkOrder
 
-Creates or retrieves the `OrderAgent` for the given customer and links an order ID to it.
+Links a customer's order to their durable `OrderAgent`. This is where the actor is born: the fetch handler resolves `env.CUSTOMERS.idFromName(customerE164)` and invokes `linkOrder` on the stub, so the durable entity self-provisions on demand.
 
-### Query Parameters
+**Query:** `?customer=%2B15551234567` (URL-encoded E.164)
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `customer` | string | Yes | Customer phone number in E.164 format (e.g. `+15551234567`). |
-
-### Request Body
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `orderId` | string | Yes | Unique order identifier from the storefront. |
-| `carrier` | string | Yes | Carrier name (e.g. `"fedex"`, `"ups"`). Stored for reference; not used in routing. |
-
-### Example Request
-
-```bash
-curl -X POST \
-  'https://<worker-subdomain>.telnyx.net/rpc/linkOrder?customer=%2B15551234567' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "orderId": "ORD-12345",
-    "carrier": "fedex"
-  }'
-```
-
-### Response Schema
-
-**Status Code: 200**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `ok` | boolean | Always `true` on success. |
-
+**Request:**
 ```json
 {
-  "ok": true
+  "orderId": "ORD-1001",
+  "carrier": "medship"
 }
 ```
 
-### Status Codes
+**Response (200):**
+```json
+{
+  "ok": true,
+  "orderId": "ORD-1001",
+  "customer": "+15551234567"
+}
+```
 
-| Code | Description |
-|------|-------------|
-| 200 | Order successfully linked to the customer's actor. |
-| 400 | Missing `customer` query parameter or missing `orderId` / `carrier` in body. |
-| 500 | Internal error during actor creation or SQL state initialization. |
+**Response (400):**
+```json
+{ "error": "customer (E.164 in ?customer= or body) and orderId are required" }
+```
+
+**Side effects:** the actor's per-actor SQL table is created (`orders(order_id, customer, status, eta, ts)`) and the order is inserted with status `pending`; a `system` note is appended to the MessageLog.
 
 ---
 
 ## POST /webhook/carrier
 
-Receives carrier status update webhooks and routes them to the customer's `OrderAgent` via `onCarrier`.
+Carrier status webhook. Updates the durable `orders` SQL, then either sends a proactive status SMS immediately (`shipped` / `delivered`) or wakes the actor with a scheduled task (`delayed` → `notifyDelay`).
 
-### Query Parameters
+**Query:** `?customer=%2B15551234567` (URL-encoded E.164; may also be in the body)
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `customer` | string | Yes | Customer phone number in E.164 format. |
-
-### Request Body
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `kind` | string | Yes | One of `"shipped"`, `"delayed"`, `"delivered"`. |
-| `orderId` | string | Yes | Order identifier matching a previously linked order. |
-| `customer` | string | Yes | Customer phone number in E.164 format (must match query param). |
-| `eta` | string | Yes | Estimated time of delivery (ISO 8601 or human-readable). |
-| `ts` | number | Yes | Unix timestamp (milliseconds) of the carrier event. |
-| `reason` | string | No | Optional reason for delay (only populated for `delayed` events). |
-
-### Example Request
-
-```bash
-curl -X POST \
-  'https://<worker-subdomain>.telnyx.net/webhook/carrier?customer=%2B15551234567' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "kind": "delayed",
-    "orderId": "ORD-12345",
-    "customer": "+15551234567",
-    "eta": "2025-07-15T17:00:00Z",
-    "ts": 1752561600000,
-    "reason": "weather delay"
-  }'
-```
-
-### Response Schema
-
-**Status Code: 200**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `ok` | boolean | Always `true` on success. |
-
+**Request:**
 ```json
 {
-  "ok": true
+  "kind": "delayed",
+  "orderId": "ORD-1001",
+  "customer": "+15551234567",
+  "eta": "Fri",
+  "ts": 1767484800000,
+  "reason": "weather hold"
 }
 ```
 
-### Behavior
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `kind` | `string` | yes | `shipped`, `delayed`, or `delivered` |
+| `orderId` | `string` | yes | Order identifier |
+| `customer` | `string` | yes | Customer E.164 (actor key) |
+| `eta` | `string` | no | Delivery estimate, e.g. `"Tue"` |
+| `ts` | `number` | yes | Event timestamp (ms) — redelivered webhooks carry the same `ts` |
+| `reason` | `string` | no | Delay reason |
 
-- **Idempotency**: If the incoming webhook's `status` + `ts` matches the existing record in the `orders` SQL table, the request is a no-op (no duplicate SMS).
-- **Shipped / Delivered**: Sends a proactive status SMS to the customer immediately.
-- **Delayed**: Schedules a `notifyDelay` task via `this.schedule(0, "notifyDelay", ...)` with a deduplication ID of `delay:<orderId>`. The `notifyDelay` handler checks `lastNotified` to guarantee exactly-once delivery.
+**Response (200):**
+```json
+{ "ok": true, "duplicate": false }
+```
 
-### Status Codes
+`duplicate: true` means the event was already recorded (same `status` + `ts`) and no SMS was sent — the redelivery idempotency guard.
 
-| Code | Description |
-|------|-------------|
-| 200 | Webhook processed; order state updated and/or proactive SMS scheduled. |
-| 400 | Missing `customer` query parameter. |
-| 500 | Internal error during SQL update or SMS scheduling. |
+**Behavior:**
+- `shipped` → immediate SMS: `Your order ORD-1001 is on the way — out for delivery Tue.`
+- `delivered` → immediate SMS: `Your order ORD-1001 was delivered. Thanks for shopping with us!`
+- `delayed` → `this.schedule(0, "notifyDelay", { event, opts }, { id: "delay:<orderId>" })` — the actor wakes itself and texts `Heads up — your order ORD-1001 is delayed to Fri: weather hold. We're on it.`
 
 ---
 
 ## POST /webhook/inbound
 
-Receives Telnyx `inbound-message` callbacks and routes them to the customer's `OrderAgent` via `onInboundMessage`.
+Telnyx `message.received` (inbound-message) callback. Parses the real Telnyx payload shape and routes the customer's text to their actor.
 
-### Query Parameters
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `from` | string | Yes | Sender phone number in E.164 format (the customer's number). |
-
-### Request Body
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `from` | string | Yes | Sender phone number in E.164 format. |
-| `text` | string | Yes | The customer's inbound message text (e.g. `"where's my order?"`). |
-
-### Example Request
-
-```bash
-curl -X POST \
-  'https://<worker-subdomain>.telnyx.net/webhook/inbound?from=%2B15551234567' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "from": "+15551234567",
-    "text": "where is my order?"
-  }'
-```
-
-### Response Schema
-
-**Status Code: 200**
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `ok` | boolean | Always `true` on success. |
-
+**Request (Telnyx webhook body):**
 ```json
 {
-  "ok": true
+  "data": {
+    "event_type": "message.received",
+    "payload": {
+      "from": { "phone_number": "+15551234567" },
+      "to": [{ "phone_number": "+16282564655" }],
+      "text": "where's my order?"
+    }
+  }
 }
 ```
 
-### Behavior
+**Response (200):**
+```json
+{
+  "ok": true,
+  "answer": "On the way — out for delivery, ETA Tue. (Order ORD-1001)"
+}
+```
 
-- Reads all linked orders from the `orders` SQL table, ordered by `ts DESC`.
-- Generates a plain-language answer using either the OpenAI `createCompletion` binding (live mode) or a built-in demo interpretation (demo mode).
-- Sends the answer SMS back to the customer via `this.env.TELNYX.messages.send`.
+**Response (400):**
+```json
+{ "error": "unexpected event_type" }
+```
 
-### Status Codes
+**Behavior:** `onInboundMessage` appends the inbound text to the actor's MessageLog, loads the customer's order rows from per-actor SQL (newest first), builds a one-line plain-language answer, appends the reply to the MessageLog, and sends it via `this.env.TELNYX.messages.send()`.
 
-| Code | Description |
-|------|-------------|
-| 200 | Inbound message processed; answer SMS sent (or logged in demo mode). |
-| 400 | Missing `from` query parameter. |
-| 500 | Internal error during SQL read or SMS send. |
-
----
-
-## Demo Mode
-
-When `DEMO_MODE=true` is set in the environment:
-
-- No real SMS messages are sent. Instead, messages are logged to the console with the prefix `[DEMO] SMS to <number>: <text>`.
-- The OpenAI `createCompletion` call is bypassed; a built-in `demoInterpretation` function generates the plain-language answer based on the order status.
-
-To switch to live mode, set `DEMO_MODE=false` (or unset it) and ensure `TELNYX_API_KEY` is configured as a secret.
+The follow-up question ("will it make it by Friday?") is answered from the durable order state **plus the persisted thread** — the actor already knows the customer and their order, so there is no re-identification.
 
 ---
 
-## Environment Variables
+## GET /health
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `TELNYX_API_KEY` | Yes (live mode) | Telnyx API key, injected as a secret via `[[secrets]]` in `telnyx.toml`. |
-| `DEMO_MODE` | No | Set to `"true"` to enable demo mode (default). Set to `"false"` or unset for live mode. |
-| `SMS_FROM` | No | Default sender phone number for outbound SMS. Falls back to `+1555XXXXXXXX` if unset. |
+**Response (200):**
+```json
+{ "status": "ok", "agent": "OrderAgent" }
+```
 
 ---
 
-## Actor Identity
+## Actor state & storage
 
-The `OrderAgent` is a durable actor keyed by the customer's E.164 phone number via `env.CUSTOMERS.idFromName(customerE164)`. This means:
+| Store | Schema | Purpose |
+|---|---|---|
+| Per-actor SQL (`this.ctx.storage.sql`) | `orders(order_id TEXT PRIMARY KEY, customer TEXT NOT NULL, status TEXT NOT NULL, eta TEXT NOT NULL DEFAULT '', ts INTEGER NOT NULL)` | Durable order state — survives eviction, reboot, and webhook redelivery |
+| Agent state (`CustomerState`) | `{ customer, linked: string[], lastNotified: string \| null }` | Actor identity + linked orders + exactly-once delay guard |
+| MessageLog (`this.messages`) | Append-only thread of `system` / `user` / `assistant` messages | The durable SMS thread — follow-ups resolve without re-identification |
 
-- Each customer gets exactly one durable actor instance.
-- The actor's SQL state (`orders` table) and `CustomerState` (including `lastNotified`) persist across evictions and restarts.
-- Follow-up messages in the same thread are answered from the actor's existing state — no re-identification is needed.
+## Actor methods
+
+| Method | Invocation | Description |
+|---|---|---|
+| `linkOrder(customerE164, orderId, carrier)` | `stub.linkOrder(...)` from `/rpc/linkOrder` | Born actor: sets identity, links the order, initializes SQL |
+| `onCarrier(event, opts)` | `stub.onCarrier(...)` from `/webhook/carrier` | SQL upsert + proactive text or scheduled delay wake; idempotent on redelivery |
+| `onInboundMessage(msg, opts)` | `stub.onInboundMessage(...)` from `/webhook/inbound` | Q&A from durable state + MessageLog thread |
+| `notifyDelay(payload)` | `this.schedule(0, "notifyDelay", ...)` dispatch | Proactive delay SMS; exactly-once via `lastNotified` + stable schedule id |
+
+## Security notes
+
+- The `[telnyx]` binding is zero-credential: API auth is injected at the platform level; no keys live in the sample.
+- `DEMO_MODE`/`SMS_FROM`/`AI_MODEL` are `[env_vars]` in the function runtime's `process.env`; the fetch handler passes them explicitly into actor calls (the actor runtime has its own empty `process.env`).
+- Carrier webhooks are not authenticated in this sample — validate the sender (allowlist / shared secret) before production use. Telnyx webhooks are Ed25519-signed; server-side examples in this repo verify them with `client.webhooks.unwrap`.

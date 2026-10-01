@@ -1,23 +1,42 @@
-```toml
+# Order Status Self-Service — Telnyx Edge Compute (Stateful Actors).
+#
+# One durable actor instance per customer E.164: the actor owns the customer's
+# order state (per-actor SQL), the SMS conversation memory (MessageLog), and
+# the proactive delay notification (scheduled task + exactly-once guard).
+#
+# Bindings:
+#   [[actors]]  CUSTOMERS — the OrderAgent durable namespace. One actor per
+#                         customer, addressed via idFromName(customerE164).
+#   [telnyx]    TELNYX    — the standard Telnyx SDK binding. Exposes
+#                         this.env.TELNYX.messages.send() and
+#                         this.env.TELNYX.ai.openai.chat.createCompletion().
+#                         Declaring this block also injects TELNYX_API_KEY
+#                         into the function runtime's process.env.
+#
+# Env vars:
+#   DEMO_MODE — "true" (default) logs SMS + uses the deterministic demo
+#               interpreter instead of calling the LLM; "false" sends real
+#               SMS and calls Telnyx-hosted inference.
+#   SMS_FROM  — SMS-capable sender number in E.164 (required in live mode).
+#   AI_MODEL  — Telnyx-hosted inference model (default zai-org/GLM-5.2).
+
 name = "order-status-self-service"
 main = "src/index.ts"
-compatibility_date = "2026-07-28"
+compatibility_date = "2026-09-01"
+
+# ── Function identity (created via `telnyx-edge new-func --actor -l ts -n order-status-self-service`) ──
+[edge_compute]
+func_id = "<copy-from-telnyx-edge-new-func-output>"
+func_name = "order-status-self-service"
 
 [[actors]]
 binding = "CUSTOMERS"
 type = "OrderAgent"
 
-[[secrets]]
-binding = "TELNYX_API_KEY"
-name = "TELNYX_API_KEY"
-
 [telnyx]
 binding = "TELNYX"
 
-[storage.sqldb.ORDERS_DB]
-id = "<sqldb-namespace-uuid>"
-
 [env_vars]
 DEMO_MODE = "true"
-SMS_FROM = "+1555XXXXXXXX"
-```
+SMS_FROM = ""
+AI_MODEL = "zai-org/GLM-5.2"
