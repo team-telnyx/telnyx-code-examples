@@ -19,7 +19,6 @@ TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 MAIN_NUMBER = os.getenv("MAIN_NUMBER")
 MESSAGING_PROFILE_ID = os.getenv("MESSAGING_PROFILE_ID", "")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "voiceovers")
 # Region selects the S3 endpoint host, e.g. us-central-1 -> us-central-1.telnyxcloudstorage.com
 REGION = os.getenv("TELNYX_STORAGE_REGION", "us-central-1")
@@ -38,11 +37,11 @@ s3 = boto3.client(
 )
 
 ALL_VOICES = [
-    {"id": "nova", "name": "Nova", "traits": "warm, approachable, female"},
-    {"id": "onyx", "name": "Onyx", "traits": "deep, authoritative, male"},
-    {"id": "echo", "name": "Echo", "traits": "natural, conversational, male"},
-    {"id": "shimmer", "name": "Shimmer", "traits": "bright, energetic, female"},
-    {"id": "alloy", "name": "Alloy", "traits": "neutral, clean, balanced"},
+    {"id": "Telnyx.KokoroTTS.af_nova", "name": "Nova", "traits": "warm, approachable, female"},
+    {"id": "Telnyx.KokoroTTS.am_onyx", "name": "Onyx", "traits": "deep, authoritative, male"},
+    {"id": "Telnyx.KokoroTTS.am_echo", "name": "Echo", "traits": "natural, conversational, male"},
+    {"id": "Telnyx.KokoroTTS.af_bella", "name": "Shimmer", "traits": "bright, energetic, female"},
+    {"id": "Telnyx.KokoroTTS.af_alloy", "name": "Alloy", "traits": "neutral, clean, balanced"},
 ]
 
 auditions = {}
@@ -71,9 +70,9 @@ def inference(messages, max_tokens=1000):
     return resp.json()["choices"][0]["message"]["content"]
 
 
-def tts_generate(text, voice="nova"):
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL, "voice": voice, "text": text, "output_format": "mp3"
+def tts_generate(text, voice="Telnyx.KokoroTTS.af_nova"):
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
+        "voice": voice, "text": text
     }, timeout=30)
     resp.raise_for_status()
     return resp.content
@@ -181,7 +180,7 @@ Return JSON array ranked best to worst, each with:
         ranking = json.loads(ranking_raw)
         auditions[audition_id]["ranking"] = ranking
     except json.JSONDecodeError:
-        auditions[audition_id]["ranking"] = [{"voice_id": "nova", "rank": 1, "score": 80, "reasoning": ranking_raw[:200]}]
+        auditions[audition_id]["ranking"] = [{"voice_id": "Telnyx.KokoroTTS.af_nova", "rank": 1, "score": 80, "reasoning": ranking_raw[:200]}]
     except Exception as e:
         app.logger.exception("voice ranking failed for audition %s", audition_id)
         auditions[audition_id]["ranking_error"] = "voice ranking failed"

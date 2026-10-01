@@ -82,10 +82,10 @@ def test_tts():
     if not data:
         return jsonify({"error": "invalid request body"}), 400
     text = data.get("text", "Hello, this is a test of Telnyx text to speech.")
-    voice = data.get("voice_id", "en-US-Neural2-F")
+    voice = data.get("voice_id", "Telnyx.KokoroTTS.af_heart")
     try:
-        resp = requests.post(f"{TELNYX_API}/ai/generate/tts", headers=telnyx_headers,
-            json={"text": text, "voice": voice, "model": "telnyx/tts-ultra-clara"}, timeout=15)
+        resp = requests.post(f"{TELNYX_API}/text-to-speech/speech", headers=telnyx_headers,
+            json={"text": text, "voice": voice}, timeout=15)
         return jsonify({"status": "generated", "voice": voice}), resp.status_code
     except Exception as e:
         app.logger.exception("TTS generation failed")

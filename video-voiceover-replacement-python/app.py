@@ -18,7 +18,6 @@ app = Flask(__name__)
 
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
 STT_MODEL = os.getenv("STT_MODEL", "telnyx/asr")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "voiceovers")
 API = "https://api.telnyx.com/v2"
@@ -81,9 +80,9 @@ def transcribe(audio_bytes, language="en"):
     return resp.json()
 
 
-def tts_generate(text, voice="nova"):
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL, "voice": voice, "text": text, "output_format": "mp3"
+def tts_generate(text, voice="Telnyx.KokoroTTS.af_nova"):
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
+        "voice": voice, "text": text
     }, timeout=60)
     resp.raise_for_status()
     return resp.content
@@ -114,7 +113,7 @@ def replace_voiceover():
         return jsonify({"error": "Upload audio file as 'audio'"}), 400
 
     mode = request.form.get("mode", "professional")
-    voice = request.form.get("voice", "nova")
+    voice = request.form.get("voice", "Telnyx.KokoroTTS.af_nova")
     language = request.form.get("language", "en")
     title = request.form.get("title", "VO Replacement")
     custom_notes = request.form.get("notes", "")

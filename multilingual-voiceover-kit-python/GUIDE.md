@@ -31,7 +31,7 @@ Submit a script in one language, AI translates to multiple targets preserving to
 ## API Endpoints
 
 - **AI Inference (translation)**: `POST /v2/ai/chat/completions` -- [ref](https://developers.telnyx.com/api/inference/chat-completions)
-- **TTS Generate (multilingual)**: `POST /v2/ai/generate` -- [ref](https://developers.telnyx.com/api/inference/generate)
+- **TTS Generate (multilingual)**: `POST /v2/text-to-speech/speech` -- [ref](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices)
 - **Cloud Storage (S3-compatible)**: `boto3.put_object(Bucket, Key, Body, ...)` against `https://{region}.telnyxcloudstorage.com` -- [docs](https://developers.telnyx.com/docs/cloud-storage)
 
 ## Prerequisites

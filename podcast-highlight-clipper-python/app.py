@@ -16,7 +16,6 @@ TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 MAIN_NUMBER = os.getenv("MAIN_NUMBER")
 MESSAGING_PROFILE_ID = os.getenv("MESSAGING_PROFILE_ID", "")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
 STT_MODEL = os.getenv("STT_MODEL", "telnyx/asr")
 SLACK_WEBHOOK = os.getenv("SLACK_WEBHOOK", "")
 API = "https://api.telnyx.com/v2"
@@ -59,9 +58,9 @@ def transcribe(audio_bytes):
     return resp.json()
 
 
-def tts_generate(text, voice="nova"):
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL, "voice": voice, "text": text, "output_format": "mp3"
+def tts_generate(text, voice="Telnyx.KokoroTTS.af_nova"):
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
+        "voice": voice, "text": text
     }, timeout=30)
     resp.raise_for_status()
     return resp.content
@@ -152,7 +151,7 @@ Rank by virality_score descending. Focus on: surprising insights, strong opinion
 
     # Step 3: Generate TTS teaser intros for each highlight
     jobs[job_id]["status"] = "generating_teasers"
-    voices = ["nova", "onyx", "echo", "shimmer", "alloy"]
+    voices = ["Telnyx.KokoroTTS.af_nova", "Telnyx.KokoroTTS.am_onyx", "Telnyx.KokoroTTS.am_echo", "Telnyx.KokoroTTS.af_bella", "Telnyx.KokoroTTS.af_alloy"]
     for i, highlight in enumerate(jobs[job_id]["highlights"]):
         try:
             hook = highlight.get("teaser_hook", "Check this out")

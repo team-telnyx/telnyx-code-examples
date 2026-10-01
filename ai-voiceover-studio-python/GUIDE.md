@@ -31,7 +31,7 @@ Upload a script, select voice/style/pacing, AI adds professional direction cues 
 ## API Endpoints
 
 - **AI Inference (direction)**: `POST /v2/ai/chat/completions` -- [ref](https://developers.telnyx.com/api/inference/chat-completions)
-- **TTS Generate**: `POST /v2/ai/generate` -- [ref](https://developers.telnyx.com/api/inference/generate)
+- **TTS Generate**: `POST /v2/text-to-speech/speech` -- [ref](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices)
 - **Cloud Storage**: S3-compatible — boto3 `put_object` against `https://{region}.telnyxcloudstorage.com`, served via presigned GET URLs -- [docs](https://developers.telnyx.com/docs/cloud-storage)
 
 ## Prerequisites

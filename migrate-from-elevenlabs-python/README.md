@@ -14,7 +14,7 @@ Migrate from ElevenLabs - import ElevenLabs voice configurations to Telnyx TTS w
 
 ## Telnyx API Endpoints Used
 
-- **TTS Generate**: `POST /v2/ai/generate` - [API reference](https://developers.telnyx.com/api/inference/generate)
+- **TTS Generate**: `POST /v2/text-to-speech/speech` - [API reference](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices)
 - **Chat Completions**: `POST /v2/ai/chat/completions` - [API reference](https://developers.telnyx.com/api/inference/chat-completions)
 - **List Models**: `GET /v2/ai/models` - [API reference](https://developers.telnyx.com/api/inference/list-models)
 

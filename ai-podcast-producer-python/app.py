@@ -20,8 +20,7 @@ TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY", "")
 MAIN_NUMBER = os.getenv("MAIN_NUMBER")
 CONNECTION_ID = os.getenv("CONNECTION_ID")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
-TTS_VOICE = os.getenv("TTS_VOICE", "nova")
+TTS_VOICE = os.getenv("TTS_VOICE", "Telnyx.KokoroTTS.af_nova")
 SLACK_WEBHOOK = os.getenv("SLACK_WEBHOOK", "")
 API = "https://api.telnyx.com/v2"
 HEADERS = {"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}
@@ -67,11 +66,9 @@ def inference(messages, max_tokens=2000):
 
 def tts_generate(text, voice=None):
     """Generate speech audio via Telnyx TTS inference."""
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL,
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
         "voice": voice or TTS_VOICE,
-        "text": text,
-        "output_format": "mp3"
+        "text": text
     }, timeout=30)
     resp.raise_for_status()
     return resp.content  # raw audio bytes
