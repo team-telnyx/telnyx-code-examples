@@ -78,30 +78,30 @@ def lookup_cnam(phone_number: str) -> dict:
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    
-    response = requests.get(url, headers=headers)
-    
+
+    response = requests.get(url, headers=headers, params={"type": "caller-name"}, timeout=15)
+
     if response.status_code == 401:
         raise ValueError("Invalid API key")
     elif response.status_code == 404:
         raise ValueError("Phone number not found or CNAM data unavailable")
     elif response.status_code != 200:
         raise ValueError(f"API error: {response.status_code} - {response.text}")
-    
-    data = response.json()
-    
+
+    data = response.json().get("data", {})
+
     return {
         "phone_number": phone_number,
-        "caller_name": data.get("data", {}).get("caller_name"),
-        "country_code": data.get("data", {}).get("country_code"),
-        "phone_number_type": data.get("data", {}).get("phone_number_type"),
-        "carrier_name": data.get("data", {}).get("carrier_name")
+        "caller_name": data.get("caller_name", {}).get("caller_name"),
+        "country_code": data.get("country_code"),
+        "phone_number_type": data.get("carrier", {}).get("type"),
+        "carrier_name": data.get("carrier", {}).get("name")
     }
 
 
 def get_sip_connections() -> list:
     """Retrieve SIP connections for reference."""
-    response = client.sip_connections.list()
+    response = client.credential_connections.list()
     return [
         {
             "id": c.id,

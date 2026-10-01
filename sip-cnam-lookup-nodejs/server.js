@@ -32,8 +32,11 @@ async function lookupCNAM(phoneNumber) {
     throw new Error("Invalid phone number format");
   }
 
+  // Remove the + prefix for the API endpoint path
+  const cleanPath = cleanNumber.slice(1);
+
   // Call the Number Lookup endpoint with caller-name type
-  const response = await client.get(`/v2/number_lookup/${cleanNumber}?type=caller-name`);
+  const response = await client.get(`/v2/number_lookup/${cleanPath}?type=caller-name`);
 
   // Extract serializable data from the response
   const d = response.data || {};

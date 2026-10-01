@@ -83,7 +83,8 @@ def cnam_lookup_endpoint():
     except ValueError as e:
         return jsonify({"error": "Invalid request"}), 400
     except Exception as e:
-        return jsonify({"error": f"Lookup failed: {str(e)}"}), 500
+        app.logger.exception("CNAM lookup failed")
+        return jsonify({"error": "Lookup failed"}), 500
 
 
 @app.route("/sip/connections", methods=["GET"])
