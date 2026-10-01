@@ -69,7 +69,7 @@ Everything lives in `app.py` (89 lines). Here's what each piece does.
 ```python
 data = request.get_json()
     try:
-        resp = requests.post(f"{API}/missions", headers=headers,
+        resp = requests.post(f"{API}/ai/missions", headers=headers,
             json={"name": data.get("name"), "description": data.get("description"),
                 "status": data.get("status", "draft"),
                 "tasks": data.get("tasks", [])}, timeout=15)

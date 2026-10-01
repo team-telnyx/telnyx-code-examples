@@ -17,7 +17,6 @@ app = Flask(__name__)
 
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "voiceovers")
 API = "https://api.telnyx.com/v2"
 HEADERS = {"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}
@@ -37,21 +36,21 @@ s3 = boto3.client(
 )
 
 LANGUAGE_VOICES = {
-    "en": {"name": "English", "voice": "nova"},
-    "es": {"name": "Spanish", "voice": "nova"},
-    "fr": {"name": "French", "voice": "nova"},
-    "de": {"name": "German", "voice": "onyx"},
-    "pt": {"name": "Portuguese", "voice": "nova"},
-    "ja": {"name": "Japanese", "voice": "nova"},
-    "ko": {"name": "Korean", "voice": "nova"},
-    "zh": {"name": "Chinese", "voice": "nova"},
-    "it": {"name": "Italian", "voice": "nova"},
-    "ar": {"name": "Arabic", "voice": "onyx"},
-    "hi": {"name": "Hindi", "voice": "nova"},
-    "nl": {"name": "Dutch", "voice": "echo"},
-    "sv": {"name": "Swedish", "voice": "echo"},
-    "pl": {"name": "Polish", "voice": "nova"},
-    "tr": {"name": "Turkish", "voice": "onyx"},
+    "en": {"name": "English", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "es": {"name": "Spanish", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "fr": {"name": "French", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "de": {"name": "German", "voice": "Telnyx.KokoroTTS.am_onyx"},
+    "pt": {"name": "Portuguese", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "ja": {"name": "Japanese", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "ko": {"name": "Korean", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "zh": {"name": "Chinese", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "it": {"name": "Italian", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "ar": {"name": "Arabic", "voice": "Telnyx.KokoroTTS.am_onyx"},
+    "hi": {"name": "Hindi", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "nl": {"name": "Dutch", "voice": "Telnyx.KokoroTTS.am_echo"},
+    "sv": {"name": "Swedish", "voice": "Telnyx.KokoroTTS.am_echo"},
+    "pl": {"name": "Polish", "voice": "Telnyx.KokoroTTS.af_nova"},
+    "tr": {"name": "Turkish", "voice": "Telnyx.KokoroTTS.am_onyx"},
 }
 
 kits = {}
@@ -80,10 +79,10 @@ def inference(messages, max_tokens=2000):
     return resp.json()["choices"][0]["message"]["content"]
 
 
-def tts_generate(text, voice="nova", language="en"):
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL, "voice": voice, "text": text,
-        "language": language, "output_format": "mp3"
+def tts_generate(text, voice="Telnyx.KokoroTTS.af_nova", language="en"):
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
+        "voice": voice, "text": text,
+        "language": language
     }, timeout=60)
     resp.raise_for_status()
     return resp.content

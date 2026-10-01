@@ -21,7 +21,6 @@ TELNYX_PUBLIC_KEY = os.getenv("TELNYX_PUBLIC_KEY", "")
 MAIN_NUMBER = os.getenv("MAIN_NUMBER")
 CONNECTION_ID = os.getenv("CONNECTION_ID")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "ivr-prompts")
 API = "https://api.telnyx.com/v2"
 HEADERS = {"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}
@@ -76,9 +75,9 @@ def inference(messages, max_tokens=2000):
     return resp.json()["choices"][0]["message"]["content"]
 
 
-def tts_generate(text, voice="nova"):
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL, "voice": voice, "text": text, "output_format": "mp3"
+def tts_generate(text, voice="Telnyx.KokoroTTS.af_nova"):
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
+        "voice": voice, "text": text
     }, timeout=30)
     resp.raise_for_status()
     return resp.content
@@ -116,7 +115,7 @@ def generate_prompts():
     business_type = data.get("business_type", "")
     hours = data.get("hours", "Monday-Friday 9am-5pm")
     departments = data.get("departments", ["Sales", "Support", "Billing"])
-    voice = data.get("voice", "nova")
+    voice = data.get("voice", "Telnyx.KokoroTTS.af_nova")
     prompt_types = data.get("prompt_types", list(PROMPT_TYPES.keys()))
 
     if not business_name:
@@ -283,7 +282,7 @@ def handle_voice():
             try:
                 telnyx_post(f"calls/{call_id}/actions/speak", {
                     "payload": script,
-                    "voice": "nova",
+                    "voice": "Telnyx.KokoroTTS.af_nova",
                     "language": "en-US"
                 })
             except Exception:

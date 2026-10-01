@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-09-25T16:40:40Z",
-  "example_count": 559,
+  "generated_at": "2026-09-30T20:37:44Z",
+  "example_count": 562,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1103,6 +1103,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/quiz-generator-python"
+    },
+    {
+      "folder": "trustedrouter-telnyx-agent-instruction-scanner",
+      "title": "AI Agent Instruction Scanner",
+      "description": "Scan repository instruction files (AGENTS.md, CLAUDE.md, .cursorrules, copilot-instructions.md, README.md) for guidance that could derail an AI coding agent — powered by GLM 5.3 Flash on Telnyx, routed through TrustedRouter with Telnyx-only, no-fallback routing.",
+      "product": "ai",
+      "language": "python",
+      "framework": "cli",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/trustedrouter-telnyx-agent-instruction-scanner"
     },
     {
       "folder": "call-recording-redactor-python",
@@ -5036,6 +5045,24 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/email-schedule-rescheduler"
+    },
+    {
+      "folder": "post-call-qa-scoring",
+      "title": "Post-Call QA Scoring with Telnyx Decision Models",
+      "description": "Durable per-agent quality profiles that grade support call transcripts, track rolling trends, flag coaching needs, and text daily digests.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/post-call-qa-scoring"
+    },
+    {
+      "folder": "chargeback-adjudication",
+      "title": "Chargeback Adjudication with Telnyx Decision Models",
+      "description": "A durable actor that adjudicates payment chargebacks using Telnyx Decision Models, manages regulatory deadlines, and maintains an append-only audit ledger.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chargeback-adjudication"
     }
   ]
 }

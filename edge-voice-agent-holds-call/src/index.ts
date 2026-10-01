@@ -95,7 +95,7 @@ async function speakText(
 }
 
 async function stopSpeaking(apiKey: string, callControlId: string): Promise<Response> {
-  return fetch(`${TELNYX_API}/calls/${callControlId}/actions/speak_stop`, {
+  return fetch(`${TELNYX_API}/calls/${callControlId}/actions/playback_stop`, {
     method: "POST",
     headers: authHeaders(apiKey),
   });

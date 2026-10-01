@@ -16,7 +16,6 @@ TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 MAIN_NUMBER = os.getenv("MAIN_NUMBER")
 MESSAGING_PROFILE_ID = os.getenv("MESSAGING_PROFILE_ID", "")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
 API = "https://api.telnyx.com/v2"
 HEADERS = {"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}
 
@@ -54,9 +53,9 @@ def inference(messages, max_tokens=2000):
     return resp.json()["choices"][0]["message"]["content"]
 
 
-def tts_generate(text, voice="nova"):
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL, "voice": voice, "text": text, "output_format": "mp3"
+def tts_generate(text, voice="Telnyx.KokoroTTS.af_nova"):
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
+        "voice": voice, "text": text
     }, timeout=30)
     resp.raise_for_status()
     return resp.content
@@ -135,12 +134,12 @@ Return JSON array with objects: {{"variation": "A"|"B"|"C", "approach": "one-wor
     # Step 2: TTS render each script with best-fit voice
     campaigns[campaign_id]["status"] = "rendering"
     voice_picks = {
-        "professional": "onyx", "playful": "shimmer", "urgent": "echo",
-        "luxurious": "nova", "friendly": "nova", "edgy": "echo",
-        "inspirational": "onyx"
+        "professional": "Telnyx.KokoroTTS.am_onyx", "playful": "Telnyx.KokoroTTS.af_bella", "urgent": "Telnyx.KokoroTTS.am_echo",
+        "luxurious": "Telnyx.KokoroTTS.af_nova", "friendly": "Telnyx.KokoroTTS.af_nova", "edgy": "Telnyx.KokoroTTS.am_echo",
+        "inspirational": "Telnyx.KokoroTTS.am_onyx"
     }
-    primary_voice = voice_picks.get(tone, "nova")
-    alt_voice = "shimmer" if primary_voice != "shimmer" else "echo"
+    primary_voice = voice_picks.get(tone, "Telnyx.KokoroTTS.af_nova")
+    alt_voice = "Telnyx.KokoroTTS.af_bella" if primary_voice != "Telnyx.KokoroTTS.af_bella" else "Telnyx.KokoroTTS.am_echo"
 
     for script_data in scripts:
         script_text = script_data.get("script", "")
