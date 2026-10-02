@@ -152,5 +152,5 @@ The follow-up question ("will it make it by Friday?") is answered from the durab
 ## Security notes
 
 - The `[telnyx]` binding is zero-credential: API auth is injected at the platform level; no keys live in the sample.
-- `DEMO_MODE`/`SMS_FROM`/`AI_MODEL` are `[env_vars]` in the function runtime's `process.env`; the fetch handler passes them explicitly into actor calls (the actor runtime has its own empty `process.env`).
+- `DEMO_MODE`/`TELNYX_SMS_FROM_NUMBER`/`AI_MODEL` ship as `[[secrets]]` bindings in `telnyx.toml` and are read by the agent via `readConfig()` (`SECRETS.get()` with a plain env-var fallback) — the Edge runtime does not inject `[env_vars]` for actor projects.
 - Carrier webhooks are not authenticated in this sample — validate the sender (allowlist / shared secret) before production use. Telnyx webhooks are Ed25519-signed; server-side examples in this repo verify them with `client.webhooks.unwrap`.

@@ -80,7 +80,7 @@ check("delaySms announces the new ETA + reason", ((proto.delaySms as (e: Carrier
 } as CarrierEvent)).includes("weather hold"));
 
 check("actorNameFromPhone strips + and lowercases", actorNameFromPhone("+15551234567") === "15551234567");
-check("DEFAULT_AI_MODEL is Telnyx-hosted (no BYOK key)", DEFAULT_AI_MODEL === "zai-org/GLM-5.2");
+check("DEFAULT_AI_MODEL is Telnyx-hosted (no BYOK key)", DEFAULT_AI_MODEL === "zai-org/GLM-5.3-Flash");
 
 check("default export has fetch handler", typeof mod.fetch === "function");
 check("OrderAgent is exported", typeof OrderAgent === "function");

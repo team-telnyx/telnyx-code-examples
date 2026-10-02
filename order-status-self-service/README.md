@@ -73,9 +73,11 @@ Telnyx provides **AI Communications Infrastructure** — a platform where durabl
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key — injected automatically by the `[telnyx]` binding; also used by the `telnyx-edge` CLI | [Telnyx Portal → API Keys](https://portal.telnyx.com) |
-| `DEMO_MODE` | `string` | `true` / `false` | no | `true` (default) logs SMS and uses the deterministic demo interpreter instead of calling the LLM; `false` sends real SMS and calls Telnyx-hosted inference | set in `telnyx.toml` `[env_vars]` |
-| `SMS_FROM` | `string` | `+16282564655` | no (live mode) | SMS-capable sender number in E.164, passed into the actor explicitly | buy a number at [telnyx.com](https://telnyx.com/products/number-api) |
-| `AI_MODEL` | `string` | `zai-org/GLM-5.2` | no | Telnyx-hosted inference model (default `zai-org/GLM-5.2` — no BYOK key needed) | [Telnyx Inference models](https://developers.telnyx.com/docs/ai/inference) |
+| `DEMO_MODE` | `string` | `true` / `false` | no | `true` (default) logs SMS and uses the deterministic demo interpreter instead of calling the LLM; `false` sends real SMS and calls Telnyx-hosted inference | `telnyx-edge secrets add DEMO_MODE false` |
+| `TELNYX_SMS_FROM_NUMBER` | `string` | `+16282564655` | yes (live mode) | SMS-capable sender number in E.164 — the default edge messaging profile has no numbers, so fromless sends fail | `telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555..."` |
+| `AI_MODEL` | `string` | `zai-org/GLM-5.3-Flash` | no | Telnyx-hosted inference model (default `zai-org/GLM-5.3-Flash` — no BYOK key needed) | [Telnyx Inference models](https://developers.telnyx.com/docs/ai/inference) |
+
+> **Note:** the Edge runtime does **not** inject `[env_vars]` for actor projects. Config ships as `[[secrets]]` bindings in `telnyx.toml` and is read via `SECRETS.get()` with a plain env-var fallback (`readConfig` in `src/index.ts`). The `.env` file is for local tooling only.
 
 > **Agent / CLI access** — all of the above can be provisioned from the CLI/agent without the portal:
 >
@@ -83,6 +85,9 @@ Telnyx provides **AI Communications Infrastructure** — a platform where durabl
 > telnyx auth set-key KEY…               # human CLI auth (or TELNYX_API_KEY env var for agents)
 > telnyx number-orders create --profile international --quantity 1   # buy an SMS-capable number
 > telnyx-edge new-func --actor -l ts -n order-status-self-service    # register the actor function
+> telnyx-edge secrets add DEMO_MODE true                             # demo mode (default)
+> telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"     # live-mode SMS sender
+> telnyx-edge secrets add AI_MODEL zai-org/GLM-5.3-Flash             # Telnyx-hosted inference model
 > ```
 
 ## Setup
@@ -166,9 +171,14 @@ curl -X POST 'https://<your-function>.telnyxcompute.com/webhook/carrier?customer
   -d '{"kind": "delayed", "orderId": "ORD-1001", "eta": "Fri", "ts": 1767484800000, "reason": "weather hold"}'
 ```
 
-Demo mode (default) logs every SMS to the actor console instead of sending — no charges. Live mode: set `DEMO_MODE = "false"` in `telnyx.toml` `[env_vars]`, set `SMS_FROM`, and re-ship.
+Demo mode (default) logs every SMS to the actor console instead of sending — no charges. Live mode: register the secrets, then re-ship:
 
-**Important:** `[env_vars]` in `telnyx.toml` are injected into the **function runtime's** `process.env` only — the actor runtime has its own empty `process.env`. The fetch handler therefore passes `DEMO_MODE`, `SMS_FROM`, and `AI_MODEL` into the actor methods explicitly. Do not read those env vars directly inside the agent class.
+```bash
+telnyx-edge secrets add DEMO_MODE false
+telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"   # your SMS-capable number
+```
+
+**Important:** the Edge runtime does **not** inject `[env_vars]` for actor projects — the above config ships as `[[secrets]]` bindings in `telnyx.toml` and the agent reads it via `readConfig()` (`SECRETS.get()` with a plain env-var fallback for local tooling). Values are registered per-account via `telnyx-edge secrets add`; nothing real is committed to the repo.
 
 ### Project Structure
 
@@ -214,8 +224,8 @@ Full typed endpoint reference in [API.md](https://raw.githubusercontent.com/team
 | Issue | Cause | Fix |
 |-------|-------|-----|
 | Actor not found on webhook | Customer E.164 missing from query/body | Ensure `?customer=<E.164>` is on the carrier/linkOrder URLs |
-| No SMS sent in demo mode | `DEMO_MODE` is `"true"` (default) — SMS is logged to the actor console | Set `DEMO_MODE = "false"` in `telnyx.toml` `[env_vars]` and re-ship |
-| `SMS_FROM is required in live mode` | Live mode without a sender number | Set `SMS_FROM` in `[env_vars]` (or `.env` locally) with an SMS-capable number |
+| No SMS sent in demo mode | `DEMO_MODE` is `"true"` (default) — SMS is logged to the actor console | `telnyx-edge secrets add DEMO_MODE false`, then re-ship |
+| `TELNYX_SMS_FROM_NUMBER is not configured for live SMS` | Live mode without a sender number | `telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"` (messaging-profile/10DLC-attached number), then re-ship |
 | `message.received` rejected with 400 | Payload isn't the Telnyx inbound-message shape | The handler expects `data.event_type === "message.received"` and `data.payload.from.phone_number` |
 | Double delay notification | `lastNotified` guard bypassed | The schedule id `delay:<orderId>` dedupes replays; ensure the delay event `ts` differs only for genuinely new delays |
 | OpenAI call fails in live mode | Model unavailable | The agent falls back to the deterministic `demoAnswer()`; check `AI_MODEL` is a Telnyx-hosted model |
