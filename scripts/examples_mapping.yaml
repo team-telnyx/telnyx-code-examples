@@ -25,6 +25,12 @@ examples:
     folder: make-outbound-phone-call-python
 
   - product: voice
+    use_case: ai-billing-warm-transfer
+    language: python
+    framework: flask
+    folder: ai-billing-warm-transfer-python
+
+  - product: voice
     use_case: ivr-menu
     language: python
     framework: flask

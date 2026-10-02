@@ -4,6 +4,7 @@
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
   "generated_at": "2026-10-01T21:50:10Z",
+  "generated_at": "2026-10-02T16:21:57Z",
   "example_count": 563,
   "examples": [
     {
@@ -23,6 +24,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/make-outbound-phone-call-python"
+    },
+    {
+      "folder": "ai-billing-warm-transfer-python",
+      "title": "Ai Billing Warm Transfer Python",
+      "description": "",
+      "product": "voice",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-billing-warm-transfer-python"
     },
     {
       "folder": "build-ivr-phone-menu-python",
