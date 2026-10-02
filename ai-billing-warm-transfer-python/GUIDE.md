@@ -5,21 +5,23 @@
 | Variable | Purpose |
 |---|---|
 | `TELNYX_API_KEY` | Telnyx API key |
-| `TELNYX_CONNECTION_ID` | Call Control Application ID |
-| `TELNYX_PHONE_NUMBER` | Telnyx number that receives the inbound call |
-| `HUMAN_TRANSFER_NUMBER` | Specialist destination to dial |
-| `SPECIALIST_FROM_NUMBER` | Optional caller ID for the specialist leg |
+| `TELNYX_PHONE_NUMBER` | Number the AI Assistant transfers from |
+| `BILLING_SPECIALIST_NUMBER` | Transfer tool target |
+| `ASSISTANT_NAME` | Name for the AI Assistant |
 | `TELNYX_AI_MODEL` | Optional AI model override |
-| `BILLING_VOICE` | Optional billing-agent voice override |
-| `SPECIALIST_VOICE` | Optional specialist-agent voice override |
 
 ## Flow
 
 ```text
-inbound call
-  -> answer
-  -> BILLING_AGENT_PROMPT gathers issue + transfer approval
-  -> start_specialist_transfer() dials HUMAN_TRANSFER_NUMBER
-  -> bridge_to_specialist() bridges the calls
-  -> SPECIALIST_AGENT_PROMPT continues with context
+python app.py
+  -> creates a Telnyx AI Assistant
+  -> adds the built-in transfer tool
+  -> configures Billing Specialist as the target
+  -> sets warm_transfer_instructions
+  -> enables warm_transfer_acceptance
+  -> keeps the private specialist consult out of the caller conversation record
 ```
+
+You can create the same setup in the Telnyx Mission Control Portal by adding a
+Transfer tool to an AI Assistant, setting the billing specialist target, adding
+warm transfer instructions, and enabling warm transfer acceptance.

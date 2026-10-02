@@ -1,11 +1,8 @@
 # API Reference
 
-## `GET /healthz`
+## `POST /v2/ai/assistants`
 
-Returns `{"status":"ok"}`.
+`app.py` creates an AI Assistant by calling the Telnyx AI Assistants API.
 
-## `POST /webhooks/voice`
-
-Receives Telnyx Call Control webhooks for the inbound caller and the specialist
-call leg. The app expects `data.payload.call_control_id` in the standard Telnyx
-webhook envelope.
+The assistant includes a built-in `transfer` tool with one target,
+`warm_transfer_instructions`, and `warm_transfer_acceptance.enabled`.

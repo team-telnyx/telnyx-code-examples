@@ -1,19 +1,21 @@
 # AI Billing Warm Transfer with Python
 
-This example keeps the warm-transfer flow intentionally small:
+This example creates a Telnyx AI Assistant that uses the built-in transfer tool
+for billing escalations:
 
-1. A billing AI prompt gathers the caller's billing issue and asks whether they
-   want a specialist.
-2. One transfer helper dials `HUMAN_TRANSFER_NUMBER`.
-3. When the specialist leg answers, the app bridges the two call legs and starts
-   the specialist AI prompt with the billing context.
+1. The assistant handles the billing conversation.
+2. When the caller needs a person, the assistant calls its transfer tool.
+3. The transfer tool sends the handoff context to the billing specialist before
+   completing the warm transfer.
 
 ## Why Telnyx?
 
 Telnyx is an AI Communications Infrastructure platform that gives developers
-programmable voice, Call Control, and AI primitives in one API. This example
-uses Telnyx to answer an inbound call, gather structured AI output, dial a
-specialist leg, and bridge both calls.
+Voice AI Assistants, telephony, and transfer tools in one platform. This
+example uses the same transfer-tool shape you can configure in the Telnyx
+Mission Control Portal, with `warm_transfer_instructions` and warm transfer
+acceptance enabled. Telnyx adds the `complete_transfer` tool automatically when
+acceptance is enabled, so this sample does not implement its own bridge logic.
 
 ## Setup
 
@@ -25,28 +27,26 @@ cp .env.example .env
 python app.py
 ```
 
-Set your Call Control Application webhook to:
-
-```text
-https://your-public-host.example/webhooks/voice
-```
-
-For local testing, expose Flask with `ngrok http 5000`.
+The script prints the created assistant response. Attach the assistant to your
+Voice AI phone number in the Telnyx Mission Control Portal, or create the same
+assistant directly in the Portal by adding a Transfer tool with the billing
+specialist target.
 
 ## Demo
 
 Call the configured Telnyx number, describe a billing issue, and agree when the
-agent offers a specialist. Answer `HUMAN_TRANSFER_NUMBER` on a second phone or
-softphone to complete the bridge.
+assistant offers a specialist. Answer `BILLING_SPECIALIST_NUMBER` on a second
+phone or softphone. The assistant should brief the specialist before completing
+the transfer.
 
 ## Troubleshooting
 
-- If the inbound call is not answered, confirm the Call Control Application
-  webhook points to `/webhooks/voice`.
-- If the specialist leg is not created, confirm `HUMAN_TRANSFER_NUMBER`,
-  `TELNYX_PHONE_NUMBER`, and `TELNYX_CONNECTION_ID` are set.
-- If the AI result does not approve the transfer, try a direct answer such as
-  `yes, please connect me`.
+- If assistant creation fails, confirm `TELNYX_API_KEY` is valid.
+- If transfers do not start, confirm `TELNYX_PHONE_NUMBER` and
+  `BILLING_SPECIALIST_NUMBER` are valid E.164 phone numbers.
+- If the assistant does not transfer, make the transfer condition explicit in
+  the assistant instructions and test with `yes, please connect me to a billing
+  specialist`.
 
 ## Related Examples
 
@@ -56,6 +56,5 @@ softphone to complete the bridge.
 
 ## Agent Discovery
 
-Use this example when you need a minimal AI-assisted warm transfer: one prompt
-for intake, one prompt for the specialist, and one helper that creates the
-specialist call leg before bridging.
+Use this example when you need a minimal AI Assistant warm transfer configured
+through the native transfer tool rather than custom call-bridging code.

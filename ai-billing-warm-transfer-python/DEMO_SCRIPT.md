@@ -18,6 +18,6 @@ Caller:
 Yes, please connect me.
 ```
 
-The app dials `HUMAN_TRANSFER_NUMBER`. When that call answers, the app bridges
-the original caller to the specialist leg and starts the specialist prompt with
-the billing issue as context.
+The AI Assistant calls the configured transfer tool. With warm transfer
+acceptance enabled, the assistant gives the billing specialist context and asks
+whether they can take the call before completing the transfer.
