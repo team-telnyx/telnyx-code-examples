@@ -10,15 +10,23 @@
 #   [telnyx]    TELNYX    — the standard Telnyx SDK binding. Exposes
 #                         this.env.TELNYX.messages.send() and
 #                         this.env.TELNYX.ai.openai.chat.createCompletion().
-#                         Declaring this block also injects TELNYX_API_KEY
-#                         into the function runtime's process.env.
+#                         Declaring this block also injects TELNYX_API_KEY.
+#   [[secrets]]           — config values registered per-account via
+#                         `telnyx-edge secrets add`. NOTE: the Edge runtime
+#                         does NOT inject [env_vars] for actor projects —
+#                         config must ship as [[secrets]] bindings and is
+#                         read via SECRETS.get() with a plain env-var fallback
+#                         (see readConfig in src/index.ts).
 #
-# Env vars:
-#   DEMO_MODE — "true" (default) logs SMS + uses the deterministic demo
-#               interpreter instead of calling the LLM; "false" sends real
-#               SMS and calls Telnyx-hosted inference.
-#   SMS_FROM  — SMS-capable sender number in E.164 (required in live mode).
-#   AI_MODEL  — Telnyx-hosted inference model (default zai-org/GLM-5.3-Flash).
+# Secrets (register with `telnyx-edge secrets add <name> <value>`):
+#   DEMO_MODE              — "true" (default) logs SMS + uses the deterministic
+#                            demo interpreter; "false" sends real SMS and calls
+#                            Telnyx-hosted inference.
+#   TELNYX_SMS_FROM_NUMBER — SMS-capable sender number in E.164 (required for
+#                            live SMS; the default edge messaging profile has
+#                            no numbers, so fromless sends fail).
+#   AI_MODEL               — Telnyx-hosted inference model
+#                            (default zai-org/GLM-5.3-Flash).
 
 name = "order-status-self-service"
 main = "src/index.ts"
@@ -26,7 +34,7 @@ compatibility_date = "2026-09-01"
 
 # ── Function identity (created via `telnyx-edge new-func --actor -l ts -n order-status-self-service`) ──
 [edge_compute]
-func_id = "<copy-from-telnyx-edge-new-func-output>"
+func_id = "<provisioned-per-account-by-telnyx-edge-new-func>"
 func_name = "order-status-self-service"
 
 [[actors]]
@@ -36,7 +44,14 @@ type = "OrderAgent"
 [telnyx]
 binding = "TELNYX"
 
-[env_vars]
-DEMO_MODE = "true"
-SMS_FROM = ""
-AI_MODEL = "zai-org/GLM-5.3-Flash"
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
+
+[[secrets]]
+binding = "TELNYX_SMS_FROM_NUMBER"
+name = "TELNYX_SMS_FROM_NUMBER"
+
+[[secrets]]
+binding = "AI_MODEL"
+name = "AI_MODEL"

@@ -122,7 +122,13 @@ To demonstrate the durability contract:
 
 ## 5. Going live
 
-1. Set `DEMO_MODE = "false"` and `SMS_FROM = "+1..."` in `telnyx.toml` `[env_vars]` (or `.env` for local dev).
+1. Register the live secrets:
+   ```bash
+   telnyx-edge secrets add DEMO_MODE false
+   telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"
+   telnyx-edge secrets add AI_MODEL zai-org/GLM-5.3-Flash
+   ```
+   (The `.env` file is for local tooling only — the Edge runtime does not inject `[env_vars]` for actor projects.)
 2. Re-ship: `telnyx-edge ship`.
 3. Live mode sends real SMS via `this.env.TELNYX.messages.send()` and answers via Telnyx-hosted inference (`zai-org/GLM-5.3-Flash` by default — no BYOK key needed).
 
@@ -132,5 +138,5 @@ To demonstrate the durability contract:
 |---|---|---|
 | 400 on `/webhook/inbound` | Body isn't the Telnyx `message.received` shape | Send `data.event_type` + `data.payload.from.phone_number` + `data.payload.text` |
 | No SMS in the console | Wrong customer E.164 in `?customer=` | The actor is keyed by the customer's E.164; use the same value everywhere |
-| 500 on actor calls | `SMS_FROM` missing in live mode | Set `SMS_FROM` in `[env_vars]` and re-ship |
+| 500 on actor calls | `TELNYX_SMS_FROM_NUMBER` missing in live mode | `telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"`, then re-ship |
 | Typecheck failures after editing | Invented SDK APIs | Only `this.ctx.storage.sql`, `this.messages`, `this.getState()/setState()`, and `this.schedule()` exist — see `node_modules/@telnyx/edge-runtime/dist/agent/agent.d.ts` |

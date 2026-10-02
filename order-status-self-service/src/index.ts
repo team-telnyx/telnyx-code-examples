@@ -56,13 +56,32 @@ interface Env {
       };
     };
   };
+  SECRETS: { get: (handle: string) => Promise<string> };
 }
 
-type CustomerStub = ActorStub &
-  Pick<OrderAgent, "linkOrder" | "onCarrier" | "onInboundMessage">;
+// ── Config (secrets bindings with plain env-var fallback) ─────────────────
+// The Edge runtime does NOT inject [env_vars] for actor projects, so config
+// ships as [[secrets]] bindings in telnyx.toml and is read via SECRETS.get()
+// with a plain env-var fallback (for local tooling).
 
-interface CustomerNamespace extends ActorNamespace {
-  idFromName(name: string, options?: IdFromNameOptions): CustomerStub;
+function directEnv(e: Env, key: string): string | undefined {
+  const v = (e as unknown as Record<string, unknown>)[key];
+  return typeof v === "string" && v.length > 0 ? v : undefined;
+}
+
+async function readConfig(e: Env, key: string): Promise<string | undefined> {
+  const direct = directEnv(e, key);
+  if (direct) return direct;
+  try {
+    const v = await e.SECRETS.get(key);
+    return v || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function isDemoMode(e: Env): Promise<boolean> {
+  return (await readConfig(e, "DEMO_MODE")) !== "false";
 }
 
 // ── Config + durable state shape ──────────────────────────────────────────
@@ -70,15 +89,11 @@ interface CustomerNamespace extends ActorNamespace {
 /** Telnyx-hosted inference model — zero BYOK keys required (spec: no keys in the sample). */
 export const DEFAULT_AI_MODEL = "zai-org/GLM-5.3-Flash";
 
-/**
- * Opts passed explicitly from the function runtime's process.env — the actor
- * runtime has its own (empty) process.env, so [env_vars] must be passed in,
- * not read inside the agent class.
- */
-export interface CallOpts {
-  demoMode?: boolean;
-  smsFrom?: string;
-  aiModel?: string;
+type CustomerStub = ActorStub &
+  Pick<OrderAgent, "linkOrder" | "onCarrier" | "onInboundMessage">;
+
+interface CustomerNamespace extends ActorNamespace {
+  idFromName(name: string, options?: IdFromNameOptions): CustomerStub;
 }
 
 export interface CustomerState extends Record<string, unknown> {
@@ -169,7 +184,6 @@ export class OrderAgent extends Agent<Env, CustomerState> {
    */
   async onCarrier(
     event: CarrierEvent,
-    opts?: CallOpts,
   ): Promise<{ ok: boolean; duplicate: boolean }> {
     if (!event?.orderId || !event?.kind) {
       throw new Error("orderId and kind are required");
@@ -204,11 +218,11 @@ export class OrderAgent extends Agent<Env, CustomerState> {
     if (event.kind === "delayed") {
       // Wake the actor: the scheduled task runs even if this invocation ends
       // first. The stable id dedupes replays; notifyDelay guards exactly-once.
-      this.schedule(0, "notifyDelay", { event, opts }, { id: `delay:${event.orderId}` });
+      this.schedule(0, "notifyDelay", { event }, { id: `delay:${event.orderId}` });
       return { ok: true, duplicate: false };
     }
 
-    await this.sendSms(event.customer, this.statusSms(event), opts);
+    await this.sendSms(event.customer, this.statusSms(event));
     return { ok: true, duplicate: false };
   }
 
@@ -219,7 +233,6 @@ export class OrderAgent extends Agent<Env, CustomerState> {
    */
   async onInboundMessage(
     msg: InboundMessage,
-    opts?: CallOpts,
   ): Promise<{ ok: boolean; answer: string }> {
     if (!msg?.from || !msg?.text) {
       throw new Error("from and text are required");
@@ -239,9 +252,9 @@ export class OrderAgent extends Agent<Env, CustomerState> {
       .toArray();
 
     await this.messages.add("user", msg.text);
-    const answer = await this.buildAnswer(msg.text, rows, opts);
+    const answer = await this.buildAnswer(msg.text, rows);
     await this.messages.add("assistant", answer);
-    await this.sendSms(msg.from, answer, opts);
+    await this.sendSms(msg.from, answer);
     return { ok: true, answer };
   }
 
@@ -252,7 +265,6 @@ export class OrderAgent extends Agent<Env, CustomerState> {
    */
   async notifyDelay(payload: {
     event: CarrierEvent;
-    opts?: CallOpts;
   }): Promise<{ ok: boolean; skipped?: boolean }> {
     const state = await this.getState();
     if (state.lastNotified === payload.event.orderId) {
@@ -261,7 +273,6 @@ export class OrderAgent extends Agent<Env, CustomerState> {
     await this.sendSms(
       payload.event.customer || state.customer,
       this.delaySms(payload.event),
-      payload.opts,
     );
     await this.setState({ lastNotified: payload.event.orderId });
     return { ok: true };
@@ -277,16 +288,14 @@ export class OrderAgent extends Agent<Env, CustomerState> {
   async buildAnswer(
     question: string,
     rows: OrderRow[],
-    opts?: CallOpts,
   ): Promise<string> {
     if (rows.length === 0) {
       return "I don't see any orders linked to this number yet. Place an order and I'll keep you posted.";
     }
-    const demoMode = opts?.demoMode ?? true;
-    if (demoMode) {
+    if (await isDemoMode(this.env)) {
       return this.demoAnswer(question, rows);
     }
-    const model = opts?.aiModel || DEFAULT_AI_MODEL;
+    const model = (await readConfig(this.env, "AI_MODEL")) || DEFAULT_AI_MODEL;
     const system = [
       "You are a store's order-status assistant replying over SMS.",
       "Answer the customer's latest question in ONE short sentence (<=160 chars),",
@@ -363,17 +372,17 @@ export class OrderAgent extends Agent<Env, CustomerState> {
     );
   }
 
-  private async sendSms(to: string, text: string, opts?: CallOpts): Promise<void> {
+  private async sendSms(to: string, text: string): Promise<void> {
     if (!to) throw new Error("missing destination number");
-    const demoMode = opts?.demoMode ?? true;
-    if (demoMode) {
+    if (await isDemoMode(this.env)) {
       console.log(`[demo] SMS to ${to}: ${text}`);
       return;
     }
-    if (!opts?.smsFrom) {
-      throw new Error("SMS_FROM is required in live mode");
+    const from = await readConfig(this.env, "TELNYX_SMS_FROM_NUMBER");
+    if (!from) {
+      throw new Error("TELNYX_SMS_FROM_NUMBER is not configured for live SMS");
     }
-    await this.env.TELNYX.messages.send({ to, from: opts.smsFrom, text });
+    await this.env.TELNYX.messages.send({ to, from, text });
   }
 }
 
@@ -387,19 +396,6 @@ const PHONE_RE = /^\+?\d{10,15}$/;
  */
 export function actorNameFromPhone(phone: string): string {
   return phone.replace(/^\+/, "").toLowerCase();
-}
-
-/**
- * [env_vars] live in the function runtime's process.env — read them here and
- * pass explicitly into the actor; the actor runtime has its own (empty)
- * process.env, so [env_vars] must not be read inside the agent class.
- */
-function callOpts(): CallOpts {
-  return {
-    demoMode: (process.env.DEMO_MODE ?? "true") !== "false",
-    smsFrom: process.env.SMS_FROM,
-    aiModel: process.env.AI_MODEL,
-  };
 }
 
 export default {
@@ -452,7 +448,7 @@ export default {
       }
       try {
         const stub = env.CUSTOMERS.idFromName(actorNameFromPhone(customer));
-        const result = await stub.onCarrier({ ...event, customer }, callOpts());
+        const result = await stub.onCarrier({ ...event, customer });
         return json(result);
       } catch (e) {
         return json({ error: "failed to process carrier event" }, 500);
@@ -478,7 +474,7 @@ export default {
       }
       try {
         const stub = env.CUSTOMERS.idFromName(actorNameFromPhone(from));
-        const result = await stub.onInboundMessage({ from, text }, callOpts());
+        const result = await stub.onInboundMessage({ from, text });
         return json(result);
       } catch (e) {
         return json({ error: "failed to process inbound message" }, 500);
