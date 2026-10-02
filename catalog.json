@@ -3,9 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-01T21:50:10Z",
-  "generated_at": "2026-10-02T16:21:57Z",
-  "example_count": 563,
+  "generated_at": "2026-10-02T21:23:45Z",
+  "example_count": 564,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
