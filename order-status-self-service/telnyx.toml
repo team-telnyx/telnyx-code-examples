@@ -34,7 +34,7 @@ compatibility_date = "2026-09-01"
 
 # ── Function identity (created via `telnyx-edge new-func --actor -l ts -n order-status-self-service`) ──
 [edge_compute]
-func_id = "<provisioned-per-account-by-telnyx-edge-new-func>"
+func_id = "c51e50c7-2d7d-42e6-87c0-82b52402cc72"
 func_name = "order-status-self-service"
 
 [[actors]]
