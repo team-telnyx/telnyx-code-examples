@@ -25,7 +25,7 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
-<summary><h2>Voice AI</h2> <em>(160 examples)</em></summary>
+<summary><h2>Voice AI</h2> <em>(161 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
@@ -33,6 +33,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 |---------|----------|-------------|
 | [ai-assistant-client-side-tools-nextjs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-client-side-tools-nextjs/README.md) | Node.js | Build a browser-based Next.js dashboard where a Telnyx AI Assistant invokes client-side JavaScript tools to navigate the UI, change theme, open a modal, and update React form state. |
 | [ai-assistant-multiparticipant-calling-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-multiparticipant-calling-nodejs/README.md) | Node.js | Build a Telnyx Voice AI assistant that answers an inbound call, uses a backend tool to dial a second participant, and joins them into the same live AI conversation with ai_assistant_join. |
+| [ai-billing-warm-transfer-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-billing-warm-transfer-python/README.md) | Python | Minimal billing warm-transfer demo with two AI prompts and one specialist transfer helper. |
 | [ai-call-campaign-orchestrator](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-call-campaign-orchestrator/README.md) | Python | Durable outbound call campaign with rate limiting, SQL tracking, and SMS summary using Telnyx Agent SDK, Call Control, and SMS. |
 | [ai-powered-call-router](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-powered-call-router/README.md) | Typescript | Route inbound calls by analyzing caller intent with the Telnyx AI Inference binding and a Telnyx KV route table. One StatefulActor per call leg; zero-credential LLM classification + global KV lookup on the Edge Runtime. |
 | [branded-caller-id-manager-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/branded-caller-id-manager-python/README.md) | Python | Branded Caller ID Manager - register, manage, and verify branded calling profiles with STIR/SHAKEN attestation for higher answer rates. |
