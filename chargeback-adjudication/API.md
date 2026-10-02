@@ -141,6 +141,22 @@ Armed when the Decision Model returns `choice=request_evidence`. Fires after `de
 
 Invoked by the `/webhook/inbound-message` handler. Re-assembles evidence with the new media URL, re-runs the Decision Model, appends a `re-evaluated` audit row, and re-applies policy.
 
+### Audit Ledger Events
+
+Every observable action lands in the `audit` SQL table (append-only). Event types:
+
+| Event | Meaning |
+|---|---|
+| `decision` | Policy applied a Decision Model ruling (`choice`, `score`, `noul` recorded) |
+| `re-evaluated` | New evidence arrived; full verdict stored before policy re-runs |
+| `fraud_hold` | `noul > 0.8` — routed to human review, never auto-rebated |
+| `auto_lost` | Deadline expired before any final decision |
+| `sms_sent` | Outbound SMS accepted by the Telnyx API (`to`, `from`, message `id`) |
+| `sms_demo` | Live send skipped (`DEMO_MODE` true); message logged instead |
+| `sms_error` | Outbound SMS failed — error text recorded for diagnosis |
+| `reviewer_missing` | Fraud hold fired but `REVIEWER_ONCALL_E164` is not configured |
+| `task_error` | A scheduled task (`decide`/`onNewEvidence`) failed — error text recorded |
+
 ---
 
 ## Telnyx Decision Models API (External)

@@ -36,6 +36,7 @@ Edit `.env`:
 TELNYX_API_KEY=your_telnyx_api_key_here
 RESPONSE_DEADLINE_DAYS=7
 REVIEWER_ONCALL_E164=+1555XXXXXXXX
+TELNYX_SMS_FROM_NUMBER=+1555XXXXXXXX
 DEMO_MODE=true
 ```
 
@@ -44,12 +45,19 @@ DEMO_MODE=true
 | `TELNYX_API_KEY` | Your Telnyx API key (used for Telnyx Decision Models calls) | *(required)* |
 | `RESPONSE_DEADLINE_DAYS` | Fallback chargeback response deadline in days | `7` |
 | `REVIEWER_ONCALL_E164` | Phone number to page for fraud holds | *(required for live mode)* |
-| `DEMO_MODE` | When `true`, SMS is logged instead of sent | `true` |
+| `TELNYX_SMS_FROM_NUMBER` | SMS `from` number for live mode (must be messaging-profile/10DLC-attached) | *(required for live SMS)* |
+| `DEMO_MODE` | When `true`, SMS is logged to the audit ledger instead of sent | `true` |
 
-### 3. Set the API key as a secret
+> **Note:** the Edge runtime does **not** inject `[env_vars]` for actor projects. At runtime, the actor reads every value from `SECRETS.get(<name>)` (declared as `[[secrets]]` in `telnyx.toml`) with a plain env-var fallback. The `.env` file is for local tooling only.
+
+### 3. Register the secrets
 
 ```bash
 telnyx-edge secrets add TELNYX_API_KEY "your_telnyx_api_key_here"
+telnyx-edge secrets add DEMO_MODE true
+telnyx-edge secrets add RESPONSE_DEADLINE_DAYS 7
+telnyx-edge secrets add REVIEWER_ONCALL_E164 "+1555XXXXXXXX"
+telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"
 ```
 
 ### 4. Generate type bindings
@@ -182,7 +190,12 @@ The `applyPolicy` method translates the Decision Model's verdict into actions:
 if (noul > FRAUD_THRESHOLD) {
   // Route to human reviewer — never auto-rebate
   await this.env.DISPUTE_DB.prepare("INSERT INTO reviewQueue VALUES (?, ?, ?)").bind(...).all();
-  await this.sendSms(this.env.REVIEWER_ONCALL_E164, `Fraud hold: dispute ${disputeId}...`);
+  const reviewer = await readConfig(this.env, "REVIEWER_ONCALL_E164");
+  if (!reviewer) {
+    await this.appendAudit("reviewer_missing", { disputeId, reason: "REVIEWER_ONCALL_E164 not configured" });
+  } else {
+    await this.sendSms(reviewer, `Fraud hold: dispute ${disputeId}, noul=${noul}. Review required.`);
+  }
   return;
 }
 
@@ -293,22 +306,35 @@ When `DEMO_MODE=true` (the default), the sample:
 ```typescript
 // src/index.ts — sendSms method
 private async sendSms(to: string, text: string): Promise<void> {
-  if (isDemo(this.env)) {
+  if ((await readConfig(this.env, "DEMO_MODE")) !== "false") {
     console.log(`[DEMO SMS] to=${to} text=${text}`);
+    await this.appendAudit("sms_demo", { to, text });
     return;
   }
-  await this.env.TELNYX.messages.send({ to, text });
+  const from = await readConfig(this.env, "TELNYX_SMS_FROM_NUMBER");
+  if (!from) {
+    await this.appendAudit("sms_error", { to, error: "TELNYX_SMS_FROM_NUMBER is not configured for live SMS" });
+    throw new Error("TELNYX_SMS_FROM_NUMBER is not configured for live SMS");
+  }
+  try {
+    const resp = await this.env.TELNYX.messages.send({ from, to, text });
+    await this.appendAudit("sms_sent", { to, from, id: resp?.data?.id ?? null, status: resp?.data?.status ?? null });
+  } catch (err) {
+    await this.appendAudit("sms_error", { to, from, error: String(err).slice(0, 300) });
+    throw err;
+  }
 }
 ```
 
 ### Live Mode
 
 To switch to live mode:
-1. Set `DEMO_MODE=false` in your environment
-2. Provide a real `REVIEWER_ONCALL_E164` phone number
-3. Ensure `TELNYX_API_KEY` is set as a secret
+1. `telnyx-edge secrets add DEMO_MODE false`
+2. Provide a real `REVIEWER_ONCALL_E164` phone number (`telnyx-edge secrets add REVIEWER_ONCALL_E164 ...`)
+3. Set the live SMS `from` number: `telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"` (must be a messaging-profile/10DLC-attached number on your account)
+4. Ensure `TELNYX_API_KEY` is set as a secret
 
-In live mode, SMS messages are sent via the Telnyx Messaging API, and the Telnyx Decision Models API is called with real credentials.
+In live mode, SMS messages are sent via the Telnyx Messaging API from the configured `from` number, and the Telnyx Decision Models API is called with real credentials. Every SMS attempt is audited (`sms_sent` / `sms_error`) in the ledger.
 
 ---
 
@@ -340,7 +366,7 @@ This deploys the actor and Edge fetch handler to Telnyx Edge.
 | **Agent SQL** (`SqlDatabase`) | Append-only `audit` ledger, `reviewQueue` table, and seeded mock evidence tables |
 | **Scheduled Tasks** (`schedule()`) | `decide:<disputeId>` task (exactly-once decision) and `respond:<disputeId>` deadline timer |
 | **Messaging** (`TELNYX.messages.send`) | Customer decision SMS and fraud hold notification to reviewer on-call |
-| **Secrets** (env `TELNYX_API_KEY`) | Bearer token for Telnyx Decision Models API calls (platform-injected via `[[secrets]]`) |
+| **Secrets** (`SECRETS.get`) | Bearer token for Telnyx Decision Models API calls, live/demo switch, SMS `from` number, and reviewer paging — all declared as `[[secrets]]` in `telnyx.toml` |
 | **Webhook Seam** (Edge `fetch`) | `/webhook/chargeback` (actor birth) and `/webhook/inbound-message` (re-evaluation) |
 
 ---

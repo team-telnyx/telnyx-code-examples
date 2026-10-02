@@ -51,6 +51,7 @@ export interface DisputeEnv extends Env {
   };
   SECRETS: { get: (handle: string) => Promise<string> };
   TELNYX_API_KEY: string;
+  TELNYX_SMS_FROM_NUMBER: string;
   RESPONSE_DEADLINE_DAYS: string;
   REVIEWER_ONCALL_E164: string;
   DEMO_MODE: string;
@@ -60,14 +61,22 @@ const DEFAULT_DEADLINE_DAYS = 7;
 const FRAUD_THRESHOLD = 0.8;
 const MAX_RETRIES = 5;
 
-function getDeadlineDays(e: DisputeEnv): number {
-  const raw = e.RESPONSE_DEADLINE_DAYS;
-  const parsed = parseInt(raw, 10);
-  return isNaN(parsed) || parsed <= 0 ? DEFAULT_DEADLINE_DAYS : parsed;
+// Config may arrive as a plain env var or as a `[[secrets]]` binding
+// (the runtime does not inject [env_vars] for actor projects).
+function directEnv(e: DisputeEnv, key: string): string | undefined {
+  const v = (e as unknown as Record<string, unknown>)[key];
+  return typeof v === "string" && v.length > 0 ? v : undefined;
 }
 
-function isDemo(e: DisputeEnv): boolean {
-  return e.DEMO_MODE !== "false";
+async function readConfig(e: DisputeEnv, key: string): Promise<string | undefined> {
+  const direct = directEnv(e, key);
+  if (direct) return direct;
+  try {
+    const v = await e.SECRETS.get(key);
+    return v || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -119,14 +128,16 @@ export class DisputeCase extends Agent<DisputeEnv, DisputeState> {
     // Seed mock rows in agent SQL (self-contained demo)
     await this.seedEvidence(orderId, customer, amount);
 
-    // Compute deadline: payload-first, env-fallback
+    // Compute deadline: payload-first, config-fallback
+    const deadlineDays = parseInt((await readConfig(this.env, "RESPONSE_DEADLINE_DAYS")) ?? "", 10);
+    const fallbackMs = (isNaN(deadlineDays) || deadlineDays <= 0 ? DEFAULT_DEADLINE_DAYS : deadlineDays) * 86400000;
     let deadlineMs: number;
     if (respondBy) {
       deadlineMs = new Date(respondBy).getTime() - Date.now();
     } else {
-      deadlineMs = getDeadlineDays(this.env) * 86400000;
+      deadlineMs = fallbackMs;
     }
-    if (deadlineMs <= 0) deadlineMs = getDeadlineDays(this.env) * 86400000;
+    if (deadlineMs <= 0) deadlineMs = fallbackMs;
 
     await this.setState({ deadlineMs });
 
@@ -288,7 +299,12 @@ export class DisputeCase extends Agent<DisputeEnv, DisputeState> {
         .all();
       await this.appendAudit("fraud_hold", { reason: "noul > 0.8", noul });
       await this.sendSms(customerPhone, `Your chargeback ${disputeId} is under manual review.`);
-      await this.sendSms(this.env.REVIEWER_ONCALL_E164, `Fraud hold: dispute ${disputeId}, noul=${noul}. Review required.`);
+      const reviewer = await readConfig(this.env, "REVIEWER_ONCALL_E164");
+      if (!reviewer) {
+        await this.appendAudit("reviewer_missing", { disputeId, reason: "REVIEWER_ONCALL_E164 not configured" });
+      } else {
+        await this.sendSms(reviewer, `Fraud hold: dispute ${disputeId}, noul=${noul}. Review required.`);
+      }
       return;
     }
 
@@ -317,9 +333,14 @@ export class DisputeCase extends Agent<DisputeEnv, DisputeState> {
   // --- Decide task handler ---
   async decide(): Promise<void> {
     if ((await this.getState()).decided) return;
-    const evidence = await this.assembleEvidence();
-    const v = await this.judgeWithDecisionModel(evidence);
-    await this.applyPolicy(v);
+    try {
+      const evidence = await this.assembleEvidence();
+      const v = await this.judgeWithDecisionModel(evidence);
+      await this.applyPolicy(v);
+    } catch (err) {
+      await this.appendAudit("task_error", { task: "decide", error: String(err).slice(0, 300) });
+      throw err;
+    }
   }
 
   // --- Deadline task handler ---
@@ -334,10 +355,15 @@ export class DisputeCase extends Agent<DisputeEnv, DisputeState> {
 
   // --- New evidence re-evaluation ---
   async onNewEvidence(text: string, mediaUrl?: string): Promise<void> {
-    const evidence = await this.assembleEvidence(mediaUrl);
-    const v = await this.judgeWithDecisionModel({ ...evidence, newEvidence: text });
-    await this.appendAudit("re-evaluated", v);
-    await this.applyPolicy(v);
+    try {
+      const evidence = await this.assembleEvidence(mediaUrl);
+      const v = await this.judgeWithDecisionModel({ ...evidence, newEvidence: text });
+      await this.appendAudit("re-evaluated", v);
+      await this.applyPolicy(v);
+    } catch (err) {
+      await this.appendAudit("task_error", { task: "onNewEvidence", error: String(err).slice(0, 300) });
+      throw err;
+    }
   }
 
   // --- Append-only audit ledger ---
@@ -351,11 +377,33 @@ export class DisputeCase extends Agent<DisputeEnv, DisputeState> {
 
   // --- SMS helper ---
   private async sendSms(to: string, text: string): Promise<void> {
-    if (isDemo(this.env)) {
+    if ((await readConfig(this.env, "DEMO_MODE")) !== "false") {
       console.log(`[DEMO SMS] to=${to} text=${text}`);
+      await this.appendAudit("sms_demo", { to, text });
       return;
     }
-    await this.env.TELNYX.messages.send({ to, text });
+    const from = await readConfig(this.env, "TELNYX_SMS_FROM_NUMBER");
+    if (!from) {
+      await this.appendAudit("sms_error", { to, error: "TELNYX_SMS_FROM_NUMBER is not configured for live SMS" });
+      throw new Error("TELNYX_SMS_FROM_NUMBER is not configured for live SMS");
+    }
+    try {
+      const resp = (await this.env.TELNYX.messages.send({
+        from,
+        to,
+        text,
+      })) as Record<string, unknown> | undefined;
+      const data = (resp?.data ?? resp) as Record<string, unknown> | undefined;
+      await this.appendAudit("sms_sent", {
+        to,
+        from,
+        id: data?.id ?? null,
+        status: data?.status ?? null,
+      });
+    } catch (err) {
+      await this.appendAudit("sms_error", { to, from, error: String(err).slice(0, 300) });
+      throw err;
+    }
   }
 }
 

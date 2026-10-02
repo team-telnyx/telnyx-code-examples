@@ -96,12 +96,30 @@ Telnyx provides **AI Communications Infrastructure** — the durable, programmab
 
 ## Environment Variables
 
+Runtime config is delivered to the actor via `[[secrets]]` bindings (registered with `telnyx-edge secrets add`) — the Edge runtime does not inject `[env_vars]` for actor projects. The code reads each value from `SECRETS.get()` with a plain env-var fallback.
+
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
 | `RESPONSE_DEADLINE_DAYS` | `string` | `7` | no | Fallback chargeback response deadline in days (used when webhook payload lacks `respondBy`) | — |
 | `REVIEWER_ONCALL_E164` | `string` | `+1555XXXXXXXX` | no | Phone number to page when a fraud hold is triggered (`noul > 0.8`) | — |
-| `DEMO_MODE` | `string` | `true` | no | When `true` (default), SMS is logged to console instead of sent via the Telnyx API | — |
+| `TELNYX_SMS_FROM_NUMBER` | `string` | `+1555XXXXXXXX` | no (required for live SMS) | SMS `from` number; must be a messaging-profile/10DLC-attached number on your account | — |
+| `DEMO_MODE` | `string` | `true` | no | When `true` (default), SMS is logged to the audit ledger (`sms_demo`) instead of sent via the Telnyx API | — |
+
+> **Agent / CLI access**
+>
+> ```bash
+> # Register phone-number-related config
+> telnyx number-orders create              # provision a number for live SMS
+> # Register runtime config as secrets (read via SECRETS.get in the actor)
+> telnyx-edge secrets add TELNYX_API_KEY "<your_key>"
+> telnyx-edge secrets add DEMO_MODE false
+> telnyx-edge secrets add RESPONSE_DEADLINE_DAYS 7
+> telnyx-edge secrets add REVIEWER_ONCALL_E164 "+1555XXXXXXXX"
+> telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"
+> ```
+>
+> Every SMS attempt is audited (`sms_sent` / `sms_demo` / `sms_error`) in the actor's SQL ledger.
 
 ## Setup
 
@@ -120,10 +138,24 @@ cp .env.example .env
 # 4. Authenticate with Telnyx Edge
 telnyx-edge auth api-key set <your_telnyx_api_key>
 
-# 5. Run the smoke test
+# 5. Create the edge function (registers func_id) and wire it into telnyx.toml
+telnyx-edge new-func -l ts -n chargeback-adjudication --from-dir .
+# then replace <func-uuid> in telnyx.toml's [edge_compute] block
+
+# 6. Register the config secrets (see "Agent / CLI access" above)
+telnyx-edge secrets add TELNYX_API_KEY "<your_key>"
+telnyx-edge secrets add DEMO_MODE true
+telnyx-edge secrets add RESPONSE_DEADLINE_DAYS 7
+telnyx-edge secrets add REVIEWER_ONCALL_E164 "+1555XXXXXXXX"
+telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"
+
+# 7. Generate type bindings
+telnyx-edge types
+
+# 8. Run the smoke test
 npx tsx smoke_test.ts
 
-# 6. Deploy
+# 9. Deploy
 telnyx-edge ship
 ```
 
@@ -234,7 +266,8 @@ The `judgeWithDecisionModel` method calls `POST /v2/ai/typesafe/v1/systemone` wi
 | Decision Model API returns 4xx | Malformed request or auth failure | Non-retryable; the actor throws immediately with the response body |
 | Decision Model API returns 502 | Transient gateway error | Retry with jittered backoff (up to 5 attempts) |
 | Deadline timer doesn't fire | Actor was killed before `schedule()` completed | The `decide:<id>` task id is stable; retries converge to the same task |
-| SMS not sent | `DEMO_MODE` is `true` | Set `DEMO_MODE=false` in `.env` to send real SMS |
+| SMS not sent | `DEMO_MODE` is `true` | `telnyx-edge secrets add DEMO_MODE false` to send real SMS |
+| No SMS and no `sms_*` audit row | SMS `from` not configured | `telnyx-edge secrets add TELNYX_SMS_FROM_NUMBER "+1555XXXXXXXX"` |
 | `TELNYX_API_KEY` not found | Secret not set | Run `telnyx-edge secrets add TELNYX_API_KEY "<your_key>"` |
 | SQL table not found | Tables not seeded | `seedEvidence()` creates tables on first call; ensure `DISPUTE_DB` binding is configured |
 

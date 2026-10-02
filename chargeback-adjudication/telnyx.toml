@@ -2,6 +2,11 @@ name = "chargeback-adjudication"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
 
+[edge_compute]
+# Provisioned per-account by `telnyx-edge new-func`; ship requires func_id.
+func_id = "<func-uuid>"
+func_name = "chargeback-adjudication"
+
 [[actors]]
 binding = "DISPUTES"
 type = "DisputeCase"
@@ -10,13 +15,24 @@ type = "DisputeCase"
 binding = "TELNYX_API_KEY"
 name = "TELNYX_API_KEY"
 
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
+
+[[secrets]]
+binding = "RESPONSE_DEADLINE_DAYS"
+name = "RESPONSE_DEADLINE_DAYS"
+
+[[secrets]]
+binding = "REVIEWER_ONCALL_E164"
+name = "REVIEWER_ONCALL_E164"
+
+[[secrets]]
+binding = "TELNYX_SMS_FROM_NUMBER"
+name = "TELNYX_SMS_FROM_NUMBER"
+
 [telnyx]
 binding = "TELNYX"
 
 [storage.sqldb.DISPUTE_DB]
 id = "<sqldb-namespace-uuid>"
-
-[env_vars]
-RESPONSE_DEADLINE_DAYS = "7"
-REVIEWER_ONCALL_E164 = "+1555XXXXXXXX"
-DEMO_MODE = "true"
