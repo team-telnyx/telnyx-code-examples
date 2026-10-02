@@ -75,7 +75,7 @@ Telnyx provides **AI Communications Infrastructure** — a platform where durabl
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key — injected automatically by the `[telnyx]` binding; also used by the `telnyx-edge` CLI | [Telnyx Portal → API Keys](https://portal.telnyx.com) |
 | `DEMO_MODE` | `string` | `true` / `false` | no | `true` (default) logs SMS and uses the deterministic demo interpreter instead of calling the LLM; `false` sends real SMS and calls Telnyx-hosted inference | set in `telnyx.toml` `[env_vars]` |
 | `SMS_FROM` | `string` | `+16282564655` | no (live mode) | SMS-capable sender number in E.164, passed into the actor explicitly | buy a number at [telnyx.com](https://telnyx.com/products/number-api) |
-| `AI_MODEL` | `string` | `zai-org/GLM-5.2` | no | Telnyx-hosted inference model (default `zai-org/GLM-5.2` — no BYOK key needed) | [Telnyx Inference models](https://developers.telnyx.com/docs/ai/inference) |
+| `AI_MODEL` | `string` | `zai-org/GLM-5.3-Flash` | no | Telnyx-hosted inference model (default `zai-org/GLM-5.3-Flash` — no BYOK key needed) | [Telnyx Inference models](https://developers.telnyx.com/docs/ai/inference) |
 
 > **Agent / CLI access** — all of the above can be provisioned from the CLI/agent without the portal:
 >

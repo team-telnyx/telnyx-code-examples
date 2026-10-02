@@ -124,7 +124,7 @@ To demonstrate the durability contract:
 
 1. Set `DEMO_MODE = "false"` and `SMS_FROM = "+1..."` in `telnyx.toml` `[env_vars]` (or `.env` for local dev).
 2. Re-ship: `telnyx-edge ship`.
-3. Live mode sends real SMS via `this.env.TELNYX.messages.send()` and answers via Telnyx-hosted inference (`zai-org/GLM-5.2` by default — no BYOK key needed).
+3. Live mode sends real SMS via `this.env.TELNYX.messages.send()` and answers via Telnyx-hosted inference (`zai-org/GLM-5.3-Flash` by default — no BYOK key needed).
 
 ## Troubleshooting
 

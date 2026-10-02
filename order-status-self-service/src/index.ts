@@ -68,7 +68,7 @@ interface CustomerNamespace extends ActorNamespace {
 // ── Config + durable state shape ──────────────────────────────────────────
 
 /** Telnyx-hosted inference model — zero BYOK keys required (spec: no keys in the sample). */
-export const DEFAULT_AI_MODEL = "zai-org/GLM-5.2";
+export const DEFAULT_AI_MODEL = "zai-org/GLM-5.3-Flash";
 
 /**
  * Opts passed explicitly from the function runtime's process.env — the actor

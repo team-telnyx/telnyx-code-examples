@@ -18,7 +18,7 @@
 #               interpreter instead of calling the LLM; "false" sends real
 #               SMS and calls Telnyx-hosted inference.
 #   SMS_FROM  — SMS-capable sender number in E.164 (required in live mode).
-#   AI_MODEL  — Telnyx-hosted inference model (default zai-org/GLM-5.2).
+#   AI_MODEL  — Telnyx-hosted inference model (default zai-org/GLM-5.3-Flash).
 
 name = "order-status-self-service"
 main = "src/index.ts"
@@ -39,4 +39,4 @@ binding = "TELNYX"
 [env_vars]
 DEMO_MODE = "true"
 SMS_FROM = ""
-AI_MODEL = "zai-org/GLM-5.2"
+AI_MODEL = "zai-org/GLM-5.3-Flash"
