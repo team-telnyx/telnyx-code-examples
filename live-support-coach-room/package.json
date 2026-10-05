@@ -1,0 +1,19 @@
+```json
+{
+  "name": "live-support-coach-room",
+  "version": "1.0.0",
+  "description": "Live support coach room — streams AI phone conversations to a supervisor dashboard, injects coaching nudges, and escalates to a human WebRTC leg.",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
+```

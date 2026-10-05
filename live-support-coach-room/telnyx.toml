@@ -1,0 +1,34 @@
+```toml
+name = "live-support-coach-room"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "COACHROOMS"
+type = "CoachRoom"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "CALL_CONTROL_CONNECTION_ID"
+name = "CALL_CONTROL_CONNECTION_ID"
+
+[[secrets]]
+binding = "TELNYX_NUMBER"
+name = "TELNYX_NUMBER"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.COACH_LOG]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+SUPERVISOR_DEVICE = "+1555XXXXXXXX"
+DASHBOARD_ORIGIN = "https://coach.example.com"
+NUDGE_MAX_PER_CALL = "3"
+SILENCE_SECS = "90"
+COACH_AUTH = "<integration-secret-id>"
+```
