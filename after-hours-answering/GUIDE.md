@@ -1,4 +1,3 @@
-```markdown
 # After-Hours Answering Line — Developer Guide
 
 A step-by-step walkthrough of the `after-hours-answering` sample: a **durable Telnyx Edge Agent** that acts as a clinic's after-hours presence. It answers inbound calls live, captures the patient's need via AI speech-to-text, sends an immediate SMS confirmation, and schedules a callback for the next business morning — all while remembering callers across nights so returning patients are recognized without re-intake.
@@ -297,4 +296,3 @@ https://<your-deployment>.telnyx.sh/webhook/inbound-message
 - [Send a Message (SMS)](https://developers.telnyx.com/docs/messaging/messages/send-message)
 - [Inbound Message Webhook Reference](https://developers.telnyx.com/api-reference/callbacks/inbound-message)
 - [Telnyx Edge CLI Reference](https://developers.telnyx.com/docs/edge-compute/cli)
-```

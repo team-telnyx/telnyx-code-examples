@@ -1,4 +1,3 @@
-```markdown
 ---
 name: after-hours-answering
 title: "After-Hours Answering Line"
@@ -230,4 +229,3 @@ Returns `{"status": "ok"}` with HTTP 200.
 - [Telnyx Voice Product](https://telnyx.com/voice)
 - [Telnyx Messaging Product](https://telnyx.com/messaging)
 - [Telnyx AI Product](https://telnyx.com/ai)
-```

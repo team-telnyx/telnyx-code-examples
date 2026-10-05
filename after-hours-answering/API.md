@@ -1,4 +1,3 @@
-```markdown
 # API Reference — After-Hours Answering Line
 
 This document describes the HTTP webhook endpoints exposed by the `after-hours-answering` sample. The application is a **Telnyx Edge Agent** (`AfterHoursLine`) that acts as a durable, cross-night after-hours presence for a healthcare clinic. It answers inbound calls, captures caller needs via AI speech-to-text, sends SMS confirmations, and schedules next-business-morning callbacks.
@@ -153,4 +152,3 @@ curl https://<your-edge-endpoint>/health
 | `200` | Service is healthy and running. |
 | `404` | Route not found. |
 | `500` | Internal server error. |
-```
