@@ -1,0 +1,28 @@
+```toml
+name = "number-lifecycle-porter"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "NUMBERS"
+type = "NumberActor"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.ORDERS_DB]
+id = "<orders-db-uuid>"
+
+[env_vars]
+CC_APP_CONNECTION_ID = "<your_call_control_app_connection_id>"
+OPS_SMS_TO = "<your_ops_sms_number_e164>"
+NEW_NUMBER_TAG = "clinic-north"
+POLL_INTERVAL_SECS = "30"
+POLL_MAX_MINUTES = "60"
+AREA_CODE = "415"
+DEMO_MODE = "true"
+```
