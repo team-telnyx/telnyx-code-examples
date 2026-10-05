@@ -1,0 +1,26 @@
+name = "stepup-verify-gate"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "GATES"
+type = "VerifyGate"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.LEDGER]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+VERIFY_PROFILE_ID = "<your_verify_profile_id>"
+STEPUP_METHOD = "flashcall"
+LOOKUP_CACHE_MIN = "60"
+STEPUP_WINDOW_DAYS = "30"
+LOCK_THRESHOLD = "3"
+LOCK_HOURS = "24"
+DEMO_MODE = "true"
