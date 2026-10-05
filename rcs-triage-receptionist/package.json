@@ -1,0 +1,23 @@
+```json
+{
+  "name": "rcs-triage-receptionist",
+  "version": "1.0.0",
+  "description": "RCS triage receptionist actor for healthcare clinics using Telnyx Edge Stateful Actors",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "vitest run",
+    "smoke": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}
+```
