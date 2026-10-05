@@ -22,6 +22,12 @@ name = "ai-gateway-tenant-meter"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
 
+[edge_compute]
+# Function identity for `telnyx-edge ship` on the demo account; re-provision
+# with `telnyx-edge new-func` (and replace this block) to deploy to another.
+func_id = "fa1a35ef-32bb-4ec3-85e3-ff913ee8be56"
+func_name = "ai-gateway-tenant-meter"
+
 [[actors]]
 binding = "LEDGERS"
 type = "SpendLedger"
