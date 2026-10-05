@@ -259,6 +259,7 @@ real_app.make_call = _mock_make_call
 real_app.generate_contextual_greeting = _mock_generate_contextual_greeting
 
 from app import app  # noqa: E402
+from flask import jsonify  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
