@@ -1636,6 +1636,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omnichannel-ai-agent-python"
     },
     {
+      "folder": "omnichannel-context-carrying-python",
+      "title": "Omnichannel Context-Carrying Agent",
+      "description": "AI agent that carries customer context across email, voice, and SMS so customers never repeat themselves. Demonstrates cross-channel identity resolution with Telnyx Inference, Email, Messaging, and Call Control APIs.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omnichannel-context-carrying-python"
+    },
+    {
       "folder": "policy-renewal-campaign-python",
       "title": "Policy Renewal Campaign",
       "description": "Automated multi-channel renewal reminders. 60 days: SMS. 30 days: AI voice call reviewing coverage changes. 7 days: urgent SMS. Agent reviews lapsed policies for win-back.",

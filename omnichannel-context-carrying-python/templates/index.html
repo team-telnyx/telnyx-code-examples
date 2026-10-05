@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Omnichannel Context-Carrying Agent</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    background: #0d1117;
+    color: #c9d1d9;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.header-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f0f6fc;
+    white-space: nowrap;
+}
+
+.header-subtitle {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-idle { background: #30363d; color: #8b949e; }
+.status-running { background: #58a6ff33; color: #58a6ff; border: 1px solid #58a6ff55; animation: pulse 1.5s ease-in-out infinite; }
+.status-complete { background: #3fb95033; color: #3fb950; border: 1px solid #3fb95055; }
+.status-error { background: #f8514933; color: #f85149; border: 1px solid #f8514955; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.header-spacer { flex: 1; }
+
+.btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: #238636;
+    border-color: #2ea043;
+    color: #fff;
+}
+
+.btn-primary:hover { background: #2ea043; }
+
+.btn-primary:disabled {
+    background: #21262d;
+    border-color: #30363d;
+    color: #484f58;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #21262d;
+    color: #c9d1d9;
+}
+
+.btn-secondary:hover { background: #30363d; }
+
+/* Main panels — three columns */
+.container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel + .panel { border-left: 1px solid #30363d; }
+
+.panel-header {
+    padding: 12px 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8b949e;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+}
+
+.panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.panel-body::-webkit-scrollbar { width: 6px; }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+/* Journey timeline (left panel) */
+.journey-step {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 4px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.journey-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 24px;
+    flex-shrink: 0;
+}
+
+.journey-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #30363d;
+    border: 2px solid #484f58;
+    flex-shrink: 0;
+}
+
+.journey-connector {
+    width: 2px;
+    flex: 1;
+    background: #30363d;
+    min-height: 20px;
+}
+
+.journey-dot.email { background: #58a6ff; border-color: #58a6ff; }
+.journey-dot.voice { background: #a371f7; border-color: #a371f7; }
+.journey-dot.sms { background: #3fb950; border-color: #3fb950; }
+.journey-dot.system { background: #d29922; border-color: #d29922; }
+
+.journey-content {
+    padding-bottom: 16px;
+    flex: 1;
+}
+
+.journey-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.journey-label.email { color: #58a6ff; }
+.journey-label.voice { color: #a371f7; }
+.journey-label.sms { color: #3fb950; }
+.journey-label.system { color: #d29922; }
+
+.journey-text {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #c9d1d9;
+}
+
+/* Agent activity events (center panel) */
+.event {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-left: 3px solid #484f58;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.event-thinking { border-left-color: #a371f7; }
+.event-tool-call { border-left-color: #f0883e; }
+.event-tool-result { border-left-color: #3fb950; }
+.event-resolved { border-left-color: #58a6ff; }
+.event-done { border-left-color: #3fb950; }
+.event-error { border-left-color: #f85149; }
+.event-identity { border-left-color: #d29922; }
+.event-context { border-left-color: #f778ba; }
+
+.event-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.label-thinking { color: #a371f7; }
+.label-tool-call { color: #f0883e; }
+.label-tool-result { color: #3fb950; }
+.label-resolved { color: #58a6ff; }
+.label-done { color: #3fb950; }
+.label-error { color: #f85149; }
+.label-identity { color: #d29922; }
+.label-context { color: #f778ba; }
+
+.event-ts {
+    font-size: 10px;
+    color: #484f58;
+    float: right;
+}
+
+.event-content {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #c9d1d9;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.event-content code {
+    background: #0d1117;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+/* Channel cards (right panel) */
+.channel-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    animation: slideIn 0.3s ease-out;
+}
+
+.channel-card-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.channel-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.channel-email .channel-icon { background: #58a6ff33; }
+.channel-email .channel-card-header { color: #58a6ff; }
+.channel-email { border-left: 3px solid #58a6ff; }
+
+.channel-sms .channel-icon { background: #3fb95033; }
+.channel-sms .channel-card-header { color: #3fb950; }
+.channel-sms { border-left: 3px solid #3fb950; }
+
+.channel-voice .channel-icon { background: #a371f733; }
+.channel-voice .channel-card-header { color: #a371f7; }
+.channel-voice { border-left: 3px solid #a371f7; }
+
+.channel-resolve .channel-icon { background: #d2992233; }
+.channel-resolve .channel-card-header { color: #d29922; }
+.channel-resolve { border-left: 3px solid #d29922; }
+
+.channel-inbound .channel-icon { background: #f778ba33; }
+.channel-inbound .channel-card-header { color: #f778ba; }
+.channel-inbound { border-left: 3px solid #f778ba; }
+
+.channel-recipient {
+    font-size: 11px;
+    color: #8b949e;
+    font-weight: 400;
+    margin-left: auto;
+}
+
+.channel-card-body {
+    padding: 0 14px 12px 14px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #c9d1d9;
+}
+
+.channel-card-body .subject {
+    font-weight: 600;
+    color: #f0f6fc;
+    margin-bottom: 6px;
+}
+
+.channel-card-body .body-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #8b949e;
+}
+
+/* Empty state */
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #484f58;
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.8;
+}
+
+/* Footer */
+.footer {
+    background: #161b22;
+    border-top: 1px solid #30363d;
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: #8b949e;
+}
+
+.footer a {
+    color: #58a6ff;
+    text-decoration: none;
+}
+
+.footer a:hover { text-decoration: underline; }
+.footer-spacer { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <div class="header-title">Omnichannel Context-Carrying Agent</div>
+        <div class="header-subtitle">Customer context follows across email, voice, and SMS</div>
+    </div>
+    <span id="statusBadge" class="status-badge status-idle">Idle</span>
+    <span class="header-spacer"></span>
+    <button id="btnRun" class="btn btn-primary" onclick="runJourney()">Run Demo Journey</button>
+    <button class="btn btn-secondary" onclick="resetUI()">Reset</button>
+</div>
+
+<div class="container">
+    <div class="panel">
+        <div class="panel-header">Customer Journey</div>
+        <div class="panel-body" id="journeyPanel">
+            <div class="empty-state" id="journeyEmpty">
+                Customer journey will appear here.<br>Click "Run Demo Journey" to start.
+            </div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">Agent Activity</div>
+        <div class="panel-body" id="activityPanel">
+            <div class="empty-state" id="activityEmpty">
+                Agent events will appear here.<br>Identity resolution, context lookups, tool calls.
+            </div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel-header">Channel Timeline</div>
+        <div class="panel-body" id="channelPanel">
+            <div class="empty-state" id="channelEmpty">
+                Channel actions will appear here.<br>Inbound and outbound email, SMS, and voice.
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <span id="contextCount">Context: 0 interactions</span>
+    <span class="footer-spacer"></span>
+    <a href="/customers">Customers</a>
+    <a href="/conversations">Conversations</a>
+    <a href="/health">Health</a>
+</div>
+
+<script>
+let eventSource = null;
+let isRunning = false;
+
+function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+function fmtTime(iso) {
+    try {
+        return new Date(iso).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch { return ''; }
+}
+
+function setStatus(state) {
+    const b = document.getElementById('statusBadge');
+    b.className = 'status-badge status-' + state;
+    b.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+}
+
+function clearEmpty(panelId) {
+    const el = document.getElementById(panelId);
+    if (el) el.remove();
+}
+
+/* Journey Panel (left) */
+function addJourneyStep(channel, detail) {
+    clearEmpty('journeyEmpty');
+    const panel = document.getElementById('journeyPanel');
+
+    const step = document.createElement('div');
+    step.className = 'journey-step';
+
+    const line = document.createElement('div');
+    line.className = 'journey-line';
+    const dot = document.createElement('div');
+    dot.className = 'journey-dot ' + channel;
+    const connector = document.createElement('div');
+    connector.className = 'journey-connector';
+    line.appendChild(dot);
+    line.appendChild(connector);
+
+    const content = document.createElement('div');
+    content.className = 'journey-content';
+    content.innerHTML =
+        '<div class="journey-label ' + channel + '">' + esc(channel) + '</div>' +
+        '<div class="journey-text">' + esc(detail) + '</div>';
+
+    step.appendChild(line);
+    step.appendChild(content);
+    panel.appendChild(step);
+    panel.scrollTop = panel.scrollHeight;
+}
+
+/* Activity Panel (center) */
+function addActivity(type, label, content, ts) {
+    clearEmpty('activityEmpty');
+    const panel = document.getElementById('activityPanel');
+    const div = document.createElement('div');
+    const cls = type.replace('.', '-').replace('agent-', '');
+    div.className = 'event event-' + cls;
+    div.innerHTML =
+        '<span class="event-ts">' + esc(fmtTime(ts)) + '</span>' +
+        '<div class="event-label label-' + cls + '">' + esc(label) + '</div>' +
+        '<div class="event-content">' + esc(content) + '</div>';
+    panel.appendChild(div);
+    panel.scrollTop = panel.scrollHeight;
+}
+
+/* Channel Panel (right) */
+function addChannelCard(tool, input, result, direction) {
+    clearEmpty('channelEmpty');
+    const panel = document.getElementById('channelPanel');
+    const card = document.createElement('div');
+
+    let cls = '', icon = '', title = '', recipient = '', body = '';
+    const dir = direction || 'outbound';
+
+    if (tool === 'send_email') {
+        cls = 'channel-email';
+        icon = '\u2709';
+        title = dir === 'inbound' ? 'Email Received' : 'Email Sent';
+        recipient = extractRecipient(result, 'email');
+        body = '<div class="subject">' + esc(input.subject || '') + '</div>' +
+               '<div class="body-text">' + esc(input.body || '') + '</div>';
+    } else if (tool === 'send_sms') {
+        cls = 'channel-sms';
+        icon = '\uD83D\uDCAC';
+        title = dir === 'inbound' ? 'SMS Received' : 'SMS Sent';
+        recipient = extractRecipient(result, 'sms');
+        body = '<div class="body-text">' + esc(input.text || '') + '</div>';
+    } else if (tool === 'make_call') {
+        cls = 'channel-voice';
+        icon = '\uD83D\uDCDE';
+        title = 'Voice Call';
+        recipient = extractRecipient(result, 'voice');
+        body = '<div class="body-text">' + esc(input.speak_text || '') + '</div>';
+    } else if (tool === 'resolve_issue') {
+        cls = 'channel-resolve';
+        icon = '\u2714';
+        title = 'Issue Resolved';
+        body = '<div class="body-text">' + esc(input.summary || '') + '</div>';
+    } else if (tool === 'inbound') {
+        cls = 'channel-inbound';
+        icon = '\u2B07';
+        title = 'Inbound ' + (input.channel || '').toUpperCase();
+        recipient = input.from || '';
+        body = '<div class="body-text">' + esc(input.detail || '') + '</div>';
+    }
+
+    card.className = 'channel-card ' + cls;
+    card.innerHTML =
+        '<div class="channel-card-header">' +
+            '<span class="channel-icon">' + icon + '</span>' +
+            esc(title) +
+            (recipient ? '<span class="channel-recipient">' + esc(recipient) + '</span>' : '') +
+        '</div>' +
+        '<div class="channel-card-body">' + body + '</div>';
+    panel.appendChild(card);
+    panel.scrollTop = panel.scrollHeight;
+}
+
+function extractRecipient(result, type) {
+    if (!result) return '';
+    if (type === 'email') {
+        const m = result.match(/Email sent to ([^\s]+)/);
+        return m ? m[1] : '';
+    }
+    if (type === 'sms') {
+        const m = result.match(/SMS sent to ([^:]+)/);
+        return m ? m[1].trim() : '';
+    }
+    if (type === 'voice') {
+        const m = result.match(/Call initiated to ([^\s]+)/);
+        return m ? m[1] : '';
+    }
+    return '';
+}
+
+function updateContextCount() {
+    fetch('/context/count')
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('contextCount').textContent = 'Context: ' + d.count + ' interactions';
+        })
+        .catch(() => {});
+}
+
+function connectSSE() {
+    if (eventSource) eventSource.close();
+    eventSource = new EventSource('/stream');
+
+    eventSource.onmessage = function(e) {
+        let data;
+        try { data = JSON.parse(e.data); } catch { return; }
+
+        const ts = data.ts || '';
+
+        /* Journey events */
+        if (data.type === 'journey.step') {
+            const step = data.step || '';
+            let channel = 'system';
+            if (step.includes('email')) channel = 'email';
+            else if (step.includes('call') || step.includes('voice') || step.includes('greeting')) channel = 'voice';
+            else if (step.includes('sms')) channel = 'sms';
+            addJourneyStep(channel, data.detail || step);
+        }
+
+        /* Channel inbound events */
+        if (data.type === 'channel.inbound') {
+            addChannelCard('inbound', {
+                channel: data.channel || '',
+                from: data.from || (data.customer || {}).email || '',
+                detail: data.subject || data.text || 'Inbound ' + (data.channel || ''),
+            }, '', 'inbound');
+        }
+
+        /* Identity resolution */
+        if (data.type === 'agent.identity_resolved') {
+            const cust = data.customer || {};
+            addActivity('agent-identity', 'Identity Resolved',
+                'Channel: ' + (data.channel || '') + '\n' +
+                'Customer: ' + (cust.name || 'unknown') + '\n' +
+                'Identifier: ' + (data.identifier || ''), ts);
+        }
+
+        /* Context carry */
+        if (data.type === 'agent.context_carry') {
+            const cust = data.customer || {};
+            addActivity('agent-context', 'Context Carry',
+                'Loading cross-channel history for ' + (cust.name || 'customer') + '...', ts);
+        }
+
+        /* Agent events */
+        if (data.type === 'agent.thinking') {
+            addActivity('agent-thinking', 'Thinking', data.content || '', ts);
+        } else if (data.type === 'agent.tool_call') {
+            const toolLabel = (data.tool || '').replace(/_/g, ' ');
+            const detail = JSON.stringify(data.input || {}, null, 2);
+            addActivity('agent-tool-call', 'Tool Call: ' + toolLabel, detail, ts);
+        } else if (data.type === 'agent.tool_result') {
+            addActivity('agent-tool-result', 'Result: ' + (data.tool || ''), data.result || '', ts);
+            addChannelCard(data.tool, data._input || {}, data.result || '', 'outbound');
+            updateContextCount();
+        } else if (data.type === 'agent.resolved') {
+            addActivity('agent-resolved', 'Resolved', data.summary || '', ts);
+            addChannelCard('resolve_issue', { summary: data.summary || '' }, data.result || '');
+            updateContextCount();
+        } else if (data.type === 'agent.done') {
+            addActivity('agent-done', 'Complete', data.content || '', ts);
+            setStatus('complete');
+            isRunning = false;
+            document.getElementById('btnRun').disabled = false;
+            updateContextCount();
+        } else if (data.type === 'agent.error') {
+            addActivity('agent-error', 'Error', data.error || 'Unknown error', ts);
+            setStatus('error');
+            isRunning = false;
+            document.getElementById('btnRun').disabled = false;
+        }
+    };
+}
+
+function runJourney() {
+    if (isRunning) return;
+    isRunning = true;
+
+    setStatus('running');
+    document.getElementById('btnRun').disabled = true;
+
+    connectSSE();
+
+    fetch('/demo/journey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.error) {
+            addActivity('agent-error', 'Error', d.error, new Date().toISOString());
+            setStatus('error');
+            isRunning = false;
+            document.getElementById('btnRun').disabled = false;
+        }
+    })
+    .catch(err => {
+        addActivity('agent-error', 'Error', err.toString(), new Date().toISOString());
+        setStatus('error');
+        isRunning = false;
+        document.getElementById('btnRun').disabled = false;
+    });
+}
+
+function resetUI() {
+    if (eventSource) { eventSource.close(); eventSource = null; }
+    isRunning = false;
+    setStatus('idle');
+    document.getElementById('btnRun').disabled = false;
+
+    document.getElementById('journeyPanel').innerHTML =
+        '<div class="empty-state" id="journeyEmpty">Customer journey will appear here.<br>Click "Run Demo Journey" to start.</div>';
+    document.getElementById('activityPanel').innerHTML =
+        '<div class="empty-state" id="activityEmpty">Agent events will appear here.<br>Identity resolution, context lookups, tool calls.</div>';
+    document.getElementById('channelPanel').innerHTML =
+        '<div class="empty-state" id="channelEmpty">Channel actions will appear here.<br>Inbound and outbound email, SMS, and voice.</div>';
+
+    fetch('/demo/reset', { method: 'POST' }).catch(() => {});
+    updateContextCount();
+}
+
+updateContextCount();
+</script>
+</body>
+</html>

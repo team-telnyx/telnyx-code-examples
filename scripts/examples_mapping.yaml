@@ -1121,6 +1121,12 @@ examples:
     folder: omnichannel-ai-agent-python
 
   - product: ai
+    use_case: omnichannel-context-carrying
+    language: python
+    framework: flask
+    folder: omnichannel-context-carrying-python
+
+  - product: ai
     use_case: policy-renewal-campaign
     language: python
     framework: flask
