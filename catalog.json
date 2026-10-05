@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-02T21:23:45Z",
-  "example_count": 564,
+  "generated_at": "2026-10-05T22:18:37Z",
+  "example_count": 565,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5081,6 +5081,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chargeback-adjudication"
+    },
+    {
+      "folder": "ai-gateway-tenant-meter",
+      "title": "Multi-Tenant AI Spend Ledger with Telnyx AI Gateway",
+      "description": "A durable per-tenant billing ledger that meters AI usage, enforces budgets, and blocks secret leakage via Telnyx AI Gateway guardrails.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-gateway-tenant-meter"
     }
   ]
 }
