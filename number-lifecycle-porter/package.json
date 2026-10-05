@@ -1,0 +1,22 @@
+```json
+{
+  "name": "number-lifecycle-porter",
+  "version": "1.0.0",
+  "description": "Telnyx Edge stateful actor that provisions, wires, and rolls back a phone number lifecycle",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "vitest run",
+    "smoke": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^2.0.0"
+  }
+}
+```
