@@ -6,9 +6,9 @@ A step-by-step tutorial for the `ai-gateway-tenant-meter` sample: a durable, per
 
 ## Prerequisites
 
-- A Telnyx account with access to the **AI Gateway** (token groups, token keys, usage/summary, spend/events, guardrail_events).
+- A Telnyx account with access to the **AI Gateway** (token groups, token keys, usage/summary, guardrail_events).
 - A Telnyx phone number capable of sending SMS (for live-mode admin alerts).
-- Node.js 20+ and `npm` (or `pnpm`/`yarn`).
+- Node.js 22+ and `npm`.
 - The `telnyx-edge` CLI installed and authenticated:
 
 ```bash
@@ -23,8 +23,8 @@ telnyx-edge auth api-key set <your_api_key>
 ```
 ai-gateway-tenant-meter/
 ├── src/
-│   └── index.ts          # SpendLedger actor + HTTP entry point
-├── smoke_test.ts         # Verifies classes/methods exist
+│   └── index.ts          # GatewayClient, SpendLedger actor, HTTP entry point
+├── smoke_test.ts         # Wire-contract smoke test (mocked fetch, no API key)
 ├── package.json
 ├── tsconfig.json
 ├── telnyx.toml           # Actor + binding declarations
@@ -32,7 +32,11 @@ ai-gateway-tenant-meter/
 └── .gitignore
 ```
 
-The actor lives in `src/index.ts`. The HTTP entry point (the `default export`) dispatches `/provision` and `/spend` requests to the correct per-tenant ledger actor via `env.LEDGERS.idFromName(tenantId)`.
+`src/index.ts` contains three layers:
+
+1. **`GatewayClient`** — a thin REST wrapper over `https://api.telnyx.com/v2/llm_token_gateway`. It adds the mandatory `Idempotency-Key` header on every mutation, unwraps the `data` envelope, and maps API errors to typed `GatewayError`s.
+2. **`SpendLedger extends Agent`** — one durable actor per tenant (`idFromName(tenantId)`). Owns provisioning, the hourly rollup, alerting, and the SQL ledger.
+3. **The default export** — the HTTP front door (`/provision`, `/spend`, `/adjust`, `/health`), which dispatches to the right actor.
 
 ---
 
@@ -47,7 +51,7 @@ npm install
 
 ### 2. Configure `telnyx.toml`
 
-The `telnyx.toml` file declares the actor binding, the `[telnyx]` API binding (zero-credential SMS), the SQL database binding, and the `TELNYX_API_KEY` secret:
+The `telnyx.toml` file declares the actor binding, the `[telnyx]` API binding (zero-credential SMS), and the secrets:
 
 ```toml
 name = "ai-gateway-tenant-meter"
@@ -61,30 +65,34 @@ type    = "SpendLedger"
 [telnyx]
 binding = "TELNYX"
 
-[storage.sqldb.SPEND_DB]
-id = "<sqldb-uuid>"
-
 [[secrets]]
 binding = "TELNYX_API_KEY"
 name    = "TELNYX_API_KEY"
 
+[[secrets]]
+binding = "DEMO_MODE"
+name    = "DEMO_MODE"
+
+[[secrets]]
+binding = "API_TOKEN"
+name    = "API_TOKEN"
+
 [env_vars]
 ADMIN_SMS_FROM = "+1555XXXXXXXX"
 ADMIN_SMS_TO   = "+1555XXXXXXXX"
-DASHBOARD_ORIGIN = "https://dashboard.example.com"
-ROLLUP_CRON    = "0 * * * *"
+ALLOWED_MODELS = "Kimi-K2.6,Meta-Llama-3.1-8B-Instruct"
 WARN_PCT       = "80"
 HARD_PCT       = "100"
-SPEND_LOOKBACK_DAYS = "31"
 ```
 
-> Replace `<sqldb-uuid>` with a real SQL database namespace UUID from the Telnyx dashboard.
+> There is no separate SQL binding — the ledger uses the Agent SDK's built-in per-actor SQL (`this.ctx.storage.sql`), so every tenant ledger gets its own durable database automatically.
 
 ### 3. Set secrets
 
 ```bash
 telnyx-edge secrets add TELNYX_API_KEY "your_telnyx_api_key_here"
 telnyx-edge secrets add DEMO_MODE "true"   # safe demo mode by default
+telnyx-edge secrets add API_TOKEN "$(openssl rand -hex 24)"  # optional route guard
 ```
 
 ### 4. Generate type bindings
@@ -93,25 +101,25 @@ telnyx-edge secrets add DEMO_MODE "true"   # safe demo mode by default
 telnyx-edge types
 ```
 
-This regenerates `telnyx-env.d.ts` from your `telnyx.toml` bindings so TypeScript knows about `env.LEDGERS`, `env.TELNYX`, `env.SPEND_DB`, etc.
+This regenerates `telnyx-env.d.ts` from your `telnyx.toml` bindings so TypeScript knows about `env.LEDGERS`, `env.TELNYX`, `env.SECRETS`, etc.
 
 ---
 
 ## Demo Mode vs Live Mode
 
-The sample runs in **safe demo mode** by default. When `DEMO_MODE` is set to `"true"` (or unset), the `sendAdminSms` method logs the SMS body to the console instead of calling the real Telnyx Messaging API:
+The sample runs in **safe demo mode** by default. When `DEMO_MODE` is `"true"` (or unset), the `sendAdminSms` method logs the SMS body to the console instead of calling the real Telnyx Messaging API:
 
 ```
-[DEMO MODE] SMS to +1555XXXXXXXX: Tenant ACME at 82% of monthly AI budget (82.00 of 100.00).
+[DEMO MODE] SMS to +1555XXXXXXXX: Tenant acme-corp is at 82% of its monthly AI budget ($410.50 of $500.00).
 ```
 
-To switch to **live mode** (real SMS alerts, real gateway calls):
+To switch to **live mode** (real SMS alerts):
 
 ```bash
 telnyx-edge secrets add DEMO_MODE "false"
 ```
 
-> In live mode, the actor still uses the real Telnyx AI Gateway management APIs and the real SMS API. Ensure `ADMIN_SMS_FROM` and `ADMIN_SMS_TO` are set to valid E.164 numbers.
+> The gateway management calls are always real (they meter and enforce budgets). Only the SMS is simulated in demo mode. Ensure `ADMIN_SMS_FROM` and `ADMIN_SMS_TO` are valid E.164 numbers before switching to live mode.
 
 ---
 
@@ -124,59 +132,53 @@ telnyx-edge secrets add DEMO_MODE "false"
 When a tenant signs up, the HTTP entry point calls:
 
 ```typescript
-const ledger = env.LEDGERS.idFromName(body.tenantId);
-const stub = env.LEDGERS.get(ledger);
-const result = await stub.provision(body.tenantId, body.monthlyBudget);
+const stub = env.LEDGERS.idFromName(tenantId);
+const result = await stub.provision(tenantId, monthlyBudget);
 ```
 
 `idFromName(tenantId)` deterministically maps a tenant ID to a single actor instance — one durable ledger per tenant. The `provision` RPC:
 
-1. Validates `tenantId` and `monthlyBudget`.
-2. Checks if the ledger is already provisioned (idempotent — returns existing group/key if so).
-3. Reads `TELNYX_API_KEY` from `env.SECRETS`.
-4. Calls `POST /v2/llm_token_gateway/token_groups` with:
+1. Validates `tenantId` (≤128 chars) and `monthlyBudget` (> 0).
+2. Returns the existing ledger unchanged if already provisioned (idempotent).
+3. Calls `POST /v2/llm_token_gateway/token_groups` with an `Idempotency-Key` header and:
    - `name`: the tenant ID
-   - `allowed_models`: `["gpt-4o-mini", "gpt-4o"]`
+   - `allowed_models`: `ALLOWED_MODELS` (default: Telnyx-hosted models — no BYOK needed)
    - `max_budget`: the tenant's monthly budget
-   - `budget_duration`: `"30d"`
-   - `guardrails`: secrets block (prompt + response), DLP `financial` profile flag (prompt + response), streaming `buffered`
-5. Calls `POST /token_groups/{id}/token_keys` to create a primary token key.
-6. Persists `tokenGroupId`, `tokenKeyId`, `gatewayBaseUrl`, and `monthlyBudget` in durable actor state via `setState()`.
-7. Initializes the SQL schema (`spend_days`, `alerts`, `guardrail_events` tables).
-8. Schedules the first hourly rollup via `this.schedule(3600, "rollup", {}, { cron })`.
+   - `budget_duration`: `"30d"` (a repeating 30-day budget period)
+   - `guardrails`: secrets block (prompt + response), DLP `financial` flag (prompt + response), streaming `buffered`
+4. Calls `POST /v2/llm_token_gateway/token_keys` with `{ name, token_group_id }` — the one-time secret is returned as `data.token` (`ltg_sk_...`).
+5. Persists the group id, key id, the secret, and the gateway's `budget_started_at` / `resets_at` in durable actor state.
+6. Initializes the SQL schema and arms the hourly rollup: `this.every(3600, "rollup", undefined, { id: "hourly-rollup" })`.
 
-The tenant's support assistant then calls the LLM through the gateway using the returned `gatewayBaseUrl` and token key — every request is metered by the token group.
+The tenant's assistant then calls the model at the constant inference base URL `https://llm.telnyx.com/v1` with the token key as its API key — every request is metered by the group and inspected by the guardrails.
 
 ### 2. Hourly Rollup (`rollup`)
 
 **Code reference:** `rollup()` method in `src/index.ts`.
 
-Scheduled every hour via `this.schedule()`, the rollup:
+The rollup is a durable task dispatched by name. Because it re-arms itself with the stable id `hourly-rollup`, recurrence survives pod restarts:
 
-1. Reads `TELNYX_API_KEY` from secrets.
-2. Calls `GET /v2/llm_token_gateway/usage/summary?token_group_id=...&start_date=...&end_date=...` (lookback window from `SPEND_LOOKBACK_DAYS`, default 31 days).
-3. Iterates over `summary.by_day` and upserts each day into the `spend_days` SQL table using `INSERT ... ON CONFLICT(tenant, day) DO UPDATE` — this makes the rollup **idempotent** (re-running doesn't create duplicate rows).
-4. Computes month-to-date spend and percentage of budget.
-5. If spend crosses `WARN_PCT` (default 80%) and `alerted80` is false in durable state → sends one admin SMS and records an alert row. Sets `alerted80 = true` in state.
-6. If spend crosses `HARD_PCT` (default 100%) and `alerted100` is false → sends one admin SMS, records an alert, sets `alerted100 = true`.
-7. Updates `lastRollupDay` in durable state.
-
-The alert-once guards (`alerted80`, `alerted100`) live in the actor's durable state — killing and restarting the actor mid-month will **not** re-fire alerts.
+1. Reads the token group (`GET /token_groups/{id}`) for the live `spend`, `resets_at`, and ETag `version`.
+2. **Period rollover:** if the gateway's `resets_at` changed, the actor resets its once-per-period alert guards (`alerted80`, `alerted100`, `readOnly`) — so the next 30-day period starts clean.
+3. Calls `GET /usage/summary?token_group_id=...&start_date=...&end_date=...` over the budget period (inclusive start, exclusive end, ≤31 days) and upserts every `data.by_day` row into `spend_days` with `ON CONFLICT(tenant, day) DO UPDATE` — **idempotent** across restarts.
+4. Calls `GET /guardrail_events` and upserts findings into `guardrail_events` keyed by the gateway event `id`.
+5. If spend crosses `WARN_PCT` (default 80%) and `alerted80` is false → one admin SMS + one `alerts` row, guard set in state.
+6. If spend crosses `HARD_PCT` (default 100%) and `alerted100` is false → one admin SMS, `readOnly = true`, guard set in state.
 
 ### 3. Budget Enforcement at 100%
 
 **Code reference:** `rollup()` method, `spendView()` method.
 
-At 100% of budget, the Telnyx AI Gateway itself denies further inference requests with `403 budget_exceeded` (or `end_user_budget_exceeded`). The actor doesn't need to enforce this — the gateway does. The actor's role is to:
+At 100% of the period budget, the Telnyx AI Gateway itself denies further inference requests with `403 budget_exceeded` — the gateway enforces, the actor doesn't need to. The actor's role is to:
 
-- Flip the tenant's UI into read-only mode (the `spendView` RPC returns `readOnly: true` when `pct >= HARD_PCT`).
+- Flip the tenant view to read-only: `spendView` returns `readOnly: true` (persisted in durable state, so it survives restarts until the period resets).
 - Notify the admin via SMS.
 
-### 4. Guardrail Demo — Secret Detection
+### 4. Guardrail Demo — Secret Detection and DLP Flagging
 
-**Code reference:** `provision()` method (guardrails config), `rollup()` method (guardrail counts in SQL).
+**Code reference:** `provision()` method (guardrails config), `rollup()` / `spendView()` (findings).
 
-When provisioning a token group, the guardrails block is configured:
+The provisioned policy blocks **credential-looking secrets** in both directions and **flags financial data**:
 
 ```json
 {
@@ -186,12 +188,11 @@ When provisioning a token group, the guardrails block is configured:
 }
 ```
 
-If a support agent pastes a customer's card number into the tenant's assistant:
+Verified live against the gateway:
 
-1. The gateway's secrets detector **blocks** the request before it reaches the model.
-2. A `guardrail_events` row is created with a finding **code** (e.g., `CREDIT_CARD`) — **never** the matched text.
-3. The hourly rollup reads `guardrails.blocked_events` and `guardrails.flagged_events` from `usage/summary` and stores them in the `spend_days` SQL table.
-4. The `spendView` RPC surfaces these counts on the tenant's spend page.
+- A prompt containing a Stripe-style key (`sk_live_...`) is rejected with **HTTP 400 `prompt_blocked`** before reaching the model (no spend, no spend event).
+- A prompt containing a card number (`4111 1111 1111 1111`) succeeds with an `x-ltg-policy` header: `{"outcome":"flagged","findings":[{"detector":"dlp","code":"credit_card","count":1,"action":"flag"}]}` — the request is allowed but recorded.
+- `GET /guardrail_events` returns findings with **codes and counts only — never the matched text**. The rollup persists them into `guardrail_events` (deduped by event id), and `spendView` surfaces them under `guardrails.findings`.
 
 ### 5. Reading the Ledger (`spendView`)
 
@@ -200,39 +201,47 @@ If a support agent pastes a customer's card number into the tenant's assistant:
 The tenant dashboard calls:
 
 ```
-GET /spend?tenantId=ACME
+GET /spend?tenantId=acme-corp
 ```
 
-The HTTP entry point dispatches to the correct ledger actor, which:
+The ledger actor:
 
-1. Calls `GET /v2/llm_token_gateway/usage/summary` for the lookback window.
-2. Reads alert history from the `alerts` SQL table.
-3. Returns a `SpendView` object with:
-   - `monthToDate` spend and percentage of budget
-   - `byModel` breakdown (spend, input/output tokens per model)
-   - `guardrails` counts (blocked, flagged)
-   - `alerts` list (level + timestamp)
-   - `readOnly` flag (true when at or over hard budget)
+1. Syncs the budget period (rollover check).
+2. Reads `data.totals` from `usage/summary` for the period window → `monthToDate`, `pct`.
+3. Maps `data.by_model` into the by-model breakdown.
+4. Pulls findings from the gateway and merges with the local `guardrail_events` history.
+5. Returns `SpendView` with `monthToDate`, `pct`, `byModel`, `guardrails` (blocked/flagged/findings), `alerts`, `readOnly`, and the `budgetPeriod` window.
 
 ### 6. Restart Proof
 
 **Code reference:** `rollup()` method, `provision()` method, durable state.
 
-The actor's durable state (`alerted80`, `alerted100`, `tokenGroupId`, `monthlyBudget`, etc.) and the SQL tables (`spend_days`, `alerts`, `guardrail_events`) survive pod restarts. Killing the actor mid-month and restarting it:
+Kill the actor mid-month, then hit `GET /spend` again:
 
-- Preserves all rollup data in SQL (no double-counting due to idempotent upserts).
-- Preserves alert history (no duplicate alerts due to `alerted80`/`alerted100` flags).
-- The next scheduled rollup picks up where it left off.
+- The SQL rollup survives — `spend_days` rows are still there, and the next rollup only overwrites the current day.
+- Alert history survives — the `alerts` table keeps every fired alert.
+- No duplicate alerts — `alerted80` / `alerted100` in durable state are still `true`; the guards only reset when the gateway's `resets_at` moves into the next 30-day period.
+- The recurring rollup re-arms itself with the stable `hourly-rollup` id, so an evicted actor resumes its schedule on the next activation.
+
+### 7. Budget Changes with Preconditions (`adjustBudget`)
+
+**Code reference:** `adjustBudget()` method in `src/index.ts`.
+
+`POST /adjust` performs a `PATCH /v2/llm_token_gateway/token_groups/{id}` with the current `If-Match` version and a fresh `Idempotency-Key`. If another writer changed the group first, the gateway returns `412 precondition_failed` and the caller simply retries (the client re-reads the current version each call). Every successful change is appended to a durable audit log (last 50 entries) returned as `audit`.
 
 ---
 
 ## Running the Smoke Test
 
+The smoke test exercises the wire contract against a mocked fetch — no API key or network needed:
+
 ```bash
-npx tsx smoke_test.ts
+npm run smoke
 ```
 
-This verifies that the `SpendLedger` class exists, that `provision` and `spendView` are decorated with `@rpc`, and that the `rollup` and `sendAdminSms` methods are present. It does **not** make real API calls.
+Expected output: `10/10 smoke tests passed`.
+
+`npm run typecheck` validates the implementation against the real `@telnyx/edge-runtime` types.
 
 ---
 
@@ -242,50 +251,58 @@ This verifies that the `SpendLedger` class exists, that `provision` and `spendVi
 telnyx-edge ship
 ```
 
-This deploys the actor and HTTP entry point to Telnyx Edge. After deployment, the `/provision` and `/spend` endpoints are live.
+Then verify:
+
+```bash
+curl -s https://<your-deployment>/health
+```
 
 ---
 
 ## Seeding Demo Tenants
 
-To seed two demo tenants (one under budget, one over), you can call the `/provision` endpoint:
+Seed two tenants — one under budget, one driven over:
 
 ```bash
-# Under-budget tenant
-curl -X POST https://<your-deployment>.telnyx.dev/provision \
-  -H "Content-Type: application/json" \
+curl -X POST https://<your-deployment>/provision \
+  -H 'Content-Type: application/json' \
   -d '{"tenantId": "demo-under", "monthlyBudget": 100}'
 
-# Over-budget tenant (will trigger 100% alert on first rollup)
-curl -X POST https://<your-deployment>.telnyx.dev/provision \
-  -H "Content-Type: application/json" \
-  -d '{"tenantId": "demo-over", "monthlyBudget": 1}'
+curl -X POST https://<your-deployment>/provision \
+  -H 'Content-Type: application/json' \
+  -d '{"tenantId": "demo-over", "monthlyBudget": 0.00001}'
 ```
 
-Then make some inference calls through the gateway using the returned `gatewayBaseUrl` and token key to generate usage. The hourly rollup will pick up the spend and trigger alerts as thresholds are crossed.
+Then send two completions through `demo-over`'s token key (point an OpenAI-compatible client at `https://llm.telnyx.com/v1` with the returned `tokenKey`), and watch:
+
+```bash
+curl "https://<your-deployment>/spend?tenantId=demo-over"
+```
+
+The admin SMS fires exactly once per threshold, `readOnly` flips to `true`, and the next gateway call from the tenant returns `403 budget_exceeded`.
 
 ---
 
 ## Telnyx Primitives Used
 
-| Primitive | How It's Used |
-|---|---|
-| **Agent SDK** (`Agent<Env, State>`) | `SpendLedger` extends `Agent` for durable per-tenant state, `@rpc` for `provision`/`spendView`, `this.schedule()` for hourly rollup |
-| **Stateful Actor** (`env.LEDGERS.idFromName`) | One durable ledger actor per tenant, keyed by tenant ID |
-| **SQL Storage** (`env.SPEND_DB`) | `spend_days`, `alerts`, `guardrail_events` tables — the durable ledger |
-| **AI Gateway** (`api.telnyx.com/v2/llm_token_gateway`) | Token groups with budgets + guardrails, token keys, `usage/summary`, `spend/events`, `guardrail_events` |
-| **Messaging** (`env.TELNYX.messages.send`) | Admin SMS alerts at 80% and 100% of budget (zero-credential `[telnyx]` binding) |
-| **Secrets** (`env.SECRETS.get`) | `TELNYX_API_KEY` for gateway management API calls, `DEMO_MODE` flag |
+| Primitive | Where |
+|-----------|-------|
+| AI Gateway token groups (`max_budget`, `budget_duration`, guardrails) | `provision()` |
+| AI Gateway token keys (one-time `ltg_sk_...` secret) | `provision()` |
+| AI Gateway `usage/summary` (`data.totals` / `by_day` / `by_model` / guardrail counts) | `rollup()`, `spendView()` |
+| AI Gateway `guardrail_events` (codes only) | `rollup()`, `spendView()` |
+| AI Gateway `PATCH /token_groups/{id}` with ETag preconditions | `adjustBudget()` |
+| Agent SDK durable actors (`Agent`, `idFromName`, `@rpc`) | `SpendLedger` |
+| Agent SDK durable timers (`this.every()` with a stable id) | `armRollup()` |
+| Agent SDK per-actor SQL (`this.ctx.storage.sql`) | `spend_days`, `alerts`, `guardrail_events` |
+| Agent SDK merge-patch state (`getState` / `setState`) | alert guards, period rollover |
+| `[telnyx]` binding messaging (`messages.send`) | admin SMS |
 
 ---
 
 ## Next Steps
 
-- **[AI Gateway Management API](https://developers.telnyx.com/docs/inference/ai-gateway/management-api)** — token groups, token keys, PATCH for budget/policy changes
-- **[AI Gateway Usage](https://developers.telnyx.com/docs/inference/ai-gateway/usage)** — `usage/summary`, `spend/events`, `guardrail_events`
-- **[AI Gateway Controls](https://developers.telnyx.com/docs/inference/ai-gateway/controls)** — budget enforcement, `403 budget_exceeded`
-- **[AI Gateway Guardrails](https://developers.telnyx.com/docs/inference/ai-gateway/guardrails)** — secrets detection, DLP profiles
-- **[Stateful Actors](https://developers.telnyx.com/docs/edge-compute/stateful-actors)** — `idFromName`, durable state, `@rpc`
-- **[Agent SDK SQL](https://developers.telnyx.com/docs/agent-sdk/sql)** — `prepare`, `bind`, `all`, `run`, `exec`
-- **[Agent SDK Scheduled Tasks](https://developers.telnyx.com/docs/agent-sdk/scheduled-tasks)** — `this.schedule()`, cron expressions
-- **[Telnyx Python SDK](https://github.com/team-telnyx/telnyx-python)** — for dashboard-side API calls
+- Wire a real tenant dashboard: point it at `GET /spend` and render `pct`, `byModel`, and findings.
+- Add per-tenant Webhooks from a messaging profile to receive SMS delivery receipts.
+- Extend `GUARDRAILS_POLICY` with additional DLP profiles (`government_id`, `contact`) per tenant policy.
+- Replace the shared `API_TOKEN` with your production identity provider.

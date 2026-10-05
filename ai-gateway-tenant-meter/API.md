@@ -2,18 +2,20 @@
 
 Typed endpoint reference for the Telnyx Edge multi-tenant AI spend ledger. All routes are HTTP endpoints served by the Edge Worker entry point (`src/index.ts`). RPC methods on the `SpendLedger` actor are invoked internally via the `LEDGERS` actor namespace and are **not** directly exposed as HTTP routes.
 
+When the `API_TOKEN` secret is configured, `POST /provision`, `GET /spend` and `POST /adjust` require `Authorization: Bearer <API_TOKEN>`; otherwise the routes are open (demo mode).
+
 ---
 
 ## `POST /provision`
 
-Provisions a new tenant ledger: creates a Telnyx AI Gateway token group (with budget + guardrails) and a primary token key, then returns the gateway base URL and identifiers.
+Provisions a new tenant ledger: creates a Telnyx AI Gateway token group (with budget + guardrails) and a primary token key, then returns the gateway base URL and the tenant's credential.
 
 ### Request Body
 
 | Field           | Type    | Required | Description                                                                 |
 |-----------------|---------|----------|-----------------------------------------------------------------------------|
 | `tenantId`      | string  | yes      | Unique tenant identifier (max 128 chars). Used as the token group name.     |
-| `monthlyBudget` | number  | yes      | Monthly AI spend budget in USD. Must be > 0 and ≤ 100000.                   |
+| `monthlyBudget` | number  | yes      | Monthly AI spend budget in USD. Must be > 0 and ≤ 10,000,000.               |
 
 ### Example Request
 
@@ -32,42 +34,49 @@ curl -X POST https://<your-worker-url>/provision \
 
 ```json
 {
-  "gatewayBaseUrl": "https://api.telnyx.com/v2/llm_token_gateway/token_groups/tg_abc123",
-  "tokenGroupId": "tg_abc123",
-  "tokenKeyId": "tk_def456"
+  "gatewayBaseUrl": "https://llm.telnyx.com/v1",
+  "tokenGroupId": "b1946ac9-24c2-41e4-977c-33b82260d5dc",
+  "tokenKeyId": "6f2ba101-8955-48f0-b0d5-3cb9176d8d41",
+  "tokenKey": "ltg_sk_...",
+  "allowedModels": ["Kimi-K2.6", "Meta-Llama-3.1-8B-Instruct"],
+  "alreadyProvisioned": false
 }
 ```
 
-| Field            | Type   | Description                                                        |
-|------------------|--------|--------------------------------------------------------------------|
-| `gatewayBaseUrl` | string | Base URL for the tenant's AI Gateway token group.                  |
-| `tokenGroupId`   | string | Telnyx AI Gateway token group ID.                                  |
-| `tokenKeyId`     | string | Telnyx AI Gateway token key ID (used for inference auth).          |
+| Field               | Type    | Description                                                                 |
+|---------------------|---------|-----------------------------------------------------------------------------|
+| `gatewayBaseUrl`    | string  | OpenAI-compatible inference base URL (constant: `https://llm.telnyx.com/v1`). |
+| `tokenGroupId`      | string  | Telnyx AI Gateway token group ID (budget + guardrails scope).               |
+| `tokenKeyId`        | string  | Token key ID (attribution + revocation handle).                             |
+| `tokenKey`          | string  | The `ltg_sk_...` credential for the tenant assistant. Returned once per provision; stored in durable actor state. |
+| `allowedModels`     | string[]| Model allowlist applied to the group.                                       |
+| `alreadyProvisioned`| boolean | `true` when the ledger already existed (idempotent re-provision).           |
 
 ### Status Codes
 
 | Code | Description                                      |
 |------|--------------------------------------------------|
-| 200  | Tenant ledger provisioned successfully.          |
-| 400  | Invalid `tenantId` or `monthlyBudget` value.     |
-| 500  | Internal error (token group/key creation failed).|
+| 200  | Tenant ledger provisioned (or already existed).  |
+| 400  | Invalid `tenantId` / `monthlyBudget`, or gateway validation error (e.g. `model_not_in_catalog`). |
+| 401  | `API_TOKEN` set and no/wrong bearer token.       |
+| 502  | AI Gateway unreachable or returned a 5xx.        |
 
 ---
 
-## `GET /spend`
+## `GET /spend?tenantId=<tenantId>`
 
-Returns the current month-to-date spend view for a tenant, including by-model breakdown, guardrail counts, alert history, and read-only status.
+Returns the month-to-date spend view for a tenant: live gateway totals, by-model split, guardrail findings (codes only), alert history, and read-only status.
 
 ### Query Parameters
 
-| Parameter  | Type   | Required | Description                                      |
-|------------|--------|----------|--------------------------------------------------|
-| `tenantId` | string | yes      | The tenant identifier whose ledger to query.     |
+| Parameter  | Type   | Required | Description              |
+|------------|--------|----------|--------------------------|
+| `tenantId` | string | yes      | The tenant to report on. |
 
 ### Example Request
 
 ```bash
-curl -X GET "https://<your-worker-url>/spend?tenantId=acme-corp"
+curl "https://<your-worker-url>/spend?tenantId=acme-corp"
 ```
 
 ### Response Schema
@@ -77,71 +86,62 @@ curl -X GET "https://<your-worker-url>/spend?tenantId=acme-corp"
 ```json
 {
   "tenantId": "acme-corp",
-  "monthToDate": 412.50,
-  "budget": 500.00,
+  "monthToDate": 410.5,
+  "budget": 500.0,
   "pct": 82,
   "byModel": {
-    "gpt-4o-mini": {
-      "spend": 280.00,
-      "inputTokens": 1500000,
-      "outputTokens": 500000
-    },
-    "gpt-4o": {
-      "spend": 132.50,
-      "inputTokens": 300000,
-      "outputTokens": 100000
-    }
+    "Kimi-K2.6": { "spend": 410.5, "inputTokens": 912340, "outputTokens": 401277 }
   },
   "guardrails": {
-    "blocked": 3,
-    "flagged": 7
+    "blocked": 1,
+    "flagged": 3,
+    "findings": [
+      { "day": "2026-10-05", "stage": "prompt", "outcome": "blocked", "detector": "secrets", "code": "stripe_key", "count": 1 }
+    ]
   },
-  "alerts": [
-    {
-      "level": "80",
-      "at": "2025-07-15T14:30:00.000Z"
-    }
-  ],
-  "readOnly": false
+  "alerts": [{ "level": "80", "at": "2026-10-05T10:00:00Z" }],
+  "readOnly": false,
+  "budgetPeriod": { "startedAt": "2026-10-05T22:12:28Z", "resetsAt": "2026-11-04T22:12:28Z" },
+  "lastRollupAt": "2026-10-05T23:00:00Z"
 }
 ```
 
-| Field           | Type     | Description                                                                 |
-|-----------------|----------|-----------------------------------------------------------------------------|
-| `tenantId`      | string   | The queried tenant ID.                                                      |
-| `monthToDate`   | number   | Total spend in USD for the current billing period.                          |
-| `budget`        | number   | The tenant's monthly budget in USD.                                         |
-| `pct`           | number   | Percentage of budget consumed (0–100).                                      |
-| `byModel`       | object   | Per-model spend and token usage. Keys are model names.                      |
-| `byModel.*.spend`       | number | Spend in USD for this model.                                              |
-| `byModel.*.inputTokens` | number | Input tokens consumed for this model.                                     |
-| `byModel.*.outputTokens`| number | Output tokens consumed for this model.                                    |
-| `guardrails.blocked`    | number | Count of requests blocked by secret-detection guardrails.                 |
-| `guardrails.flagged`    | number | Count of requests flagged by DLP (financial) guardrails.                  |
-| `alerts`        | array    | List of fired alerts, ordered by most recent first.                        |
-| `alerts[].level`| string   | Alert threshold level (`"80"` or `"100"`).                                 |
-| `alerts[].at`   | string   | ISO 8601 timestamp when the alert fired.                                   |
-| `readOnly`      | boolean  | `true` if budget has reached 100% — gateway denies further requests.       |
+| Field             | Type     | Description                                                                 |
+|-------------------|----------|-----------------------------------------------------------------------------|
+| `monthToDate`     | number   | Spend across the current 30-day budget period (from gateway `usage/summary`). |
+| `pct`             | number   | `monthToDate / budget`, capped at 100.                                       |
+| `byModel`         | object   | Per-model spend + token split for the period.                                |
+| `guardrails.findings` | array | Latest findings with `detector` codes and counts — never matched text.       |
+| `readOnly`        | boolean  | `true` once the tenant crossed 100% in the current period (gateway enforces 403). |
+| `budgetPeriod`    | object   | The gateway's 30-day budget window; the actor resets alert guards at `resetsAt`. |
 
 ### Status Codes
 
-| Code | Description                                              |
-|------|----------------------------------------------------------|
-| 200  | Spend view returned successfully.                        |
-| 400  | Missing or invalid `tenantId` query parameter.           |
-| 404  | No ledger found for the given `tenantId`.                |
-| 500  | Internal error (gateway API or database failure).        |
+| Code | Description                                        |
+|------|----------------------------------------------------|
+| 200  | Spend view returned.                               |
+| 400  | Missing `tenantId`, or the ledger is not provisioned. |
+| 401  | `API_TOKEN` set and no/wrong bearer token.         |
 
 ---
 
-## `GET /health`
+## `POST /adjust`
 
-Health check endpoint for the Edge Worker.
+Changes the tenant's token-group budget via `PATCH /v2/llm_token_gateway/token_groups/{id}` with the `If-Match` ETag precondition, and appends the change to the durable audit log.
+
+### Request Body
+
+| Field           | Type   | Required | Description                        |
+|-----------------|--------|----------|------------------------------------|
+| `tenantId`      | string | yes      | The tenant whose budget to change. |
+| `monthlyBudget` | number | yes      | New monthly budget in USD (> 0).   |
 
 ### Example Request
 
 ```bash
-curl -X GET https://<your-worker-url>/health
+curl -X POST https://<your-worker-url>/adjust \
+  -H "Content-Type: application/json" \
+  -d '{ "tenantId": "acme-corp", "monthlyBudget": 750.0 }'
 ```
 
 ### Response Schema
@@ -150,94 +150,107 @@ curl -X GET https://<your-worker-url>/health
 
 ```json
 {
-  "status": "ok"
+  "ok": true,
+  "maxBudget": 750.0,
+  "groupVersion": 2,
+  "audit": [{ "at": "2026-10-05T23:10:00Z", "from": 500.0, "to": 750.0 }]
 }
 ```
 
 ### Status Codes
 
-| Code | Description               |
-|------|---------------------------|
-| 200  | Worker is healthy.        |
+| Code | Description                                            |
+|------|--------------------------------------------------------|
+| 200  | Budget updated on the gateway; audit entry recorded.   |
+| 400  | Invalid budget, tenant not provisioned, or gateway validation error. |
+| 412  | Gateway `precondition_failed` (stale ETag) — retry the call. |
+
+---
+
+## `GET /health`
+
+### Response Schema
+
+**200 OK**
+
+```json
+{ "status": "ok" }
+```
 
 ---
 
 ## Internal RPC Methods (Actor-Level)
 
-These methods are defined on the `SpendLedger` actor class and are invoked via the `LEDGERS` actor namespace. They are **not** directly accessible as HTTP endpoints.
+Invoked by the front door via the `LEDGERS` actor namespace (`env.LEDGERS.idFromName(tenantId)`). Each is decorated with `@rpc` and carries a stable schedule id for the rollup.
 
 ### `provision(tenantId, monthlyBudget)`
 
-- **Description**: Creates a Telnyx AI Gateway token group with `max_budget`, `budget_duration: "30d"`, and a guardrails policy (secrets block + DLP financial flag). Creates a primary token key. Initializes SQL schema and schedules the hourly rollup.
-- **Parameters**:
-  - `tenantId` (string): Unique tenant identifier.
-  - `monthlyBudget` (number): Monthly budget in USD.
-- **Returns**: `{ gatewayBaseUrl: string, tokenGroupId: string, tokenKeyId: string }`
-- **Idempotent**: If the ledger is already provisioned, returns existing values without re-creating resources.
+Creates the token group + token key, persists state, arms the hourly rollup (`this.every(3600, "rollup", undefined, { id: "hourly-rollup" })`). Idempotent: re-provisioning returns the existing ids and stored secret.
 
 ### `spendView(tenantId)`
 
-- **Description**: Fetches the current spend summary from the AI Gateway `usage/summary` endpoint, queries the SQL `alerts` table for alert history, and computes the read-only flag based on budget percentage.
-- **Parameters**:
-  - `tenantId` (string): The tenant identifier.
-- **Returns**: `SpendView` object (see response schema above).
+Reads the live group (spend, `resets_at`, ETag version), syncs the budget period, pulls `usage/summary` and `guardrail_events`, persists findings into SQL, and returns the `SpendView`.
+
+### `adjustBudget(monthlyBudget)`
+
+ETag-preconditioned budget PATCH with a durable audit trail (last 50 changes kept in state).
 
 ### `rollup()`
 
-- **Description**: Scheduled task (hourly via `this.schedule()`). Fetches `usage/summary` from the AI Gateway, upserts per-day rows into the `spend_days` SQL table, evaluates budget thresholds, and fires admin SMS alerts at 80% and 100% (alert-once via durable state flags `alerted80` / `alerted100`).
-- **Parameters**: None.
-- **Returns**: `void`
+The hourly durable task. Upserts per-day usage rows into `spend_days` (idempotent by `(tenant, day)`), records guardrail findings into `guardrail_events` (idempotent by gateway event id), fires the 80% / 100% alerts exactly once per budget period, flips `readOnly` at 100%, and re-arms itself.
 
 ---
 
 ## Environment Variables
 
-| Variable              | Required | Description                                              |
-|-----------------------|----------|----------------------------------------------------------|
-| `TELNYX_API_KEY`      | yes      | Telnyx API key (from `SECRETS` binding).                 |
-| `DEMO_MODE`           | no       | Set to `"false"` to send real SMS. Defaults to demo.     |
-| `ADMIN_SMS_FROM`      | yes      | Telnyx phone number to send SMS from.                    |
-| `ADMIN_SMS_TO`        | yes      | Admin phone number to receive budget alerts.             |
-| `DASHBOARD_ORIGIN`    | yes      | Origin of the tenant dashboard (for reference).          |
-| `ROLLUP_CRON`         | no       | Cron expression for rollup schedule. Default: `"0 * * * *"`. |
-| `WARN_PCT`            | no       | Warning threshold percentage. Default: `"80"`.           |
-| `HARD_PCT`            | no       | Hard limit threshold percentage. Default: `"100"`.       |
-| `SPEND_LOOKBACK_DAYS` | no       | Days of spend history to fetch. Default: `"31"`.         |
+| Variable | Kind | Default | Description |
+|----------|------|---------|-------------|
+| `TELNYX_API_KEY` | secret | — | Account API key for gateway management calls |
+| `DEMO_MODE` | secret | `true` | `true` logs admin SMS instead of sending |
+| `API_TOKEN` | secret | — | Optional bearer token guarding the HTTP routes |
+| `ADMIN_SMS_FROM` | env var | — | SMS-capable Telnyx number for alerts |
+| `ADMIN_SMS_TO` | env var | — | Ops phone number receiving alerts |
+| `ALLOWED_MODELS` | env var | `Kimi-K2.6,Meta-Llama-3.1-8B-Instruct` | Model allowlist for new token groups |
+| `WARN_PCT` | env var | `80` | Warning-SMS threshold |
+| `HARD_PCT` | env var | `100` | Read-only threshold (gateway enforces 403 here) |
 
 ---
 
 ## SQL Schema
 
-The following tables are created automatically by `initSchema()` on first use:
+Per-actor durable SQL (`this.ctx.storage.sql`), one database per tenant ledger.
 
 ### `spend_days`
 
-| Column         | Type    | Constraints               | Description                              |
-|----------------|---------|---------------------------|------------------------------------------|
-| `tenant`       | TEXT    | NOT NULL                  | Tenant identifier.                       |
-| `day`          | TEXT    | NOT NULL                  | ISO date string (YYYY-MM-DD).            |
-| `spend`        | REAL    | DEFAULT 0                 | Total spend for the day in USD.          |
-| `input_tokens` | INTEGER | DEFAULT 0                 | Input tokens consumed that day.          |
-| `output_tokens`| INTEGER | DEFAULT 0                 | Output tokens consumed that day.         |
-| `blocked`      | INTEGER | DEFAULT 0                 | Guardrail-blocked requests that day.     |
-| `flagged`      | INTEGER | DEFAULT 0                 | Guardrail-flagged requests that day.     |
-| **PK**         |         | `(tenant, day)`           | Primary key — enables idempotent upserts.|
+| Column | Type | Notes |
+|--------|------|-------|
+| `tenant` | TEXT | Tenant id (part of PK) |
+| `day` | TEXT | UTC `YYYY-MM-DD` (part of PK) |
+| `spend` | REAL | USD spend for the day |
+| `input_tokens` / `output_tokens` | INTEGER | Token counts for the day |
+| `blocked` / `flagged` | INTEGER | Guardrail event counts for the day |
+
+Upserted on every rollup — re-running a day overwrites, so the rollup is idempotent across restarts.
 
 ### `alerts`
 
-| Column  | Type  | Constraints               | Description                              |
-|---------|-------|---------------------------|------------------------------------------|
-| `tenant`| TEXT  | NOT NULL                  | Tenant identifier.                       |
-| `level` | TEXT  | NOT NULL                  | Alert level (`"80"` or `"100"`).         |
-| `at`    | TEXT  | NOT NULL                  | ISO 8601 timestamp of alert.             |
-| **PK**  |       | `(tenant, level, at)`     | Primary key — prevents duplicate alerts. |
+| Column | Type | Notes |
+|--------|------|-------|
+| `tenant` | TEXT | Part of PK |
+| `level` | TEXT | `80` or `100` (part of PK) |
+| `at` | TEXT | ISO timestamp (part of PK) |
+
+Append-only alert history; the once-per-period behavior is enforced in actor state (`alerted80` / `alerted100` flags), which reset when the gateway's `resets_at` rolls over.
 
 ### `guardrail_events`
 
-| Column  | Type    | Constraints               | Description                              |
-|---------|---------|---------------------------|------------------------------------------|
-| `tenant`| TEXT    | NOT NULL                  | Tenant identifier.                       |
-| `day`   | TEXT    | NOT NULL                  | ISO date string (YYYY-MM-DD).            |
-| `blocked`| INTEGER| DEFAULT 0                 | Blocked guardrail events that day.       |
-| `flagged`| INTEGER| DEFAULT 0                 | Flagged guardrail events that day.       |
-| **PK**  |         | `(tenant, day)`           | Primary key.                             |
+| Column | Type | Notes |
+|--------|------|-------|
+| `event_id` | TEXT | Gateway event id (PK) — dedup across rollups |
+| `tenant` | TEXT | Tenant id |
+| `day` | TEXT | UTC day of the finding |
+| `stage` | TEXT | `prompt` or `response` |
+| `outcome` | TEXT | `blocked` or `flagged` |
+| `detector` | TEXT | `secrets` or `dlp` |
+| `code` | TEXT | Detector code (e.g. `stripe_key`, `credit_card`) — never matched text |
+| `count` | INTEGER | Number of pattern matches |

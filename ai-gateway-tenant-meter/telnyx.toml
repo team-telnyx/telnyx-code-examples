@@ -1,4 +1,23 @@
-```toml
+# Tenant meter — one durable ledger actor per tenant, backed by the Telnyx AI Gateway.
+#
+# The actor provisions a token group (budget + guardrails) and a token key per
+# tenant, then rolls gateway usage and guardrail findings into per-actor SQL on
+# an hourly durable timer, alerting the admin by SMS at budget thresholds.
+#
+# Bindings:
+#   [[actors]]  LEDGERS        — SpendLedger actor namespace, one actor per
+#                                tenant addressed via idFromName(tenantId).
+#   [telnyx]    TELNYX         — standard Telnyx SDK binding. Used only for
+#                                this.env.TELNYX.messages.send() (admin SMS).
+#   [[secrets]] TELNYX_API_KEY — account API key for the gateway management API.
+#   [[secrets]] DEMO_MODE      — "true" (default) logs SMS instead of sending.
+#   [[secrets]] API_TOKEN      — optional; when set, /provision, /spend and
+#                                /adjust require "Authorization: Bearer <token>".
+#
+# Gateway management calls use fetch() against api.telnyx.com/v2/llm_token_gateway
+# with the account API key; the inference plane is the constant base URL
+# https://llm.telnyx.com/v1 authenticated by the per-tenant token key.
+
 name = "ai-gateway-tenant-meter"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
@@ -7,22 +26,24 @@ compatibility_date = "2026-07-28"
 binding = "LEDGERS"
 type = "SpendLedger"
 
+[telnyx]
+binding = "TELNYX"
+
 [[secrets]]
 binding = "TELNYX_API_KEY"
 name = "TELNYX_API_KEY"
 
-[telnyx]
-binding = "TELNYX"
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
 
-[storage.sqldb.SPEND_DB]
-id = "<sqldb-namespace-uuid>"
+[[secrets]]
+binding = "API_TOKEN"
+name = "API_TOKEN"
 
 [env_vars]
 ADMIN_SMS_FROM = "+1555XXXXXXXX"
 ADMIN_SMS_TO = "+1555XXXXXXXX"
-DASHBOARD_ORIGIN = "https://dashboard.example.com"
-ROLLUP_CRON = "0 * * * *"
+ALLOWED_MODELS = "Kimi-K2.6,Meta-Llama-3.1-8B-Instruct"
 WARN_PCT = "80"
 HARD_PCT = "100"
-SPEND_LOOKBACK_DAYS = "31"
-```
