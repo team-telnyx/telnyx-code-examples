@@ -1,0 +1,29 @@
+```toml
+name = "rcs-triage-receptionist"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "FRONTDESK"
+type = "Receptionist"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "RCS_AGENT_ID"
+name = "RCS_AGENT_ID"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.THREADS_DB]
+id = "<sql-database-uuid>"
+
+[env_vars]
+MESSAGING_PROFILE_ID = "<messaging_profile_id>"
+SMS_FALLBACK_FROM = "+1555XXXXXXXX"
+TRIAGE_EMERGENCY_NURSE = "+1555XXXXXXXX"
+DECISION_TIMEOUT_MS = "8000"
+```
