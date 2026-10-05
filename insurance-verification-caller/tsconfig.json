@@ -13,4 +13,4 @@
   },
   "include": ["src/**/*.ts", "smoke_test.ts"]
 }
-</FILE>
+
