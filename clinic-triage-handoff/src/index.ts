@@ -1,4 +1,3 @@
-```typescript
 // SELF-REVIEW:
 // ✅ All spec primitives implemented: Agent SDK (TriageRouter extends Agent),
 //    Call Control (answer + gather-using-ai + transfer), Inference (OpenAI
@@ -436,4 +435,3 @@ export default {
     return new Response(JSON.stringify({ error: "Not found" }), { status: 404 });
   },
 };
-```

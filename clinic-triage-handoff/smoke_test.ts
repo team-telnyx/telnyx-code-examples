@@ -1,4 +1,3 @@
-```typescript
 import { describe, it, expect } from "vitest";
 import {
   TriageRouter,
@@ -138,4 +137,3 @@ describe("Default Export", () => {
     expect(typeof mod.default.fetch).toBe("function");
   });
 });
-```

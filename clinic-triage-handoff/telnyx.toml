@@ -1,4 +1,3 @@
-```toml
 name = "clinic-triage-handoff"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
@@ -33,4 +32,3 @@ id = "<sqldb-namespace-uuid>"
 AI_MODEL = "gpt-4o-mini"
 CLINIC_LINE_E164 = "+15551234567"
 DEMO_MODE = "true"
-```

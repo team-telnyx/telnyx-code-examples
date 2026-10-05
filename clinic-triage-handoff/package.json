@@ -1,4 +1,3 @@
-```json
 {
   "name": "clinic-triage-handoff",
   "version": "1.0.0",
@@ -19,4 +18,3 @@
     "@types/node": "^20.11.0"
   }
 }
-```
