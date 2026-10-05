@@ -1,0 +1,41 @@
+{
+  "name": "voice-clone-gate",
+  "version": "1.0.0",
+  "description": "Telnyx Edge sample: voice-clone fraud gate on clinic callback line using Deepfake Detection",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "vitest run",
+    "smoke": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}
+</arg_value><arg_key>content</arg_key><arg_value>{
+  "name": "voice-clone-gate",
+  "version": "1.0.0",
+  "description": "Telnyx Edge sample: voice-clone fraud gate on clinic callback line using Deepfake Detection",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "vitest run",
+    "smoke": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}
+</arg_value></tool_call>
