@@ -1,0 +1,8 @@
+```
+node_modules/
+dist/
+.env
+*.log
+.env.local
+.env.*.local
+```
