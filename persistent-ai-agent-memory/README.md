@@ -3,7 +3,7 @@ name: persistent-ai-agent-memory
 title: Persistent AI Agent Memory Demo
 description: A Python CLI tool that ingests a support transcript into Telnyx Agent Memory, polls the async operation, and recalls extracted facts to demonstrate long-term AI agent memory.
 language: python
-framework: flask
+framework: cli
 telnyx_products: [Agent Memory, AI Communications Infrastructure]
 ---
 
@@ -65,7 +65,15 @@ Telnyx provides the AI Communications Infrastructure that powers reliable, long-
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
+| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key — the only credential this demo needs | [Telnyx Portal → API Keys](https://portal.telnyx.com/#/app/api-keys) |
+
+> **Agent / CLI access** — the only environment variable is the API key, which agents can obtain via the [Telnyx Agent CLI](https://github.com/team-telnyx/ai/tree/main/cli):
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
 
 ## Setup
 
@@ -83,6 +91,22 @@ pip install -r requirements.txt
 # 4. Run the demo
 python app.py
 ```
+
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# This demo needs no phone numbers or other provisioned resources —
+# only an API key (auth login above, or export TELNYX_API_KEY=...).
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
 
 ## API Reference
 
@@ -178,15 +202,21 @@ POST /v2/ai/memory/namespaces/{ns}/profiles/{id}/recall
 
 ## Agent Discovery
 
-- [Telnyx Agent Signup](https://telnyx.com/agent-signup.md)
-- [Telnyx AI GitHub](https://github.com/team-telnyx/ai)
-- [llms.txt](https://telnyx.com/llms.txt)
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **Agent signup**: [telnyx.com/agent-signup.md](https://telnyx.com/agent-signup.md) — automated account provisioning via agent mail; get an API key with no human intervention
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **Telnyx AI repo**: [github.com/team-telnyx/ai](https://github.com/team-telnyx/ai)
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI (human)**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Related Examples
 
-- [Messaging API Sample](../messaging-api-sample)
-- [Voice Calling Sample](../voice-calling-sample)
-- [Webhook Verification Sample](../webhook-verification-sample)
+- [Chat with AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-python/README.md) — text chat against an AI Assistant
+- [Omnichannel AI Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-agent-python/README.md) — one AI agent with persistent cross-channel context
+- [Semantic Search](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/semantic-search-python/README.md) — vector search over support tickets with Telnyx embeddings
 
 ## Resources
 

@@ -21,10 +21,13 @@ Usage:
 import os
 import sys
 import time
-import json
 import urllib.parse
 import requests
 from typing import Any
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 TELNYX_API_BASE = "https://api.telnyx.com/v2/ai/memory"
 DEFAULT_NAMESPACE = "default"
