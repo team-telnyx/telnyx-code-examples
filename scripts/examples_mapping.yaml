@@ -1145,6 +1145,12 @@ examples:
     folder: run-llm-inference-python
 
   - product: ai
+    use_case: ai-assembly-tutor
+    language: c
+    framework: emscripten
+    folder: ai-assembly-tutor-c
+
+  - product: ai
     use_case: storage-voicemail-archive
     language: python
     framework: flask

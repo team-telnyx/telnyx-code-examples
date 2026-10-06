@@ -1672,6 +1672,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/run-llm-inference-python"
     },
     {
+      "folder": "ai-assembly-tutor-c",
+      "title": "AI Assembly Tutor",
+      "description": "Interactive LC-3 assembly tutor with a WebAssembly VM and Telnyx Inference-powered AI explanations.",
+      "product": "ai",
+      "language": "c",
+      "framework": "emscripten",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assembly-tutor-c"
+    },
+    {
       "folder": "storage-voicemail-archive-python",
       "title": "Storage Voicemail Archive",
       "description": "Storage Voicemail Archive - record voicemails to Telnyx Cloud Storage with search.",

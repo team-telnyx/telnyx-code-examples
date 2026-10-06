@@ -1,0 +1,4 @@
+[function]
+name = "ai-assembly-tutor"
+runtime = "typescript"
+entry = "src/index.ts"

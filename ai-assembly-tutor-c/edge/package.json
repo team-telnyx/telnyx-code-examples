@@ -1,0 +1,7 @@
+{
+  "name": "ai-assembly-tutor-edge",
+  "private": true,
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
+}
