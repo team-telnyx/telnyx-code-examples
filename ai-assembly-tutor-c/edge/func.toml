@@ -1,4 +1,7 @@
-[function]
-name = "ai-assembly-tutor"
-runtime = "typescript"
-entry = "src/index.ts"
+[edge_compute]
+func_id = "9a6d593b-1690-4d63-bb0a-c484cf47cc0f"
+func_name = "ai-assembly-tutor-v2"
+
+# For environment variables and secrets:
+# Use telnyx-edge secrets add <name> <value>
+# Secrets are injected as environment variables into all your functions

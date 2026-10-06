@@ -1,4 +1,3 @@
-[function]
-name = "ai-assembly-tutor"
-runtime = "typescript"
-entry = "src/index.ts"
+[edge_compute]
+func_id = "9a6d593b-1690-4d63-bb0a-c484cf47cc0f"
+func_name = "ai-assembly-tutor-v2"

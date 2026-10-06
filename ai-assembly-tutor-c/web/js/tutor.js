@@ -8,11 +8,11 @@ let edgeUrl = '';  // set at boot
 export function setEdgeUrl(url) { edgeUrl = url.replace(/\/+$/, ''); }
 
 /**
- * Send a question to the AI tutor and stream the response into the chat.
+ * Send a question to the AI tutor and display the response.
  * @param {string} question
  * @param {object} vmContext — from ui.buildVMContext()
- * @param {function} onChunk — called with each streamed text chunk
- * @param {function} onDone  — called when the stream finishes
+ * @param {function} onChunk — called with each text chunk
+ * @param {function} onDone  — called when the response finishes
  */
 export async function ask(question, vmContext, onChunk, onDone) {
   const body = { question, vm_state: vmContext };
@@ -31,30 +31,11 @@ export async function ask(question, vmContext, onChunk, onDone) {
       return;
     }
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-
-      // Parse SSE lines
-      const lines = chunk.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(data);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) onChunk(content);
-          } catch {
-            // Non-JSON data line — output as-is
-            onChunk(data);
-          }
-        }
-      }
+    const data = await res.json();
+    if (data.response) {
+      onChunk(data.response);
+    } else if (data.error) {
+      onChunk(`Error: ${data.error}`);
     }
   } catch (err) {
     onChunk(`\nNetwork error: ${err.message}`);

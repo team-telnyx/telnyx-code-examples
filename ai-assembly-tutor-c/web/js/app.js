@@ -59,7 +59,7 @@ async function loadExampleSources() {
   const names = Object.keys(EXAMPLES);
   await Promise.all(names.map(async (name) => {
     try {
-      const res = await fetch(`../examples/${name}.asm`);
+      const res = await fetch(`examples/${name}.asm`);
       if (res.ok) EXAMPLES[name] = await res.text();
     } catch { /* ignore — example just won't load */ }
   }));
