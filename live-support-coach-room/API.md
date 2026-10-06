@@ -1,496 +1,218 @@
 # API Reference — Live Support Coach Room
 
-This document describes the HTTP and WebSocket endpoints exposed by the `CoachRoom` agent (`src/index.ts`). The agent is a Telnyx Edge Actor that receives the AI Assistant conversation event stream over WebSocket, fans live transcript and policy flags out to supervisor dashboard tabs, injects coaching nudges, and escalates to a human via Call Control + `ai_assistant_join`.
+All HTTP routes are served by the edge function. WebSocket routes are mounted under `/agents/`.
 
----
+## HTTP routes
 
-## Table of Contents
+### `GET /health/liveness`
 
-1. [WebSocket — Assistant Event Stream](#websocket--assistant-event-stream)
-2. [WebSocket — Supervisor Dashboard](#websocket--supervisor-dashboard)
-3. [HTTP — Health Check](#http--health-check)
-4. [RPC — joinCall (Escalation)](#rpc--joincall-escalation)
-5. [Call Control — Dial Supervisor (Outbound)](#call-control--dial-supervisor-outbound)
-6. [Call Control — Join Supervisor into AI Conversation](#call-control--join-supervisor-into-ai-conversation)
-7. [SQL — coach_log Table](#sql--coach_log-table)
-8. [Status Codes Summary](#status-codes-summary)
+Returns `200` with body `ok`.
 
----
+### `GET /health/readiness`
 
-## WebSocket — Assistant Event Stream
+Returns `200` with the room knobs summary.
 
-The Telnyx AI Assistant opens a WebSocket connection to the `CoachRoom` actor per conversation, configured via `websocket_settings` on the assistant. The actor authenticates the connection using the `auth_ref` query parameter and processes conversation event frames.
-
-### Endpoint
-
-```
-GET /?auth_ref=<COACH_AUTH>
+```json
+{ "status": "ok", "nudge_max": 3 }
 ```
 
-### Query Parameters
+### `GET /rooms`
 
-| Parameter  | Type   | Required | Description |
-|------------|--------|----------|-------------|
-| `auth_ref` | string | Yes      | Integration secret that must match `env.COACH_AUTH`. |
+The shift's room list, split by state.
 
-### Request — WebSocket Message Frames
-
-The assistant sends JSON frames. The actor handles the following event types:
-
-| Field                     | Type     | Required | Description |
-|---------------------------|----------|----------|-------------|
-| `type`                    | string   | Yes      | Event type. One of: `session.created`, `conversation.item.created`, `response.text.delta`, `telnyx.call.hangup`, `session.ended`. |
-| `conversation_id`         | string   | Conditional | Present on `session.created`. Unique conversation identifier. |
-| `call_control_id`         | string   | Conditional | Present on `session.created`. Call Control ID of the AI call. |
-| `item`                    | object   | Conditional | Present on `conversation.item.created`. Contains `role` and `content`. |
-| `item.role`               | string   | Conditional | `"user"` or `"assistant"`. |
-| `item.content`            | array    | Conditional | Array of content objects. `content[0].text` holds the message text. |
-| `delta`                   | string   | Conditional | Present on `response.text.delta`. Incremental assistant text. |
-| `duration_sec`            | number   | Conditional | Present on `session.ended`. Total call duration in seconds. |
-| `reason`                  | string   | Conditional | Present on `session.ended`. Hangup reason. |
-
-### Example — `session.created` Frame
+**Response:**
 
 ```json
 {
-  "type": "session.created",
-  "conversation_id": "conv_abc123",
-  "call_control_id": "call_def456"
+  "active": [
+    {
+      "conversation_id": "conv-9c1f4a2b",
+      "started_at": 1727654321000,
+      "ended": false,
+      "nudges": 1,
+      "took_over": false,
+      "flag_count": 2
+    }
+  ],
+  "ended": []
 }
 ```
 
-### Example — `conversation.item.created` Frame
+### `POST /rooms/{conversation_id}/join`
+
+Escalation. Dials `SUPERVISOR_DEVICE` via Call Control and joins that leg into the live AI conversation via `POST /v2/calls/{call_control_id}/actions/ai_assistant_join`.
+
+**Request:** empty body.
+
+**Response (200):**
+
+```json
+{ "success": true, "message": "Supervisor joined the live call", "conversation_id": "conv-9c1f4a2b" }
+```
+
+**Response (409)** — no active conversation, escalation already done, or a dial/join failure:
+
+```json
+{ "success": false, "message": "No active conversation in this room" }
+```
+
+### `GET /rooms/{conversation_id}/snapshot`
+
+Current room snapshot (the same view the desk pushes to supervisor tabs).
 
 ```json
 {
-  "type": "conversation.item.created",
-  "item": {
-    "type": "message",
-    "role": "user",
-    "content": [
-      { "type": "input_text", "text": "My account number is 1234" }
-    ]
-  }
+  "conversation_id": "conv-9c1f4a2b",
+  "turns": 4,
+  "flags": ["refund_promise"],
+  "nudges": 1,
+  "took_over": false,
+  "stream_up": true,
+  "started_at": 1727654321000
 }
 ```
 
-### Example — `response.text.delta` Frame
+### `GET /rooms/{conversation_id}/log`
+
+`coach_log` audit rows for this room's actor SQL.
 
 ```json
 {
-  "type": "response.text.delta",
-  "delta": "Let me look that up for you."
+  "rows": [
+    {
+      "id": 1,
+      "conversation_id": "conv-9c1f4a2b",
+      "flags": "[\"refund_promise\"]",
+      "nudges": 1,
+      "took_over": 0,
+      "duration_sec": 96,
+      "end_reason": "normal",
+      "created_at": "2026-09-29 21:30:00"
+    }
+  ]
 }
 ```
 
-### Example — `session.ended` Frame
+### `POST /demo/start`
+
+Start a simulated conversation — same room pipeline as a live call, without telephony.
+
+**Request:**
+
+```json
+{ "conversation_id": "my-demo-id" }
+```
+
+`conversation_id` is optional; one is generated when omitted.
+
+**Response (201):**
+
+```json
+{ "conversation_id": "my-demo-id" }
+```
+
+### `POST /demo/say`
+
+Inject a caller turn. The body shape mirrors a live `conversation.item.created` frame, so the room cannot tell a simulated turn from a real one. Returns any inject frames the policy produced.
+
+**Request:**
+
+```json
+{ "conversation_id": "my-demo-id", "text": "My account number is 5521890244" }
+```
+
+**Response (201):**
 
 ```json
 {
-  "type": "session.ended",
-  "duration_sec": 187,
-  "reason": "caller_hung_up"
+  "inject": [
+    {
+      "type": "conversation.item.create",
+      "item": {
+        "type": "message",
+        "role": "assistant",
+        "content": [{ "type": "input_text", "text": "Verify identity with date of birth next." }]
+      }
+    }
+  ],
+  "summary": { "conversation_id": "my-demo-id", "turns": 1, "flags": [], "nudges": 1, "took_over": false, "stream_up": false, "started_at": 1727654321000 }
 }
 ```
 
-### Response — WebSocket Outbound (Nudge Injection)
+### `POST /demo/assistant-say`
 
-The actor sends `conversation.item.create` frames back over the assistant WebSocket to inject coaching nudges:
+Inject an assistant turn — same request/response shape as `POST /demo/say` with `role: "assistant"`.
 
-| Field | Type   | Required | Description |
-|-------|--------|----------|-------------|
-| `type` | string | Yes      | Must be `conversation.item.create`. |
-| `item.type` | string | Yes | Must be `message`. |
-| `item.role` | string | Yes | Must be `user` (triggers a reply) or `assistant` (records silently). |
-| `item.content` | array | Yes | Array with one object: `{ type: "input_text", text: "<nudge text>" }`. |
+### `POST /demo/end`
 
-### Example — Nudge Injection Frame
+End the simulated call — files the `coach_log` row and resets the room.
+
+**Request:**
+
+```json
+{ "conversation_id": "my-demo-id", "duration_sec": 96 }
+```
+
+`duration_sec` is optional; it falls back to the wall-clock session length.
+
+**Response (200):**
+
+```json
+{ "ended": true, "conversation_id": "my-demo-id" }
+```
+
+### `GET /dashboard`, `GET /caller`
+
+Browser surfaces — the supervisor dashboard and the caller simulator.
+
+## WebSocket routes
+
+### `wss://<fn-host>/agents/assist` — assistant event stream
+
+The assistant's `websocket_settings.url`. Telnyx opens one socket per conversation and authenticates with `Authorization: Bearer <auth_ref>`; the relay rejects upgrades whose bearer token is not the `COACH_AUTH` secret (`1008 Unauthorized`).
+
+**Frames Telnyx sends** (bare JSON, discriminated by `type`; unknown types ignored):
+
+| Frame | Key fields | Handling |
+|---|---|---|
+| `session.created` | `conversation_id`, `assistant_id`, call ids | Binds the socket; opens the per-conversation room |
+| `conversation.item.created` | `item.role`, `item.content[0].text` | Transcript turn; trigger evaluation on caller turns |
+| `response.created` / `response.text.delta` | `delta`, `item_id` | Activity markers for the silence watcher |
+| `telnyx.call.answered` / `telnyx.call.hangup` | `cause` | Call lifecycle markers |
+| `session.ended` | `reason`, `duration_sec`, `transfer_status` | Files the `coach_log` row; tears the room down |
+| `error` | `code` | Frame refused — logged, never crashes the relay |
+
+**Frames the relay sends** (only after `session.created`):
 
 ```json
 {
   "type": "conversation.item.create",
   "item": {
     "type": "message",
-    "role": "user",
-    "content": [
-      { "type": "input_text", "text": "Verify identity with date of birth next." }
-    ]
+    "role": "assistant",
+    "content": [{ "type": "input_text", "text": "Verify identity with date of birth next." }]
   }
 }
 ```
 
-### Status Codes
+An `assistant` item is recorded silently (the model sees it but does not speak it); a `user` item triggers a reply. Platform limits: frames ≤ 1 MiB, ≤ 10 fps, no binary frames.
 
-| Code | Description |
-|------|-------------|
-| 101  | Switching Protocols — WebSocket connection established. |
-| 1008 | Policy Violation — `auth_ref` does not match `env.COACH_AUTH`. |
+### `wss://<fn-host>/agents/coach-room/{conversation_id}?token=<COACH_AUTH>`
 
----
+Supervisor room view. Pushes a full state snapshot on connect and a merge-patch on every state change. Unauthenticated or wrong-token connections are rejected.
 
-## WebSocket — Supervisor Dashboard
+**Snapshot payload keys:** `conversationId`, `assistantId`, `callLegId`, `streamUp`, `startedAt`, `lastActivity`, `turns` (`[{role, text, at}]`), `flags`, `nudges`, `tookOver`, `ended`, `accountMentions`, `silenceSecs`, `error`.
 
-Supervisor dashboard browser tabs connect to this WebSocket to receive live transcript, policy flags, nudge events, and escalation notifications. The `AgentSocketServer` fans out frames to all connected tabs.
+## Coach triggers
 
-### Endpoint
+| Trigger | Condition | Effect |
+|---|---|---|
+| Identity loop | ≥ 2 caller turns matching `/(account\|member\|patient)\s+(number\|id)/` or `\b\d{4,}\b` | Injects "Verify identity with date of birth next." |
+| Refund promise | caller turn contains "refund" | Flags `refund_promise` on the room |
+| Silence | `SILENCE_SECS` (default 90) since the last stream frame | Injects a check-in nudge; flags `silence_flag` |
 
-```
-GET /ws
-```
+Nudges are capped at `NUDGE_MAX_PER_CALL` (default 3) per conversation and sized ≤ 1 MiB per frame.
 
-### Query Parameters
+## Side-channel guarantee
 
-None.
-
-### Request — WebSocket Messages (Supervisor → Actor)
-
-Supervisors may send text messages (e.g., manual nudge commands). The actor logs these.
-
-| Field | Type   | Required | Description |
-|-------|--------|----------|-------------|
-| (raw) | string | Yes      | Arbitrary text message from the supervisor. |
-
-### Response — WebSocket Outbound (Actor → Supervisor)
-
-The actor broadcasts JSON frames to all connected supervisor tabs.
-
-| Field   | Type    | Required | Description |
-|---------|---------|----------|-------------|
-| `type`  | string  | Yes      | One of: `transcript`, `flag`, `nudge`, `escalation`, `session_end`. |
-| `payload` | object | Yes      | Event-specific data. See below. |
-
-#### `transcript` Payload
-
-| Field       | Type   | Required | Description |
-|-------------|--------|----------|-------------|
-| `role`      | string | Yes      | `"user"` or `"assistant"`. |
-| `text`      | string | Yes      | Transcript text (or delta for streaming). |
-| `timestamp` | number | Yes      | Unix epoch milliseconds. |
-
-#### `flag` Payload
-
-| Field       | Type   | Required | Description |
-|-------------|--------|----------|-------------|
-| `flag`      | string | Yes      | Flag name (e.g., `refund_promise`, `90s_silence`, `caller_hung_up`). |
-| `timestamp` | number | Yes      | Unix epoch milliseconds. |
-
-#### `nudge` Payload
-
-| Field       | Type   | Required | Description |
-|-------------|--------|----------|-------------|
-| `text`      | string | Yes      | The injected nudge text. |
-| `timestamp` | number | Yes      | Unix epoch milliseconds. |
-
-#### `escalation` Payload
-
-| Field             | Type   | Required | Description |
-|-------------------|--------|----------|-------------|
-| `supervisorCcId`  | string | Yes      | Call Control ID of the dialed supervisor leg. |
-| `conversationId`  | string | Yes      | Conversation ID being escalated. |
-| `timestamp`       | number | Yes      | Unix epoch milliseconds. |
-
-#### `session_end` Payload
-
-| Field       | Type   | Required | Description |
-|-------------|--------|----------|-------------|
-| `durationSec` | number | Yes      | Total call duration in seconds. |
-| `flags`     | array  | Yes      | Array of flag strings. |
-| `nudges`    | number | Yes      | Total nudges injected. |
-| `tookOver`  | boolean | Yes     | Whether a supervisor joined the call. |
-
-### Example — Broadcast Frame
-
-```json
-{
-  "type": "transcript",
-  "payload": {
-    "role": "user",
-    "text": "My account number is 1234",
-    "timestamp": 1722000000000
-  }
-}
-```
-
-### Status Codes
-
-| Code | Description |
-|------|-------------|
-| 101  | Switching Protocols — WebSocket connection established. |
-| 400  | Bad Request — Upgrade failed. |
-
----
-
-## HTTP — Health Check
-
-Returns the actor's health status.
-
-### Endpoint
-
-```
-GET /health
-```
-
-### Request Body
-
-None.
-
-### Response
-
-**200 OK**
-
-| Field    | Type   | Description |
-|----------|--------|-------------|
-| `status` | string | Always `"ok"`. |
-
-### Example Request
-
-```bash
-curl https://<actor-url>/health
-```
-
-### Example Response
-
-```json
-{
-  "status": "ok"
-}
-```
-
-### Status Codes
-
-| Code | Description |
-|------|-------------|
-| 200  | Actor is healthy. |
-| 404  | Path not found. |
-
----
-
-## RPC — joinCall (Escalation)
-
-Invoked via the Agent SDK RPC surface (`@rpc joinCall`). Dials the supervisor's WebRTC device via Call Control and joins that leg into the live AI conversation using `ai_assistant_join`.
-
-### Endpoint
-
-```
-POST /rpc/joinCall
-```
-
-> **Note:** This is an RPC method on the actor, not a standard HTTP route. It is invoked programmatically via the Agent SDK stub.
-
-### Request Body
-
-None.
-
-### Response
-
-**200 OK**
-
-| Field    | Type    | Description |
-|----------|---------|-------------|
-| `success` | boolean | `true` if the supervisor was dialed and joined. |
-| `message` | string  | Human-readable status message. |
-
-### Example Response
-
-```json
-{
-  "success": true,
-  "message": "Supervisor joined the live call"
-}
-```
-
-### Error Response
-
-**400 Bad Request**
-
-| Field    | Type    | Description |
-|----------|---------|-------------|
-| `success` | boolean | `false`. |
-| `message` | string  | `"No active conversation"`. |
-
-### Status Codes
-
-| Code | Description |
-|------|-------------|
-| 200  | Supervisor dialed and joined successfully. |
-| 400  | No active conversation in the room. |
-| 500  | Internal error during Call Control dial or `ai_assistant_join`. |
-
----
-
-## Call Control — Dial Supervisor (Outbound)
-
-Called internally by the `joinCall` RPC method. Dials the supervisor's WebRTC device number via the Telnyx Call Control API.
-
-### Endpoint
-
-```
-POST https://api.telnyx.com/v2/calls
-```
-
-### Request Body
-
-| Field           | Type    | Required | Description |
-|-----------------|---------|----------|-------------|
-| `connection_id` | string  | Yes      | Call Control Connection ID from `env.CALL_CONTROL_CONNECTION_ID`. |
-| `to`            | string  | Yes      | Supervisor device number from `env.SUPERVISOR_DEVICE`. |
-| `from`          | string  | Yes      | Telnyx number from `env.TELNYX_NUMBER`. |
-| `record`        | string  | No       | Recording setting. Set to `"record-from-answer"`. |
-
-### Example Request
-
-```bash
-curl https://api.telnyx.com/v2/calls \
-  -H "Authorization: Bearer $TELNYX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "connection_id": "CAxxxx",
-    "to": "+1555XXXXXXXX",
-    "from": "+1555XXXXXXXX",
-    "record": "record-from-answer"
-  }'
-```
-
-### Response
-
-**200 OK**
-
-| Field              | Type   | Description |
-|--------------------|--------|-------------|
-| `call_control_id`  | string | Call Control ID of the newly created outbound call. |
-| `call_id`          | string | Telnyx call ID. |
-| `status`           | string | Call status (e.g., `"ringing"`). |
-
-### Status Codes
-
-| Code | Description |
-|------|-------------|
-| 200  | Call created successfully. |
-| 400  | Invalid request parameters. |
-| 401  | Invalid API key. |
-
----
-
-## Call Control — Join Supervisor into AI Conversation
-
-Called internally by the `joinCall` RPC method. Joins the supervisor's Call Control leg into the running AI Assistant conversation.
-
-### Endpoint
-
-```
-POST https://api.telnyx.com/v2/calls/{call_control_id}/actions/ai_assistant_join
-```
-
-### Path Parameters
-
-| Parameter         | Type   | Required | Description |
-|-------------------|--------|----------|-------------|
-| `call_control_id` | string | Yes      | Call Control ID of the AI assistant call (from `session.created`). |
-
-### Request Body
-
-| Field             | Type   | Required | Description |
-|-------------------|--------|----------|-------------|
-| `conversation_id` | string | Yes      | Conversation ID from `session.created`. |
-| `participant.id`  | string | Yes      | Call Control ID of the supervisor's leg (from the outbound call response). |
-| `participant.role`| string | Yes      | Must be `"user"`. |
-| `participant.name`| string | Yes      | Display name for the supervisor (e.g., `"Supervisor"`). |
-
-### Example Request
-
-```bash
-curl https://api.telnyx.com/v2/calls/{call_control_id}/actions/ai_assistant_join \
-  -H "Authorization: Bearer $TELNYX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "conversation_id": "conv_abc123",
-    "participant": {
-      "id": "call_sup_xyz",
-      "role": "user",
-      "name": "Supervisor"
-    }
-  }'
-```
-
-### Response
-
-**200 OK**
-
-| Field             | Type   | Description |
-|-------------------|--------|-------------|
-| `conversation_id` | string | The conversation ID the supervisor was joined into. |
-
-### Example Response
-
-```json
-{
-  "conversation_id": "conv_abc123"
-}
-```
-
-### Status Codes
-
-| Code | Description |
-|------|-------------|
-| 200  | Supervisor joined the AI conversation successfully. |
-| 400  | Invalid conversation ID or participant. |
-| 401  | Invalid API key. |
-| 404  | Call not found. |
-
----
-
-## SQL — coach_log Table
-
-The actor writes an audit trail row to the `coach_log` SQL table when a session ends (`session.ended` event).
-
-### Table Schema
-
-| Column             | Type     | Description |
-|--------------------|----------|-------------|
-| `conversation_id`  | TEXT     | Unique conversation identifier. |
-| `flags`            | TEXT     | JSON-encoded array of policy flag strings. |
-| `nudges`           | INTEGER  | Number of nudges injected during the call. |
-| `took_over`        | INTEGER  | `1` if a supervisor joined, `0` otherwise. |
-| `duration_sec`     | INTEGER  | Total call duration in seconds. |
-
-### Insert Statement
-
-```sql
-INSERT INTO coach_log (conversation_id, flags, nudges, took_over, duration_sec)
-VALUES (?, ?, ?, ?, ?)
-```
-
-### Example Row
-
-| conversation_id | flags                              | nudges | took_over | duration_sec |
-|-----------------|------------------------------------|--------|-----------|--------------|
-| `conv_abc123`   | `["refund_promise","90s_silence"]` | 2      | 1         | 187          |
-
----
-
-## Status Codes Summary
-
-| Code | Applies To                          | Description |
-|------|-------------------------------------|-------------|
-| 101  | WebSocket (assistant, supervisor)   | Switching Protocols — connection established. |
-| 1008 | WebSocket (assistant)               | Policy Violation — auth_ref mismatch. |
-| 200  | HTTP `/health`, RPC `joinCall`, Call Control | Success. |
-| 400  | HTTP `/health` (404 path), RPC `joinCall` (no active conversation), Call Control | Bad request or invalid parameters. |
-| 401  | Call Control                          | Invalid API key. |
-| 404  | HTTP (unknown path), Call Control     | Resource not found. |
-| 500  | RPC `joinCall` (internal error)       | Internal server error. |
-
----
-
-## Environment Variables
-
-| Variable                    | Required | Description |
-|-----------------------------|----------|-------------|
-| `TELNYX_API_KEY`            | Yes      | Telnyx API key (from secrets). Used for Call Control API calls. |
-| `CALL_CONTROL_CONNECTION_ID`| Yes      | Call Control Connection ID for outbound dialing. |
-| `TELNYX_NUMBER`             | Yes      | Telnyx phone number used as the caller ID for outbound calls. |
-| `SUPERVISOR_DEVICE`         | Yes      | Phone number of the supervisor's WebRTC softphone. |
-| `DASHBOARD_ORIGIN`          | No       | Origin of the supervisor dashboard (for CORS). |
-| `NUDGE_MAX_PER_CALL`        | No       | Maximum nudges per call (default: `3`). |
-| `SILENCE_SECS`              | No       | Silence threshold in seconds (default: `90`). |
-| `COACH_AUTH`                | Yes      | Integration secret for authenticating the assistant WebSocket stream. |
+Dropping `/agents/assist` never reaches the call. The room marks `stream_up: false`, Telnyx reconnects with exponential backoff (1s → 30s, reset after 10s stable), and supervisor tabs resync from the room snapshot — no backlog replay, by design.

@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-02T21:23:45Z",
-  "example_count": 564,
+  "generated_at": "2026-10-06T23:42:34Z",
+  "example_count": 565,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5081,6 +5081,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chargeback-adjudication"
+    },
+    {
+      "folder": "live-support-coach-room",
+      "title": "Live Support Coach Room",
+      "description": "A Telnyx Edge Agent that streams live AI support calls to a supervisor dashboard, injects coaching nudges mid-call, and escalates to a human via WebRTC.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/live-support-coach-room"
     }
   ]
 }

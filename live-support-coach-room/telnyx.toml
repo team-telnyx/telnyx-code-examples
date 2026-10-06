@@ -1,11 +1,26 @@
-```toml
 name = "live-support-coach-room"
 main = "src/index.ts"
-compatibility_date = "2026-07-28"
+compatibility_date = "2026-05-01"
+
+# The relay actor is the assistant event-stream sink: the assistant's
+# websocket_settings.url points at wss://<fn-host>/agents/assist (static URL;
+# Telnyx opens one socket per conversation and the relay routes by
+# conversation id). One durable CoachRoom per conversation + the shift
+# registry, both addressed by the worker.
+[[actors]]
+binding = "RELAY"
+type = "AssistRelay"
 
 [[actors]]
 binding = "COACHROOMS"
 type = "CoachRoom"
+
+[[actors]]
+binding = "REGISTRY"
+type = "CoachRegistry"
+
+[telnyx]
+binding = "TELNYX"
 
 [[secrets]]
 binding = "TELNYX_API_KEY"
@@ -19,16 +34,27 @@ name = "CALL_CONTROL_CONNECTION_ID"
 binding = "TELNYX_NUMBER"
 name = "TELNYX_NUMBER"
 
-[telnyx]
-binding = "TELNYX"
+# The supervisor's WebRTC softphone identity (SIP URI or number the Call
+# Control dial targets on escalation).
+[[secrets]]
+binding = "SUPERVISOR_DEVICE"
+name = "SUPERVISOR_DEVICE"
 
-[storage.sqldb.COACH_LOG]
-id = "<sqldb-namespace-uuid>"
+# Value the assistant sends as `Authorization: Bearer` on the event-stream
+# upgrade (auth_ref) AND the token supervisor tabs present (`?token=`).
+[[secrets]]
+binding = "COACH_AUTH"
+name = "COACH_AUTH"
 
+# Knobs: env_vars reach the worker; the relay also accepts them as secret
+# handles (telnyx-edge secrets add NUDGE_MAX_PER_CALL 3) so a live flip
+# needs no redeploy. Defaults: 3 nudges / 90s silence.
 [env_vars]
-SUPERVISOR_DEVICE = "+1555XXXXXXXX"
-DASHBOARD_ORIGIN = "https://coach.example.com"
 NUDGE_MAX_PER_CALL = "3"
 SILENCE_SECS = "90"
-COACH_AUTH = "<integration-secret-id>"
-```
+DASHBOARD_ORIGIN = "https://coach.example.com"
+
+[edge_compute]
+# Provision with `telnyx-edge init` / `telnyx-edge ship`; the CLI stamps
+# func_id + func_name on first deploy.
+func_name = "live-support-coach-room"
