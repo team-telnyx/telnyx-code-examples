@@ -5,6 +5,8 @@
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
   "generated_at": "2026-10-06T23:42:34Z",
   "example_count": 565,
+  "generated_at": "2026-10-06T22:13:15Z",
+  "example_count": 566,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5090,6 +5092,22 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/live-support-coach-room"
+      "folder": "ai-gateway-tenant-meter",
+      "title": "Multi-Tenant AI Spend Ledger with Telnyx AI Gateway",
+      "description": "A durable per-tenant billing ledger that meters AI usage, enforces budgets, and blocks secret leakage via Telnyx AI Gateway guardrails.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-gateway-tenant-meter"
+    },
+    {
+      "folder": "persistent-ai-agent-memory",
+      "title": "Persistent AI Agent Memory Demo",
+      "description": "A Python CLI tool that ingests a support transcript into Telnyx Agent Memory, polls the async operation, and recalls extracted facts to demonstrate long-term AI agent memory.",
+      "product": "ai",
+      "language": "python",
+      "framework": "cli",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/persistent-ai-agent-memory"
     }
   ]
 }
