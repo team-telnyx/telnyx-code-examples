@@ -25,53 +25,36 @@ LC-3 Architecture Summary:
 - LEA loads an address (not memory contents) into a register
 - LD/ST use PC-relative addressing; LDR/STR use base+offset; LDI/STI use indirect addressing
 
-When explaining, be concise and reference the student's actual code and VM state. Use hex values where appropriate. If the student asks "what happens next?", describe the effect the instruction at PC will have.`;
-
-interface VMState {
-  registers?: Record<string, number>;
-  pc?: string;
-  flags?: { N: boolean; Z: boolean; P: boolean };
-  halted?: boolean;
-  currentInstruction?: string;
-  currentWord?: string;
-  lastOpcode?: string | null;
-  code?: string;
-}
+When explaining, be concise and reference the student's actual code and VM state. Use hex values where appropriate.`;
 
 interface ExplainRequest {
   question: string;
-  vm_state?: VMState;
+  vm_state?: Record<string, unknown>;
 }
 
 function buildUserMessage(req: ExplainRequest): string {
   const parts: string[] = [];
-
   if (req.vm_state) {
     const s = req.vm_state;
     parts.push('Current VM state:');
     if (s.registers) {
-      const regs = Object.entries(s.registers)
-        .map(
-          ([k, v]) =>
-            `${k}=${typeof v === 'number' ? 'x' + v.toString(16).toUpperCase().padStart(4, '0') : v}`,
-        )
+      const regs = Object.entries(s.registers as Record<string, number>)
+        .map(([k, v]) => `${k}=x${v.toString(16).toUpperCase().padStart(4, '0')}`)
         .join(', ');
       parts.push(`  Registers: ${regs}`);
     }
     if (s.pc) parts.push(`  PC: ${s.pc}`);
     if (s.flags) {
-      const active = Object.entries(s.flags)
+      const active = Object.entries(s.flags as Record<string, boolean>)
         .filter(([, v]) => v)
         .map(([k]) => k);
       parts.push(`  Flags: ${active.join('') || 'none'}`);
     }
-    if (s.currentInstruction)
-      parts.push(`  Next instruction: ${s.currentInstruction} (${s.currentWord})`);
+    if (s.currentInstruction) parts.push(`  Next instruction: ${s.currentInstruction}`);
     if (s.lastOpcode) parts.push(`  Last executed opcode: ${s.lastOpcode}`);
     if (s.halted) parts.push('  VM is HALTED.');
     if (s.code) parts.push(`\nSource code:\n${s.code}`);
   }
-
   parts.push(`\nQuestion: ${req.question}`);
   return parts.join('\n');
 }
@@ -114,6 +97,10 @@ function httpsPost(
   });
 }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function sendJson(res: http.ServerResponse, data: unknown, status = 200): void {
   const body = JSON.stringify(data);
   res.writeHead(status, {
@@ -141,7 +128,73 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
     return;
   }
 
-  // POST /api/explain
+  // Landing page
+  if ((req.url === '/' || req.url === '') && req.method === 'GET') {
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC-3 AI Assembly Tutor API</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+         background: #0a0e17; color: #c9d1d9; min-height: 100vh;
+         display: flex; align-items: center; justify-content: center; }
+  .container { max-width: 640px; padding: 2rem; }
+  h1 { color: #58a6ff; font-size: 1.6rem; margin-bottom: 0.5rem; }
+  .subtitle { color: #8b949e; margin-bottom: 2rem; }
+  .badge { display: inline-block; background: #1a3a2a; color: #3fb950;
+           padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.8rem;
+           margin-bottom: 1.5rem; }
+  h2 { color: #c9d1d9; font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  pre { background: #161b22; border: 1px solid #30363d; border-radius: 6px;
+        padding: 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; }
+  code { color: #e6edf3; }
+  .key { color: #7ee787; } .str { color: #a5d6ff; } .com { color: #8b949e; }
+  p { color: #8b949e; line-height: 1.6; margin: 0.5rem 0; }
+  a { color: #58a6ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #21262d;
+            font-size: 0.85rem; color: #484f58; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>LC-3 AI Assembly Tutor</h1>
+  <p class="subtitle">AI-powered LC-3 assembly language tutor, running on Telnyx Edge Compute + Inference.</p>
+  <span class="badge">deploy_ok</span>
+
+  <h2>POST /api/explain</h2>
+  <p>Ask questions about LC-3 assembly with optional VM state context.</p>
+  <pre><code>curl -X POST ${escapeHtml(req.headers.host ? 'https://' + req.headers.host : '')}/api/explain \\
+  -H <span class="str">"Content-Type: application/json"</span> \\
+  -d <span class="str">'{
+    "question": "What does ADD R2, R0, #5 do?",
+    "vm_state": {
+      "registers": {"R0": 10, "R2": 0},
+      "flags": {"N": false, "Z": true, "P": false}
+    }
+  }'</span></code></pre>
+
+  <h2>GET /health</h2>
+  <p>Health check endpoint. Returns 200 when the service is running.</p>
+
+  <div class="footer">
+    Powered by <a href="https://telnyx.com">Telnyx</a> Edge Compute &amp; Inference &bull;
+    Model: ${INFERENCE_MODEL}
+  </div>
+</div>
+</body>
+</html>`;
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': Buffer.byteLength(html),
+    });
+    res.end(html);
+    return;
+  }
+
   if (req.url === '/api/explain' && req.method === 'POST') {
     let body: ExplainRequest;
     try {
@@ -194,11 +247,10 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
     return;
   }
 
-  // 404
   sendJson(res, { error: 'Not found' }, 404);
 });
 
 const port = process.env.PORT || 8080;
 server.listen(port, () => {
-  console.log(`AI Assembly Tutor running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
