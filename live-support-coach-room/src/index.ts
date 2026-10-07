@@ -179,6 +179,13 @@ async function demoSay(
     type: "conversation.item.created",
     item: { type: "message", role, content: [{ type: "input_text", text }] },
   });
+  if (result.inject.length > 0) {
+    await registry(env).recordUpdate(body.conversation_id, {
+      nudges: result.summary.nudges,
+      took_over: result.summary.took_over,
+      flag_count: result.summary.flags.length,
+    });
+  }
   return Response.json(result, { status: 201 });
 }
 

@@ -55,6 +55,5 @@ SILENCE_SECS = "90"
 DASHBOARD_ORIGIN = "https://coach.example.com"
 
 [edge_compute]
-# Provision with `telnyx-edge init` / `telnyx-edge ship`; the CLI stamps
-# func_id + func_name on first deploy.
+func_id = "779e1286-dd46-4185-a59b-200ad20ab7fb"
 func_name = "live-support-coach-room"
