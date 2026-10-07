@@ -439,6 +439,17 @@ export class CoachRoom extends Agent<CoachEnv, CoachState> {
         return { success: false, message: "Dial failed: no call_control_id in response" };
       }
 
+      // Demo conversations have no live call leg to join — the dial is real,
+      // the join is live-path only.
+      if (state.conversationId.startsWith("sim-")) {
+        await this.setState({ tookOver: true });
+        return {
+          success: true,
+          message: "Supervisor dialed — demo conversation has no live call leg to join",
+          conversation_id: state.conversationId,
+        };
+      }
+
       // Join the supervisor leg into the running AI conversation.
       const resp = await fetch(
         `https://api.telnyx.com/v2/calls/${encodeURIComponent(state.callLegId)}/actions/ai_assistant_join`,

@@ -360,9 +360,10 @@ pickRoom();
 $("join").onclick = async () => {
   if (!conversationId) return;
   $("join").disabled = true;
-  await fetch("/rooms/" + encodeURIComponent(conversationId) + "/join", { method: "POST" });
-  // Unmute the softphone once the leg is in the AI conversation.
-  if (rtcCall) { try { rtcCall.unmuteAudio(); } catch {} $("rtcstate").textContent = "live in AI conversation"; }
+  const res = await fetch("/rooms/" + encodeURIComponent(conversationId) + "/join", { method: "POST" });
+  const result = await res.json();
+  $("rtcstate").textContent = result.message || "escalation attempted";
+  if (rtcCall && result.success) { try { rtcCall.unmuteAudio(); } catch {} }
 };
 
 $("rtctoken").onchange = () => {
