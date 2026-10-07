@@ -47,6 +47,12 @@ import {
   type ActorStub,
   type IdFromNameOptions,
 } from "@telnyx/edge-runtime";
+import Telnyx from "telnyx";
+
+/** Telnyx SDK client used for webhook signature verification only. */
+const telnyxVerifyClient = new Telnyx({
+  apiKey: process.env.TELNYX_API_KEY ?? "unused-webhook-verification-only",
+});
 
 // ── Env bindings (resolved from telnyx.toml) ──────────────────────────────
 
@@ -1132,11 +1138,10 @@ export default {
       return json({ error: "method not allowed" }, 405);
     }
 
-    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-
     // ── Mock scheduling webhook -> openSlot RPC (the actor is born here) ──
     if (url.pathname === "/webhook/scheduling") {
-      const payload = body as unknown as OpenSlotPayload;
+      const jsonBody = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+      const payload = jsonBody as unknown as OpenSlotPayload;
       if (
         !payload?.slotId ||
         !payload?.provider ||
@@ -1160,7 +1165,7 @@ export default {
 
     // ── Telnyx inbound-message callback (message.received) ────────────────
     if (url.pathname === "/webhook/inbound-message") {
-      const data = (body as TelnyxWebhookBody)?.data;
+      const data = (await verifyWebhook(req, env))?.data;
       if (!data || data.event_type !== "message.received") {
         return json({ error: "unexpected event_type" }, 400);
       }
@@ -1184,7 +1189,7 @@ export default {
 
     // ── Telnyx Call Control event webhook ─────────────────────────────────
     if (url.pathname === "/webhook/call-events") {
-      const data = (body as TelnyxWebhookBody)?.data;
+      const data = (await verifyWebhook(req, env))?.data;
       if (!data?.event_type) return json({ error: "unexpected body" }, 400);
       const payload = data.payload ?? {};
       const callControlId = String(payload.call_control_id ?? "");
@@ -1222,6 +1227,7 @@ export default {
       if (!(await isDemoMode(env))) {
         return json({ error: "demo endpoints are disabled in live mode" }, 403);
       }
+      const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
       const from = String(body.from ?? "");
       const text = String(body.text ?? "");
       const slotId = body.slotId ? String(body.slotId) : null;
@@ -1241,6 +1247,7 @@ export default {
       if (!(await isDemoMode(env))) {
         return json({ error: "demo endpoints are disabled in live mode" }, 403);
       }
+      const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
       const slotId = String(body.slotId ?? "");
       const eventType = String(body.eventType ?? "");
       if (!slotId || !eventType) {
@@ -1306,6 +1313,34 @@ function authHeaders(apiKey: string): HeadersInit {
     Authorization: `Bearer ${apiKey}`,
     "Content-Type": "application/json",
   };
+}
+
+/**
+ * Verify the Telnyx Ed25519 signature on an inbound webhook and return the
+ * parsed event. Demo mode skips verification (payloads come from /demo/*).
+ * The signature covers the exact bytes Telnyx sent — read the raw body with
+ * `await req.text()`, never `req.json()` before verify.
+ */
+async function verifyWebhook(req: Request, env: Env): Promise<TelnyxWebhookBody> {
+  const body = await req.text();
+  if (await isDemoMode(env)) {
+    return JSON.parse(body) as TelnyxWebhookBody;
+  }
+  const publicKey = await readConfig(env, "TELNYX_PUBLIC_KEY");
+  if (!publicKey) {
+    throw new Error(
+      "TELNYX_PUBLIC_KEY is required when DEMO_MODE is false — " +
+        "run `telnyx-edge secrets add TELNYX_PUBLIC_KEY <base64>`",
+    );
+  }
+  const headers: Record<string, string> = {};
+  req.headers.forEach((value, key) => {
+    headers[key] = value;
+  });
+  return (await telnyxVerifyClient.webhooks.unwrap(body, {
+    headers,
+    key: publicKey,
+  })) as TelnyxWebhookBody;
 }
 
 function json(payload: unknown, status = 200): Response {

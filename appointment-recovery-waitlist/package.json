@@ -24,7 +24,8 @@
   "author": "Telnyx",
   "license": "MIT",
   "dependencies": {
-    "@telnyx/edge-runtime": "^0.15.1"
+    "@telnyx/edge-runtime": "^0.15.1",
+    "telnyx": "^7.17.0"
   },
   "devDependencies": {
     "tsx": "^4.0.0",

@@ -95,3 +95,7 @@ name = "SLOT_EXPIRY_MIN"
 [[secrets]]
 binding = "CLINIC_TIMEZONE"
 name = "CLINIC_TIMEZONE"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
