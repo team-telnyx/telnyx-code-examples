@@ -1,0 +1,97 @@
+# Appointment Recovery + Waitlist Filler — Telnyx Edge Compute (Stateful Actors).
+#
+# One durable actor instance per appointment slot: the actor owns the slot's
+# recovery workflow end-to-end — outreach to the missed patient, waitlist
+# fill in priority order, the confirmation lock, and slot expiry.
+#
+# Bindings:
+#   [[actors]]  SLOTS      — the AppointmentSlot durable namespace. One actor
+#                            per appointment slot, addressed via
+#                            idFromName(slotId); born on the scheduling
+#                            webhook's openSlot RPC.
+#   [[actors]]  SLOT_INDEX — one shared "global" instance that maps a patient's
+#                            phone number to the slot actor currently reaching
+#                            out to them (fallback routing for inbound SMS
+#                            replies and call events without client_state).
+#   [telnyx]    TELNYX     — the standard Telnyx SDK binding. Exposes
+#                            this.env.TELNYX.messages.send() for outreach and
+#                            confirmation SMS. Declaring this block also
+#                            injects TELNYX_API_KEY.
+#   [[secrets]]            — config values registered per-account via
+#                            `telnyx-edge secrets add`. NOTE: the Edge runtime
+#                            does NOT inject [env_vars] for actor projects —
+#                            config must ship as [[secrets]] bindings and is
+#                            read via SECRETS.get() with a plain env-var
+#                            fallback (see readConfig in src/index.ts).
+#
+# Secrets (register with `telnyx-edge secrets add <name> <value>`):
+#   DEMO_MODE                — "true" (default) logs calls/SMS and drives
+#                              patient replies via /demo/reply and
+#                              /demo/call-event; "false" dials real calls and
+#                              sends real SMS via the TELNYX binding.
+#   OUTBOUND_CONNECTION_ID   — Call Control connection (Fax/Call Control app)
+#                              id used to dial the missed patient and
+#                              waitlist candidates.
+#   OUTBOUND_CALLER_ID       — the clinic line presented on outbound calls.
+#   SCHEDULING_SMS_E164      — SMS-capable clinic number used for outreach and
+#                              confirmations; inbound replies arrive here.
+#   WAITLIST_REPLY_TIMEOUT_MIN — reply window per outreach attempt, minutes
+#                              (default 10).
+#   OUTREACH_RETRY_MAX       — extra attempts per candidate before moving to
+#                              the next waitlist patient (default 2).
+#   SLOT_EXPIRY_MIN          — minutes until an unclaimed slot closes as
+#                              expired (default 60).
+#   CLINIC_TIMEZONE          — IANA timezone shown in confirmations
+#                              (default America/New_York).
+
+name = "appointment-recovery-waitlist"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# ── Function identity (created via `telnyx-edge new-func --actor -l ts -n appointment-recovery-waitlist`, then pinned) ──
+[edge_compute]
+func_id = "<provision-with-telnyx-edge-new-func>"
+func_name = "appointment-recovery-waitlist"
+
+[[actors]]
+binding = "SLOTS"
+type = "AppointmentSlot"
+
+[[actors]]
+binding = "SLOT_INDEX"
+type = "SlotIndex"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
+
+[[secrets]]
+binding = "OUTBOUND_CONNECTION_ID"
+name = "OUTBOUND_CONNECTION_ID"
+
+[[secrets]]
+binding = "OUTBOUND_CALLER_ID"
+name = "OUTBOUND_CALLER_ID"
+
+[[secrets]]
+binding = "SCHEDULING_SMS_E164"
+name = "SCHEDULING_SMS_E164"
+
+[[secrets]]
+binding = "WAITLIST_REPLY_TIMEOUT_MIN"
+name = "WAITLIST_REPLY_TIMEOUT_MIN"
+
+[[secrets]]
+binding = "OUTREACH_RETRY_MAX"
+name = "OUTREACH_RETRY_MAX"
+
+[[secrets]]
+binding = "SLOT_EXPIRY_MIN"
+name = "SLOT_EXPIRY_MIN"
+
+[[secrets]]
+binding = "CLINIC_TIMEZONE"
+name = "CLINIC_TIMEZONE"
