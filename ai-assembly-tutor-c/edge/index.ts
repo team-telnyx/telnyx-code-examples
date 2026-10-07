@@ -139,7 +139,8 @@ HELLO .STRINGZ &quot;Hello, world!&quot;
       <button id="btn-assemble">Assemble</button>
       <button id="btn-step">Step</button>
       <button id="btn-run">Run</button>
-      <button id="btn-reset">Reset</button>
+      <button id="btn-reset">Reset VM</button>
+      <button id="btn-clear-code">Clear Code</button>
     </div>
   </section>
 
@@ -156,7 +157,10 @@ HELLO .STRINGZ &quot;Hello, world!&quot;
 
   <!-- Right: AI Tutor -->
   <section id="panel-tutor" class="panel">
-    <h2>AI Tutor</h2>
+    <div class="panel-header">
+      <h2>AI Tutor</h2>
+      <button id="btn-clear-chat">Clear Chat</button>
+    </div>
     <div id="chat-messages"></div>
     <div class="quick-asks">
       <button class="quick-ask" data-question="What does this instruction do?">What does this do?</button>
@@ -300,6 +304,16 @@ button:active { background: var(--accent-dim); }
 }
 #chat-input:focus { border-color: var(--accent); }
 #chat-send { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+#btn-clear-chat {
+  font-family: var(--font-mono); font-size: 11px;
+  background: var(--bg); color: var(--muted);
+  border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; cursor: pointer;
+}
+#btn-clear-chat:hover { color: var(--text); border-color: var(--text); }
+#btn-clear-code {
+  background: transparent; color: var(--muted); border-color: var(--border);
+}
+#btn-clear-code:hover { color: var(--text); border-color: var(--text); }
 ` };
 
 // ── JS modules ──────────────────────────────────────────────────────
@@ -445,7 +459,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
 });
 async function loadExampleSources(){const names=Object.keys(EXAMPLES);await Promise.all(names.map(async(name)=>{try{const res=await fetch('examples/'+name+'.asm');if(res.ok)EXAMPLES[name]=await res.text();}catch{}}));}
 function loadExample(name){const src=EXAMPLES[name];if(!src)return;document.getElementById('editor').value=src;doReset();}
-function wireButtons(){document.getElementById('btn-assemble').addEventListener('click',doAssemble);document.getElementById('btn-step').addEventListener('click',doStep);document.getElementById('btn-run').addEventListener('click',doRun);document.getElementById('btn-reset').addEventListener('click',doReset);}
+function wireButtons(){document.getElementById('btn-assemble').addEventListener('click',doAssemble);document.getElementById('btn-step').addEventListener('click',doStep);document.getElementById('btn-run').addEventListener('click',doRun);document.getElementById('btn-reset').addEventListener('click',doReset);document.getElementById('btn-clear-code').addEventListener('click',doClearCode);document.getElementById('btn-clear-chat').addEventListener('click',doClearChat);}
 function wireExampleSelector(){const sel=document.getElementById('example-select');sel.addEventListener('change',()=>loadExample(sel.value));}
 function wireChat(){const input=document.getElementById('chat-input');const send=document.getElementById('chat-send');send.addEventListener('click',()=>sendQuestion(input.value.trim()));input.addEventListener('keydown',(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendQuestion(input.value.trim());}});document.querySelectorAll('.quick-ask').forEach(btn=>{btn.addEventListener('click',()=>sendQuestion(btn.dataset.question));});}
 function doAssemble(){stopRun();const src=document.getElementById('editor').value;const{program,errors}=assemble(src);ui.showErrors(errors);if(errors.length>0){ui.setStatus('Assembly failed — '+errors.length+' error(s)');return;}vm.init();vm.loadProgram(program);ui.clearOutput();ui.refresh();lastOpcode=-1;ui.setStatus('Assembled '+program.length+' words');}
@@ -453,6 +467,8 @@ function doStep(){if(vm.isHalted()){ui.setStatus('Halted');return;}lastOpcode=vm
 function doRun(){if(runTimer){stopRun();return;}const btn=document.getElementById('btn-run');btn.textContent='Pause';runTimer=setInterval(()=>{if(vm.isHalted()){stopRun();return;}for(let i=0;i<100&&!vm.isHalted();i++){lastOpcode=vm.step();}ui.refresh();if(vm.isHalted()){stopRun();ui.setStatus('Halted');}},16);ui.setStatus('Running...');}
 function stopRun(){if(runTimer){clearInterval(runTimer);runTimer=null;}document.getElementById('btn-run').textContent='Run';}
 function doReset(){stopRun();vm.init();ui.clearOutput();ui.showErrors([]);ui.refresh();lastOpcode=-1;ui.setStatus('Reset');}
+function doClearCode(){stopRun();document.getElementById('editor').value='';document.getElementById('example-select').value='';vm.init();ui.clearOutput();ui.showErrors([]);ui.refresh();lastOpcode=-1;ui.setStatus('Code cleared');}
+function doClearChat(){document.getElementById('chat-messages').innerHTML='';}
 function sendQuestion(question){if(!question)return;const input=document.getElementById('chat-input');input.value='';tutor.addMessage('user',question);const code=document.getElementById('editor').value;const ctx=ui.buildVMContext(code,lastOpcode);const contentEl=tutor.addMessage('assistant','');tutor.ask(question,ctx,(chunk)=>{contentEl.textContent+=chunk;const chat=document.getElementById('chat-messages');chat.scrollTop=chat.scrollHeight;},()=>{});}` };
 
 // ── Example programs ────────────────────────────────────────────────
