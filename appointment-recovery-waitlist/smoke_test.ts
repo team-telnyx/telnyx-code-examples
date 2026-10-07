@@ -323,7 +323,7 @@ console.log("\n[2] Missed-patient recovery");
   s = await slot.snapshot();
   check("reschedule closes the recovery workflow", s.status === "rescheduled");
   check("no waitlist fill after reschedule", s.cursor === -1);
-  assert.match(reply.reply as string, /Rebooked/);
+  assert.match(reply.reply as string, /rebooked/i);
 
   const declinedSlot = freshSlot("s-decline");
   await declinedSlot.openSlot(SLOT);

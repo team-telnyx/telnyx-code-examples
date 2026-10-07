@@ -384,7 +384,7 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
       detail: "missed-patient recovery call",
       ts: Date.now(),
     });
-    await this.placeCall(candidate, this.missedPatientScript(candidate.name));
+    await this.placeCall(candidate, this.scriptFor(candidate, state));
     await this.registerIndex(candidate.phone, "missed");
 
     const window = await this.replyWindowSeconds();
@@ -445,7 +445,7 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
       detail: `waitlist offer (priority ${entry.priority})`,
       ts: Date.now(),
     });
-    await this.placeCall(candidate, this.waitlistScript(candidate.name));
+    await this.placeCall(candidate, this.scriptFor(candidate, state));
     await this.registerIndex(candidate.phone, "waitlist");
 
     const window = await this.replyWindowSeconds();
@@ -505,9 +505,9 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
       ts: Date.now(),
     });
     if (nextChannel === "voice") {
-      await this.placeCall(retried, this.scriptFor(retried));
+      await this.placeCall(retried, this.scriptFor(retried, state));
     } else {
-      await this.sendSms(retried.phone, this.scriptFor(retried));
+      await this.sendSms(retried.phone, this.scriptFor(retried, state));
     }
 
     const window = await this.replyWindowSeconds();
@@ -559,7 +559,7 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
         detail: "call answered — speaking offer",
         ts: Date.now(),
       });
-      await this.speak(candidate.callControlId, this.scriptFor(candidate));
+      await this.speak(candidate.callControlId, this.scriptFor(candidate, state));
       return { ok: true, handled: true };
     }
 
@@ -799,7 +799,8 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
         detail: `first confirmation wins (${source})`,
         ts: Date.now(),
       });
-      const confirmSms = `Confirmed: ${state.provider} at ${state.startsAt} (${state.timezone}). Reply CANCEL to release.`;
+      const pretty = prettyStartsAt(state.startsAt, state.timezone);
+      const confirmSms = `Confirmed: ${state.provider} on ${pretty}. Reply CANCEL to release.`;
       await this.sendSms(candidate.phone, confirmSms);
       await this.clearIndex();
       return confirmSms;
@@ -818,12 +819,13 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
         detail: "missed patient rebooked — recovery closed",
         ts: Date.now(),
       });
+      const pretty = prettyStartsAt(state.startsAt, state.timezone);
       await this.sendSms(
         candidate.phone,
-        `Rebooked — we'll confirm your new ${state.provider} time shortly.`,
+        `Rebooked: ${state.provider} on ${pretty}. Reply CANCEL to release.`,
       );
       await this.clearIndex();
-      return "Rebooked — we'll confirm your new time shortly.";
+      return `You're all set — rebooked for ${state.provider} on ${pretty}. We'll follow up by text.`;
     }
 
     if (decision === "later") {
@@ -909,18 +911,20 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
 
   // ── Script helpers ──────────────────────────────────────────────────────
 
-  scriptFor(candidate: Candidate): string {
+  scriptFor(candidate: Candidate, state: SlotState): string {
     return candidate.role === "missed"
-      ? this.missedPatientScript(candidate.name)
-      : this.waitlistScript(candidate.name);
+      ? this.missedPatientScript(candidate.name, state)
+      : this.waitlistScript(candidate.name, state);
   }
 
-  missedPatientScript(name: string): string {
-    return `Hi ${name || "there"}, this is your clinic scheduling line. You missed your appointment and we have the slot open. Say RESCHEDULE to rebook, LATER for a callback, or DECLINE to pass.`;
+  missedPatientScript(name: string, state: SlotState): string {
+    const pretty = prettyStartsAt(state.startsAt, state.timezone);
+    return `Hi ${name || "there"}, this is your clinic calling about your appointment with ${state.provider}. You missed it, but that same slot is still open — ${pretty}. Would you like me to keep that time for you, or should we find something else?`;
   }
 
-  waitlistScript(name: string): string {
-    return `Hi ${name || "there"}, this is your clinic scheduling line. An appointment slot just opened. Say YES to take it or NO to pass — the first person to confirm gets the slot.`;
+  waitlistScript(name: string, state: SlotState): string {
+    const pretty = prettyStartsAt(state.startsAt, state.timezone);
+    return `Hi ${name || "there"}, this is your clinic calling. A ${state.provider} appointment just opened up on ${pretty} — you're on our waitlist, and the first person to claim it gets it. Would you like it?`;
   }
 
   // ── Outbound channels (demo: log; live: AI assistant call or Call Control) ──
@@ -974,7 +978,7 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
             starts_at: state.startsAt,
             slot_id: state.slotId,
             role: candidate.role,
-            offer_text: this.scriptFor(candidate),
+            offer_text: this.scriptFor(candidate, state),
           },
           conversation_metadata: {
             slot_id: state.slotId,
@@ -1350,6 +1354,20 @@ const DECISION_YES = /^(yes|confirm|take it|1|y)\b/i;
 const DECISION_NO = /^(no|pass|can'?t|cannot|decline|2|n)\b/i;
 const DECISION_RESCHEDULE = /^(reschedule|rebook|new time|yes|confirm|sure|take it)\b/i;
 const DECISION_LATER = /^(later|call me (later|back)|callback|busy)\b/i;
+
+/** Human-friendly slot time, parsed from the ISO string without timezone drift. */
+export function prettyStartsAt(startsAt: string, _timezone: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(startsAt || "");
+  if (!m) return startsAt;
+  const [, y, mo, d, h, mi] = m;
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const weekday = days[new Date(`${y}-${mo}-${d}T12:00:00Z`).getUTCDay()];
+  const hour = Number(h);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${weekday}, ${months[Number(mo) - 1]} ${Number(d)} at ${hour12}:${mi} ${ampm}`;
+}
 
 /** Sanitize a slot id for use as an actor name (RFC 1123 safe). */
 export function actorNameFromSlot(slotId: string): string {
