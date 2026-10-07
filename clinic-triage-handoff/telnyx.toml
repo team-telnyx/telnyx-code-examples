@@ -2,21 +2,11 @@ name = "clinic-triage-handoff"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
 
+# One durable actor — one instance per clinic seed (idFromName on the inbound line).
+# It owns the routing log, the return-caller history, and the misroute queue.
 [[actors]]
-binding = "TRIAGE_ROUTER"
-type = "TriageRouter"
-
-[[actors]]
-binding = "BILLING_AGENT"
-type = "BillingAgent"
-
-[[actors]]
-binding = "CLINICAL_AGENT"
-type = "ClinicalAgent"
-
-[[actors]]
-binding = "AFTERHOURS_AGENT"
-type = "AfterHoursAgent"
+binding = "TRIAGE_ROUTER_V3"
+type = "TriageRouterV3"
 
 [[secrets]]
 binding = "TELNYX_API_KEY"
@@ -25,10 +15,18 @@ name = "TELNYX_API_KEY"
 [telnyx]
 binding = "TELNYX"
 
-[storage.sqldb.ROUTING_DB]
-id = "<sqldb-namespace-uuid>"
-
-[env_vars]
-AI_MODEL = "gpt-4o-mini"
-CLINIC_LINE_E164 = "+15551234567"
-DEMO_MODE = "true"
+# Per-deploy env vars (ASSISTANT_ROUTES_JSON, MISROUTE_TARGETS_JSON,
+# CONNECTION_ID, WEBHOOK_URL, CLINIC_VOICE, SPECIALIST_VOICE, STATUS_PAGE_LINE,
+# AI_MODEL) are NOT declared here — the [env_vars] block does not propagate
+# to process.env in this Edge runtime. Set them with:
+#
+#   telnyx-edge secrets add ASSISTANT_ROUTES_JSON '{"+15550000001":"assistant-..."}'
+#   telnyx-edge secrets add MISROUTE_TARGETS_JSON '{"+15550000002":"+15550000003"}'
+#   telnyx-edge secrets add CONNECTION_ID        '3059819523331852187'
+#   telnyx-edge secrets add WEBHOOK_URL          'https://<func>.telnyxcompute.com/webhooks/voice'
+#   telnyx-edge secrets add STATUS_PAGE_LINE     '+15550000001'
+#   telnyx-edge secrets add CLINIC_VOICE         'Telnyx_Katie'
+#   telnyx-edge secrets add SPECIALIST_VOICE     'Telnyx_FLORA'
+#   telnyx-edge secrets add AI_MODEL             'gpt-4o-mini'
+#
+# Local development copies the same keys into `.env` (see `.env.example`).
