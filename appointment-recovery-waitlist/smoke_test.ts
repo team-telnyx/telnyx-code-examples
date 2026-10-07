@@ -157,7 +157,7 @@ function makeNamespace(kind: "slot" | "index"): AnyRecord {
         "openSlot",
         "onInboundMessage",
         "onCallEvent",
-        "inspect",
+        "snapshot",
         "ledgerSnapshot",
       ]);
     },
@@ -257,7 +257,7 @@ function demoReply(slot: TestSlot, from: string, text: string) {
 
 /** Fire the pending sweep with the actor's CURRENT generation (timer semantics). */
 async function sweep(slot: TestSlot): Promise<{ ok: boolean; skipped?: boolean }> {
-  const state = await slot.inspect();
+  const state = await slot.snapshot();
   return slot.sweepCandidate({ generation: state.generation });
 }
 
@@ -272,7 +272,7 @@ const proto = AppointmentSlot.prototype as unknown as Record<string, unknown>;
 console.log("\n[1] Agent contract + pure helpers");
 
 check("AppointmentSlot extends Agent", AppointmentSlot.prototype instanceof Agent);
-for (const m of ["openSlot", "onInboundMessage", "onCallEvent", "inspect", "ledgerSnapshot"]) {
+for (const m of ["openSlot", "onInboundMessage", "onCallEvent", "snapshot", "ledgerSnapshot"]) {
   check(`has ${m} method`, typeof proto[m] === "function");
 }
 const initial = (proto.initialState as () => SlotState).call({});
@@ -311,7 +311,7 @@ console.log("\n[2] Missed-patient recovery");
 {
   const slot = freshSlot("s-resched");
   await slot.openSlot(SLOT);
-  let s = await slot.inspect();
+  let s = await slot.snapshot();
   check("actor opens with offering status", s.status === "offering");
   check(
     "missed patient is contacted first",
@@ -320,7 +320,7 @@ console.log("\n[2] Missed-patient recovery");
   check("expiry scheduled", slot.scheduled.some((t) => t.method === "expireSlot"));
 
   const reply = await demoReply(slot, SLOT.missedPatient.phone, "RESCHEDULE please");
-  s = await slot.inspect();
+  s = await slot.snapshot();
   check("reschedule closes the recovery workflow", s.status === "rescheduled");
   check("no waitlist fill after reschedule", s.cursor === -1);
   assert.match(reply.reply as string, /Rebooked/);
@@ -328,7 +328,7 @@ console.log("\n[2] Missed-patient recovery");
   const declinedSlot = freshSlot("s-decline");
   await declinedSlot.openSlot(SLOT);
   await demoReply(declinedSlot, SLOT.missedPatient.phone, "no, can't make it");
-  s = await declinedSlot.inspect();
+  s = await declinedSlot.snapshot();
   check("decline hands the slot to the waitlist", s.cursor === 0);
   const ledger = await declinedSlot.ledgerSnapshot();
   check(
@@ -344,35 +344,35 @@ console.log("\n[3] Waitlist fill: priority order + retry budget");
   const slot = freshSlot("s-waitlist");
   await slot.openSlot(SLOT);
   await demoReply(slot, SLOT.missedPatient.phone, "decline");
-  let s = await slot.inspect();
+  let s = await slot.snapshot();
   check(
     "priority-1 candidate first (Casey, not Brooke)",
     s.currentCandidate?.phone === "+15557000003",
   );
 
   await sweep(slot);
-  s = await slot.inspect();
+  s = await slot.snapshot();
   check(
     "no reply -> retry same candidate on SMS",
     s.currentCandidate?.phone === "+15557000003" && s.currentCandidate?.channel === "sms",
   );
 
   await sweep(slot);
-  s = await slot.inspect();
+  s = await slot.snapshot();
   check(
     "no reply -> retry again",
     s.currentCandidate?.phone === "+15557000003" && s.currentCandidate?.attempts === 3,
   );
 
   await sweep(slot);
-  s = await slot.inspect();
+  s = await slot.snapshot();
   check(
     "budget exhausted -> cursor advances to next candidate",
     s.currentCandidate?.phone === "+15557000002",
   );
 
   for (let i = 0; i < 9; i++) await sweep(slot);
-  s = await slot.inspect();
+  s = await slot.snapshot();
   check("waitlist exhausted -> unresolved", s.status === "unresolved");
   const ledger = await slot.ledgerSnapshot();
   check(
@@ -389,12 +389,12 @@ console.log("\n[4] First confirmation wins (double-booking guard)");
   const slot = freshSlot("s-race");
   await slot.openSlot(SLOT);
   await demoReply(slot, SLOT.missedPatient.phone, "decline");
-  const s = await slot.inspect();
+  const s = await slot.snapshot();
   const workingGen = s.generation;
   const staleSweepCount = slot.scheduled.length;
 
   const winner = await demoReply(slot, "+15557000003", "YES");
-  const filled = await slot.inspect();
+  const filled = await slot.snapshot();
   check(
     "confirmation fills the slot",
     filled.status === "filled" && filled.confirmation?.patient === "+15557000003",
@@ -436,14 +436,14 @@ console.log("\n[5] Restart proof: kill mid-outreach, resume with same cursor");
   const slotA = freshSlot("s-restart");
   await slotA.openSlot(SLOT);
   await demoReply(slotA, SLOT.missedPatient.phone, "decline");
-  const before = await slotA.inspect();
+  const before = await slotA.snapshot();
   const ledgerBefore = await slotA.ledgerSnapshot();
   check("mid-outreach: cursor on waitlist[0]", before.cursor === 0);
 
   // Kill: drop the instance; durable store and shared ledger survive.
   actors.delete("slot:s-restart");
   const slotB = freshSlot("s-restart");
-  const after = await slotB.inspect();
+  const after = await slotB.snapshot();
   check(
     "actor resumes with the same waitlist cursor",
     after.cursor === before.cursor && after.status === before.status,
@@ -456,7 +456,7 @@ console.log("\n[5] Restart proof: kill mid-outreach, resume with same cursor");
 
   // The resumed actor confirms and the lock holds.
   await demoReply(slotB, "+15557000003", "yes");
-  const s = await slotB.inspect();
+  const s = await slotB.snapshot();
   check("resumed actor fills the slot", s.confirmation?.patient === "+15557000003");
 
   // A late confirmer against the same slot can never double-book.
@@ -489,7 +489,7 @@ console.log("\n[6] Later + expiry");
   const openSlot2 = freshSlot("s-expiry-open");
   await openSlot2.openSlot(SLOT);
   await openSlot2.expireSlot();
-  const s = await openSlot2.inspect();
+  const s = await openSlot2.snapshot();
   check("unworked slot expires", s.status === "expired");
 }
 

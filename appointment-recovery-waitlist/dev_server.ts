@@ -243,7 +243,7 @@ function makeNamespace(kind: "slot" | "index"): AnyRecord {
         "openSlot",
         "onInboundMessage",
         "onCallEvent",
-        "inspect",
+        "snapshot",
         "ledgerSnapshot",
       ]);
     },

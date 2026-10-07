@@ -70,7 +70,7 @@ export interface Env {
 type SlotStub = ActorStub &
   Pick<
     AppointmentSlot,
-    "openSlot" | "onInboundMessage" | "onCallEvent" | "inspect" | "ledgerSnapshot"
+    "openSlot" | "onInboundMessage" | "onCallEvent" | "snapshot" | "ledgerSnapshot"
   >;
 
 interface SlotNamespace extends ActorNamespace {
@@ -239,7 +239,7 @@ export interface ConfirmationRecord {
   source: Channel;
 }
 
-/** Read-only snapshot exposed by inspect() / GET /state/:slotId. */
+/** Read-only snapshot exposed by snapshot() / GET /state/:slotId. */
 export interface SlotSnapshot {
   slotId: string;
   status: SlotStatus;
@@ -811,7 +811,7 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
 
   /** Read-only snapshot for demos, /state/:slotId, and the restart proof. */
   @rpc({ description: "Read-only slot snapshot: status, cursor, confirmation lock" })
-  async inspect(): Promise<SlotSnapshot> {
+  async snapshot(): Promise<SlotSnapshot> {
     const s = await this.getState();
     return {
       slotId: s.slotId,
@@ -1241,7 +1241,7 @@ export default {
       const slotId = decodeURIComponent(url.pathname.slice("/state/".length));
       if (!slotId) return json({ error: "slotId required" }, 400);
       const stub = env.SLOTS.idFromName(actorNameFromSlot(slotId));
-      const result = await stub.inspect();
+      const result = await stub.snapshot();
       return json(result);
     }
 
