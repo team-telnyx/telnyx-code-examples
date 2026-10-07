@@ -11,8 +11,8 @@ import * as https from 'node:https';
 // ═══════════════════════════════════════════════════════════════════════
 
 const TELNYX_HOST = 'api.telnyx.com';
-const INFERENCE_PATH = '/v2/ai/chat/completions';
-const INFERENCE_MODEL = 'zai-org/GLM-5.3-Flash';
+const INFERENCE_PATH = '/v2/ai/openai/chat/completions';
+const INFERENCE_MODEL = 'deepseek-ai/DeepSeek-V4.1-Flash';
 
 const SYSTEM_PROMPT = `You are an expert LC-3 assembly language tutor. You help students understand the LC-3 instruction set architecture by explaining what each instruction does, how registers and memory change, and why condition flags are set.
 
@@ -639,7 +639,7 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: buildUserMessage(body) },
         ],
-        max_tokens: 1024, temperature: 0.3,
+        max_tokens: 4096, temperature: 0.3,
       });
       // Retry up to 2 times if model returns empty
       let content = '';
