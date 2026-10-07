@@ -52,4 +52,4 @@ Thumbs.db
 scripts/bot/
 
 # Claude Code session state
-.omo/
+.omo/telnyx-env.d.ts
