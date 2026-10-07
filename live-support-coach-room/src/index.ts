@@ -179,13 +179,11 @@ async function demoSay(
     type: "conversation.item.created",
     item: { type: "message", role, content: [{ type: "input_text", text }] },
   });
-  if (result.inject.length > 0) {
-    await registry(env).recordUpdate(body.conversation_id, {
-      nudges: result.summary.nudges,
-      took_over: result.summary.took_over,
-      flag_count: result.summary.flags.length,
-    });
-  }
+  await registry(env).recordUpdate(body.conversation_id, {
+    nudges: result.summary.nudges,
+    took_over: result.summary.took_over,
+    flag_count: result.summary.flags.length,
+  });
   return Response.json(result, { status: 201 });
 }
 
@@ -288,18 +286,40 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
 <script>
 const $ = (id) => document.getElementById(id);
 let ws = null, backoffMs = 1000, stableSince = 0, conversationId = null, rtcClient = null, rtcCall = null;
+let liveState = null;
+
+// RFC 7396 merge-patch, client-side (mirrors the SDK desk protocol).
+function mergePatch(target, patch) {
+  if (patch === null || typeof patch !== "object" || Array.isArray(patch)) return patch;
+  if (typeof target !== "object" || target === null || Array.isArray(target)) target = {};
+  for (const k of Object.keys(patch)) {
+    if (patch[k] === null) delete target[k];
+    else target[k] = mergePatch(target[k], patch[k]);
+  }
+  return target;
+}
 
 // Reconnect with exponential backoff (1s → 30s), reset after 10s stable —
 // mirroring Telnyx's own event-stream reconnect policy.
 function connect(convId) {
   conversationId = convId;
+  liveState = null;
   const token = encodeURIComponent($("auth").value || "");
   const proto = location.protocol === "https:" ? "wss:" : "ws:";
   const url = proto + "//" + location.host + "/agents/coach-room/" + encodeURIComponent(convId) + (token ? "?token=" + token : "");
   ws = new WebSocket(url);
   setStatus("connecting");
   ws.onopen = () => { stableSince = Date.now(); setStatus("live"); };
-  ws.onmessage = (e) => { try { render(JSON.parse(e.data)); } catch {} };
+  ws.onmessage = (e) => {
+    try {
+      const w = JSON.parse(e.data);
+      const f = w.json ?? w; // mount wraps protocol frames in a {"json": ...} envelope
+      if (f.kind !== "state") return;
+      if (f.snapshot !== undefined) liveState = f.snapshot;
+      else if (f.patch !== undefined) liveState = mergePatch(liveState, f.patch);
+      render(liveState);
+    } catch {}
+  };
   ws.onclose = () => {
     setStatus("down");
     const stable = stableSince && (Date.now() - stableSince > 10000);

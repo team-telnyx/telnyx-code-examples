@@ -189,16 +189,25 @@ export class CoachRoom extends Agent<CoachEnv, CoachState> {
   /**
    * Live room view — pushes a state snapshot on connect and an incremental
    * merge-patch on every setState, so every supervisor tab sees the same
-   * transcript, flags, and nudges in real time. Supervisor tabs authenticate
-   * with the COACH_AUTH secret (via `?token=` on the upgrade request).
+   * transcript, flags, and nudges in real time. Read-only for anonymous
+   * observers (same policy as the mediator's desk); a matching COACH_AUTH
+   * token (attach frame or `?token=` upgrade param) adds rpc claims.
    */
   private desk = new AgentSocketServer<CoachState>(this, {
     getState: () => this.getState(),
-    authorize: async (token: string | undefined) => {
-      if (!token) return [];
+    authorize: async (token: string | undefined, req?: Request) => {
+      let supplied = token;
+      if (!supplied && req) {
+        try {
+          supplied = new URL(req.url).searchParams.get("token") ?? undefined;
+        } catch {
+          supplied = undefined;
+        }
+      }
+      if (supplied === undefined) return ["read"] as const;
       try {
         const expected = await this.env.SECRETS.get("COACH_AUTH");
-        return expected && token === expected ? (["read", "rpc"] as const) : [];
+        return expected && supplied === expected ? (["read", "rpc"] as const) : [];
       } catch {
         return [];
       }
@@ -440,8 +449,20 @@ export class CoachRoom extends Agent<CoachEnv, CoachState> {
       }
 
       // Demo conversations have no live call leg to join — the dial is real,
-      // the join is live-path only.
+      // the join is live-path only. Speak a notice so the supervisor isn't
+      // left on dead air, then end the leg.
       if (state.conversationId.startsWith("sim-")) {
+        await fetch(`https://api.telnyx.com/v2/calls/${encodeURIComponent(supervisorCcId)}/actions/speak`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            payload:
+              "You have been escalated as a supervisor. This is a simulated conversation, so there is no live caller audio. The coach room will now end this call.",
+            voice: "female",
+            language: "en-US",
+          }),
+        });
+        await this.schedule(10, "endSupervisorLeg", { callControlId: supervisorCcId }, { id: "end-supervisor" });
         await this.setState({ tookOver: true });
         return {
           success: true,
@@ -472,6 +493,21 @@ export class CoachRoom extends Agent<CoachEnv, CoachState> {
       const msg = e instanceof Error ? e.message : "escalation failed";
       await this.setState({ error: msg });
       return { success: false, message: msg };
+    }
+  }
+
+  /** Hang up the supervisor's leg after the demo-mode notice played. */
+  async endSupervisorLeg(payload: { callControlId?: string }): Promise<void> {
+    const cc = payload?.callControlId;
+    if (!cc) return;
+    try {
+      const apiKey = await this.env.SECRETS.get("TELNYX_API_KEY");
+      await fetch(`https://api.telnyx.com/v2/calls/${encodeURIComponent(cc)}/actions/hangup`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      });
+    } catch {
+      // The leg ends on its own if the hangup command fails.
     }
   }
 
