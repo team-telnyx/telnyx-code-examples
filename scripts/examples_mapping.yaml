@@ -3472,6 +3472,8 @@ examples:
     language: typescript
     framework: edge
     folder: live-support-coach-room
+
+  - product: ai
     use_case: "auto-generated-from-linear"
     language: typescript
     framework: edge
