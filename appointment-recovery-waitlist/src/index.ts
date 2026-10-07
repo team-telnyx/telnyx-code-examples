@@ -315,7 +315,6 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
       waitlist,
       cursor: -1,
       currentCandidate: null,
-      confirmation: null,
       status: "open",
       generation: previous.generation + 1,
     });
@@ -772,8 +771,8 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
       startsAt: s.startsAt,
       cursor: s.cursor,
       waitlistLength: s.waitlist.length,
-      currentCandidate: s.currentCandidate,
-      confirmation: s.confirmation,
+      currentCandidate: s.currentCandidate ?? null,
+      confirmation: s.confirmation ?? null,
       generation: s.generation,
     };
   }
