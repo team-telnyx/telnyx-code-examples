@@ -70,7 +70,7 @@ export interface Env {
 type SlotStub = ActorStub &
   Pick<
     AppointmentSlot,
-    "openSlot" | "onInboundMessage" | "onCallEvent" | "snapshot" | "ledgerSnapshot"
+    "openSlot" | "onInboundMessage" | "onCallEvent" | "onAssistantOutcome" | "snapshot" | "ledgerSnapshot"
   >;
 
 interface SlotNamespace extends ActorNamespace {
@@ -629,6 +629,70 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
   }
 
   /**
+   * The assistant's webhook tool (report_outcome) resolves here — the flat
+   * tool arguments arrive with the caller's phone preset into the body, so
+   * the actor can verify the claimant and apply the decision. The response
+   * JSON is handed back to the assistant as the tool result, so it can speak
+   * the outcome (or apologize when the slot was already taken).
+   */
+  @rpc({ description: "Record the outcome reported by the AI assistant's voice call" })
+  async onAssistantOutcome(payload: {
+    intent: string;
+    callerPhone: string;
+  }): Promise<{ ok: boolean; recorded: boolean; reply: string; slotStatus: SlotStatus }> {
+    if (!payload?.intent || !payload?.callerPhone) {
+      throw new Error("intent and callerPhone are required");
+    }
+    const state = await this.getState();
+    if (isClosed(state.status)) {
+      return {
+        ok: true,
+        recorded: false,
+        reply:
+          state.confirmation && state.confirmation.patient !== payload.callerPhone
+            ? `sorry, the ${state.provider} slot at ${state.startsAt} was just claimed by another patient`
+            : `the ${state.provider} slot at ${state.startsAt} is already resolved`,
+        slotStatus: state.status,
+      };
+    }
+
+    const candidate = state.currentCandidate;
+    const isCandidate = candidate && candidate.phone === payload.callerPhone;
+    const isMissedPatient = state.missedPatient.phone === payload.callerPhone;
+    if (!isCandidate && !isMissedPatient) {
+      return {
+        ok: true,
+        recorded: false,
+        reply: "this call is not currently being offered a slot",
+        slotStatus: state.status,
+      };
+    }
+
+    const decision = parseDecision(
+      isCandidate ? (candidate?.role ?? "waitlist") : "missed",
+      payload.intent,
+    );
+    if (!decision) {
+      return {
+        ok: true,
+        recorded: false,
+        reply: "the intent could not be mapped to a decision; ask the patient to clarify",
+        slotStatus: state.status,
+      };
+    }
+    const actorCandidate: Candidate = candidate ?? {
+      ...state.missedPatient,
+      role: "missed",
+      channel: "voice",
+      attempts: 1,
+      callControlId: null,
+    };
+    const reply = await this.applyDecision(decision, actorCandidate, "voice");
+    const after = await this.getState();
+    return { ok: true, recorded: true, reply: reply.toLowerCase(), slotStatus: after.status };
+  }
+
+  /**
    * Inbound SMS seam — real message.received webhooks and the demo driver
    * both land here, so replies always resolve through the actor-owned slot
    * state (cursor + confirmation lock).
@@ -855,14 +919,91 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
     return `Hi ${name || "there"}, this is your clinic scheduling line. An appointment slot just opened. Say YES to take it or NO to pass — the first person to confirm gets the slot.`;
   }
 
-  // ── Outbound channels (demo: log; live: Call Control + Messaging) ───────
+  // ── Outbound channels (demo: log; live: AI assistant call or Call Control) ──
 
-  /** Dial via Call Control; carries the slot in client_state for routing. */
+  /**
+   * Voice channel selection: when VOICE_ASSISTANT_ID is configured the slot
+   * hands the live conversation to a Telnyx AI Assistant (conversational
+   * voice agent; outcomes flow back via the assistant's webhook tool). With
+   * no assistant configured the Call Control speak + gather_using_ai path is
+   * used instead.
+   */
   private async placeCall(candidate: Candidate, script: string): Promise<void> {
     if (await isDemoMode(this.env)) {
       console.log(`[demo] voice call to ${candidate.phone}: ${script}`);
       return;
     }
+    const assistantId = await readConfig(this.env, "VOICE_ASSISTANT_ID");
+    if (assistantId) {
+      await this.triggerAssistantCall(candidate, assistantId);
+      return;
+    }
+    await this.dialCallControl(candidate);
+  }
+
+  /**
+   * Trigger a Telnyx AI Assistant outbound call via scheduled events. The
+   * assistant carries the conversation (patient name, provider, slot time as
+   * dynamic variables) and reports the outcome to /webhook/assistant-tool
+   * through its webhook tool.
+   */
+  private async triggerAssistantCall(candidate: Candidate, assistantId: string): Promise<void> {
+    const state = await this.getState();
+    const apiKey = await this.apiKey();
+    const callerId = await readConfig(this.env, "OUTBOUND_CALLER_ID");
+    if (!callerId) {
+      throw new Error("OUTBOUND_CALLER_ID is required for assistant calls");
+    }
+    const resp = await fetch(
+      `${TELNYX_API}/ai/assistants/${encodeURIComponent(assistantId)}/scheduled_events`,
+      {
+        method: "POST",
+        headers: authHeaders(apiKey),
+        body: JSON.stringify({
+          telnyx_conversation_channel: "phone_call",
+          telnyx_end_user_target: candidate.phone,
+          telnyx_agent_target: callerId,
+          scheduled_at_fixed_datetime: new Date(Date.now() + 5000).toISOString(),
+          dynamic_variables: {
+            patient_name: candidate.name || "there",
+            provider: state.provider,
+            starts_at: state.startsAt,
+            slot_id: state.slotId,
+            role: candidate.role,
+            offer_text: this.scriptFor(candidate),
+          },
+          conversation_metadata: {
+            slot_id: state.slotId,
+            patient_phone: candidate.phone,
+            role: candidate.role,
+            provider: state.provider,
+          },
+        }),
+      },
+    );
+    if (!resp.ok) {
+      const errBody = (await resp.text().catch(() => "")).slice(0, 200);
+      throw new Error(`assistant scheduled_event failed: HTTP ${resp.status} ${errBody}`);
+    }
+    const data = (await resp.json()) as { data?: { id?: string } };
+    await this.setState({
+      currentCandidate: {
+        ...candidate,
+        callControlId: data.data?.id ?? null,
+      },
+    });
+    await this.recordAttempt({
+      slotId: state.slotId,
+      patient: candidate.phone,
+      channel: "voice",
+      status: "attempted",
+      detail: `ai assistant call triggered (event ${data.data?.id ?? "unknown"})`,
+      ts: Date.now(),
+    });
+  }
+
+  /** Dial via Call Control; carries the slot in client_state for routing. */
+  private async dialCallControl(candidate: Candidate): Promise<void> {
     const state = await this.getState();
     const apiKey = await this.apiKey();
     const connectionId = await readConfig(this.env, "OUTBOUND_CONNECTION_ID");
@@ -1169,7 +1310,7 @@ export class SlotIndex extends Agent<Env, IndexState> {
 const E164_RE = /^\+[1-9]\d{7,14}$/;
 const DECISION_YES = /^(yes|confirm|take it|1|y)\b/i;
 const DECISION_NO = /^(no|pass|can'?t|cannot|decline|2|n)\b/i;
-const DECISION_RESCHEDULE = /^(reschedule|rebook|new time|yes)\b/i;
+const DECISION_RESCHEDULE = /^(reschedule|rebook|new time|yes|confirm|sure|take it)\b/i;
 const DECISION_LATER = /^(later|call me (later|back)|callback|busy)\b/i;
 
 /** Sanitize a slot id for use as an actor name (RFC 1123 safe). */
@@ -1306,6 +1447,11 @@ export default {
       }
     }
 
+    // ── AI Assistant webhook tool (report_outcome from the live call) ────
+    if (url.pathname === "/webhook/assistant-tool") {
+      return await handleAssistantTool(req, env);
+    }
+
     // ── Telnyx Call Control event webhook ─────────────────────────────────
     if (url.pathname === "/webhook/call-events") {
       const data = (await verifyWebhook(req, env))?.data;
@@ -1396,6 +1542,58 @@ export default {
 };
 
 // ── Routing: inbound reply -> slot actor ──────────────────────────────────
+
+/**
+ * The assistant's report_outcome webhook tool lands here. The body is the
+ * FLAT arguments object (no wrapper) with preset_body_fields merged in:
+ * {intent, slot_id, caller_phone, call_control_id}. Live mode verifies the
+ * Ed25519 signature headers before trusting it; demo mode accepts plain JSON
+ * so the flow can be driven locally.
+ */
+async function handleAssistantTool(req: Request, env: Env): Promise<Response> {
+  const rawBody = await req.text();
+  let body: Record<string, unknown>;
+  if (await isDemoMode(env)) {
+    try {
+      body = JSON.parse(rawBody) as Record<string, unknown>;
+    } catch {
+      return json({ error: "invalid json" }, 400);
+    }
+  } else {
+    try {
+      const headers: Record<string, string> = {};
+      req.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+      const publicKey = await readConfig(env, "TELNYX_PUBLIC_KEY");
+      if (!publicKey) {
+        return json({ error: "TELNYX_PUBLIC_KEY is required when DEMO_MODE is false" }, 500);
+      }
+      body = (await telnyxVerifyClient.webhooks.unwrap(rawBody, {
+        headers,
+        key: publicKey,
+      })) as Record<string, unknown>;
+    } catch (e) {
+      console.error("assistant tool signature verification failed:", e instanceof Error ? e.message : e);
+      return json({ error: "signature verification failed" }, 401);
+    }
+  }
+
+  const intent = String(body.intent ?? "");
+  const slotId = String(body.slot_id ?? "");
+  const callerPhone = String(body.caller_phone ?? "");
+  if (!intent || !slotId || !callerPhone) {
+    return json({ error: "intent, slot_id and caller_phone are required" }, 400);
+  }
+  try {
+    const stub = env.SLOTS.idFromName(actorNameFromSlot(slotId));
+    const result = await stub.onAssistantOutcome({ intent, callerPhone });
+    return json(result);
+  } catch (e) {
+    console.error("assistant outcome failed:", e instanceof Error ? e.message : e);
+    return json({ error: "failed to record outcome" }, 500);
+  }
+}
 
 async function routeReply(
   env: Env,
