@@ -1321,7 +1321,7 @@ export class SlotIndex extends Agent<Env, IndexState> {
   async trackSlot(slotId: string, provider: string, startsAt: string): Promise<{ ok: boolean }> {
     const state = await this.getState();
     await this.setState({
-      slots: { ...state.slots, [slotId]: { provider, startsAt } },
+      slots: { ...(state.slots ?? {}), [slotId]: { provider, startsAt } },
     });
     return { ok: true };
   }
@@ -1339,7 +1339,7 @@ export class SlotIndex extends Agent<Env, IndexState> {
   @rpc({ description: "List tracked slots for the dashboard" })
   async listSlots(): Promise<Record<string, TrackedSlot>> {
     const state = await this.getState();
-    return state.slots;
+    return state.slots ?? {};
   }
 }
 
@@ -1424,7 +1424,7 @@ export default {
 
     if (req.method === "GET" && url.pathname === "/api/dashboard") {
       const index = env.SLOT_INDEX.idFromName("index");
-      const slots = await index.listSlots();
+      const slots = (await index.listSlots()) ?? {};
       const cards = await Promise.all(
         Object.entries(slots).map(async ([slotId, meta]) => {
           const stub = env.SLOTS.idFromName(actorNameFromSlot(slotId));
