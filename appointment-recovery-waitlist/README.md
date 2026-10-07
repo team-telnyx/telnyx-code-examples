@@ -25,7 +25,8 @@ Telnyx provides **AI Communications Infrastructure** — a platform where durabl
 | `this.schedule(seconds, "sweepCandidate", { generation }, { id })` | Agent SDK | Reply-window sweep, retry timer, and slot expiry — every pending outreach survives restarts |
 | `POST /v2/calls` | Voice (Call Control) | Dials the missed patient and waitlist candidates with `client_state` encoding the slot id for webhook routing |
 | `POST /v2/calls/{call_control_id}/actions/speak` | Voice (Call Control) | Speaks the reschedule or "first to confirm wins" offer once the patient answers |
-| `POST /v2/calls/{call_control_id}/actions/gather_using_ai` (optional) | Voice (Call Control) | Classifies the patient's reply (reschedule / later / decline / confirm) on the live call |
+| `call.speak.ended` → `POST /v2/calls/{call_control_id}/actions/gather_using_ai` | Voice (Call Control) | After the offer plays, classifies the spoken reply into one intent (`reschedule`/`later`/`decline` or `confirm`/`decline`) with Telnyx-hosted inference |
+| `call.ai_gather.ended` / `call.ai_gather.failed` webhooks (`/webhook/call-events`) | Voice (Call Control) | Carries the classified intent; the actor applies the decision and hangs up |
 | `env.TELNYX.messages.send({ to, from, text })` | Messaging | Outreach SMS, retry SMS, and confirmation SMS — zero-credential binding |
 | `message.received` webhook (`/webhook/inbound-message`) | Messaging | Patient replies resolve through the same actor-owned slot state |
 | `call.answered`, `call.ai-gather-ended`, `call.hangup` webhooks (`/webhook/call-events`) | Voice (Call Control) | Call lifecycle routed to the slot actor via `client_state` (or the index fallback) |
@@ -209,7 +210,7 @@ curl https://<your-function>.telnyxcompute.com/state/SLOT-8217
 curl https://<your-function>.telnyxcompute.com/ledger/SLOT-8217
 ```
 
-Demo mode (default) logs every call/SMS to the actor console and accepts the `/demo/*` endpoints above — no charges, no real phone numbers needed. Live mode: register the secrets above, then re-ship.
+Demo mode (default) logs every call/SMS to the actor console and accepts the `/demo/*` endpoints above — no charges, no real phone numbers needed. One-shot version of the whole flow: `BASE=<function-url> ./demo.sh`. Live mode: register the secrets above, then re-ship.
 
 ### Project Structure
 

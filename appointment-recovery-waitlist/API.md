@@ -101,7 +101,9 @@ the `SlotIndex` fallback (`payload.to`).
 | `event_type` | Actor behavior |
 |---|---|
 | `call.answered` | Records `answered` in the ledger, speaks the offer (`/actions/speak`) |
-| `call.ai-gather-ended` | Parses the intent (reschedule / later / decline / confirm) and applies it |
+| `call.speak.ended` | Starts `gather_using_ai` to classify the spoken reply |
+| `call.ai_gather.ended` | Parses `payload.result.intent` (or `utterance`), applies the decision, hangs up |
+| `call.ai_gather.failed` | Records `no_answer`, hangs up — the sweep timer decides retry vs next candidate |
 | `call.hangup` | Records `no_answer`; the sweep timer decides retry vs next candidate |
 
 **Response**

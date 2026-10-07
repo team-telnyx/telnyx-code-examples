@@ -217,6 +217,8 @@ export interface CallEventPayload {
   callControlId: string;
   /** Classified intent from gather_using_ai, when present. */
   intent?: string;
+  /** Raw gather_using_ai result (live mode), e.g. { intent, utterance }. */
+  result?: Record<string, unknown>;
   /** Callee number (E.164) for outbound-call events. */
   to?: string;
 }
@@ -524,6 +526,10 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
    * Call Control event seam — both the real Telnyx webhooks (live mode) and
    * the deterministic demo driver (/demo/call-event) resolve through here, so
    * the same actor-owned slot state answers calls and simulated calls alike.
+   *
+   * Live voice flow: call.answered → speak the offer → call.speak.ended →
+   * gather_using_ai (classifies the reply) → call.ai_gather.ended →
+   * applyDecision → hangup.
    */
   @rpc({ description: "Handle a Call Control event routed to this slot" })
   async onCallEvent(
@@ -553,14 +559,57 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
       return { ok: true, handled: true };
     }
 
-    if (payload.eventType === "call.ai-gather-ended" || payload.eventType === "call.gather.ended") {
+    if (payload.eventType === "call.speak.ended") {
       if (!matches) return { ok: true, handled: false };
-      const decision = parseDecision(candidate.role, payload.intent ?? "");
+      await this.gatherUsingAi(candidate.callControlId, candidate);
+      return { ok: true, handled: true };
+    }
+
+    if (payload.eventType === "call.ai_gather.ended") {
+      if (!matches) return { ok: true, handled: false };
+      const intent =
+        (payload.result?.intent as string | undefined) ??
+        (payload.result?.utterance as string | undefined) ??
+        payload.intent ??
+        "";
+      const decision = parseDecision(candidate.role, intent);
       if (!decision) {
-        return { ok: true, handled: true }; // gather heard nothing useful; sweep decides
+        await this.recordAttempt({
+          slotId: state.slotId,
+          patient: candidate.phone,
+          channel: "voice",
+          status: "no_answer",
+          detail: `gather ended without a usable intent: ${intent.slice(0, 80)}`,
+          ts: Date.now(),
+        });
+        await this.hangup(candidate.callControlId);
+        return { ok: true, handled: true };
       }
+      await this.recordAttempt({
+        slotId: state.slotId,
+        patient: candidate.phone,
+        channel: "voice",
+        status: "answered",
+        detail: `voice intent: ${decision}`,
+        ts: Date.now(),
+      });
       await this.applyDecision(decision, candidate, "voice");
+      await this.hangup(candidate.callControlId);
       return { ok: true, handled: true, decision };
+    }
+
+    if (payload.eventType === "call.ai_gather.failed") {
+      if (!matches) return { ok: true, handled: false };
+      await this.recordAttempt({
+        slotId: state.slotId,
+        patient: candidate.phone,
+        channel: "voice",
+        status: "no_answer",
+        detail: "gather failed — no reply captured",
+        ts: Date.now(),
+      });
+      await this.hangup(candidate.callControlId);
+      return { ok: true, handled: true };
     }
 
     if (payload.eventType === "call.hangup") {
@@ -854,16 +903,87 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
     }
     if (!callControlId) return;
     const apiKey = await this.apiKey();
+    const state = await this.getState();
     const resp = await fetch(
       `${TELNYX_API}/calls/${encodeURIComponent(callControlId)}/actions/speak`,
       {
         method: "POST",
         headers: authHeaders(apiKey),
-        body: JSON.stringify({ payload: script, language: "en-US", voice: "female" }),
+        body: JSON.stringify({
+          payload: script,
+          language: "en-US",
+          voice: "female",
+          client_state: encodeSlotState(state.slotId),
+        }),
       },
     );
     if (!resp.ok) {
       throw new Error(`Call Control speak failed: HTTP ${resp.status}`);
+    }
+  }
+
+  /**
+   * Classify the patient's spoken reply with gather_using_ai. The parameters
+   * schema constrains the model to one intent word; the result lands in
+   * payload.result.intent on the call.ai_gather.ended webhook.
+   */
+  private async gatherUsingAi(callControlId: string | null, candidate: Candidate): Promise<void> {
+    if (await isDemoMode(this.env)) {
+      console.log(`[demo] gather_using_ai on call (awaiting reply from ${candidate.phone})`);
+      return;
+    }
+    if (!callControlId) return;
+    const apiKey = await this.apiKey();
+    const state = await this.getState();
+    const intents =
+      candidate.role === "missed" ? ["reschedule", "later", "decline"] : ["confirm", "decline"];
+    const model = (await readConfig(this.env, "AI_MODEL")) || "meta-llama/Llama-3.3-70B-Instruct";
+    const instructions =
+      candidate.role === "missed"
+        ? "you are a one-turn speech classifier. the caller just heard an offer to reschedule a missed appointment. classify their reply as exactly one of: reschedule, later, decline. respond with only that word."
+        : "you are a one-turn speech classifier. the caller just heard an offer to claim an open appointment slot. classify their reply as exactly one of: confirm, decline. respond with only that word.";
+    const resp = await fetch(
+      `${TELNYX_API}/calls/${encodeURIComponent(callControlId)}/actions/gather_using_ai`,
+      {
+        method: "POST",
+        headers: authHeaders(apiKey),
+        body: JSON.stringify({
+          parameters: {
+            type: "object",
+            properties: {
+              intent: { type: "string", enum: intents },
+              utterance: {
+                type: "string",
+                description: "the caller's spoken response, transcribed verbatim.",
+              },
+            },
+            required: ["intent"],
+          },
+          assistant: { model, instructions },
+          transcription: { language: "en" },
+          user_response_timeout_ms: 15000,
+          client_state: encodeSlotState(state.slotId),
+        }),
+      },
+    );
+    if (!resp.ok) {
+      throw new Error(`Call Control gather_using_ai failed: HTTP ${resp.status}`);
+    }
+  }
+
+  private async hangup(callControlId: string | null): Promise<void> {
+    if (await isDemoMode(this.env)) {
+      console.log(`[demo] hangup call`);
+      return;
+    }
+    if (!callControlId) return;
+    const apiKey = await this.apiKey();
+    const resp = await fetch(
+      `${TELNYX_API}/calls/${encodeURIComponent(callControlId)}/actions/hangup`,
+      { method: "POST", headers: authHeaders(apiKey) },
+    );
+    if (!resp.ok) {
+      throw new Error(`Call Control hangup failed: HTTP ${resp.status}`);
     }
   }
 
@@ -1212,6 +1332,10 @@ export default {
           eventType: data.event_type,
           callControlId,
           intent: typeof payload.intent === "string" ? payload.intent : undefined,
+          result:
+            payload.result && typeof payload.result === "object"
+              ? (payload.result as Record<string, unknown>)
+              : undefined,
           to: typeof payload.to === "string" ? payload.to : undefined,
         });
         return json(result);
