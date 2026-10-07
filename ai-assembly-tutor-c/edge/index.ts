@@ -62,14 +62,45 @@ function buildUserMessage(req: ExplainRequest): string {
   return parts.join('\n');
 }
 
+const MAX_BODY_SIZE = 100 * 1024; // 100 KB max request body
+
 function readBody(req: http.IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = '';
-    req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+    let size = 0;
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > MAX_BODY_SIZE) { req.destroy(); reject(new Error('Request too large')); return; }
+      body += chunk.toString();
+    });
     req.on('end', () => resolve(body));
     req.on('error', reject);
   });
 }
+
+// Simple in-memory rate limiter: max 20 requests per minute per IP
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60_000;
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const bucket = rateBuckets.get(ip);
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  bucket.count++;
+  return bucket.count > RATE_LIMIT;
+}
+
+// Periodically clean up stale rate limit entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, bucket] of rateBuckets) {
+    if (now > bucket.resetAt) rateBuckets.delete(ip);
+  }
+}, RATE_WINDOW_MS);
 
 function httpsPost(
   host: string, path: string, headers: Record<string, string>, payload: string,
@@ -632,20 +663,26 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
     return;
   }
 
-  // CORS
+  // Security & CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
   // ── API endpoint ──────────────────────────────────────────────────
   if (url === '/api/explain' && req.method === 'POST') {
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+    if (isRateLimited(clientIp)) { sendJson(res, { error: 'Too many requests — please wait a moment' }, 429); return; }
     let body: ExplainRequest;
     try { body = JSON.parse(await readBody(req)); }
-    catch { sendJson(res, { error: 'Invalid JSON' }, 400); return; }
-    if (!body.question) { sendJson(res, { error: 'question is required' }, 400); return; }
+    catch { sendJson(res, { error: 'Invalid JSON or request too large' }, 400); return; }
+    if (!body.question || typeof body.question !== 'string') { sendJson(res, { error: 'question is required' }, 400); return; }
+    if (body.question.length > 2000) { sendJson(res, { error: 'Question too long (max 2000 chars)' }, 400); return; }
     const apiKey = process.env.TELNYX_API_KEY;
-    if (!apiKey) { sendJson(res, { error: 'TELNYX_API_KEY not configured' }, 500); return; }
+    if (!apiKey) { sendJson(res, { error: 'Service not configured' }, 500); return; }
     try {
       const payload = JSON.stringify({
         model: INFERENCE_MODEL,
@@ -663,7 +700,7 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
           { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           payload,
         );
-        if (resp.status !== 200) { sendJson(res, { error: resp.body.slice(0, 500) }, resp.status); return; }
+        if (resp.status !== 200) { sendJson(res, { error: 'AI service temporarily unavailable' }, 502); return; }
         const data = JSON.parse(resp.body);
         content = data?.choices?.[0]?.message?.content ?? '';
         if (content) break;
