@@ -3,9 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2026-05-01"
 
 # The relay actor is the assistant event-stream sink: the assistant's
-# websocket_settings.url points at wss://<fn-host>/agents/assist (static URL;
-# Telnyx opens one socket per conversation and the relay routes by
-# conversation id). One durable CoachRoom per conversation + the shift
+# websocket_settings.url points at wss://<fn-host>/agents/assist/livewire
+# (static URL with a stable mount id — the agent mount addresses one actor
+# per path id; Telnyx opens one socket per conversation and the relay routes
+# by conversation id). One durable CoachRoom per conversation + the shift
 # registry, both addressed by the worker.
 [[actors]]
 binding = "RELAY"

@@ -167,9 +167,9 @@ Browser surfaces — the supervisor dashboard and the caller simulator.
 
 ## WebSocket routes
 
-### `wss://<fn-host>/agents/assist` — assistant event stream
+### `wss://<fn-host>/agents/assist/livewire` — assistant event stream
 
-The assistant's `websocket_settings.url`. Telnyx opens one socket per conversation and authenticates with `Authorization: Bearer <auth_ref>`; the relay rejects upgrades whose bearer token is not the `COACH_AUTH` secret (`1008 Unauthorized`).
+The assistant's `websocket_settings.url`. The `livewire` id segment is required by the agent mount (one actor per path id); it is stable — Telnyx opens one socket per conversation to this URL. Telnyx authenticates with `Authorization: Bearer <auth_ref>`; the relay rejects upgrades whose bearer token is not the `COACH_AUTH` secret (`1008 Unauthorized`).
 
 **Frames Telnyx sends** (bare JSON, discriminated by `type`; unknown types ignored):
 

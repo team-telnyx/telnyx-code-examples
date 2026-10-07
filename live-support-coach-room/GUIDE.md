@@ -42,13 +42,13 @@ curl -X POST https://api.telnyx.com/v2/ai/assistants/{assistant_id} \
   -d '{
     "websocket_settings": {
       "enabled": true,
-      "url": "wss://<fn-host>/agents/assist",
+      "url": "wss://<fn-host>/agents/assist/livewire",
       "auth_ref": "<your COACH_AUTH integration secret>"
     }
   }'
 ```
 
-Telnyx sends the secret as `Authorization: Bearer <value>` on the upgrade request. When a call starts, you'll see `session.created` land in the relay and a new room appear under `GET /rooms`.
+Telnyx sends the secret as `Authorization: Bearer <value>` on the upgrade request. The `livewire` id segment is required — the agent mount addresses one actor per path id. When a call starts, you'll see `session.created` land in the relay and a new room appear under `GET /rooms`.
 
 ## Step 3 — Run the demo (no telephony needed)
 

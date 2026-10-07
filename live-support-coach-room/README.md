@@ -19,7 +19,7 @@ Telnyx provides **AI Communications Infrastructure** — the programmable voice,
 
 | Endpoint | Method | Purpose |
 |---|---|---|
-| Assistant `websocket_settings` (`wss://…/agents/assist`) | WebSocket | Receives `session.created`, `conversation.item.created`, `response.text.delta`, `telnyx.call.*`, `session.ended` per conversation |
+| Assistant `websocket_settings` (`wss://…/agents/assist/livewire`) | WebSocket | Receives `session.created`, `conversation.item.created`, `response.text.delta`, `telnyx.call.*`, `session.ended` per conversation |
 | `conversation.item.create` (injected back over the stream) | WebSocket | Coach nudge — the assistant pivots mid-call |
 | `POST /v2/calls` | POST | Dials the supervisor's device via Call Control ([API reference](https://developers.telnyx.com/api-reference/call-commands/creat-call)) |
 | `POST /calls/{call_control_id}/actions/ai_assistant_join` | POST | Joins the supervisor leg into the live AI conversation ([API reference](https://developers.telnyx.com/api-reference/call-commands/join-ai-assistant-conversation)) |
@@ -29,7 +29,7 @@ Telnyx provides **AI Communications Infrastructure** — the programmable voice,
 ## Architecture
 
 ```
-Support assistant ──wss (websocket_settings → /agents/assist)──> AssistRelay actor
+Support assistant ──wss (websocket_settings → /agents/assist/livewire)──> AssistRelay actor
    one static URL, one socket per conversation; relay routes by conversation id
         │  session.created → COACHROOMS.idFromName(conversation_id)
         ▼
@@ -134,7 +134,7 @@ curl -X POST https://api.telnyx.com/v2/ai/assistants/{assistant_id} \
   -d '{
     "websocket_settings": {
       "enabled": true,
-      "url": "wss://live-support-coach-room-<id>.telnyxcompute.com/agents/assist",
+      "url": "wss://live-support-coach-room-<id>.telnyxcompute.com/agents/assist/livewire",
       "auth_ref": "<your COACH_AUTH integration secret>"
     }
   }'
@@ -160,7 +160,7 @@ For the full walkthrough, see [GUIDE.md](https://raw.githubusercontent.com/team-
 
 | Route | Method | Purpose |
 |---|---|---|
-| `/agents/assist` | WebSocket | Assistant event-stream sink (`websocket_settings.url`) |
+| `/agents/assist/livewire` | WebSocket | Assistant event-stream sink (`websocket_settings.url`) — the id segment is required by the agent mount; `livewire` is the stable sink name |
 | `/agents/coach-room/{id}` | WebSocket | Supervisor room view (snapshot + live patches) |
 | `/rooms` | GET | Live + ended rooms for the shift |
 | `/rooms/{id}/join` | POST | Escalation: dial supervisor + `ai_assistant_join` |
