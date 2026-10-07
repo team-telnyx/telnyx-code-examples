@@ -202,43 +202,55 @@ async function demoEnd(req: Request, env: Env): Promise<Response> {
 
 // ── Supervisor dashboard ─────────────────────────────────────────────────
 
+const TELNYX_LOGO = `<svg id="Art" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180.92 315.8" class="brand"><defs><style>.cls-1{fill:#fefdf5;}.cls-2{fill:#00e3aa;}</style></defs><path class="cls-1" d="M1004.5,275.8a40,40,0,0,1-40,40H857.11a.34.34,0,0,1-.35-.35V279.73a.35.35,0,0,1,.35-.35H948.4a16,16,0,0,0,16-16V239.66a.34.34,0,0,0-.63-.17c-10.41,16.2-27.21,27.66-51.4,27.66-36.11,0-56-26.28-56-66.37V92.27a.35.35,0,0,1,.35-.35h39.12a.35.35,0,0,1,.35.35v104c0,23.9,10.09,36.91,32.66,36.91,25.87,0,33.84-16.89,35.46-31.51l.12-2.3V92.27a.35.35,0,0,1,.35-.35h39.38a.36.36,0,0,1,.36.35ZM468.6,188c0,48.86,26,79.12,80.45,79.12,47.52,0,72.48-23.63,75.66-58.94l.27-6.6H583.93l-.64,8.19a22.68,22.68,0,0,1-1,5.47c-3.29,9.8-13.51,17.63-33,17.63C520.64,232.9,510,216.44,510,192v-3.44a.55.55,0,0,1,.54-.55H626V168.92c0-51.51-27.61-79.65-77-79.65-54.43,0-80.45,30.26-80.45,78.59Zm42.23-28.94a.5.5,0,0,1-.5-.54c1.73-20.94,12.65-35,37.39-35,26.23,0,36.74,13.63,36.64,35.07a.5.5,0,0,1-.5.5ZM639.4,40.63V264.5h40.09V40.63Zm94.52,51.29H694.09V264.5h39.83v-103c0-15.4,5.84-38.23,35.84-38.23,22.57,0,32.66,13,32.66,36.91V264.5h39.82V155.64c0-40.09-19.91-66.37-56-66.37C762,89.27,745,101,734.56,117.19a.34.34,0,0,1-.64-.18ZM1073.41,175a1,1,0,0,1,0,1.1l-58.52,88.4h43.86L1096.56,207a.5.5,0,0,1,.83,0l37.29,57.51h46.24l-58.25-88.24a1,1,0,0,1,0-1.11l56.08-83.23h-45.93l-33,52.43a.5.5,0,0,1-.84,0l-33-52.43h-48.32ZM459.47,228.89H407.14a16,16,0,0,1-16-16V139.58a12,12,0,0,1,12-12h56.33V91.91H403.15a12,12,0,0,1-12-12V40.63H351.22V79.91a12,12,0,0,1-12,12h-27.9v35.67h28a12,12,0,0,1,12,12v84.31a40.73,40.73,0,0,0,40.6,40.61h67.55Z"/><path class="cls-2" d="M72.48,87h40.29L132,50.58a18.42,18.42,0,0,1,16.52-9.95h0a18.4,18.4,0,0,1,16.52,9.95L184.29,87h40.29l-28.06-53a54.29,54.29,0,0,0-96,0Z"/><path class="cls-2" d="M110.42,129.45v94.43h18.31a17.57,17.57,0,0,0,17.06-14.53,17.25,17.25,0,0,0,.25-2.89V150.07a22.5,22.5,0,0,1,22.48-22.5h79.2V92H147.92A37.54,37.54,0,0,0,110.42,129.45Z"/><path class="cls-2" d="M8.92,207.13A40.07,40.07,0,0,0,6.12,215a40.54,40.54,0,0,0,3.9,29,37.75,37.75,0,0,0,16.56,15.77c4.77,2.32,10.42,4.68,16.14,4.68H148.54a38.15,38.15,0,0,0,38.11-38.11V132.57H168.43A17.53,17.53,0,0,0,151,150v56.48a23.14,23.14,0,0,1-.35,3.84,22.57,22.57,0,0,1-22.15,18.53H60a13,13,0,0,1-11.24-6.45,13.84,13.84,0,0,1-.34-13.74l40.25-76.12H48.36L10.18,204.65C9.74,205.45,9.34,206.24,8.92,207.13Z"/><path class="cls-2" d="M270.49,259.82a37.8,37.8,0,0,0,16.56-15.77,40.53,40.53,0,0,0,3.89-29,40.07,40.07,0,0,0-2.8-7.89c-.42-.89-.82-1.69-1.24-2.43l-38.19-72.12H208.44l40.25,76.12a13.84,13.84,0,0,1-.34,13.74,13,13,0,0,1-11.23,6.45H191.58a42.8,42.8,0,0,1-4.62,17h0a43.38,43.38,0,0,1-18.27,18.55h85.67C260.07,264.5,265.72,262.14,270.49,259.82Z"/><path class="cls-2" d="M49.35,127.58h56.11A42.56,42.56,0,0,1,127.93,92H49.35Z"/></svg>`;
+
+const BRAND_CSS = `
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Inter", system-ui, -apple-system, sans-serif; background: #0b0d10; color: #fefdf5; }
+  a { color: #00e3aa; }
+  header { display: flex; gap: 14px; align-items: center; padding: 14px 22px; border-bottom: 1px solid #1f262d; background: #0e1114; }
+  .brand { height: 20px; width: auto; display: block; }
+  .app-title { font-size: 13px; font-weight: 600; letter-spacing: .02em; color: #8a939e; flex: 1; padding-left: 6px; }
+  #status { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 999px; background: #1a1f24; color: #8a939e; letter-spacing: .04em; }
+  #status.live { background: rgba(0,227,170,.12); color: #00e3aa; border: 1px solid rgba(0,227,170,.35); }
+  #status.down { background: rgba(255,43,6,.12); color: #ff5c3d; border: 1px solid rgba(255,92,61,.35); }
+  main { display: grid; grid-template-columns: 280px 1fr 290px; gap: 14px; padding: 14px 22px; height: calc(100vh - 53px); }
+  section { background: #12161b; border: 1px solid #1f262d; border-radius: 12px; padding: 16px; overflow-y: auto; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: #8a939e; margin: 0 0 12px; font-weight: 600; }
+  .turn { padding: 10px 12px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; line-height: 1.5; border: 1px solid transparent; }
+  .turn .who { font-size: 9px; text-transform: uppercase; letter-spacing: .12em; color: #8a939e; display: block; margin-bottom: 4px; font-weight: 600; }
+  .turn.caller { background: #171d26; border-color: #242f40; }
+  .turn.assistant { background: #10201b; border-color: #1d3a30; }
+  .turn.coach { background: #0f2e24; border: 1px solid #00e3aa; }
+  .turn.coach .who { color: #00e3aa; }
+  .turn.tool { background: #191d22; color: #8a939e; font-family: ui-monospace, monospace; font-size: 12px; }
+  .flag { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgba(255,43,6,.12); color: #ff5c3d; border: 1px solid rgba(255,92,61,.35); margin: 0 6px 6px 0; }
+  button { background: #00e3aa; color: #04231a; border: 0; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; font-family: inherit; }
+  button:hover { background: #17f0ba; }
+  button:disabled { opacity: .45; cursor: default; }
+  input, textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a323b; background: #0e1114; color: #fefdf5; font-size: 13px; margin-bottom: 10px; font-family: inherit; }
+  input:focus, textarea:focus { outline: 1px solid #00e3aa; }
+  .kv { font-size: 12px; color: #8a939e; margin: 3px 0; }
+  .kv b { color: #fefdf5; font-weight: 600; }
+  .hidden { display: none; }
+`;
+
 const DASHBOARD_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Live Support Coach Room</title>
+<title>Live Support Coach Room — Telnyx</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@telnyx/webrtc@2/dist/TelnyxRTC.min.js"></script>
-<style>
-  :root { color-scheme: dark; }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, sans-serif; background: #0f1117; color: #e6e6e6; }
-  header { display: flex; gap: 16px; align-items: center; padding: 12px 20px; border-bottom: 1px solid #262b36; }
-  header h1 { font-size: 16px; margin: 0; flex: 1; }
-  #status { font-size: 12px; padding: 3px 10px; border-radius: 12px; background: #262b36; }
-  #status.live { background: #1c3a2a; color: #6ee7a0; }
-  #status.down { background: #3a1c1c; color: #f87171; }
-  main { display: grid; grid-template-columns: 280px 1fr 280px; gap: 12px; padding: 12px 20px; height: calc(100vh - 52px); }
-  section { background: #161a23; border: 1px solid #262b36; border-radius: 10px; padding: 12px; overflow-y: auto; }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #8b93a7; margin: 0 0 10px; }
-  .turn { padding: 8px 10px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; line-height: 1.45; }
-  .turn .who { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #8b93a7; display: block; margin-bottom: 3px; }
-  .turn.caller { background: #232a3a; }
-  .turn.assistant { background: #1d2b26; }
-  .turn.coach { background: #3a3320; border: 1px solid #6b5e26; }
-  .turn.tool { background: #23232a; color: #9aa2b8; font-family: monospace; font-size: 12px; }
-  .flag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; background: #3a1c1c; color: #fca5a5; margin: 0 6px 6px 0; }
-  button { background: #2b4c8c; color: #fff; border: 0; border-radius: 8px; padding: 9px 14px; font-size: 13px; cursor: pointer; width: 100%; }
-  button:disabled { opacity: .5; cursor: default; }
-  input, select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #2c3547; background: #0f1117; color: #e6e6e6; font-size: 13px; margin-bottom: 8px; }
-  .kv { font-size: 12px; color: #8b93a7; margin: 2px 0; }
-  .kv b { color: #e6e6e6; }
-  .hidden { display: none; }
-</style>
+<style>${BRAND_CSS}</style>
 </head>
 <body>
 <header>
-  <h1>Live Support Coach Room</h1>
+  ${TELNYX_LOGO}
+  <span class="app-title">Live Support Coach Room</span>
   <span id="status">connecting</span>
 </header>
 <main>
@@ -254,7 +266,7 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
       <div class="kv">took over <b id="d-tookover">no</b></div>
       <div class="kv">stream <b id="d-stream">down</b></div>
       <div style="margin-top:10px"><button id="join">Escalate to supervisor</button></div>
-      <div style="margin-top:10px">
+      <div style="margin-top:14px">
         <h2>WebRTC softphone</h2>
         <div class="kv">login token (browser-side credential)</div>
         <input id="rtctoken" type="password" placeholder="Telnyx WebRTC login token">
@@ -379,37 +391,37 @@ const CALLER_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Caller Simulator — Live Support Coach Room</title>
+<title>Caller Simulator — Telnyx</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: dark; }
-  body { margin: 0; font-family: system-ui, sans-serif; background: #0f1117; color: #e6e6e6; padding: 20px; max-width: 640px; }
-  h1 { font-size: 18px; } h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #8b93a7; }
-  #conv { font-family: monospace; color: #6ee7a0; }
-  textarea, input { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #2c3547; background: #161a23; color: #e6e6e6; font-size: 14px; }
-  button { background: #2b4c8c; color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; font-size: 14px; cursor: pointer; margin: 8px 4px 0 0; }
-  button:disabled { opacity: .5; }
-  .turn { padding: 8px 10px; border-radius: 8px; margin: 8px 0; font-size: 13px; }
-  .turn .who { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #8b93a7; display: block; }
-  .turn.user { background: #232a3a; } .turn.assistant { background: #1d2b26; }
-  .turn.coach { background: #3a3320; border: 1px solid #6b5e26; }
+${BRAND_CSS}
+  body { max-width: 660px; padding: 26px 22px; }
+  h1 { font-size: 17px; font-weight: 600; margin: 14px 0 6px; }
+  .lead { color: #8a939e; font-size: 13px; line-height: 1.55; margin: 0 0 8px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgba(0,227,170,.12); color: #00e3aa; border: 1px solid rgba(0,227,170,.35); }
 </style>
 </head>
 <body>
-<h1>Caller Simulator</h1>
-<p class="kv">Simulates the caller side of a support call so the coach pipeline runs without telephony. Keep the supervisor dashboard open in the second tab.</p>
+<header style="padding:0;border:0;background:none">
+  ${TELNYX_LOGO}
+  <span class="app-title">Caller Simulator</span>
+</header>
+<h1>Live Support Coach Room</h1>
+<p class="lead">Simulates the caller side of a support call so the coach pipeline runs without telephony. Keep the supervisor dashboard open in the second tab.</p>
 <h2>Conversation</h2>
-<div>id: <span id="conv">not started</span></div>
+<div>id: <span id="conv" class="badge">not started</span></div>
 <button id="start">Start simulated call</button>
-<button id="end" disabled>End call</button>
-<h2 style="margin-top:16px">Caller says</h2>
+<button id="end" disabled style="background:#1a1f24;color:#fefdf5;margin-top:8px">End call</button>
+<h2 style="margin-top:18px">Caller says</h2>
 <textarea id="say" rows="3" placeholder="e.g. I need a refund on my order — my account number is 5521890244."></textarea>
 <div>
   <button id="saybtn" disabled>Send caller turn</button>
 </div>
-<h2 style="margin-top:16px">Assistant says (simulate reply)</h2>
+<h2 style="margin-top:18px">Assistant says (simulate reply)</h2>
 <input id="assistant" placeholder="e.g. Let me verify your identity with your date of birth.">
-<div><button id="abtn" disabled>Send assistant turn</button></div>
-<h2 style="margin-top:16px">Transcript</h2>
+<div><button id="abtn" disabled style="background:#1a1f24;color:#fefdf5">Send assistant turn</button></div>
+<h2 style="margin-top:18px">Transcript</h2>
 <div id="log"></div>
 <script>
 const $ = (id) => document.getElementById(id);
