@@ -10,5 +10,5 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "smoke_test.ts"]
+  "include": ["src/**/*.ts", "smoke_test.ts", "dev_server.ts"]
 }

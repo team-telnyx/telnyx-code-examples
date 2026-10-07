@@ -8,6 +8,7 @@
     "deploy": "telnyx-edge ship",
     "types": "telnyx-edge types",
     "typecheck": "tsc --noEmit",
+    "dev": "tsx dev_server.ts",
     "test": "npm run smoke",
     "smoke": "tsx smoke_test.ts"
   },
