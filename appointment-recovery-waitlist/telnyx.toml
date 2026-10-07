@@ -50,7 +50,7 @@ compatibility_date = "2026-09-01"
 
 # ── Function identity (created via `telnyx-edge new-func --actor -l ts -n appointment-recovery-waitlist`, then pinned) ──
 [edge_compute]
-func_id = "<provision-with-telnyx-edge-new-func>"
+func_id = "88040efc-ff3e-4ab6-bff7-dca19697e40e"
 func_name = "appointment-recovery-waitlist"
 
 [[actors]]
