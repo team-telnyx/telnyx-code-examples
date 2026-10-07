@@ -1,0 +1,6 @@
+# Build dependencies (not pip-installable):
+# - Emscripten SDK (emcc) — https://emscripten.org/docs/getting_started/
+# - Telnyx Edge CLI (telnyx-edge) — https://developers.telnyx.com/docs/edge
+#
+# No Python runtime dependencies — the VM is compiled C (WASM) and
+# the backend is TypeScript deployed to Telnyx Edge Compute.

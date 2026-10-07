@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-07T00:01:57Z",
-  "example_count": 567,
+  "generated_at": "2026-10-07T15:41:28Z",
+  "example_count": 568,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1670,6 +1670,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/run-llm-inference-python"
+    },
+    {
+      "folder": "ai-assembly-tutor-c",
+      "title": "AI Assembly Tutor",
+      "description": "Interactive LC-3 assembly tutor with a WebAssembly VM and Telnyx Inference-powered AI explanations.",
+      "product": "ai",
+      "language": "c",
+      "framework": "emscripten",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assembly-tutor-c"
     },
     {
       "folder": "storage-voicemail-archive-python",
