@@ -317,6 +317,7 @@ export async function ask(question, vmContext, onChunk, onDone) {
     const data = await res.json();
     if (data.response) onChunk(data.response);
     else if (data.error) onChunk('Error: ' + data.error);
+    else onChunk('(No response — try rephrasing your question)');
   } catch (err) { onChunk('\\nNetwork error: ' + err.message); }
   onDone();
 }
@@ -640,15 +641,20 @@ const server = http.createServer(async (req: http.IncomingMessage, res: http.Ser
         ],
         max_tokens: 1024, temperature: 0.3,
       });
-      const resp = await httpsPost(
-        TELNYX_HOST, INFERENCE_PATH,
-        { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        payload,
-      );
-      if (resp.status !== 200) { sendJson(res, { error: resp.body.slice(0, 500) }, resp.status); return; }
-      const data = JSON.parse(resp.body);
-      const content = data?.choices?.[0]?.message?.content ?? '(no response)';
-      sendJson(res, { response: content, model: INFERENCE_MODEL });
+      // Retry up to 2 times if model returns empty
+      let content = '';
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const resp = await httpsPost(
+          TELNYX_HOST, INFERENCE_PATH,
+          { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          payload,
+        );
+        if (resp.status !== 200) { sendJson(res, { error: resp.body.slice(0, 500) }, resp.status); return; }
+        const data = JSON.parse(resp.body);
+        content = data?.choices?.[0]?.message?.content ?? '';
+        if (content) break;
+      }
+      sendJson(res, { response: content || '(The model returned an empty response — please try again)', model: INFERENCE_MODEL });
     } catch { sendJson(res, { error: 'Inference request failed' }, 500); }
     return;
   }
