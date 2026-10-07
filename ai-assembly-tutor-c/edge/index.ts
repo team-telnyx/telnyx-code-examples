@@ -367,11 +367,9 @@ export async function loadVM() {
 }
 export function init() { vmInit(); }
 export function loadProgram(uint16Arr) {
-  const bytes = uint16Arr.length * 2;
-  const ptr = Module._malloc(bytes);
-  for (let i = 0; i < uint16Arr.length; i++) Module.setValue(ptr + i * 2, uint16Arr[i], 'i16');
-  vmLoadProgram(ptr, uint16Arr.length);
-  Module._free(ptr);
+  const buf = new Uint8Array(uint16Arr.length * 2);
+  for (let i = 0; i < uint16Arr.length; i++) { buf[i*2] = uint16Arr[i] & 0xFF; buf[i*2+1] = (uint16Arr[i] >> 8) & 0xFF; }
+  Module.ccall('vm_load_program', null, ['array', 'number'], [buf, uint16Arr.length]);
 }
 export function step() { return vmStep(); }
 export function getRegister(r) { return vmGetRegister(r); }
