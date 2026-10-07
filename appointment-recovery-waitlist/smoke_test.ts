@@ -151,7 +151,7 @@ function makeNamespace(kind: "slot" | "index"): AnyRecord {
   return {
     idFromName: (name: string): unknown => {
       if (kind === "index") {
-        return bindAll(indexActorFor(), ["register", "clear", "lookup"]);
+        return bindAll(indexActorFor(), ["register", "clear", "lookup", "trackSlot", "untrackSlot", "listSlots"]);
       }
       return bindAll(slotActorFor(name), [
         "openSlot",

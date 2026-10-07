@@ -237,7 +237,7 @@ function makeNamespace(kind: "slot" | "index"): AnyRecord {
   return {
     idFromName: (name: string): unknown => {
       if (kind === "index") {
-        return bindAll(indexActorFor(), ["register", "clear", "lookup"]);
+        return bindAll(indexActorFor(), ["register", "clear", "lookup", "trackSlot", "untrackSlot", "listSlots"]);
       }
       return bindAll(slotActorFor(name), [
         "openSlot",
@@ -282,7 +282,8 @@ const server = http.createServer(async (req, res) => {
   try {
     const response = await mod.fetch(request, ENV);
     const text = await response.text();
-    res.writeHead(response.status, { "Content-Type": "application/json" });
+    const contentType = response.headers.get("content-type") ?? "application/json";
+    res.writeHead(response.status, { "Content-Type": contentType });
     res.end(text);
   } catch (err) {
     console.error("[dev] request failed:", err instanceof Error ? err.message : err);

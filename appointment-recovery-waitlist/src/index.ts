@@ -77,7 +77,8 @@ interface SlotNamespace extends ActorNamespace {
   idFromName(name: string, options?: IdFromNameOptions): SlotStub;
 }
 
-type SlotIndexStub = ActorStub & Pick<SlotIndex, "register" | "clear" | "lookup">;
+type SlotIndexStub = ActorStub &
+  Pick<SlotIndex, "register" | "clear" | "lookup" | "trackSlot" | "untrackSlot" | "listSlots">;
 
 interface SlotIndexNamespace extends ActorNamespace {
   idFromName(name: string, options?: IdFromNameOptions): SlotIndexStub;
@@ -343,6 +344,9 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
       {},
       { id: `expiry:${payload.slotId}` },
     );
+
+    const index = this.env.SLOT_INDEX.idFromName("index");
+    await index.trackSlot(payload.slotId, payload.provider, payload.startsAt);
 
     await this.recoverMissedPatient();
     return { ok: true, slotId: payload.slotId };
@@ -1170,6 +1174,7 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
     const patients = new Set<string>([state.missedPatient.phone]);
     for (const entry of state.waitlist) patients.add(entry.phone);
     for (const phone of patients) await index.clear(phone);
+    await index.untrackSlot(state.slotId);
   }
 
   // ── Per-actor durable ledger (Agent SDK SQL) ────────────────────────────
@@ -1264,19 +1269,27 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
 
 // ── Shared routing index actor ────────────────────────────────────────────
 
+export interface TrackedSlot {
+  provider: string;
+  startsAt: string;
+}
+
 export interface IndexState extends Record<string, unknown> {
   /** patient E.164 -> active outreach target (slotId + role). */
   map: Record<string, { slotId: string; role: string }>;
+  /** slotId -> slot metadata, for the dashboard; cleared when the slot closes. */
+  slots: Record<string, TrackedSlot>;
 }
 
 /**
  * One shared actor instance that maps inbound patient phone numbers to the
  * slot actor currently reaching out to them — the fallback router for SMS
- * replies and call events that arrive without a slot reference.
+ * replies and call events that arrive without a slot reference — and tracks
+ * open slots for the dashboard.
  */
 export class SlotIndex extends Agent<Env, IndexState> {
   protected initialState(): IndexState {
-    return { map: {} };
+    return { map: {}, slots: {} };
   }
 
   @rpc({ description: "Register a patient's active outreach target for reply routing" })
@@ -1302,6 +1315,31 @@ export class SlotIndex extends Agent<Env, IndexState> {
   async lookup(patient: string): Promise<{ slotId: string; role: string } | null> {
     const state = await this.getState();
     return state.map[patient] ?? null;
+  }
+
+  @rpc({ description: "Track an open slot for the dashboard" })
+  async trackSlot(slotId: string, provider: string, startsAt: string): Promise<{ ok: boolean }> {
+    const state = await this.getState();
+    await this.setState({
+      slots: { ...state.slots, [slotId]: { provider, startsAt } },
+    });
+    return { ok: true };
+  }
+
+  @rpc({ description: "Untrack a closed slot from the dashboard" })
+  async untrackSlot(slotId: string): Promise<{ ok: boolean }> {
+    const state = await this.getState();
+    if (!(slotId in state.slots)) return { ok: true };
+    const next = { ...state.slots };
+    delete next[slotId];
+    await this.setState({ slots: next });
+    return { ok: true };
+  }
+
+  @rpc({ description: "List tracked slots for the dashboard" })
+  async listSlots(): Promise<Record<string, TrackedSlot>> {
+    const state = await this.getState();
+    return state.slots;
   }
 }
 
@@ -1376,6 +1414,26 @@ export default {
 
     if (req.method === "GET" && url.pathname === "/health") {
       return json({ status: "ok", agent: "AppointmentSlot" });
+    }
+
+    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/ui" || url.pathname === "/dashboard")) {
+      return new Response(ADMIN_HTML, {
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/dashboard") {
+      const index = env.SLOT_INDEX.idFromName("index");
+      const slots = await index.listSlots();
+      const cards = await Promise.all(
+        Object.entries(slots).map(async ([slotId, meta]) => {
+          const stub = env.SLOTS.idFromName(actorNameFromSlot(slotId));
+          const snapshot = await stub.snapshot();
+          const ledger = await stub.ledgerSnapshot();
+          return { slotId, provider: meta.provider, startsAt: meta.startsAt, snapshot, ledger };
+        }),
+      );
+      return json({ slots: cards });
     }
 
     if (req.method === "GET" && url.pathname.startsWith("/state/")) {
@@ -1670,3 +1728,125 @@ function json(payload: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+// ── Demo dashboard ────────────────────────────────────────────────────────
+
+const STATUS_COLORS: Record<string, string> = {
+  open: "#f5a623",
+  offering: "#35c2f5",
+  filled: "#2ecc71",
+  rescheduled: "#2ecc71",
+  expired: "#9aa4b2",
+  unresolved: "#e74c3c",
+};
+
+const ADMIN_HTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Appointment Recovery — Live Slot Dashboard</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0b1220; color: #e6edf3; min-height: 100vh;
+    font: 14px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 28px;
+  }
+  header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px; }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: .3px; }
+  .sub { color: #7d8aa0; font-size: 12.5px; }
+  .live { color: #2ecc71; font-size: 12px; }
+  .live::before { content: "●"; margin-right: 5px; animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(430px, 1fr)); }
+  .card {
+    background: #121b2e; border: 1px solid #22304a; border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .card h2 { font-size: 15px; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .slot-id { color: #7d8aa0; font-family: ui-monospace, monospace; font-weight: 400; font-size: 12.5px; }
+  .badge {
+    margin-left: auto; font-size: 11px; letter-spacing: .8px; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 20px; color: #0b1220; font-weight: 700;
+  }
+  .meta { color: #9fb0c7; font-size: 12.5px; margin-bottom: 12px; }
+  .row { display: flex; gap: 10px; margin: 6px 0; font-size: 13px; }
+  .k { color: #7d8aa0; min-width: 132px; }
+  .wait { display: flex; gap: 4px; margin: 8px 0 4px; }
+  .wait span { flex: 1; height: 6px; border-radius: 3px; background: #22304a; }
+  .wait span.done { background: #4f6ef7; }
+  .wait span.now { background: #f5a623; }
+  .ledger { margin-top: 12px; border-top: 1px solid #22304a; padding-top: 10px; }
+  .ledger h3 { font-size: 11px; color: #7d8aa0; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .ledger div { display: flex; gap: 8px; font-family: ui-monospace, monospace; font-size: 11.5px; padding: 2px 0; color: #c6d2e2; }
+  .ledger .ch { color: #4f6ef7; min-width: 44px; text-transform: uppercase; }
+  .ledger .st { color: #35c2f5; min-width: 88px; }
+  .ledger .dt { color: #6d7d96; flex: 1; }
+  .conf {
+    margin-top: 10px; padding: 8px 12px; border-radius: 8px; font-size: 13px;
+    background: #10381f; border: 1px solid #1f5c34; color: #7be3a2;
+  }
+  .empty { color: #7d8aa0; text-align: center; padding: 60px 0; font-size: 14px; }
+  footer { margin-top: 26px; color: #55637a; font-size: 12px; }
+  footer code { color: #8fa3c7; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Appointment Recovery</h1>
+  <span class="sub">one durable actor per appointment slot</span>
+  <span class="live">live</span>
+</header>
+<div id="app" class="grid"><div class="empty">loading…</div></div>
+<footer>drive it: <code>./demo.sh</code> · agents: <code>docs.telnyx.com → edge compute</code> · DEV-1223</footer>
+<script>
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const STATUS_COLORS = { open: "#f5a623", offering: "#35c2f5", filled: "#2ecc71", rescheduled: "#2ecc71", expired: "#9aa4b2", unresolved: "#e74c3c" };
+const badge = (status) => {
+  const color = STATUS_COLORS[status] || "#9aa4b2";
+  return '<span class="badge" style="background:' + color + '">' + esc(status) + "</span>";
+};
+function render(data) {
+  const slots = data.slots || [];
+  if (!slots.length) {
+    document.getElementById("app").innerHTML =
+      '<div class="empty">no active slots — open one with ./demo.sh or POST /webhook/scheduling</div>';
+    return;
+  }
+  document.getElementById("app").innerHTML = slots.map((s) => {
+    const snap = s.snapshot || {};
+    const wl = s.snapshot ? snap.waitlistLength : 0;
+    const cells = Array.from({ length: wl }, (_, i) =>
+      '<span class="' + (i < snap.cursor ? "done" : i === snap.cursor ? "now" : "") + '"></span>').join("");
+    const attempts = (s.ledger && s.ledger.attempts ? s.ledger.attempts : [])
+      .slice(-8)
+      .map((a) => '<div><span class="ch">' + esc(a.channel) + '</span><span class="st">' + esc(a.status) +
+        "</span><span class='dt'>" + esc(a.detail) + "</span></div>")
+      .join("");
+    const conf = snap.confirmation
+      ? '<div class="conf">✓ confirmed — ' + esc(snap.confirmation.patient) + " via " + esc(snap.confirmation.source) + "</div>"
+      : "";
+    const cand = snap.currentCandidate
+      ? esc(snap.currentCandidate.name) + " · " + esc(snap.currentCandidate.role) + " · attempt " + snap.currentCandidate.attempts
+      : "—";
+    return '<div class="card"><h2><span class="slot-id">' + esc(s.slotId) + "</span>" + badge(snap.status) + "</h2>" +
+      '<div class="meta">' + esc(s.provider) + " · " + esc(s.startsAt) + "</div>" +
+      '<div class="row"><span class="k">current candidate</span><span>' + cand + "</span></div>" +
+      '<div class="row"><span class="k">waitlist</span><span>' + (wl ? (snap.cursor + 1) + " of " + wl : "empty") + "</span></div>" +
+      '<div class="wait">' + cells + "</div>" + conf +
+      '<div class="ledger"><h3>outreach ledger</h3>' + attempts + "</div></div>";
+  }).join("");
+}
+async function tick() {
+  try {
+    const res = await fetch("/api/dashboard");
+    render(await res.json());
+  } catch (e) { /* transient */ }
+}
+tick();
+setInterval(tick, 2000);
+</script>
+</body>
+</html>`;
