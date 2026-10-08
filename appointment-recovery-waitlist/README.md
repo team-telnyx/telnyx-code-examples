@@ -23,10 +23,12 @@ Telnyx provides **AI Communications Infrastructure** — a platform where durabl
 | `env.SLOT_INDEX.idFromName("index")` | Agent SDK | Single shared actor that routes inbound replies/call events to the slot actor currently reaching out |
 | `this.ctx.storage.sql.exec(...)` | Agent SDK SQL | Per-actor `outreach_attempts(slot_id, patient, channel, status, detail, ts)` ledger + `confirmations(slot_id PRIMARY KEY, ...)` confirmation lock |
 | `this.schedule(seconds, "sweepCandidate", { generation }, { id })` | Agent SDK | Reply-window sweep, retry timer, and slot expiry — every pending outreach survives restarts |
-| `POST /v2/calls` | Voice (Call Control) | Dials the missed patient and waitlist candidates with `client_state` encoding the slot id for webhook routing |
-| `POST /v2/calls/{call_control_id}/actions/speak` | Voice (Call Control) | Speaks the reschedule or "first to confirm wins" offer once the patient answers |
-| `call.speak.ended` → `POST /v2/calls/{call_control_id}/actions/gather_using_ai` | Voice (Call Control) | After the offer plays, classifies the spoken reply into one intent (`reschedule`/`later`/`decline` or `confirm`/`decline`) with Telnyx-hosted inference |
-| `call.ai_gather.ended` / `call.ai_gather.failed` webhooks (`/webhook/call-events`) | Voice (Call Control) | Carries the classified intent; the actor applies the decision and hangs up |
+| `POST /v2/ai/assistants/{id}/scheduled_events` | AI Assistants | **Primary voice channel** — triggers the conversational agent's outbound call with dynamic variables (patient name, provider, human-readable slot time, offer text, slot id) |
+| Webhook tool `report_outcome` (`POST /v2/ai/tools`) | AI Assistants | The assistant reports the patient's decision mid-call; the body is flat args with `slot_id` + `caller_phone` injected server-side and an Ed25519 signature header |
+| `POST /webhook/assistant-tool` | AI Assistants | Receives the tool call, verifies the signature, routes the intent to the owning slot actor |
+| `voice ultra katie` + Telnyx-hosted inference | AI Assistants | Natural conversational voice for the recovery and waitlist offers |
+| `POST /v2/calls` + `/actions/speak` + `/actions/gather_using_ai` | Voice (Call Control) | **Fallback voice channel** (when `VOICE_ASSISTANT_ID` is unset) — dial, speak the offer, classify the reply via gather_using_ai, hang up |
+| `call.answered` / `call.speak.ended` / `call.ai_gather.ended` / `call.hangup` webhooks (`/webhook/call-events`) | Voice (Call Control) | Call lifecycle routed to the slot actor via `client_state` (fallback path only) |
 | `env.TELNYX.messages.send({ to, from, text })` | Messaging | Outreach SMS, retry SMS, and confirmation SMS — zero-credential binding |
 | `message.received` webhook (`/webhook/inbound-message`) | Messaging | Patient replies resolve through the same actor-owned slot state |
 | `call.answered`, `call.ai-gather-ended`, `call.hangup` webhooks (`/webhook/call-events`) | Voice (Call Control) | Call lifecycle routed to the slot actor via `client_state` (or the index fallback) |
@@ -65,9 +67,9 @@ Telnyx provides **AI Communications Infrastructure** — a platform where durabl
                 │   └────────────────────────────────────┘                  │
                 │                                                          │
                 │   Telnyx:                                                │
-                │     POST /v2/calls   ──dial─► patient                     │
-                │     /actions/speak   ──say──► patient                     │
-                │     /actions/gather_using_ai (optional)                  │
+                │     AI Assistant (katie) ──conversational call─► patient  │
+                │       report_outcome tool ──signed webhook──► slot actor │
+                │     (fallback) POST /v2/calls + speak + gather_using_ai  │
                 │     TELNYX.messages.send ──SMS──► patient                │
                 │     message.received    ──SMS──► inbound webhook         │
                 └──────────────────────────────────────────────────────────┘
@@ -90,6 +92,8 @@ Telnyx provides **AI Communications Infrastructure** — a platform where durabl
 | `OUTBOUND_CONNECTION_ID` | `string` | `1900001234567890` | yes (live mode) | Call Control connection (voice app) used to dial the missed patient and waitlist candidates | `telnyx-edge secrets add OUTBOUND_CONNECTION_ID 19…` |
 | `OUTBOUND_CALLER_ID` | `string` | `+16282564655` | yes (live mode) | E.164 clinic line presented on outbound calls | `telnyx-edge secrets add OUTBOUND_CALLER_ID "+1555..."` |
 | `SCHEDULING_SMS_E164` | `string` | `+16282564655` | yes (live mode) | SMS-capable clinic number used for outreach SMS, retries, and confirmation SMS | `telnyx-edge secrets add SCHEDULING_SMS_E164 "+1555..."` |
+| `VOICE_ASSISTANT_ID` | `string` | `assistant-…` | no | Telnyx AI Assistant used for the live conversational voice channel (voice ultra katie + the `report_outcome` webhook tool). Unset → the Call Control fallback path is used | [Telnyx Portal → AI Assistants](https://portal.telnyx.com) or the Telnyx AI repo |
+| `AI_MODEL` | `string` | `meta-llama/Llama-3.3-70B-Instruct` | no | Model used by `gather_using_ai` intent classification (fallback voice path) and hosted inference | [Telnyx Inference models](https://developers.telnyx.com/docs/ai/inference) |
 | `WAITLIST_REPLY_TIMEOUT_MIN` | `number` | `10` | no | Reply window per outreach attempt, in minutes | `telnyx-edge secrets add WAITLIST_REPLY_TIMEOUT_MIN 10` |
 | `OUTREACH_RETRY_MAX` | `number` | `2` | no | Extra attempts per candidate before moving to the next waitlist patient | `telnyx-edge secrets add OUTREACH_RETRY_MAX 2` |
 | `SLOT_EXPIRY_MIN` | `number` | `60` | no | Minutes until an unclaimed slot closes as expired | `telnyx-edge secrets add SLOT_EXPIRY_MIN 60` |
@@ -210,7 +214,15 @@ curl https://<your-function>.telnyxcompute.com/state/SLOT-8217
 curl https://<your-function>.telnyxcompute.com/ledger/SLOT-8217
 ```
 
-Demo mode (default) logs every call/SMS to the actor console and accepts the `/demo/*` endpoints above — no charges, no real phone numbers needed. One-shot version of the whole flow: `BASE=<function-url> ./demo.sh`. Live mode: register the secrets above, then re-ship.
+Demo mode (default) logs every call/SMS to the actor console and accepts the `/demo/*` endpoints above — no charges, no real phone numbers needed. One-shot version of the whole flow: `BASE=<function-url> ./demo.sh`. In live mode, register the secrets above (including `VOICE_ASSISTANT_ID` for the conversational voice channel), then re-ship.
+
+### The live dashboard
+
+`GET /` serves a dark, auto-refreshing dashboard (2s polling over `GET /api/dashboard`): one card per open slot with its status badge, waitlist progress, current candidate (phone numbers are masked for demos), confirmation banner, and the outreach ledger. Closed slots disappear when the slot resolves.
+
+### Local development server
+
+`npm run dev` runs the real agent code on `node:http` with file-backed durable storage (`.dev-store/`) on `http://localhost:8787` — the full demo flow works locally with zero account-side effects, and killing the server mid-outreach is a hands-on restart proof (see `smoke_test.ts` section 5).
 
 ### Project Structure
 

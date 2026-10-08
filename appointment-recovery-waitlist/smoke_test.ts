@@ -391,7 +391,7 @@ console.log("\n[4] First confirmation wins (double-booking guard)");
   await demoReply(slot, SLOT.missedPatient.phone, "decline");
   const s = await slot.snapshot();
   const workingGen = s.generation;
-  const staleSweepCount = slot.scheduled.length;
+  const staleSweepCount = slot.scheduled.filter((t) => t.method === "sweepCandidate").length;
 
   const winner = await demoReply(slot, "+15557000003", "YES");
   const filled = await slot.snapshot();
@@ -402,7 +402,7 @@ console.log("\n[4] First confirmation wins (double-booking guard)");
   check("generation bumps so outreach stops", filled.generation > workingGen);
   check(
     "confirmation stops further outreach (no new sweeps)",
-    slot.scheduled.length === staleSweepCount,
+    slot.scheduled.filter((t) => t.method === "sweepCandidate").length === staleSweepCount,
   );
 
   const ledger = await slot.ledgerSnapshot();
@@ -473,7 +473,7 @@ console.log("\n[6] Later + expiry");
   const slot = freshSlot("s-later");
   await slot.openSlot(SLOT);
   const reply = await demoReply(slot, SLOT.missedPatient.phone, "later");
-  assert.match(reply.reply as string, /try again/);
+  assert.match(reply.reply as string, /scheduling desk will call you back/);
   const ledger = await slot.ledgerSnapshot();
   check(
     "later schedules a retry within budget",

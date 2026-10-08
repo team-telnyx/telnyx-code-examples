@@ -801,7 +801,7 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
       });
       const pretty = prettyStartsAt(state.startsAt, state.timezone);
       const confirmSms = `Confirmed: ${state.provider} on ${pretty}. Reply CANCEL to release.`;
-      await this.sendSms(candidate.phone, confirmSms);
+      this.queueSms(candidate.phone, confirmSms);
       await this.clearIndex();
       return confirmSms;
     }
@@ -820,7 +820,7 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
         ts: Date.now(),
       });
       const pretty = prettyStartsAt(state.startsAt, state.timezone);
-      await this.sendSms(
+      this.queueSms(
         candidate.phone,
         `Rebooked: ${state.provider} on ${pretty}. Reply CANCEL to release.`,
       );
@@ -838,8 +838,10 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
         detail: "asked for a callback later",
         ts: Date.now(),
       });
-      await this.sweepCandidate({ generation: state.generation });
-      return "No problem — we'll try again shortly.";
+      this.schedule(0, "sweepCandidate", { generation: state.generation }, {
+        id: `later-sweep:${state.slotId}:${state.generation}`,
+      });
+      return "No problem — our scheduling desk will call you back with other available times.";
     }
 
     // decline: a declined missed patient leaves the slot open for the
@@ -1134,6 +1136,19 @@ export class AppointmentSlot extends Agent<Env, SlotState> {
     if (!resp.ok) {
       throw new Error(`Call Control hangup failed: HTTP ${resp.status}`);
     }
+  }
+
+  /**
+   * Queue an outbound SMS as a durable task so decision handlers return to
+   * the caller (and the assistant's webhook tool) without waiting on the
+   * carrier.
+   */
+  private queueSms(to: string, text: string): void {
+    this.schedule(0, "deliverSms", { to, text }).catch(() => {});
+  }
+
+  async deliverSms(payload: { to: string; text: string }): Promise<void> {
+    await this.sendSms(payload.to, payload.text);
   }
 
   private async sendSms(to: string, text: string): Promise<void> {

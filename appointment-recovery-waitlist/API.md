@@ -88,6 +88,52 @@ Telnyx `message.received` callback (in live mode, signature-verified).
 
 ---
 
+## `POST /webhook/assistant-tool`
+
+The AI Assistant's `report_outcome` webhook tool lands here during a live
+call. The body is the **flat arguments object** — `{intent}` from the model
+plus `slot_id` and `caller_phone` injected server-side via
+`preset_body_fields`. In live mode the Ed25519 signature headers
+(`telnyx-signature-ed25519` + `telnyx-timestamp`) are verified before the
+request is trusted.
+
+**Response** (returned to the assistant as the tool result):
+
+```json
+{ "ok": true, "recorded": true, "reply": "you're all set — rebooked for dr. okafor on thursday, october 8 at 10:00 am. we'll follow up by text.", "slotStatus": "rescheduled" }
+```
+
+`"recorded": false` with an explanatory `reply` covers races (slot already
+claimed), closed slots, and unmatched callers — the assistant speaks the
+`reply` to the patient.
+
+---
+
+## `GET /` and `GET /api/dashboard`
+
+The demo dashboard. `GET /` serves the dark auto-refreshing UI (2s polling of
+`GET /api/dashboard`), which returns one card per tracked slot:
+
+```json
+{
+  "slots": [
+    {
+      "slotId": "SLOT-8217",
+      "provider": "Dr. Okafor",
+      "startsAt": "2026-10-08T10:00:00",
+      "snapshot": { "status": "offering", "cursor": 0, "currentCandidate": { "...": "..." }, "confirmation": null },
+      "ledger": { "attempts": [ { "...": "..." } ], "confirmation": null }
+    }
+  ]
+}
+```
+
+Slots are tracked on `openSlot` and untracked when they resolve (filled,
+rescheduled, expired, unresolved). Patient phone numbers are masked in the UI
+for demo recordings.
+
+---
+
 ## `POST /webhook/call-events`
 
 Telnyx Call Control event webhook (in live mode, signature-verified).

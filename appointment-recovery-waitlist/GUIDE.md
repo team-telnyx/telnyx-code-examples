@@ -187,6 +187,17 @@ tasks on wake.
    `/webhook/call-events`.
 3. `telnyx-edge ship`.
 
-In live mode, calls carry `client_state` (base64 slot id) so every Call
-Control event routes back to the owning slot actor; inbound SMS falls back to
-the shared `SlotIndex` actor when the reply text has no slot reference.
+The primary voice channel is a Telnyx AI Assistant (voice ultra katie): the
+slot actor triggers the assistant's outbound call with dynamic variables
+(patient name, provider, human-readable slot time, offer text, slot id), and
+the assistant reports the patient's decision through its `report_outcome`
+webhook tool — a signed POST to `/webhook/assistant-tool` whose flat body the
+actor verifies and applies. When `VOICE_ASSISTANT_ID` is unset, the sample
+falls back to raw Call Control: the dial carries `client_state` (base64 slot
+id) so every Call Control event routes back to the owning slot actor, and
+`gather_using_ai` classifies the spoken reply. Inbound SMS falls back to the
+shared `SlotIndex` actor when the reply text has no slot reference.
+
+Watch it live: open `GET /` (the dashboard) while the demo runs — each card
+shows the slot's status badge, waitlist progress, current candidate, and the
+outreach ledger updating in real time.
