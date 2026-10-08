@@ -3468,7 +3468,7 @@ examples:
     folder: chargeback-adjudication
 
   - product: ai
-    use_case: "auto-generated-from-linear"
+    use_case: candidate-screening-call-agent
     language: typescript
     framework: edge
-    folder: dial-in-interview-scorer
+    folder: candidate-screening-call-agent

@@ -1,0 +1,26 @@
+name = "candidate-screening-call-agent"
+main = "src/index.ts"
+compatibility_date = "2026-10-08"
+
+[[actors]]
+binding = "SCREENS"
+type = "CandidateScreen"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sql.SCREEN_DB]
+id = "replace-with-sql-database-id"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[env_vars]
+OUTBOUND_TEXML_APP_ID = "00000000-0000-0000-0000-000000000000"
+OUTBOUND_CALLER_ID = "+15551234567"
+DASHBOARD_ORIGIN = "http://localhost:8787"
+WEBHOOK_TOOL_URL = "https://candidate-screening.example.com/screen/score"
+SCREEN_RETRY_MAX = "2"
+DECISION_TIMEOUT_MS = "8000"
+MAX_CALL_MINUTES = "12"

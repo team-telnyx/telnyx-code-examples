@@ -1,0 +1,20 @@
+{
+  "name": "candidate-screening-call-agent",
+  "version": "0.1.0",
+  "description": "Event-driven recruiting phone screen with Telnyx AI Assistants, outbound TeXML AI calls, durable candidate state, Decision Models scoring, and a live recruiter dashboard.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "license": "MIT"
+}
