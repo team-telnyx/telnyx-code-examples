@@ -449,20 +449,11 @@ export class CoachRoom extends Agent<CoachEnv, CoachState> {
       }
 
       // Demo conversations have no live call leg to join — the dial is real,
-      // the join is live-path only. Speak a notice so the supervisor isn't
-      // left on dead air, then end the leg.
+      // the join is live-path only. The supervisor leg gets a spoken notice
+      // (spoken once the call is answered — see announceSupervisor) and then
+      // ends. Joining is live-path only.
       if (state.conversationId.startsWith("sim-")) {
-        await fetch(`https://api.telnyx.com/v2/calls/${encodeURIComponent(supervisorCcId)}/actions/speak`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            payload:
-              "You have been escalated as a supervisor. This is a simulated conversation, so there is no live caller audio. The coach room will now end this call.",
-            voice: "female",
-            language: "en-US",
-          }),
-        });
-        await this.schedule(10, "endSupervisorLeg", { callControlId: supervisorCcId }, { id: "end-supervisor" });
+        await this.schedule(2, "announceSupervisor", { callControlId: supervisorCcId }, { id: "announce-supervisor" });
         await this.setState({ tookOver: true });
         return {
           success: true,
@@ -494,6 +485,41 @@ export class CoachRoom extends Agent<CoachEnv, CoachState> {
       await this.setState({ error: msg });
       return { success: false, message: msg };
     }
+  }
+
+  /**
+   * Speak the demo escalation notice on the supervisor's leg. The call may
+   * still be ringing when this fires, so retry until the speak command is
+   * accepted (≈1s apart, up to 20s), then schedule the hangup. If nobody
+   * answers, the leg is ended anyway so it can't ring out forever.
+   */
+  async announceSupervisor(payload: { callControlId?: string }): Promise<void> {
+    const cc = payload?.callControlId;
+    if (!cc) return;
+    const apiKey = await this.env.SECRETS.get("TELNYX_API_KEY");
+    const notice =
+      "You have been escalated as a supervisor. This is a simulated conversation, so there is no live caller audio. The coach room will now end this call.";
+
+    let answered = false;
+    for (let attempt = 0; attempt < 20 && !answered; attempt++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        const resp = await fetch(`https://api.telnyx.com/v2/calls/${encodeURIComponent(cc)}/actions/speak`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ payload: notice, voice: "female", language: "en-US" }),
+        });
+        if (resp.ok) {
+          answered = true;
+        } else {
+          console.log(`[CoachRoom] speak attempt ${attempt}: HTTP ${resp.status}`);
+        }
+      } catch (e) {
+        console.error(`[CoachRoom] speak attempt ${attempt} failed: ${e instanceof Error ? e.message : "unknown"}`);
+      }
+    }
+
+    await this.schedule(answered ? 12 : 25, "endSupervisorLeg", { callControlId: cc }, { id: "end-supervisor" });
   }
 
   /** Hang up the supervisor's leg after the demo-mode notice played. */
