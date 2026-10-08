@@ -1,0 +1,23 @@
+# Multi-Tenant Voice Platform — Telnyx Edge manifest
+
+[telnyx]
+binding = "TELNYX"  # zero-credential SDK bindings (Call Control, etc.)
+
+[actors.tenant_config]
+class = "TenantConfigActor"
+# Singleton (idFromName("__config__")) — owns the shared tenants table
+# and the KV-backed per-tenant rate limit counters.
+
+[actors.tenant_voice]
+class = "TenantVoiceActor"
+# One instance per tenant. Keyed by idFromName(tenant_id) so each tenant
+# has isolated call state.
+
+[env_vars]
+TELNYX_API_KEY = { required = true, secret = true, description = "Telnyx v2 API key — Portal → API Keys" }
+TELNYX_PUBLIC_KEY = { required = false, secret = true, description = "Ed25519 webhook signing public key (PEM or base64). Leave blank to skip verification in local dev." }
+TELNYX_PUBLIC_BASE_URL = { required = false, secret = false, description = "Public HTTPS URL of this function for webhook delivery (ngrok / cloudflared)." }
+
+[webhooks]
+# Point your Call Control app at the deployed function:
+#   https://<your-func>.telnyxcompute.com/webhooks/voice
