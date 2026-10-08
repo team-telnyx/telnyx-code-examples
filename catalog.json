@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-07T15:41:28Z",
-  "example_count": 568,
+  "generated_at": "2026-10-08T06:05:08Z",
+  "example_count": 569,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5117,6 +5117,15 @@
       "language": "python",
       "framework": "cli",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/persistent-ai-agent-memory"
+    },
+    {
+      "folder": "clinic-triage-handoff",
+      "title": "Clinic Triage Handoff",
+      "description": "",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/clinic-triage-handoff"
     }
   ]
 }
