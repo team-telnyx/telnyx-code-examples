@@ -1,23 +1,22 @@
-// Clinic Triage + Warm Handoff (DEV-1187)
+// Clinic Triage, Handoff & Escalation (DEV-1187)
 //
-// One durable TriageRouterV3 actor per clinic. Flow:
-// 1. call.initiated   → answer with the line's Telnyx AI Assistant
-//                       (receptionist on the clinic line, billing desk, clinical desk)
-//                       with caller history + pending misroute context injected
-//                       as dynamic variables
-// 2. call.answered    → receptionist greeting + gather_using_ai (one-turn capture)
-// 3. call.ai_gather.ended → classify (LLM, keyword fallback) + summarize
-//                        → SQL routing record → hold message → dial the caller's
-//                          own phone as the specialist desk (a real phone RINGS)
-// 4. call.answered (specialist leg) → specialist-persona briefing + "press 1 to accept"
-// 5. call.gather.ended (specialist) → 1: conference-bridge caller + specialist
-//                                    → else: decline, hang up specialist leg
-// 6. call.hangup      → done
-// 7. POST /log        → log intent/note from an assistant into the routing log
-// 8. POST /misroute   → specialist desk flags a misroute; warm-transfers the
-//                       caller to the correct desk and stashes the summary so
-//                       the receiving desk sees it as dynamic context
-// GET /               → Telnyx-branded status page with the live routing table
+// One Edge function. Three AI assistant personas behind three phone lines.
+//
+// The function owns call identity: every inbound call is recorded in the
+// durable routing log (CALLSTART with the caller's call_control_id), so the
+// assistants' webhook tools never carry identity themselves — the function
+// resolves the current caller whenever a tool fires.
+//
+// The assistants handle conversation, intent, and warm transfers natively
+// (the transfer tool with warm-transfer acceptance — an AI-to-AI consult the
+// caller hears as ringback). The log_* webhook tools carry intent in the URL.
+//
+// The escalation path is deterministic code: the escalate_urgent tool hits
+// /escalate, which sends the on-call SMS, dials the nurse live, speaks the
+// briefing when she answers, and bridges the patient onto her call.
+//
+// Endpoints: GET / (status) · GET /escalations (care team) ·
+// POST /webhooks/voice · POST /log/{caller}/{intent} · POST /escalate/{caller}
 
 import { Agent } from "@telnyx/edge-runtime";
 
@@ -41,66 +40,21 @@ interface RoutingRow {
   ts: number;
 }
 
-const INTENT_PROMPT =
-  'You are a clinic triage router. Classify the caller\'s intent into exactly one of: "billing", "clinical", or "afterhours". Return ONLY the intent word.';
 
-// ─── Deploy configuration (env-driven, empty defaults) ───────────────────
-// On Telnyx Edge, every value below is injected via `telnyx-edge secrets add
-// <NAME> <value>` (or via the [env_vars] block in telnyx.toml). Nothing deploy-
-// specific is baked into the source — the function fails fast when a required
-// constant is missing instead of silently using someone else's phone numbers.
+// ─── Deploy constants (v2 film deploy — personal account) ────────────────
 
 const TELNYX_API = "https://api.telnyx.com/v2";
-
-function envStr(name: string, fallback = ""): string {
-  return (process.env[name] ?? fallback).trim();
-}
-
-function parseStringMap(raw: string): Record<string, string> {
-  if (!raw) return {};
-  try {
-    const v = JSON.parse(raw);
-    if (v && typeof v === "object" && !Array.isArray(v)) {
-      const out: Record<string, string> = {};
-      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-        if (typeof val === "string") out[k] = val;
-      }
-      return out;
-    }
-  } catch {
-    // fall through to {}
-  }
-  return {};
-}
-
-const CC_APP_ID = envStr("CONNECTION_ID");
-const WEBHOOK_URL = envStr("WEBHOOK_URL");
-const CLINIC_VOICE = envStr("CLINIC_VOICE", "Telnyx_Katie");
-const SPECIALIST_VOICE = envStr("SPECIALIST_VOICE", "Telnyx_FLORA");
-const STATUS_PAGE_LINE = envStr("STATUS_PAGE_LINE");
-
-// One Telnyx AI Assistant per phone line. Keys are inbound lines (E.164),
-// values are Telnyx AI Assistant IDs. The receptionist line uses the native
-// transfer tool with warm-transfer acceptance; the desk lines receive
-// pre-classified callers and answer with their own persona.
-const ASSISTANT_ROUTES: Record<string, string> = parseStringMap(
-  envStr("ASSISTANT_ROUTES_JSON")
-);
-
-// When a specialist desk flags a misroute, dial the corrected desk's line.
-// Keys are the desk's line (E.164), values are the line to dial instead.
-const MISROUTE_TARGETS: Record<string, string> = parseStringMap(
-  envStr("MISROUTE_TARGETS_JSON")
-);
-
-function requireConfig(name: string, value: string): void {
-  if (!value) throw new Error(`${name} is not configured (set it via \`telnyx-edge secrets add\`)`);
-}
+const CC_APP_ID = process.env.CONNECTION_ID ?? "";
+const WEBHOOK_URL = process.env.WEBHOOK_URL ?? "";
+const CLINIC_VOICE = process.env.CLINIC_VOICE ?? "Telnyx_Katie";
+const SPECIALIST_VOICE = process.env.SPECIALIST_VOICE ?? "Telnyx_FLORA";
+const ONCALL_NUMBER = process.env.ONCALL_NUMBER ?? "";
+const SMS_SENDER_FALLBACK = "";
 
 // ─── Telnyx REST helpers (failure logging so nothing fails silently) ──────
 
 function apiKey(): string {
-  const key = envStr("TELNYX_API_KEY");
+  const key = process.env.TELNYX_API_KEY ?? "";
   if (!key) throw new Error("TELNYX_API_KEY is not configured");
   return key;
 }
@@ -136,33 +90,6 @@ function decodeClientState(raw: unknown): Record<string, unknown> | null {
 }
 
 /** Dial a real phone as the warm-transfer specialist desk. Returns the dial leg's ccid. */
-async function dialSpecialist(
-  from: string,
-  to: string,
-  clientState: Record<string, unknown>
-): Promise<string | null> {
-  requireConfig("CONNECTION_ID", CC_APP_ID);
-  requireConfig("WEBHOOK_URL", WEBHOOK_URL);
-  const res = await fetch(`${TELNYX_API}/calls`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({
-      connection_id: CC_APP_ID,
-      from,
-      to,
-      webhook_url: WEBHOOK_URL,
-      client_state: Buffer.from(JSON.stringify(clientState)).toString("base64"),
-      command_id: `warm-dial-${Date.now()}`,
-    }),
-  });
-  if (!res.ok) {
-    console.log(`[dialSpecialist] HTTP ${res.status} ${await res.text().catch(() => "")}`);
-    return null;
-  }
-  const j = (await res.json()) as { data?: { call_control_id?: string } };
-  return j.data?.call_control_id ?? null;
-}
-
 // ─── TriageRouterV3: the durable routing brain ──────────────────────────────
 
 export class TriageRouterV3 extends Agent<Env, Record<string, unknown>> {
@@ -192,53 +119,14 @@ export class TriageRouterV3 extends Agent<Env, Record<string, unknown>> {
     this.schemaReady = true;
   }
 
-  async onCall(call: { callControlId: string; from: string; to: string }): Promise<void> {
-    this.ensureSchema();
-    const dupes = this.ctx.storage.sql
-      .exec(`SELECT id FROM routing WHERE call_id = ? LIMIT 1`, call.callControlId)
-      .toArray();
-    if (dupes.length === 0) {
-      this.ctx.storage.sql.exec(
-        `INSERT INTO routing (line, caller, call_id, intent, transcript, stage, ts) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        call.to, call.from, call.callControlId, "pending", "", "answered", Date.now()
-      );
-    }
-  }
 
-  async onGatherResult(input: {
-    callControlId: string;
-    from: string;
-    to: string;
-    utterance: string;
-  }): Promise<{ intent: Intent; summary: string } | null> {
-    this.ensureSchema();
-    const existing = this.ctx.storage.sql
-      .exec<RoutingRow>(`SELECT * FROM routing WHERE call_id = ? AND stage != 'pending' LIMIT 1`, input.callControlId)
-      .toArray();
-    if (existing.length > 0) return null; // already routed (webhook retry)
 
-    const { intent } = await classifyIntent(this.env.TELNYX, this.env.AI_MODEL ?? "gpt-4o-mini", input.utterance);
-    const summary = await this.summarize(input.utterance);
-    this.ctx.storage.sql.exec(
-      `UPDATE routing SET intent = ?, transcript = ?, stage = 'routed' WHERE call_id = ? AND stage = 'pending'`,
-      intent, input.utterance, input.callControlId
-    );
-    return { intent, summary };
-  }
 
-  async markTransferred(callId: string): Promise<void> {
-    this.ensureSchema();
-    this.ctx.storage.sql.exec(
-      `UPDATE routing SET stage = 'transferred' WHERE call_id = ? AND stage != 'transferred'`,
-      callId
-    );
-  }
-
-  async logIntent(input: { caller: string; intent: string; note: string }): Promise<void> {
+  async logIntent(input: { caller: string; intent: string; note: string; call_id?: string }): Promise<void> {
     this.ensureSchema();
     this.ctx.storage.sql.exec(
       `INSERT INTO routing (line, caller, call_id, intent, transcript, stage, ts) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      "assistant-log", input.caller, "n/a", input.intent, input.note, "completed", Date.now()
+      "assistant-log", input.caller, input.call_id ?? "n/a", input.intent, input.note, "completed", Date.now()
     );
   }
 
@@ -250,87 +138,20 @@ export class TriageRouterV3 extends Agent<Env, Record<string, unknown>> {
     return rows.length > 0 ? String((rows[0] as Record<string, unknown>).intent ?? "") || null : null;
   }
 
-  async setPendingMisroute(input: { deskLine: string; caller: string; summary: string }): Promise<void> {
-    this.ensureSchema();
-    this.ctx.storage.sql.exec(
-      `CREATE TABLE IF NOT EXISTS misroute_pending (desk_line TEXT PRIMARY KEY, caller TEXT NOT NULL, summary TEXT NOT NULL, ts INTEGER NOT NULL)`,
-    );
-    this.ctx.storage.sql.exec(
-      `INSERT INTO misroute_pending (desk_line, caller, summary, ts) VALUES (?, ?, ?, ?)
-       ON CONFLICT(desk_line) DO UPDATE SET caller = excluded.caller, summary = excluded.summary, ts = excluded.ts`,
-      input.deskLine, input.caller, input.summary, Date.now()
-    );
-  }
 
-  async pendingMisrouteFor(source: string): Promise<string | null> {
-    this.ensureSchema();
-    const rows = this.ctx.storage.sql
-      .exec(`SELECT summary FROM misroute_pending WHERE desk_line = ? OR caller = ? LIMIT 1`, source, source)
-      .toArray();
-    return rows.length > 0 ? String((rows[0] as Record<string, unknown>).summary ?? "") || null : null;
-  }
 
-  async clearPendingMisroute(source: string): Promise<void> {
-    this.ensureSchema();
-    this.ctx.storage.sql.exec(`DELETE FROM misroute_pending WHERE desk_line = ? OR caller = ?`, source, source);
-  }
+
+
 
   async routes(): Promise<Array<Record<string, unknown>>> {
     this.ensureSchema();
     return this.ctx.storage.sql
-      .exec(`SELECT intent, caller, stage, ts FROM routing ORDER BY ts DESC LIMIT 10`)
+      .exec(`SELECT intent, caller, call_id, transcript, stage, ts FROM routing ORDER BY ts DESC LIMIT 10`)
       .toArray() as Array<Record<string, unknown>>;
   }
 
-  private async summarize(transcript: string): Promise<string> {
-    try {
-      const res = await this.env.TELNYX.ai.openai.chat.createCompletion({
-        model: this.env.AI_MODEL ?? "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "Summarize this caller's issue in one short sentence." },
-          { role: "user", content: transcript },
-        ],
-        max_tokens: 60,
-      });
-      return res.choices[0]?.message?.content ?? "No summary available.";
-    } catch {
-      return transcript.slice(0, 80);
-    }
-  }
 }
 
-export async function classifyIntent(
-  telnyx: Env["TELNYX"],
-  model: string,
-  transcript: string
-): Promise<{ intent: Intent; confidence: number }> {
-  try {
-    const res = await telnyx.ai.openai.chat.createCompletion({
-      model,
-      messages: [
-        { role: "system", content: INTENT_PROMPT },
-        { role: "user", content: transcript },
-      ],
-      max_tokens: 20,
-      temperature: 0,
-    });
-    const raw = (res.choices[0]?.message?.content ?? "").trim().toLowerCase();
-    if (raw.includes("billing")) return { intent: "billing", confidence: 0.9 };
-    if (raw.includes("clinical")) return { intent: "clinical", confidence: 0.9 };
-    if (raw.includes("afterhours") || raw.includes("after hours")) return { intent: "afterhours", confidence: 0.9 };
-  } catch {
-    // LLM unavailable — keyword fallback below always returns a valid intent
-  }
-  const lower = transcript.toLowerCase();
-  if (lower.includes("billing") || lower.includes("invoice") || lower.includes("charge") || lower.includes("payment"))
-    return { intent: "billing", confidence: 0.7 };
-  if (
-    lower.includes("nurse") || lower.includes("doctor") || lower.includes("medication") ||
-    lower.includes("symptom") || lower.includes("prescription") || lower.includes("appointment")
-  )
-    return { intent: "clinical", confidence: 0.7 };
-  return { intent: "afterhours", confidence: 0.5 };
-}
 
 // ─── Status page ──────────────────────────────────────────────────────────
 
@@ -372,6 +193,19 @@ function statusPage(routes: Array<Record<string, unknown>>): string {
 </div></body></html>`;
 }
 
+
+async function currentCaller(env: Env): Promise<string> {
+  const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v4");
+  try {
+    const rows = await router.routes();
+    const start = (rows as Array<Record<string, unknown>>).find(
+      (r) => String(r.intent ?? "") === "CALLSTART",
+    );
+    if (start) return String(start.caller ?? "");
+  } catch { /* fall through */ }
+  return "";
+}
+
 async function safeJson<T>(req: Request): Promise<Partial<T>> {
   try {
     const text = await req.text();
@@ -392,43 +226,173 @@ export default {
       return Response.json({ ok: true, service: "clinic-triage-handoff" });
     }
 
+        if (req.method === "GET" && url.pathname === "/escalations") {
+      const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v4");
+      const rows = await router.routes();
+      const esc = rows.filter((r) => String(r.intent ?? "").includes("ESCALATED"));
+      const cards = esc
+        .map(
+          (r) => {
+            const note = String(r.transcript ?? "");
+            const [summary, ...ctxParts] = note.split(" :: ");
+            return `<div class="card"><div class="head"><span class="pulse"></span><b>${String(r.caller ?? "unknown")}</b>
+             <span class="time">${new Date(Number(r.ts ?? 0)).toLocaleTimeString()}</span></div>
+             <div class="said">&ldquo;${String(summary ?? "").replace(/</g, "&lt;")}&rdquo;</div>
+             <div class="ctx">${ctxParts.join(" :: ").replace(/</g, "&lt;").slice(0, 240)}</div></div>`;
+          },
+        )
+        .join("");
+      return new Response(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Riverbend Care Team — Escalations</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #e7ecf5; margin: 0; padding: 32px 16px; }
+  h1 { font-size: 22px; margin: 0 0 4px; } .sub { color: #8fa0bd; margin-bottom: 24px; font-size: 14px; }
+  .card { max-width: 640px; margin: 0 auto 16px; background: #1a1030; border: 1px solid #4a1d6e; border-radius: 14px; padding: 18px 20px; }
+  .head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .pulse { width: 10px; height: 10px; border-radius: 50%; background: #ff3b5c; animation: p 1.2s infinite; }
+  @keyframes p { 50% { opacity: .3; } }
+  .time { margin-left: auto; color: #8fa0bd; font-size: 12px; }
+  .said { font-size: 17px; margin-bottom: 6px; } .ctx { color: #8fa0bd; font-size: 12px; font-family: monospace; }
+</style></head><body>
+<h1>Care Team — Live Escalations</h1><div class="sub">flagged by the AI front desk · on-call notified by SMS</div>
+${cards || '<div class="card"><div class="said">No escalations yet</div></div>'}
+</body></html>`, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+
     if (req.method === "GET") {
-      const seed = STATUS_PAGE_LINE || "clinic-triage-status";
-      const sanitizedLine = seed.replace(/[^0-9a-zA-Z]/g, "");
-      const router = env.TRIAGE_ROUTER_V3.idFromName(sanitizedLine || "clinic-triage-status");
+      const sanitizedLine = "+16282564664".replace(/[^0-9a-zA-Z]/g, "");
+      const router = env.TRIAGE_ROUTER_V3.idFromName(sanitizedLine);
       const routes = await router.routes();
       return new Response(statusPage(routes), {
         headers: { "content-type": "text/html; charset=utf-8" },
       });
     }
 
-    if (req.method === "POST" && url.pathname === "/log") {
-      const b = await safeJson<{ caller?: string; intent?: string; note?: string }>(req);
-      const q = url.searchParams;
-      const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v3");
-      await router.logIntent({
-        caller: b.caller || q.get("caller") || "",
-        intent: b.intent || q.get("intent") || "unknown",
-        note: b.note || q.get("note") || "",
-      });
-      return Response.json({ ok: true, logged: b.intent || q.get("intent") || "unknown" });
+    // Path-based dynamic-variable routes (query strings are NOT substituted)
+    const pathMatch = url.pathname.match(/^\/log\/([^/]+)\/([^/]+)$/);
+    if (req.method === "POST" && pathMatch) {
+      const pathCaller = decodeURIComponent(pathMatch[1]);
+      const intent = decodeURIComponent(pathMatch[2]);
+      const caller = pathCaller.includes("{{") || !pathCaller ? await currentCaller(env) : pathCaller;
+      const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v4");
+      await router.logIntent({ caller: caller || pathCaller, intent, note: "" });
+      return Response.json({ ok: true, logged: intent, caller: caller || pathCaller });
     }
 
-    if (req.method === "POST" && url.pathname === "/misroute") {
-      const b = await safeJson<{ desk_line?: string; caller?: string; summary?: string; call_control_id?: string }>(req);
-      // Identifiers also arrive as dynamic variables in the query string
-      const q = url.searchParams;
-      const deskLine = b.desk_line || q.get("desk") || "";
-      const caller = b.caller || q.get("caller") || "";
-      const ccid = b.call_control_id || q.get("ccid") || "";
-      const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v3");
-      await router.setPendingMisroute({ deskLine, caller, summary: b.summary ?? "" });
-      const target = deskLine ? MISROUTE_TARGETS[deskLine] : undefined;
-      if (ccid && target) {
-        await callAction(ccid, "transfer", { to: target, command_id: `misroute-${Date.now()}` });
+    const escMatch = url.pathname.match(/^\/escalate\/([^/]+)$/);
+    if (req.method === "POST" && escMatch) {
+      const pathCaller = decodeURIComponent(escMatch[1]);
+      const caller = pathCaller.includes("{{") || !pathCaller ? await currentCaller(env) : pathCaller;
+      const convId = url.searchParams.get("conv") || "";
+      let transcript = "";
+      let summary = "urgent concern reported";
+      if (convId) {
+        try {
+          const res = await fetch(
+            `${TELNYX_API}/ai/conversations/${convId}/messages?page[size]=15`,
+            { headers: authHeaders() },
+          );
+          if (res.ok) {
+            const j = (await res.json()) as { data?: Array<{ role?: string; text?: string }> };
+            const msgs = (j.data ?? []).slice().reverse().filter((m) => (m.text ?? "").trim());
+            transcript = msgs.map((m) => `${m.role === "user" ? "CALLER" : "AGENT"}: ${m.text}`).join(" | ").slice(0, 600);
+            const lastUser = msgs.filter((m) => m.role === "user").pop();
+            if (lastUser?.text) summary = String(lastUser.text).slice(0, 160);
+          }
+        } catch {
+          // best effort — the escalation still goes out
+        }
       }
-      return Response.json({ ok: true, rerouted_to: target ?? null });
+      const smsText = `🚨 RIVERBEND ESCALATION\nCaller: ${caller || "unknown"}\nSaid: "${summary}"${transcript ? `\nContext: ${transcript.slice(0, 260)}` : ""}\n→ call the caller back now`;
+      const smsRes = await fetch(`${TELNYX_API}/messages`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ to: ONCALL_NUMBER, from: process.env.SMS_FROM_NUMBER || SMS_SENDER_FALLBACK, text: smsText }),
+      });
+      const smsOk = smsRes.ok;
+      if (!smsOk) console.log(`[escalate] SMS failed: HTTP ${smsRes.status} ${await smsRes.text().catch(() => "")}`);
+      // Dial the on-call nurse — when she answers, the call.answered handler bridges her to the patient
+      let nurseDial = false;
+      try {
+        const dialRes = await fetch(`${TELNYX_API}/calls`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({
+            connection_id: CC_APP_ID,
+            from: process.env.SMS_FROM_NUMBER || SMS_SENDER_FALLBACK,
+            to: ONCALL_NUMBER,
+            webhook_url: WEBHOOK_URL,
+            command_id: `nurse-dial-${Date.now()}`,
+          }),
+        });
+        nurseDial = dialRes.ok;
+        if (!nurseDial) console.log(`[escalate] nurse dial failed: HTTP ${dialRes.status} ${await dialRes.text().catch(() => "")}`);
+      } catch (e) {
+        console.log(`[escalate] nurse dial error: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      try {
+        const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v4");
+        await router.logIntent({ caller: caller || "unknown", intent: "ESCALATED 🚨", note: `${summary} :: ${transcript.slice(0, 400)}` });
+      } catch (e) {
+        console.log(`[escalate] log failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      return Response.json({ ok: true, escalated: true, sms_sent: smsOk });
     }
+
+    if (req.method === "POST" && url.pathname === "/escalate") {
+      const q = url.searchParams;
+      const caller = q.get("caller") || "";
+      const convId = q.get("conv") || "";
+      let transcript = "";
+      let summary = "urgent concern reported";
+      try {
+        const res = await fetch(
+          `${TELNYX_API}/ai/conversations/${convId}/messages?page[size]=15`,
+          { headers: authHeaders() },
+        );
+        if (res.ok) {
+          const j = (await res.json()) as {
+            data?: Array<{ role?: string; text?: string }>;
+          };
+          const msgs = (j.data ?? []).slice().reverse();
+          const lines = msgs
+            .filter((m) => (m.text ?? "").trim())
+            .map((m) => `${m.role === "user" ? "CALLER" : "AGENT"}: ${m.text}`)
+            .join(" | ");
+          transcript = lines.slice(0, 600);
+          const lastUser = msgs.filter((m) => m.role === "user").pop();
+          if (lastUser?.text) summary = String(lastUser.text).slice(0, 160);
+        }
+      } catch {
+        // transcript fetch is best-effort — the escalation still goes out
+      }
+      // Compose + send the on-call SMS
+      const smsText = `🚨 RIVERBEND ESCALATION\nCaller: ${caller || "unknown"}\nSaid: "${summary}"\nContext: ${transcript.slice(0, 300)}`;
+      const smsRes = await fetch(`${TELNYX_API}/messages`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          to: ONCALL_NUMBER,
+          from: SMS_FROM_NUMBER,
+          text: smsText,
+        }),
+      });
+      const smsOk = smsRes.ok;
+      if (!smsOk) console.log(`[escalate] SMS failed: HTTP ${smsRes.status} ${await smsRes.text().catch(() => "")}`);
+      try {
+        const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v4");
+        await router.logIntent({
+          caller: caller || "unknown",
+          intent: "ESCALATED 🚨",
+          note: `${summary} :: ${transcript.slice(0, 400)}`,
+        });
+      } catch (e) {
+        console.log(`[escalate] log failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      return Response.json({ ok: true, escalated: true, sms_sent: smsOk });
+    }
+
 
     if (req.method === "POST" && url.pathname === "/webhooks/voice") {
       const body = (await req.json()) as {
@@ -444,19 +408,26 @@ export default {
         if ((payload.direction as string) !== "incoming") {
           return Response.json({ action: "ignored_outbound" });
         }
-        // One function, three assistants: each line answers with its own persona
-        // (receptionist on the main clinic line, billing desk, clinical desk).
+        // One function, three assistants: each line answers with its own persona.
+        // assistant_id per clinic line — from env (see .env.example)
+        const ASSISTANT_ROUTES: Record<string, string> = JSON.parse(process.env.ASSISTANT_ROUTES_JSON ?? "{}");
         const assistantId = ASSISTANT_ROUTES[line];
         const fromNumber = (payload.from as string) ?? "";
-        const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v3");
+        const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v4");
+        // The function owns identity: record who is calling, every call
+        try {
+          await router.logIntent({ caller: fromNumber, intent: "CALLSTART", note: callControlId, call_id: callControlId });
+        } catch { /* identity log is best-effort */ }
         const vars: Record<string, string> = {};
-        const history = await router.lastIntentFor(fromNumber);
-        if (history) vars.routing_history = history;
-        const misroute = await router.pendingMisrouteFor(fromNumber);
-        if (misroute) {
-          vars.misroute_context = misroute;
-          await router.clearPendingMisroute(fromNumber);
-        }
+        // Welcome-back history: latest real intent for this caller, filtered in code
+        try {
+          const rows = await router.routes();
+          const mine = (rows as Array<Record<string, unknown>>).filter(
+            (r) => String(r.caller ?? "") === fromNumber &&
+                   ["billing", "clinical", "afterhours"].includes(String(r.intent ?? "")),
+          );
+          if (mine.length > 0) vars.routing_history = String(mine[0].intent ?? "");
+        } catch { /* history is best-effort */ }
         const assistantConfig: Record<string, unknown> = { id: assistantId };
         if (Object.keys(vars).length > 0) assistantConfig.dynamic_variables = vars;
         await callAction(callControlId, "answer", { assistant: assistantConfig });
@@ -466,105 +437,36 @@ export default {
       }
 
       if (eventType === "call.answered") {
-        // Specialist leg: deliver the briefing, then wait for the accept/decline DTMF
-        if (cs?.role === "next_agent") {
-          await callAction(callControlId, "gather_using_speak", {
-            payload: `Incoming warm transfer. The caller needs help with a ${String(
-              cs.intent ?? "billing"
-            )} issue. Briefing: ${String(cs.briefing ?? "no details available")}. Press 1 to accept the call, or 2 to decline.`,
-            voice: SPECIALIST_VOICE,
-            valid_digits: "12",
-            minimum_digits: 1,
-            maximum_digits: 1,
-            inter_digit_timeout_millis: 8000,
-            terminating_digit: "",
-          });
-          return Response.json({ ok: true, action: "briefing_specialist" });
+        if (line === ONCALL_NUMBER) {
+          const router = env.TRIAGE_ROUTER_V3.idFromName("cliniclog-v4");
+          const rows = (await router.routes()) as Array<Record<string, unknown>>;
+          const esc = rows.find((r) => String(r.intent ?? "").includes("ESCALATED"));
+          const start = rows.find((r) => String(r.intent ?? "") === "CALLSTART");
+          const patientCcid = String(start?.call_id ?? "") || String(start?.note ?? "");
+          const note = String(esc?.transcript ?? "") || String(start?.transcript ?? "");
+          const [summary] = (note || "urgent concern").split(" :: ");
+          if (summary) {
+            await callAction(callControlId, "speak", {
+              payload: `You have an urgent patient on the line: ${summary.slice(0, 140)}. Connecting you now.`,
+              voice: CLINIC_VOICE,
+              language: "en-US",
+            });
+          }
+          if (patientCcid) {
+            await callAction(patientCcid, "transfer", { to: callControlId, command_id: `nurse-bridge-${Date.now()}` });
+          }
+          return Response.json({ ok: true, action: "nurse_bridged", patient: patientCcid || null });
         }
-        // Caller leg: greet + capture in ONE command (no separate flaky speak)
-        await callAction(callControlId, "gather_using_ai", {
-          greeting:
-            "Thanks for calling Riverbend Family Practice. Tell me what you need and I'll connect you with the right specialist.",
-          voice: CLINIC_VOICE,
-          parameters: {
-            type: "object",
-            properties: {
-              utterance: { type: "string", description: "The caller's spoken need, verbatim." },
-            },
-            required: ["utterance"],
-          },
-          assistant: {
-            model: env.AI_MODEL ?? "gpt-4o-mini",
-            instructions: "One-turn capture. No follow-ups.",
-          },
-          transcription: { language: "en" },
-          user_response_timeout_ms: 15000,
-        });
-        return Response.json({ ok: true, action: "greeted" });
+        return Response.json({ ok: true, action: "assistant_managed" });
       }
 
       if (eventType === "call.ai_gather.ended") {
-        const result = (payload.result ?? {}) as Record<string, unknown>;
-        const utterance = String(result.utterance ?? "");
-        const router = env.TRIAGE_ROUTER_V3.idFromName(line.replace(/[^0-9a-zA-Z]/g, ""));
-        const decision = await router.onGatherResult({
-          callControlId,
-          from: (payload.from as string) ?? "",
-          to: line,
-          utterance,
-        });
-        if (!decision) return Response.json({ ok: true, action: "already_routed" });
-
-        // Hold message, then dial the caller's own phone as the specialist desk
-        await callAction(callControlId, "speak", {
-          payload: "Connecting you with a specialist now. Please hold.",
-          voice: CLINIC_VOICE,
-          language: "en-US",
-        });
-        const dialId = await dialSpecialist(line, (payload.from as string) ?? "", {
-          role: "next_agent",
-          transferId: `w${Date.now()}`,
-          callerCcid: callControlId,
-          intent: decision.intent,
-          briefing: decision.summary,
-        });
-        if (!dialId) {
-          await callAction(callControlId, "speak", {
-            payload: "We're having trouble connecting you right now. Please try again shortly.",
-            voice: CLINIC_VOICE,
-            language: "en-US",
-          });
-          return Response.json({ error: "warm dial failed" }, { status: 502 });
-        }
-        await router.markTransferred(callControlId);
-        return Response.json({ ok: true, action: "warm_transfer", destination: (payload.from as string) ?? "" });
+        // Plain gather flows no longer exist — assistants own the conversations.
+        return Response.json({ ok: true, action: "assistant_managed" });
       }
 
       if (eventType === "call.gather.ended") {
-        // Specialist's DTMF decision
-        if (cs?.role === "next_agent") {
-          const digits = String(
-            (payload.result as Record<string, unknown> | undefined)?.digits ?? payload.digits ?? ""
-          );
-          if (digits === "1") {
-            const conf = `warm-${String(cs.transferId ?? Date.now())}`;
-            await callAction(callControlId, "join", {
-              name: conf,
-              start_conference_on_create: true,
-              end_conference_on_exit: true,
-            });
-            await callAction(String(cs.callerCcid ?? ""), "join", { name: conf });
-            return Response.json({ ok: true, action: "warm_accepted", conference: conf });
-          }
-          await callAction(callControlId, "hangup", {});
-          await callAction(String(cs.callerCcid ?? ""), "speak", {
-            payload: "The specialist is unavailable right now. Let me find another one for you.",
-            voice: CLINIC_VOICE,
-            language: "en-US",
-          });
-          return Response.json({ ok: true, action: "warm_declined" });
-        }
-        return Response.json({ ok: true, action: "gather_ended" });
+        return Response.json({ ok: true, action: "assistant_managed" });
       }
 
       if (eventType === "call.speak.failed") {
