@@ -94,6 +94,39 @@ body {
 
 .btn-secondary:hover { background: #30363d; }
 
+/* Email compose modal */
+.modal-overlay {
+    display: none;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 24px;
+    width: 460px;
+    max-width: 90vw;
+}
+.modal h3 { color: #f0f6fc; margin-bottom: 16px; font-size: 15px; }
+.modal input, .modal textarea {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+.modal textarea { height: 100px; resize: vertical; }
+.modal input:focus, .modal textarea:focus { outline: none; border-color: #58a6ff; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
 /* Main panels — three columns */
 .container {
     display: flex;
@@ -373,8 +406,22 @@ body {
     </div>
     <span id="statusBadge" class="status-badge status-idle">Idle</span>
     <span class="header-spacer"></span>
-    <button id="btnRun" class="btn btn-primary" onclick="runJourney()">Run Demo Journey</button>
+    <button class="btn btn-primary" onclick="openCompose()" style="background:#1f6feb">&#9993; Send Email</button>
+    <button id="btnRun" class="btn btn-secondary" onclick="runJourney()">Run Demo Journey</button>
     <button class="btn btn-secondary" onclick="resetUI()">Reset</button>
+</div>
+
+<div class="modal-overlay" id="composeModal">
+    <div class="modal">
+        <h3>&#9993; Send Inbound Email</h3>
+        <input type="text" id="composeFrom" placeholder="From email" value="harpreet@telnyx.com">
+        <input type="text" id="composeSubject" placeholder="Subject">
+        <textarea id="composeBody" placeholder="Email body..."></textarea>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeCompose()">Cancel</button>
+            <button class="btn btn-primary" id="btnSendEmail" onclick="sendEmail()">Send</button>
+        </div>
+    </div>
 </div>
 
 <div class="container">
@@ -516,6 +563,11 @@ function addChannelCard(tool, input, result, direction) {
         icon = '\u2714';
         title = 'Issue Resolved';
         body = '<div class="body-text">' + esc(input.summary || '') + '</div>';
+    } else if (tool === 'voice_response') {
+        cls = 'channel-voice';
+        icon = '\uD83D\uDCDE';
+        title = 'Voice Response';
+        body = '<div class="body-text">' + esc(input.text || '') + '</div>';
     } else if (tool === 'inbound') {
         cls = 'channel-inbound';
         icon = '\u2B07';
@@ -685,6 +737,36 @@ function resetUI() {
 }
 
 updateContextCount();
+connectSSE();
+
+function openCompose() {
+    document.getElementById('composeModal').classList.add('open');
+    document.getElementById('composeSubject').focus();
+}
+function closeCompose() {
+    document.getElementById('composeModal').classList.remove('open');
+}
+function sendEmail() {
+    const from = document.getElementById('composeFrom').value.trim();
+    const subject = document.getElementById('composeSubject').value.trim();
+    const body = document.getElementById('composeBody').value.trim();
+    if (!from || !subject || !body) return alert('Please fill in all fields');
+    document.getElementById('btnSendEmail').disabled = true;
+    fetch('/webhooks/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { event_type: 'email.received', payload: {
+            from: { email: from }, subject: subject, body: body, text_body: body
+        }}})
+    })
+    .then(() => {
+        document.getElementById('composeSubject').value = '';
+        document.getElementById('composeBody').value = '';
+        closeCompose();
+        document.getElementById('btnSendEmail').disabled = false;
+    })
+    .catch(() => { document.getElementById('btnSendEmail').disabled = false; });
+}
 </script>
 </body>
 </html>

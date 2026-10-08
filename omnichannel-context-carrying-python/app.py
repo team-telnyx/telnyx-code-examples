@@ -26,6 +26,7 @@ import threading
 import time
 from datetime import datetime, timezone
 
+import logging
 import requests
 import telnyx
 from dotenv import load_dotenv
@@ -34,6 +35,8 @@ from flask import Flask, Response, jsonify, render_template, request
 load_dotenv()
 
 app = Flask(__name__)
+app.logger.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 # ---------------------------------------------------------------------------
 # SSE — real-time event streaming to browser clients
@@ -416,7 +419,10 @@ def execute_tool(tool_name, tool_input, customer):
     return f"Unknown tool: {tool_name}"
 
 
-def call_inference(messages):
+VOICE_TOOLS = [t for t in TOOLS if t["function"]["name"] != "make_call"]
+
+
+def call_inference(messages, voice_mode=False):
     """Call the Telnyx AI Inference API and return the raw JSON response."""
     resp = requests.post(
         INFERENCE_URL,
@@ -427,7 +433,7 @@ def call_inference(messages):
         json={
             "model": AI_MODEL,
             "messages": messages,
-            "tools": TOOLS,
+            "tools": VOICE_TOOLS if voice_mode else TOOLS,
             "max_tokens": 4096,
         },
         timeout=30,
@@ -709,6 +715,13 @@ def handle_voice():
             from_number = from_number.get("phone_number", "")
 
         customer = resolve_customer(phone=from_number)
+
+        sse_publish("channel.inbound", {
+            "channel": "voice",
+            "from": from_number,
+            "customer": customer,
+        })
+
         if customer:
             sse_publish("agent.identity_resolved", {
                 "channel": "voice",
@@ -755,62 +768,97 @@ def handle_voice():
         else:
             greeting = "Hello! Thank you for calling TelnyxDemo Corp. How can I help you today?"
 
-        # Speak the greeting
-        requests.post(
-            f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/speak",
-            headers={
-                "Authorization": f"Bearer {TELNYX_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={"payload": greeting, "voice": "female", "language_code": "en-US"},
-            timeout=10,
-        )
-        return jsonify({"status": "greeting"}), 200
-
-    elif event_type == "call.speak.ended":
-        # After speaking, gather customer speech
-        requests.post(
-            f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/gather",
+        # Use gather_using_ai: speaks the greeting with HD voice, then
+        # captures the caller's speech via AI-powered transcription.
+        gather_resp = requests.post(
+            f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/gather_using_ai",
             headers={
                 "Authorization": f"Bearer {TELNYX_API_KEY}",
                 "Content-Type": "application/json",
             },
             json={
-                "input_type": "speech",
-                "end_silence_timeout_secs": 2,
-                "timeout_secs": 15,
-                "language_code": "en-US",
+                "greeting": greeting,
+                "voice": "Telnyx.Ultra.00a77add-48d5-4ef6-8157-71e5437b282d",
+                "language": "en",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "customer_response": {
+                            "type": "string",
+                            "description": "What the customer said in response",
+                        },
+                    },
+                    "required": ["customer_response"],
+                },
+                "assistant": {
+                    "instructions": (
+                        "You are a silent listener. Your ONLY job is to capture "
+                        "EXACTLY what the customer says. Do NOT ask follow-up "
+                        "questions. Do NOT respond or have a conversation. Just "
+                        "capture their response word-for-word and complete."
+                    ),
+                },
             },
             timeout=10,
         )
-        return jsonify({"status": "listening"}), 200
+        app.logger.info("Gather AI response %s: %s", gather_resp.status_code, gather_resp.text[:500])
+        return jsonify({"status": "greeting_and_listening"}), 200
 
-    elif event_type == "call.gather.ended":
-        speech = p.get("speech", {}).get("result", "")
+    elif event_type == "call.ai_gather.ended":
+        app.logger.info("AI Gather ended payload: %s", json.dumps(p, indent=2)[:2000])
+
         from_number = p.get("from", "")
         if isinstance(from_number, dict):
             from_number = from_number.get("phone_number", "")
 
         customer = resolve_customer(phone=from_number)
 
-        if not speech:
+        # Extract user speech from message_history or structured result
+        ai_result = p.get("result") or {}
+        message_history = p.get("message_history") or []
+
+        user_speech = ""
+        for hist_msg in reversed(message_history):
+            if hist_msg.get("role") == "user":
+                user_speech = hist_msg.get("content", "")
+                break
+        if not user_speech and isinstance(ai_result, dict):
+            user_speech = ai_result.get("customer_response", "")
+
+        app.logger.info("Extracted speech: %s", user_speech)
+
+        if not user_speech:
+            # Re-gather with reprompt
             requests.post(
-                f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/speak",
+                f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/gather_using_ai",
                 headers={
                     "Authorization": f"Bearer {TELNYX_API_KEY}",
                     "Content-Type": "application/json",
                 },
                 json={
-                    "payload": "I didn't catch that. Could you please repeat?",
-                    "voice": "female",
-                    "language_code": "en-US",
+                    "greeting": "I didn't catch that. Could you please repeat?",
+                    "voice": "Telnyx.Ultra.00a77add-48d5-4ef6-8157-71e5437b282d",
+                    "language": "en",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "customer_response": {
+                                "type": "string",
+                                "description": "What the customer said",
+                            },
+                        },
+                        "required": ["customer_response"],
+                    },
+                    "assistant": {
+                        "instructions": "Capture exactly what the customer says.",
+                    },
                 },
                 timeout=10,
             )
-            return jsonify({"status": "reprompting"}), 200
+            return jsonify({"status": "re_listening"}), 200
 
         if customer:
-            store_message(customer["id"], "voice", "user", f"[Voice] {speech}")
+            store_message(customer["id"], "voice", "user", f"[Voice] {user_speech}")
 
             # Build AI response with full cross-channel history
             history = get_conversation_history(customer["id"])
@@ -826,30 +874,34 @@ def handle_voice():
                         f"Customer: {customer['name']} (email: {customer.get('email', 'N/A')}, "
                         f"phone: {customer['phone']})\n\n"
                         f"Full cross-channel history:\n{history_text}\n\n"
-                        f"Customer just said on the phone: \"{speech}\"\n\n"
-                        "Respond to the customer. Keep voice responses under 2 sentences. "
-                        "If the customer confirms a request from a prior channel, proceed with "
-                        "resolving it. Use send_sms to send a confirmation if appropriate."
+                        f"Customer just said on the phone: \"{user_speech}\"\n\n"
+                        "You are CURRENTLY on a live phone call with this customer. "
+                        "Your text response will be spoken to them directly — do NOT "
+                        "use make_call. Keep your response under 2 sentences.\n"
+                        "If the customer confirms a request from a prior channel, "
+                        "proceed with resolving it. Use send_sms to send a written "
+                        "confirmation after responding."
                     ),
                 },
             ]
 
-            sse_publish("agent.thinking", {"content": f"Processing voice input: {speech}"})
+            sse_publish("agent.thinking", {"content": f"Processing voice input: {user_speech}"})
 
-            data_resp = call_inference(messages)
+            # voice_mode=True excludes make_call from available tools
+            data_resp = call_inference(messages, voice_mode=True)
             choice = data_resp["choices"][0]
-            msg = choice["message"]
-            response_text = msg.get("content", "")
+            ai_msg = choice["message"]
+            response_text = ai_msg.get("content", "")
 
-            # Handle tool calls (e.g., send_sms for confirmation)
-            if msg.get("tool_calls"):
-                for tc in msg["tool_calls"]:
+            # Handle tool calls (send_sms, resolve_issue, etc.)
+            if ai_msg.get("tool_calls"):
+                for tc in ai_msg["tool_calls"]:
                     fn = tc["function"]
                     tool_name = fn["name"]
                     tool_input = json.loads(fn.get("arguments", "{}"))
                     sse_publish("agent.tool_call", {"tool": tool_name, "input": tool_input})
-                    result = execute_tool(tool_name, tool_input, customer)
-                    sse_publish("agent.tool_result", {"tool": tool_name, "result": result, "_input": tool_input})
+                    tool_result = execute_tool(tool_name, tool_input, customer)
+                    sse_publish("agent.tool_result", {"tool": tool_name, "result": tool_result, "_input": tool_input})
 
                     if tool_name == "send_sms":
                         sse_publish("journey.step", {
@@ -862,20 +914,40 @@ def handle_voice():
                 response_text = "I've processed your request. Is there anything else I can help with?"
 
             store_message(customer["id"], "voice", "assistant", f"[Voice response] {response_text}")
+
+            # Publish voice response as channel event for the timeline
+            sse_publish("agent.tool_result", {
+                "tool": "voice_response",
+                "result": f"Spoke to {customer['name']}: {response_text}",
+                "_input": {"text": response_text},
+            })
         else:
             response_text = "Thank you for calling. How can I help you today?"
 
-        # Speak the response
+        # Speak the response with HD voice
         requests.post(
             f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/speak",
             headers={
                 "Authorization": f"Bearer {TELNYX_API_KEY}",
                 "Content-Type": "application/json",
             },
-            json={"payload": response_text, "voice": "female", "language_code": "en-US"},
+            json={"payload": response_text, "voice": "Telnyx.Ultra.00a77add-48d5-4ef6-8157-71e5437b282d"},
             timeout=10,
         )
         return jsonify({"status": "responding"}), 200
+
+    elif event_type == "call.speak.ended":
+        # After speaking our response, hang up the call
+        requests.post(
+            f"https://api.telnyx.com/v2/calls/{call_control_id}/actions/hangup",
+            headers={
+                "Authorization": f"Bearer {TELNYX_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={},
+            timeout=10,
+        )
+        return jsonify({"status": "call_complete"}), 200
 
     elif event_type == "call.hangup":
         return jsonify({"status": "call_ended"}), 200
