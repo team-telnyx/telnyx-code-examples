@@ -428,7 +428,7 @@
 - [Chat with AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-python/README.md): Send messages to a Telnyx AI Assistant and receive responses. Supports conversation history and streaming.
 - [Chat With AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-ruby/README.md): Chat with a Telnyx AI Assistant and maintain conversation context over a production-ready Sinatra endpoint using the Telnyx Ruby SDK.
 - [Click-to-Call WebRTC with AI Assist](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/click-to-call-webrtc-with-ai-assist-python/README.md): Click-to-Call WebRTC with AI Assist - browser-based calling with real-time AI coaching sidebar.
-- [Clinic Triage, Handoff & Escalation (DEV-1187)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clinic-triage-handoff/README.md)
+- [Clinic Triage, Handoff & Escalation](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clinic-triage-handoff/README.md)
 - [Clone AI Assistant with C# and ASP.NET](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-csharp/README.md)
 - [Clone AI Assistant with Go and Gin](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-go/README.md)
 - [Clone AI Assistant with Java and Spring](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-java/README.md)

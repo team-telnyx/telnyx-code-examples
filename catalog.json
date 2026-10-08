@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-08T06:05:08Z",
-  "example_count": 569,
+  "generated_at": "2026-10-08T21:27:56Z",
+  "example_count": 571,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5135,6 +5135,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/clinic-triage-handoff"
+    },
+    {
+      "folder": "insurance-verification-caller",
+      "title": "Insurance Verification Caller — Durable Voice Actor with Jev Decision Models",
+      "description": "A durable Telnyx Edge actor that dials a carrier IVR, drives the menu via send_dtmf, captures the spoken eligibility result via STT, scores it with Jev Decision Models, and sends a one-line SMS verdict to the front desk — surviving voicemail, drops, and pod restarts.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insurance-verification-caller"
     }
   ]
 }
