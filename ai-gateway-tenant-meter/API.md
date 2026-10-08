@@ -197,7 +197,7 @@ ETag-preconditioned budget PATCH with a durable audit trail (last 50 changes kep
 
 ### `rollup()`
 
-The hourly durable task. Upserts per-day usage rows into `spend_days` (idempotent by `(tenant, day)`), records guardrail findings into `guardrail_events` (idempotent by gateway event id), fires the 80% / 100% alerts exactly once per budget period, flips `readOnly` at 100%, and re-arms itself.
+The durable usage task. Runs once immediately at provision, then on the `ROLLUP_INTERVAL_SECONDS` cadence. Upserts per-day usage rows into `spend_days` (idempotent by `(tenant, day)`), records guardrail findings into `guardrail_events` (idempotent by gateway event id), fires the 80% / 100% alerts exactly once per budget period, flips `readOnly` at 100%, and re-arms itself.
 
 ---
 
@@ -211,6 +211,7 @@ The hourly durable task. Upserts per-day usage rows into `spend_days` (idempoten
 | `ADMIN_SMS_FROM` | env var | — | SMS-capable Telnyx number for alerts |
 | `ADMIN_SMS_TO` | env var | — | Ops phone number receiving alerts |
 | `ALLOWED_MODELS` | env var | `Kimi-K2.6,Meta-Llama-3.1-8B-Instruct` | Model allowlist for new token groups |
+| `ROLLUP_INTERVAL_SECONDS` | env var | `60` (code default `3600`) | Rollup cadence; production should use `3600` |
 | `WARN_PCT` | env var | `80` | Warning-SMS threshold |
 | `HARD_PCT` | env var | `100` | Read-only threshold (gateway enforces 403 here) |
 

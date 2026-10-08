@@ -15,7 +15,7 @@ A durable per-tenant billing ledger that meters AI usage, enforces budgets, and 
 
 A managed IT support desk serves dozens of small clinics, each running an AI assistant that triages inquiries, schedules appointments, and answers billing questions. The desk bills each clinic monthly for AI usage, but without per-tenant spend controls a runaway conversation could blow a fixed budget — and a support agent pasting a patient's card number into the assistant could leak it to a model.
 
-The actor IS the tenant's billing ledger. Born when a clinic is onboarded via `POST /provision`, it creates a Telnyx AI Gateway token group (30-day budget, secret-blocking guardrails) plus a token key, then runs an hourly durable rollup that pulls gateway usage and guardrail findings into SQL. At 80% of budget it sends exactly one admin SMS; at 100% it flips the tenant view to read-only while the gateway itself denies further requests with `403 budget_exceeded`. If the platform reboots mid-month, the actor restarts with durable state intact: the SQL rollup resumes, the `alerted80` flag prevents duplicate alerts, and the next budget period resets the guards automatically.
+The actor IS the tenant's billing ledger. Born when a clinic is onboarded via `POST /provision`, it creates a Telnyx AI Gateway token group (30-day budget, secret-blocking guardrails) plus a token key, then runs a durable rollup — an immediate first run at provision time, then on the `ROLLUP_INTERVAL_SECONDS` cadence (60s in this sample for a watchable demo; 3600 is the production default) — that pulls gateway usage and guardrail findings into SQL. At 80% of budget it sends exactly one admin SMS; at 100% it flips the tenant view to read-only while the gateway itself denies further requests with `403 budget_exceeded`. If the platform reboots mid-month, the actor restarts with durable state intact: the SQL rollup resumes, the `alerted80` flag prevents duplicate alerts, and the next budget period resets the guards automatically.
 
 ## Why Telnyx
 
@@ -75,6 +75,7 @@ The gateway meters and enforces (spend tracking, `403 budget_exceeded` at 100%, 
 | `DEMO_MODE` | `string` (secret) | `true` | no | `true` (default) logs SMS to console instead of sending | — |
 | `API_TOKEN` | `string` (secret) | `your_shared_api_token_here` | no | When set, `POST /provision`, `GET /spend` and `POST /adjust` require `Authorization: Bearer <token>` | Any random string |
 | `ALLOWED_MODELS` | `string` (env) | `Kimi-K2.6,Meta-Llama-3.1-8B-Instruct` | no | Comma-separated model allowlist for new token groups | Defaults to Telnyx-hosted models |
+| `ROLLUP_INTERVAL_SECONDS` | `string` (env) | `60` | no | Rollup cadence. `60s` keeps the demo watchable; use `3600` in production | Code default `3600`, clamped 30s–1d |
 | `WARN_PCT` | `string` (env) | `80` | no | Budget percentage that triggers the warning SMS | Default `80` |
 | `HARD_PCT` | `string` (env) | `100` | no | Budget percentage that flips the tenant view read-only | Default `100` |
 
@@ -130,7 +131,7 @@ curl -X POST https://<your-deployment>/provision \
   -d '{"tenantId": "demo-over", "monthlyBudget": 0.00001}'
 ```
 
-Then send a couple of completions through `demo-over`'s token key (point an OpenAI-compatible client at `https://llm.telnyx.com/v1` with the returned token key) and watch `GET /spend?tenantId=demo-over` cross 100%: the admin SMS fires once, `readOnly` becomes `true`, and the next gateway call returns `403 budget_exceeded`.
+Then spend through `demo-over`'s token key (point an OpenAI-compatible client at `https://llm.telnyx.com/v1` with the returned token key) and watch `GET /spend?tenantId=demo-over` cross the thresholds: the admin SMS fires once per threshold, `readOnly` becomes `true`, and further gateway calls return `403 budget_exceeded`. Note the reservation semantics: a tenant whose budget is smaller than the reservation for a single request is denied *before* spending anything — so seed `demo-over` with a budget a handful of completions can cross (e.g. `0.002`), or lower an existing budget with `POST /adjust` once spend has accrued.
 
 ## API Reference
 
