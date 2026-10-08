@@ -501,7 +501,7 @@ export class CoachRoom extends Agent<CoachEnv, CoachState> {
       "You have been escalated as a supervisor. This is a simulated conversation, so there is no live caller audio. The coach room will now end this call.";
 
     let answered = false;
-    for (let attempt = 0; attempt < 20 && !answered; attempt++) {
+    for (let attempt = 0; attempt < 35 && !answered; attempt++) {
       await new Promise((r) => setTimeout(r, 1000));
       try {
         const resp = await fetch(`https://api.telnyx.com/v2/calls/${encodeURIComponent(cc)}/actions/speak`, {
@@ -519,7 +519,7 @@ export class CoachRoom extends Agent<CoachEnv, CoachState> {
       }
     }
 
-    await this.schedule(answered ? 12 : 25, "endSupervisorLeg", { callControlId: cc }, { id: "end-supervisor" });
+    await this.schedule(answered ? 12 : 60, "endSupervisorLeg", { callControlId: cc }, { id: "end-supervisor" });
   }
 
   /** Hang up the supervisor's leg after the demo-mode notice played. */
