@@ -69,3 +69,30 @@ The `log_*` tools are intent-specific (`log_billing`, `log_clinical`, `log_after
 | `smoke_test.ts` | Unit tests for the router lifecycle and classification |
 
 Ticket: [DEV-1187](https://linear.app/telnyx/issue/DEV-1187/sprint-17-clinic-triage-and-handoff)
+
+## Why Telnyx
+
+This sample shows what makes Telnyx different from bolt-on voice AI: one phone number on one Edge deployment runs three durable assistant personas, the routing brain is an actor with its own SQL (state survives restarts and redeploys), and the escalation path — SMS, live nurse dial, spoken briefing, bridge — is plain Call Control code, not vendor glue. Speech capture, text-to-speech (Telnyx Ultra voices), inference, messaging, and compute are all on one platform, one API key, one bill.
+
+## AI Communications Infrastructure
+
+The clinic runs on Telnyx's AI Communications Infrastructure: programmable voice with Call Control, durable AI agents on Edge Compute, native inference for intent classification and briefing summaries, and messaging for the on-call escalation — the same network that carries the calls carries the handoffs.
+
+## Troubleshooting
+
+- **Call rings forever** — the phone number's Call Control app must point at this function's `/webhooks/voice` and the function must be `deploy_ok` (`telnyx-edge list`). Real calls produce webhook deliveries within a second; if you see none, check the app binding.
+- **Silence after answer** — the assistant's TTS voice must be a valid Telnyx voice (`Telnyx_Katie`, `female`…). Invalid voice values are accepted by the API and fail at synthesis — check the function logs for `call.speak.failed`.
+- **Assistant never speaks its greeting** — greeting interruption must be disabled (`interruption_settings.disable_greeting_interruption: true`), otherwise caller breath/noise cuts the greeting mid-sentence.
+- **Escalation SMS never arrives** — the sending number must be 10DLC-registered. Unregistered senders are accepted by the API and silently dropped by carriers ("Not 10DLC registered" in the message status). Verify with `GET /v2/messages/{id}`.
+- **Transfer 403 "D38"** — the Call Control application needs an outbound voice profile assigned (`PATCH /v2/call_control_applications/{id}` with `outbound.outbound_voice_profile_id`).
+- **Actor method not found** — Edge actor-method registration is captured at first deploy; after changing an actor's method set, redeploy (or rename the actor type) so the registry refreshes.
+
+## Related Examples
+
+- [ai-assistants](../ai-assistants/) — assistant fundamentals: models, voices, tools
+- [warm-transfer-ai-briefing-python](https://github.com/team-telnyx/telnyx-code-examples/tree/main/warm-transfer-ai-briefing-python) — the warm-transfer mechanics this sample builds routing on
+- [appointment-recovery-waitlist](../appointment-recovery-waitlist/) — the callback scheduling companion for after-hours messages
+
+## Agent Discovery
+
+The three assistant personas are created via the [Telnyx Assistants API](https://developers.telnyx.com/api-reference/assistants/create-an-assistant) — see *Assistant setup* above for the model, voice, and tool configuration each one needs. `ASSISTANT_ROUTES_JSON` maps each phone line to its assistant ID, and the Edge function injects the routing history as a dynamic variable per call. Browse the assistants in [Mission Control](https://portal.telnyx.com/#/ai/assistants) and the conversations they produce under **Conversation History**.
