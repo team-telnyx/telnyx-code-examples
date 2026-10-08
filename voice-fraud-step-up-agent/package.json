@@ -1,0 +1,20 @@
+{
+  "name": "voice-fraud-step-up-agent",
+  "version": "0.1.0",
+  "description": "Event-driven voice fraud gate with Telnyx AI Assistants, deepfake detection, durable risk ledger, flashcall step-up, and human-review routing.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "license": "MIT"
+}

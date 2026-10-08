@@ -1,0 +1,26 @@
+name = "voice-fraud-step-up-agent"
+main = "src/index.ts"
+compatibility_date = "2026-10-08"
+
+[[actors]]
+binding = "FRAUD_GATES"
+type = "VoiceFraudGate"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sql.FRAUD_DB]
+id = "replace-with-sql-database-id"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[env_vars]
+OUTBOUND_TEXML_APP_ID = "00000000-0000-0000-0000-000000000000"
+OUTBOUND_CALLER_ID = "+15551234567"
+FLASHCALL_VERIFY_PROFILE_ID = "00000000-0000-0000-0000-000000000000"
+HUMAN_REVIEW_NUMBER = "+15557654321"
+DASHBOARD_ORIGIN = "http://localhost:8787"
+RECENT_FLAG_WINDOW_MINUTES = "1440"
+MAX_CALL_MINUTES = "10"

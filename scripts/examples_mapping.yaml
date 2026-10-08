@@ -3468,7 +3468,7 @@ examples:
     folder: chargeback-adjudication
 
   - product: ai
-    use_case: "auto-generated-from-linear"
+    use_case: voice-fraud-step-up-agent
     language: typescript
     framework: edge
-    folder: voice-clone-gate
+    folder: voice-fraud-step-up-agent
