@@ -1,4 +1,4 @@
-import { VerifyJob, type JobState, type Verdict, type VerifyJobEnv, rpc } from "./src/index";
+import { VerifyJob } from "./src/index";
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
