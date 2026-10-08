@@ -65,7 +65,7 @@ Everything lives in `app.py` (91 lines). Here's what each piece does.
 ```python
 data = request.get_json()
     try:
-        resp = requests.post(f"{API}/brand", headers=headers,
+        resp = requests.post(f"{API}/10dlc/brand", headers=headers,
             json={"entity_type": data.get("entity_type", "PRIVATE_PROFIT"),
                 "display_name": data.get("display_name"),
                 "company_name": data.get("company_name"),
@@ -78,7 +78,7 @@ data = request.get_json()
 ```python
 data = request.get_json()
     try:
-        resp = requests.post(f"{API}/phoneNumberCampaign", headers=headers,
+        resp = requests.post(f"{API}/10dlc/phoneNumberCampaign", headers=headers,
             json={"telnyx_brand_id": data.get("brand_id"),
                 "usecase": data.get("usecase", "MIXED"),
                 "description": data.get("description"),

@@ -25,6 +25,12 @@ examples:
     folder: make-outbound-phone-call-python
 
   - product: voice
+    use_case: ai-billing-warm-transfer
+    language: python
+    framework: flask
+    folder: ai-billing-warm-transfer-python
+
+  - product: voice
     use_case: ivr-menu
     language: python
     framework: flask
@@ -767,6 +773,12 @@ examples:
     folder: quiz-generator-python
 
   - product: ai
+    use_case: agent-instruction-scanner
+    language: python
+    framework: cli
+    folder: trustedrouter-telnyx-agent-instruction-scanner
+
+  - product: ai
     use_case: call-recording-redactor
     language: python
     framework: flask
@@ -1109,6 +1121,12 @@ examples:
     folder: omnichannel-ai-agent-python
 
   - product: ai
+    use_case: omnichannel-context-carrying
+    language: python
+    framework: flask
+    folder: omnichannel-context-carrying-python
+
+  - product: ai
     use_case: policy-renewal-campaign
     language: python
     framework: flask
@@ -1131,6 +1149,12 @@ examples:
     language: python
     framework: flask
     folder: run-llm-inference-python
+
+  - product: ai
+    use_case: ai-assembly-tutor
+    language: c
+    framework: emscripten
+    folder: ai-assembly-tutor-c
 
   - product: ai
     use_case: storage-voicemail-archive
@@ -3436,6 +3460,48 @@ examples:
     language: python
     framework: flask
     folder: email-schedule-rescheduler
+
+  - product: ai
+    use_case: order-status-self-service
+    language: typescript
+    framework: edge
+    folder: order-status-self-service
+
+  - product: ai
+    use_case: post-call-qa-scoring
+    language: typescript
+    framework: edge
+    folder: post-call-qa-scoring
+
+  - product: ai
+    use_case: chargeback-adjudication
+    language: typescript
+    framework: edge
+    folder: chargeback-adjudication
+
+  - product: ai
+    use_case: live-support-coach-room
+    language: typescript
+    framework: edge
+    folder: live-support-coach-room
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: ai-gateway-tenant-meter
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: cli
+    folder: persistent-ai-agent-memory
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: clinic-triage-handoff
 
   - product: ai
     use_case: "auto-generated-from-linear"

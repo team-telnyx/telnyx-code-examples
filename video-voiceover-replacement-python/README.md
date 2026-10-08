@@ -34,9 +34,9 @@ Upload audio with existing voice-over. STT extracts the script, AI rewrites/impr
 
 ## Telnyx API Endpoints Used
 
-- **STT Transcribe**: `POST /v2/ai/transcribe` -- [ref](https://developers.telnyx.com/api/inference/transcribe)
+- **STT Transcribe**: `POST /v2/ai/audio/transcriptions` -- [ref](https://developers.telnyx.com/api-reference/speech-to-text-commands/transcribe-audio)
 - **AI Inference (rewrite)**: `POST /v2/ai/chat/completions` -- [ref](https://developers.telnyx.com/api/inference/chat-completions)
-- **TTS Generate**: `POST /v2/ai/generate` -- [ref](https://developers.telnyx.com/api/inference/generate)
+- **TTS Generate**: `POST /v2/text-to-speech/speech` -- [ref](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices)
 - **Cloud Storage (S3-compatible)**: `s3.put_object(...)` via boto3 against `https://{region}.telnyxcloudstorage.com` -- [docs](https://developers.telnyx.com/docs/cloud-storage)
 
 ## How It Works
@@ -60,7 +60,6 @@ Copy `.env.example` to `.env` and fill in:
 |----------|------|---------|----------|-------------|------------------|
 | `TELNYX_API_KEY` | `string` | `KEY...` | **yes** | Telnyx API v2 key | [Portal](https://portal.telnyx.com/api-keys) · [CLI: `telnyx auth`](https://developers.telnyx.com/development/cli) |
 | `AI_MODEL` | `string` | `moonshotai/Kimi-K2.6` | no | AI Inference model | [Docs](https://developers.telnyx.com/docs/inference/models) |
-| `TTS_MODEL` | `string` | `telnyx/tts` | no | TTS model | [Docs](https://developers.telnyx.com/docs/inference) |
 | `STT_MODEL` | `string` | `telnyx/asr` | no | STT model | [Docs](https://developers.telnyx.com/docs/inference) |
 | `BUCKET_NAME` | `string` | `voiceovers` | no | Cloud Storage bucket | [Portal](https://portal.telnyx.com/storage) · [CLI: `telnyx storage`](https://developers.telnyx.com/development/cli) |
 | `TELNYX_STORAGE_REGION` | `string` | `us-central-1` | no | Cloud Storage region (selects the S3 endpoint host); options: `us-central-1`, `us-east-1`, `us-west-1`, `eu-central-1` | [Docs](https://developers.telnyx.com/docs/cloud-storage) |

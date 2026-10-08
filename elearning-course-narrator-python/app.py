@@ -17,9 +17,8 @@ app = Flask(__name__)
 
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
 AI_MODEL = os.getenv("AI_MODEL", "moonshotai/Kimi-K2.6")
-TTS_MODEL = os.getenv("TTS_MODEL", "telnyx/tts")
 BUCKET_NAME = os.getenv("BUCKET_NAME", "elearning")
-DEFAULT_VOICE = os.getenv("DEFAULT_VOICE", "alloy")
+DEFAULT_VOICE = os.getenv("DEFAULT_VOICE", "Telnyx.KokoroTTS.af_alloy")
 API = "https://api.telnyx.com/v2"
 HEADERS = {"Authorization": f"Bearer {TELNYX_API_KEY}", "Content-Type": "application/json"}
 
@@ -64,9 +63,9 @@ def inference(messages, max_tokens=4000):
 
 
 def tts_generate(text, voice=None):
-    resp = requests.post(f"{API}/ai/generate", headers=HEADERS, json={
-        "model": TTS_MODEL, "voice": voice or DEFAULT_VOICE,
-        "text": text, "output_format": "mp3"
+    resp = requests.post(f"{API}/text-to-speech/speech", headers=HEADERS, json={
+        "voice": voice or DEFAULT_VOICE,
+        "text": text
     }, timeout=60)
     resp.raise_for_status()
     return resp.content

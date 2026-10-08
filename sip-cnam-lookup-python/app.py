@@ -28,29 +28,29 @@ def lookup_cnam(phone_number: str) -> dict:
     # Remove the + prefix for the API endpoint
     clean_number = phone_number[1:]
     
-    url = f"https://api.telnyx.com/v2/cnam_lookups/{clean_number}"
+    url = f"https://api.telnyx.com/v2/number_lookup/{clean_number}"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    
-    response = requests.get(url, headers=headers)
-    
+
+    response = requests.get(url, headers=headers, params={"type": "caller-name"}, timeout=15)
+
     if response.status_code == 401:
         raise ValueError("Invalid API key")
     elif response.status_code == 404:
         raise ValueError("Phone number not found or CNAM data unavailable")
     elif response.status_code != 200:
         raise ValueError(f"API error: {response.status_code} - {response.text}")
-    
-    data = response.json()
-    
+
+    data = response.json().get("data", {})
+
     return {
         "phone_number": phone_number,
-        "caller_name": data.get("data", {}).get("caller_name"),
-        "country_code": data.get("data", {}).get("country_code"),
-        "phone_number_type": data.get("data", {}).get("phone_number_type"),
-        "carrier_name": data.get("data", {}).get("carrier_name")
+        "caller_name": data.get("caller_name", {}).get("caller_name"),
+        "country_code": data.get("country_code"),
+        "phone_number_type": data.get("carrier", {}).get("type"),
+        "carrier_name": data.get("carrier", {}).get("name")
     }
 
 
@@ -83,7 +83,8 @@ def cnam_lookup_endpoint():
     except ValueError as e:
         return jsonify({"error": "Invalid request"}), 400
     except Exception as e:
-        return jsonify({"error": f"Lookup failed: {str(e)}"}), 500
+        app.logger.exception("CNAM lookup failed")
+        return jsonify({"error": "Lookup failed"}), 500
 
 
 @app.route("/sip/connections", methods=["GET"])

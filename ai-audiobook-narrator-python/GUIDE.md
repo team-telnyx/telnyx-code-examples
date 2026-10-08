@@ -31,7 +31,7 @@ Submit text, AI Inference chunks into chapters with pacing/emotion markup, TTS n
 ## API Endpoints
 
 - **AI Inference (chapter split)**: `POST /v2/ai/chat/completions` -- [ref](https://developers.telnyx.com/api/inference/chat-completions)
-- **TTS Generate (narration)**: `POST /v2/ai/generate` -- [ref](https://developers.telnyx.com/api/inference/generate)
+- **TTS Generate (narration)**: `POST /v2/text-to-speech/speech` -- [ref](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices)
 - **Cloud Storage (S3-compatible)**: `PutObject` via the AWS SDK (boto3) against `https://{region}.telnyxcloudstorage.com` -- [docs](https://developers.telnyx.com/docs/cloud-storage)
 
 ## Prerequisites

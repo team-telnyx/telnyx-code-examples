@@ -47,13 +47,13 @@ You POST an audio file plus a target language. The app:
 
 ## Telnyx Products Used
 
-- **AI Inference** — STT, chat completions, and TTS all live on Telnyx infrastructure. STT runs on `/v2/ai/transcribe`, translation on `/v2/ai/chat/completions`, TTS on `/v2/ai/generate`.
+- **AI Inference** — STT, chat completions, and TTS all live on Telnyx infrastructure. STT runs on `/v2/ai/audio/transcriptions`, translation on `/v2/ai/chat/completions`, TTS on `/v2/text-to-speech/speech`.
 
 ## API Endpoints
 
-- **STT Transcribe** — `POST /v2/ai/transcribe` — [reference](https://developers.telnyx.com/api/inference/transcribe)
+- **STT Transcribe** — `POST /v2/ai/audio/transcriptions` — [reference](https://developers.telnyx.com/api-reference/speech-to-text-commands/transcribe-audio)
 - **AI Inference: Chat Completions** — `POST /v2/ai/chat/completions` — [reference](https://developers.telnyx.com/api/inference/chat-completions)
-- **TTS Generate** — `POST /v2/ai/generate` — [reference](https://developers.telnyx.com/api/inference/generate)
+- **TTS Generate** — `POST /v2/text-to-speech/speech` — [reference](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices)
 
 ## Prerequisites
 
@@ -80,7 +80,7 @@ Everything lives in `app.py`. The interesting bits:
 
 ### `_stt(audio_bytes, language)`
 
-POSTs the audio bytes to `/v2/ai/transcribe` with `timestamps: true`. Returns the raw STT response (text + segments).
+POSTs the audio bytes to `/v2/ai/audio/transcriptions` with `timestamps: true`. Returns the raw STT response (text + segments).
 
 ### `_chat(messages, max_tokens)`
 

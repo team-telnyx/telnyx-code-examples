@@ -1,0 +1,20 @@
+{
+  "name": "post-call-qa-scoring",
+  "version": "1.0.0",
+  "description": "Durable per-agent post-call QA scoring with Telnyx Decision Models, rolling trend, coaching flags, and daily digest",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.16.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0"
+  },
+  "license": "MIT"
+}

@@ -32,17 +32,18 @@ class CnamLookupService
 
         $response = $this->client->request(
             'GET',
-            "/v2/cnam_lookups/{$phoneNumber}",
-            []
+            "/v2/number_lookup/{$phoneNumber}",
+            ['type' => 'caller-name']
         );
 
+        $data = $response['data'] ?? [];
         return [
             'phone_number' => $phoneNumber,
-            'caller_name' => $response['data']['caller_name'] ?? null,
-            'carrier_name' => $response['data']['carrier_name'] ?? null,
-            'phone_type' => $response['data']['phone_type'] ?? null,
-            'country_code' => $response['data']['country_code'] ?? null,
-            'lookup_status' => $response['data']['lookup_status'] ?? 'unknown',
+            'caller_name' => $data['caller_name']['caller_name'] ?? null,
+            'carrier_name' => $data['carrier']['name'] ?? null,
+            'phone_type' => $data['carrier']['type'] ?? null,
+            'country_code' => $data['country_code'] ?? null,
+            'valid' => $data['valid'] ?? null,
         ];
     }
 }

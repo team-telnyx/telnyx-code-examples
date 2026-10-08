@@ -1,0 +1,64 @@
+# Post-Call QA Scoring — one durable QAAgent actor per support agent.
+#
+# The actor IS the agent's quality profile: it grades each ended call with
+# the Telnyx Decision Models API, owns per-agent SQL score history (private to
+# the actor — no [[storage.sqldb]] block needed; agent SQL lives at
+# this.ctx.storage.sql), tracks the 5-call rolling trend, flags coaching
+# and compliance breaches, and texts a daily digest to the team lead.
+#
+# Bindings:
+#   [[actors]]  QA_AGENT — the QAAgent durable namespace. One actor instance
+#                         per agent, addressed by agentId via
+#                         idFromName(agentId).
+#   [telnyx]    TELNYX  — the standard Telnyx SDK binding. Exposes
+#                         this.env.TELNYX.messages.send() for digest and
+#                         breach-alert SMS.
+#   [[secrets]] SECRETS — holds TELNYX_API_KEY, TELNYX_FROM_NUMBER,
+#                         TEAM_LEAD_E164, QA_COACHING_FLOOR,
+#                         DIGEST_HOUR_UTC, CALL_METADATA_AGENT_KEY, and
+#                         AGENT_NUMBER_MAP. Without TELNYX_API_KEY, calls
+#                         are recorded as status="ungraded" (surfaced in
+#                         the digest) rather than crashing.
+
+name = "post-call-qa-scoring"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[edge_compute]
+func_id   = "9e620e79-66d5-4641-a7dd-4dc8423b48e3"
+func_name = "post-call-qa-scoring"
+
+[[actors]]
+binding = "QA_AGENT"
+type    = "QAAgent"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_FROM_NUMBER"
+name    = "TELNYX_FROM_NUMBER"
+
+[[secrets]]
+binding = "TEAM_LEAD_E164"
+name    = "TEAM_LEAD_E164"
+
+[[secrets]]
+binding = "QA_COACHING_FLOOR"
+name    = "QA_COACHING_FLOOR"
+
+[[secrets]]
+binding = "DIGEST_HOUR_UTC"
+name    = "DIGEST_HOUR_UTC"
+
+[[secrets]]
+binding = "CALL_METADATA_AGENT_KEY"
+name    = "CALL_METADATA_AGENT_KEY"
+
+[[secrets]]
+binding = "AGENT_NUMBER_MAP"
+name    = "AGENT_NUMBER_MAP"

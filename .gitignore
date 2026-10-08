@@ -3,6 +3,9 @@
 .env.local
 .env.production
 
+# Databases (runtime artifacts)
+*.db
+
 # Python
 __pycache__/
 *.py[cod]

@@ -38,7 +38,7 @@ Generate professional IVR/phone system prompts. AI writes caller-friendly script
 ## API Endpoints
 
 - **AI Inference (script writing)**: `POST /v2/ai/chat/completions` -- [ref](https://developers.telnyx.com/api/inference/chat-completions)
-- **TTS Generate**: `POST /v2/ai/generate` -- [ref](https://developers.telnyx.com/api/inference/generate)
+- **TTS Generate**: `POST /v2/text-to-speech/speech` -- [ref](https://developers.telnyx.com/api-reference/text-to-speech-commands/list-available-voices)
 - **Create Call (preview)**: `POST /v2/calls` -- [ref](https://developers.telnyx.com/api/call-control/create-call)
 - **Speak (playback)**: `POST /v2/calls/{id}/actions/speak` -- [ref](https://developers.telnyx.com/api/call-control/speak)
 - **Cloud Storage (S3-compatible)**: `s3.put_object(...)` via boto3 against `https://{region}.telnyxcloudstorage.com`, then a presigned GET URL -- [docs](https://developers.telnyx.com/docs/cloud-storage/quick-start)
