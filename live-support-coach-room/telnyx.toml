@@ -56,5 +56,5 @@ SILENCE_SECS = "90"
 DASHBOARD_ORIGIN = "https://coach.example.com"
 
 [edge_compute]
-func_id = "d5e3702c-b01a-4a1b-ad12-c15d4ab3263c"
+func_id = "e2531cd7-c0fd-4414-b167-beac6baeef58"
 func_name = "live-support-coach-room"
