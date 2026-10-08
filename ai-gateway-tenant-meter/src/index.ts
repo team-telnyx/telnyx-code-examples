@@ -30,7 +30,7 @@ import {
 const GATEWAY_MANAGEMENT_BASE = "https://api.telnyx.com/v2/llm_token_gateway";
 export const INFERENCE_BASE_URL = "https://llm.telnyx.com/v1";
 
-const ROLLUP_INTERVAL_SECONDS = 3600;
+const DEFAULT_ROLLUP_INTERVAL_SECONDS = 3600;
 const ROLLUP_SCHEDULE_ID = "hourly-rollup";
 const MAX_USABLE_LOOKBACK_DAYS = 30;
 
@@ -111,6 +111,9 @@ export type SpendView = {
   readOnly: boolean;
   budgetPeriod: { startedAt: string | null; resetsAt: string | null };
   lastRollupAt: string | null;
+  lastRollupError: string | null;
+  rollupDebug: RollupDebug | null;
+  lastSms: { to: string; at: string; body: string } | null;
 };
 
 export type AdjustResult = {
@@ -132,8 +135,21 @@ export type LedgerState = {
   alerted100: boolean;
   readOnly: boolean;
   lastRollupAt: string | null;
+  lastRollupError: string | null;
+  rollupDebug: RollupDebug | null;
+  lastSms: { to: string; at: string; body: string } | null;
   budgetAudit: { at: string; from: number; to: number }[];
   createdAt: string;
+};
+
+export type RollupDebug = {
+  at: string;
+  step: string;
+  intervalSeconds: number;
+  envRaw: string | null;
+  envProp: string | null;
+  procEnv: string | null;
+  error: string | null;
 };
 
 export class ValidationError extends Error {
@@ -179,6 +195,7 @@ export class GatewayClient {
       method,
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: AbortSignal.timeout(10_000),
     });
     const json = (await res.json().catch(() => null)) as {
       data?: T;
@@ -267,6 +284,13 @@ export function pctOf(part: number, whole: number): number {
   return Math.min(100, Math.round((part / whole) * 100));
 }
 
+/** Rollup cadence in seconds from ROLLUP_INTERVAL_SECONDS (default hourly; clamped 30s..1d). */
+export function rollupIntervalSeconds(raw: string | undefined): number {
+  const n = Number.parseInt(raw ?? "", 10);
+  if (!Number.isFinite(n)) return DEFAULT_ROLLUP_INTERVAL_SECONDS;
+  return Math.min(86_400, Math.max(30, n));
+}
+
 export function dayOf(iso: string | null | undefined): string {
   if (!iso) return new Date().toISOString().slice(0, 10);
   return iso.slice(0, 10);
@@ -345,11 +369,19 @@ export interface Env {
   ADMIN_SMS_FROM: string;
   ADMIN_SMS_TO: string;
   ALLOWED_MODELS?: string;
+  ROLLUP_INTERVAL_SECONDS?: string;
   WARN_PCT?: string;
   HARD_PCT?: string;
 }
 
 export class SpendLedger extends Agent<Env, LedgerState> {
+  // Alarm reminders use second precision. Keep SDK deadlines on that boundary
+  // so an early, rounded reminder cannot arrive before its task is due
+  // (same fix as edge-cron-scheduler).
+  protected override now(): number {
+    return Math.floor(Date.now() / 1000) * 1000;
+  }
+
   protected override initialState(): LedgerState {
     return {
       tenantId: "",
@@ -363,6 +395,9 @@ export class SpendLedger extends Agent<Env, LedgerState> {
       alerted100: false,
       readOnly: false,
       lastRollupAt: null,
+      lastRollupError: null,
+      rollupDebug: null,
+      lastSms: null,
       budgetAudit: [],
       createdAt: new Date().toISOString(),
     };
@@ -376,21 +411,33 @@ export class SpendLedger extends Agent<Env, LedgerState> {
     return this.env.SECRETS.get(key);
   }
 
-  private allowedModels(): string[] {
-    const raw = this.env.ALLOWED_MODELS;
+  private async envSetting(key: "ALLOWED_MODELS" | "ROLLUP_INTERVAL_SECONDS" | "WARN_PCT" | "HARD_PCT" | "ADMIN_SMS_FROM" | "ADMIN_SMS_TO"): Promise<string | undefined> {
+    // Edge env vars arrive via this.env when present; fall back to process.env,
+    // then to the secrets binding (the one mechanism that reliably reaches actors).
+    const direct = this.env[key] ?? process.env?.[key];
+    if (direct !== undefined) return direct;
+    try {
+      return await this.env.SECRETS.get(key);
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async allowedModels(): Promise<string[]> {
+    const raw = await this.envSetting("ALLOWED_MODELS");
     const parsed = raw
       ? raw.split(",").map((m) => m.trim()).filter(Boolean)
       : [];
     return parsed.length > 0 ? parsed : DEFAULT_ALLOWED_MODELS;
   }
 
-  private warnPct(): number {
-    const n = Number.parseInt(this.env.WARN_PCT ?? "80", 10);
+  private async warnPct(): Promise<number> {
+    const n = Number.parseInt((await this.envSetting("WARN_PCT")) ?? "80", 10);
     return Number.isFinite(n) ? n : 80;
   }
 
-  private hardPct(): number {
-    const n = Number.parseInt(this.env.HARD_PCT ?? "100", 10);
+  private async hardPct(): Promise<number> {
+    const n = Number.parseInt((await this.envSetting("HARD_PCT")) ?? "100", 10);
     return Number.isFinite(n) ? n : 100;
   }
 
@@ -400,10 +447,15 @@ export class SpendLedger extends Agent<Env, LedgerState> {
     }
   }
 
-  private armRollup(): Promise<string> {
-    return this.every(ROLLUP_INTERVAL_SECONDS, "rollup", undefined, {
+  private async armRollup(): Promise<string> {
+    const interval = await this.rollupInterval();
+    return this.every(interval, "rollup", undefined, {
       id: ROLLUP_SCHEDULE_ID,
     });
+  }
+
+  private async rollupInterval(): Promise<number> {
+    return rollupIntervalSeconds(await this.envSetting("ROLLUP_INTERVAL_SECONDS"));
   }
 
   private createSchema(): void {
@@ -526,18 +578,19 @@ export class SpendLedger extends Agent<Env, LedgerState> {
     const { tenantId: id, monthlyBudget: budget } = validateProvisionInput(tenantId, monthlyBudget);
     const state = await this.getState();
     if (state.tokenGroupId) {
+      await this.armRollup();
       return {
         gatewayBaseUrl: INFERENCE_BASE_URL,
         tokenGroupId: state.tokenGroupId,
         tokenKeyId: state.tokenKeyId ?? "",
         tokenKey: state.tokenKeySecret ?? "",
-        allowedModels: this.allowedModels(),
+        allowedModels: await this.allowedModels(),
         alreadyProvisioned: true,
       };
     }
 
     const client = await this.client();
-    const group = await client.createTokenGroup(id, this.allowedModels(), budget);
+    const group = await client.createTokenGroup(id, await this.allowedModels(), budget);
     const key = await client.createTokenKey(`${id}-primary`, group.id);
 
     await this.setState({
@@ -554,6 +607,9 @@ export class SpendLedger extends Agent<Env, LedgerState> {
       createdAt: new Date().toISOString(),
     });
     this.createSchema();
+    // Immediate first rollup so the ledger is populated (and thresholds proven)
+    // within seconds of provisioning; the recurring cadence takes over from there.
+    await this.queue("rollup");
     await this.armRollup();
 
     return {
@@ -561,7 +617,7 @@ export class SpendLedger extends Agent<Env, LedgerState> {
       tokenGroupId: group.id,
       tokenKeyId: key.id,
       tokenKey: key.token,
-      allowedModels: this.allowedModels(),
+      allowedModels: await this.allowedModels(),
       alreadyProvisioned: false,
     };
   }
@@ -637,6 +693,9 @@ export class SpendLedger extends Agent<Env, LedgerState> {
       readOnly: current.readOnly,
       budgetPeriod: { startedAt: current.budgetStartedAt, resetsAt: current.resetsAt },
       lastRollupAt: current.lastRollupAt,
+      lastRollupError: current.lastRollupError,
+      rollupDebug: current.rollupDebug,
+      lastSms: current.lastSms,
     };
   }
 
@@ -660,76 +719,122 @@ export class SpendLedger extends Agent<Env, LedgerState> {
     return { ok: true, maxBudget: updated.max_budget ?? budget, groupVersion: updated.version, audit };
   }
 
-  /** Hourly durable task: pull gateway usage + guardrail findings into SQL, alert. */
+  /** Durable task: pull gateway usage + guardrail findings into SQL, alert. */
   async rollup(): Promise<void> {
     const state = await this.getState();
     if (!state.tokenGroupId) return;
     this.createSchema();
 
-    const client = await this.client();
-    let group: TokenGroup;
-    try {
-      group = await client.getTokenGroup(state.tokenGroupId);
-    } catch {
-      return;
-    }
-    await this.syncPeriod(group);
-
-    const current = await this.getState();
-    let summary: UsageSummary;
-    try {
-      summary = await this.pullUsage(current);
-    } catch {
-      return;
-    }
-
-    for (const dayRow of summary.by_day ?? []) {
-      if (!dayRow.date) continue;
-      this.upsertSpendDay({
-        tenant: current.tenantId,
-        day: dayRow.date,
-        spend: dayRow.spend ?? 0,
-        inputTokens: dayRow.input_tokens ?? 0,
-        outputTokens: dayRow.output_tokens ?? 0,
-        blocked: 0,
-        flagged: 0,
+    const envRaw = await this.envSetting("ROLLUP_INTERVAL_SECONDS");
+    const envProp = (this.env as unknown as Record<string, unknown>).ROLLUP_INTERVAL_SECONDS;
+    const procEnv = process.env?.ROLLUP_INTERVAL_SECONDS;
+    const mark = async (step: string, error: string | null = null): Promise<void> => {
+      await this.setState({
+        rollupDebug: {
+          at: new Date().toISOString(),
+          step,
+          intervalSeconds: rollupIntervalSeconds(envRaw),
+          envRaw: envRaw ?? "",
+          envProp: envProp == null ? "" : String(envProp),
+          procEnv: procEnv ?? "",
+          error,
+        },
       });
-    }
+    };
 
+    await mark("start");
     try {
-      const window = summaryWindow(current.budgetStartedAt);
-      const events = await client.guardrailEvents(current.tokenGroupId as string, window.startDate, window.endDate);
-      for (const event of events) {
-        for (const row of toFindingRows([event], 50)) {
-          this.recordFinding(current.tenantId, event.id, row);
-        }
+      const client = await this.client();
+      let group: TokenGroup;
+      try {
+        group = await client.getTokenGroup(state.tokenGroupId);
+      } catch (error) {
+        await mark("get-group", `getTokenGroup: ${(error as Error).message}`);
+        await this.setState({ lastRollupError: `getTokenGroup: ${(error as Error).message}` });
+        return;
       }
-    } catch {
-      // Findings are additive context; a failed pull must not break the spend rollup.
-    }
+      await mark("got-group");
+      await this.syncPeriod(group);
 
-    const monthToDate = summary.totals?.spend ?? 0;
-    const p = pctOf(monthToDate, current.monthlyBudget);
+      const current = await this.getState();
+      let summary: UsageSummary;
+      try {
+        summary = await this.pullUsage(current);
+      } catch (error) {
+        await mark("usage", `usageSummary: ${(error as Error).message}`);
+        await this.setState({ lastRollupError: `usageSummary: ${(error as Error).message}` });
+        return;
+      }
+      await mark("usage-pulled");
 
-    if (p >= this.warnPct() && !current.alerted80) {
-      await this.recordAlert(
-        "80",
-        `Tenant ${current.tenantId} is at ${p}% of its monthly AI budget ($${monthToDate.toFixed(2)} of $${current.monthlyBudget.toFixed(2)}).`,
-      );
+      for (const dayRow of summary.by_day ?? []) {
+        if (!dayRow.date) continue;
+        this.upsertSpendDay({
+          tenant: current.tenantId,
+          day: dayRow.date,
+          spend: dayRow.spend ?? 0,
+          inputTokens: dayRow.input_tokens ?? 0,
+          outputTokens: dayRow.output_tokens ?? 0,
+          blocked: 0,
+          flagged: 0,
+        });
+      }
+      await mark("sql-upserted");
+
+      try {
+        const window = summaryWindow(current.budgetStartedAt);
+        const events = await client.guardrailEvents(current.tokenGroupId as string, window.startDate, window.endDate);
+        for (const event of events) {
+          for (const row of toFindingRows([event], 50)) {
+            this.recordFinding(current.tenantId, event.id, row);
+          }
+        }
+      } catch (error) {
+        // Findings are additive context; a failed pull must not break the spend rollup.
+        await this.setState({ lastRollupError: `guardrailEvents: ${(error as Error).message}` });
+      }
+      await mark("findings");
+
+      const monthToDate = summary.totals?.spend ?? 0;
+      const p = pctOf(monthToDate, current.monthlyBudget);
+
+      try {
+        if (p >= (await this.warnPct()) && !current.alerted80) {
+          await mark("alert-80");
+          await this.recordAlert(
+            "80",
+            `Tenant ${current.tenantId} is at ${p}% of its monthly AI budget ($${monthToDate.toFixed(2)} of $${current.monthlyBudget.toFixed(2)}).`,
+          );
+          await mark("alert-80-sent");
+        }
+        if (p >= (await this.hardPct()) && !current.alerted100) {
+          await mark("alert-100");
+          await this.recordAlert(
+            "100",
+            `Tenant ${current.tenantId} reached 100% of its monthly AI budget. The gateway now denies requests with 403 budget_exceeded; the tenant view is read-only.`,
+          );
+          await mark("alert-100-sent");
+        }
+      } catch (error) {
+        // One failed alert must not block the ledger completion — it retries next cycle.
+        await mark("alerts-failed", `alerts: ${(error as Error).message}`);
+        await this.setState({ lastRollupError: `alerts: ${(error as Error).message}` });
+      }
+
+      await mark("finishing");
+      await this.setState({ lastRollupAt: new Date().toISOString(), lastRollupError: null });
+      // No re-arm here: the every() mechanism schedules the next fire itself.
+      // Replacing the task from inside its own handler races with that re-insert.
+    } catch (error) {
+      await mark("crashed", (error as Error).message);
+      await this.setState({ lastRollupError: `rollup: ${(error as Error).message}` });
     }
-    if (p >= this.hardPct() && !current.alerted100) {
-      await this.recordAlert(
-        "100",
-        `Tenant ${current.tenantId} reached 100% of its monthly AI budget. The gateway now denies requests with 403 budget_exceeded; the tenant view is read-only.`,
-      );
-    }
-    await this.setState({ lastRollupAt: new Date().toISOString() });
-    await this.armRollup();
   }
 
   private async recordAlert(level: string, body: string): Promise<void> {
     const tenantId = (await this.getState()).tenantId;
-    await this.sendAdminSms(body);
+    // Durable alert first: the history row and once-per-period guard must not
+    // depend on a successful SMS delivery. The live send is best-effort after.
     this.ctx.storage.sql.exec(
       "INSERT OR IGNORE INTO alerts (tenant, level, at) VALUES (?, ?, ?)",
       tenantId,
@@ -741,6 +846,11 @@ export class SpendLedger extends Agent<Env, LedgerState> {
     } else {
       await this.setState({ alerted100: true, readOnly: true });
     }
+    try {
+      await this.sendAdminSms(body);
+    } catch (error) {
+      await this.setState({ lastRollupError: `sms-send: ${(error as Error).message}` });
+    }
   }
 
   private async sendAdminSms(body: string): Promise<void> {
@@ -750,15 +860,13 @@ export class SpendLedger extends Agent<Env, LedgerState> {
     } catch {
       demoMode = true;
     }
-    if (demoMode) {
-      console.log(`[DEMO MODE] SMS to ${this.env.ADMIN_SMS_TO}: ${body}`);
-      return;
-    }
-    await this.env.TELNYX.messages.send({
-      to: this.env.ADMIN_SMS_TO,
-      from: this.env.ADMIN_SMS_FROM,
-      text: body,
-    });
+    const to = (await this.envSetting("ADMIN_SMS_TO")) ?? "";
+    const from = (await this.envSetting("ADMIN_SMS_FROM")) ?? "";
+    // Record the alert in durable state — the spend view shows exactly what
+    // would be (or was) sent, in demo mode and live alike.
+    await this.setState({ lastSms: { to, at: new Date().toISOString(), body } });
+    if (demoMode) return;
+    await this.env.TELNYX.messages.send({ to, from, text: body });
   }
 
   async fetch(req: Request): Promise<Response> {

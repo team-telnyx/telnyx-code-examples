@@ -22,6 +22,12 @@ name = "ai-gateway-tenant-meter"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
 
+[edge_compute]
+# Function identity for `telnyx-edge ship` on the demo account; re-provision
+# with `telnyx-edge new-func` (and replace this block) to deploy to another.
+func_id = "fa1a35ef-32bb-4ec3-85e3-ff913ee8be56"
+func_name = "ai-gateway-tenant-meter"
+
 [[actors]]
 binding = "LEDGERS"
 type = "SpendLedger"
@@ -41,9 +47,21 @@ name = "DEMO_MODE"
 binding = "API_TOKEN"
 name = "API_TOKEN"
 
+# Tuning knobs. Edge env_vars do not reach the actor runtime, so these are
+# declared as secrets (read via this.env.SECRETS with env/process fallbacks).
+[[secrets]]
+binding = "ROLLUP_INTERVAL_SECONDS"
+name = "ROLLUP_INTERVAL_SECONDS"
+
+[[secrets]]
+binding = "WARN_PCT"
+name = "WARN_PCT"
+
+[[secrets]]
+binding = "HARD_PCT"
+name = "HARD_PCT"
+
 [env_vars]
 ADMIN_SMS_FROM = "+1555XXXXXXXX"
 ADMIN_SMS_TO = "+1555XXXXXXXX"
 ALLOWED_MODELS = "Kimi-K2.6,Meta-Llama-3.1-8B-Instruct"
-WARN_PCT = "80"
-HARD_PCT = "100"

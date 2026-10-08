@@ -148,15 +148,16 @@ const result = await stub.provision(tenantId, monthlyBudget);
    - `guardrails`: secrets block (prompt + response), DLP `financial` flag (prompt + response), streaming `buffered`
 4. Calls `POST /v2/llm_token_gateway/token_keys` with `{ name, token_group_id }` — the one-time secret is returned as `data.token` (`ltg_sk_...`).
 5. Persists the group id, key id, the secret, and the gateway's `budget_started_at` / `resets_at` in durable actor state.
-6. Initializes the SQL schema and arms the hourly rollup: `this.every(3600, "rollup", undefined, { id: "hourly-rollup" })`.
+6. Initializes the SQL schema and fires an immediate first rollup (`this.queue("rollup")`) so the ledger is populated within seconds of provisioning.
+7. Arms the recurring rollup: `this.every(ROLLUP_INTERVAL_SECONDS, "rollup", undefined, { id: "hourly-rollup" })` — 3600s by default, tunable per deployment.
 
 The tenant's assistant then calls the model at the constant inference base URL `https://llm.telnyx.com/v1` with the token key as its API key — every request is metered by the group and inspected by the guardrails.
 
-### 2. Hourly Rollup (`rollup`)
+### 2. The Rollup (`rollup`)
 
 **Code reference:** `rollup()` method in `src/index.ts`.
 
-The rollup is a durable task dispatched by name. Because it re-arms itself with the stable id `hourly-rollup`, recurrence survives pod restarts:
+The rollup is a durable task dispatched by name — once immediately on provision, then on the `ROLLUP_INTERVAL_SECONDS` cadence. Because it re-arms itself with the stable id `hourly-rollup`, recurrence survives pod restarts:
 
 1. Reads the token group (`GET /token_groups/{id}`) for the live `spend`, `resets_at`, and ETag `version`.
 2. **Period rollover:** if the gateway's `resets_at` changed, the actor resets its once-per-period alert guards (`alerted80`, `alerted100`, `readOnly`) — so the next 30-day period starts clean.
@@ -261,7 +262,7 @@ curl -s https://<your-deployment>/health
 
 ## Seeding Demo Tenants
 
-Seed two tenants — one under budget, one driven over:
+Seed a healthy tenant and one that can be driven over budget. Note the reservation semantics: the gateway denies a request up-front when its reservation would exceed the remaining budget, so a tenant whose budget is smaller than one request can never accrue spend — give `demo-fast` a budget a handful of completions can cross:
 
 ```bash
 curl -X POST https://<your-deployment>/provision \
@@ -270,16 +271,16 @@ curl -X POST https://<your-deployment>/provision \
 
 curl -X POST https://<your-deployment>/provision \
   -H 'Content-Type: application/json' \
-  -d '{"tenantId": "demo-over", "monthlyBudget": 0.00001}'
+  -d '{"tenantId": "demo-fast", "monthlyBudget": 0.002}'
 ```
 
-Then send two completions through `demo-over`'s token key (point an OpenAI-compatible client at `https://llm.telnyx.com/v1` with the returned `tokenKey`), and watch:
+The immediate first rollup fires within seconds of provisioning (check the logs and `lastRollupAt`). Then send a few completions through `demo-fast`'s token key (point an OpenAI-compatible client at `https://llm.telnyx.com/v1` with the returned `tokenKey`) and watch:
 
 ```bash
 curl "https://<your-deployment>/spend?tenantId=demo-over"
 ```
 
-The admin SMS fires exactly once per threshold, `readOnly` flips to `true`, and the next gateway call from the tenant returns `403 budget_exceeded`.
+Within one rollup interval, the admin SMS fires for each threshold crossed and `readOnly` flips to `true`. To trigger the 100% lockout deterministically, spend close to the budget, then lower it with `POST /adjust` — the next rollup sees `pct` at 100, flips `readOnly`, and the next gateway call from the tenant returns `403 budget_exceeded` (denied on reservation before any spend).
 
 ---
 
