@@ -261,7 +261,7 @@ ${cards || '<div class="card"><div class="said">No escalations yet</div></div>'}
     }
 
     if (req.method === "GET") {
-      const sanitizedLine = "+16282564664".replace(/[^0-9a-zA-Z]/g, "");
+      const sanitizedLine = (process.env.CLINIC_LINE_E164 || "+15550000000").replace(/[^0-9a-zA-Z]/g, "");
       const router = env.TRIAGE_ROUTER_V3.idFromName(sanitizedLine);
       const routes = await router.routes();
       return new Response(statusPage(routes), {
