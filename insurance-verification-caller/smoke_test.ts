@@ -1,4 +1,4 @@
-import { VerifyJob } from "./src/index";
+import app, { VerifyJob } from "./src/index";
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -9,50 +9,52 @@ function assert(condition: boolean, message: string): void {
 // Verify VerifyJob class is defined
 assert(typeof VerifyJob === "function", "VerifyJob should be defined");
 
-// Verify methods exist on prototype
+// Verify current RPC methods exist on prototype
 const proto = VerifyJob.prototype as Record<string, unknown>;
 const expectedMethods = [
-  "run",
   "openJob",
-  "dialAndDriveIvr",
-  "judgeWithJev",
-  "notifyFrontDesk",
-  "jevFetchWithRetry",
-  "parseVerdict",
-  "sendDtmf",
-  "captureTranscript",
-  "dialCarrier",
-  "simulateCarrierResponse",
-  "simulateDtmfDrive",
+  "getJob",
+  "onLiveAnswered",
+  "onLiveTranscription",
+  "onLiveHangup",
+  "setRecordingUrl",
+  "mockRecord",
+  "mockList",
 ];
 
 for (const method of expectedMethods) {
   assert(typeof proto[method] === "function", `VerifyJob.prototype.${method} should be a function`);
 }
 
-// Verify types are usable
-const state: JobState = {
+// Verify state shape used by the actor remains coherent
+const state = {
   jobId: "test-1",
   memberId: "M123",
   plan: "PPO",
   provider: "Dr. Smith",
   carrier: "+15551234567",
+  demo: true,
+  outcome: "covered",
   attempts: 0,
+  status: "running",
   verdict: null,
+  transcriptParts: [],
   sent: false,
   transcript: null,
 };
 assert(state.jobId === "test-1", "JobState should be usable");
 
-const verdict: Verdict = {
-  choice: "covered",
-  score: 85,
-  noul: 0.1,
-  raw: {},
+const verdict = {
+  coverage: "covered",
+  coverageConfidence: 0.85,
+  certainty: 3,
+  hardNo: 0.1,
+  policy: "covered",
+  smsBody: "Coverage CONFIRMED for member M123 (PPO).",
 };
-assert(verdict.choice === "covered", "Verdict should be usable");
+assert(verdict.coverage === "covered", "Verdict should be usable");
 
-const env: Partial<VerifyJobEnv> = {
+const env = {
   CARRIER_E164: "+15551234567",
   MOCK_CARRIER_E164: "+15559999999",
   FRONTDESK_E164: "+15550000000",
@@ -62,56 +64,27 @@ const env: Partial<VerifyJobEnv> = {
 };
 assert(env.CARRIER_E164 !== undefined, "VerifyJobEnv should be usable");
 
-// Verify RPC surface
-assert(rpc !== undefined, "rpc should be defined");
-assert(typeof rpc.openJob === "function", "rpc.openJob should be a function");
-
-// Verify parseVerdict logic
-const parseVerdict = proto.parseVerdict as (data: any) => Verdict;
-
-const verdict1 = parseVerdict({
-  answers: {
-    choice: { value: "covered" },
-    score: { value: "85" },
-    noul: { value: "0.1" },
-  },
-});
-assert(verdict1.choice === "covered", "parseVerdict should parse answers array");
-assert(verdict1.score === 85, "parseVerdict should parse score");
-assert(Math.abs(verdict1.noul - 0.1) < 0.001, "parseVerdict should parse noul");
-
-const verdict2 = parseVerdict({
-  choice: "not_covered",
-  score: 90,
-  noul: 0.85,
-});
-assert(verdict2.choice === "not_covered", "parseVerdict should parse flat answers");
-assert(verdict2.score === 90, "parseVerdict should parse flat score");
-assert(Math.abs(verdict2.noul - 0.85) < 0.001, "parseVerdict should parse flat noul");
-
-const verdict3 = parseVerdict({});
-assert(verdict3.choice === "needs_verification", "parseVerdict should default to needs_verification");
-assert(verdict3.score === 0, "parseVerdict should default score to 0");
-assert(verdict3.noul === 0, "parseVerdict should default noul to 0");
+// Verify function-layer export
+assert(app !== undefined, "default export should be defined");
+assert(typeof app.fetch === "function", "default export fetch should be a function");
 
 // Verify decision policy logic
-const coveredVerdict: Verdict = { choice: "covered", score: 85, noul: 0.1, raw: {} };
+const coveredVerdict = { coverage: "covered", coverageConfidence: 0.85, certainty: 3, hardNo: 0.1 };
 assert(
-  coveredVerdict.choice === "covered" && coveredVerdict.score >= 70,
-  "covered + score>=70 should be CONFIRMED"
+  coveredVerdict.coverage === "covered" && coveredVerdict.certainty >= 2,
+  "covered + certainty>=2 should be CONFIRMED"
 );
 
-const notCoveredVerdict: Verdict = { choice: "not_covered", score: 50, noul: 0.9, raw: {} };
+const notCoveredVerdict = { coverage: "not_covered", coverageConfidence: 0.5, certainty: 2, hardNo: 0.9 };
 assert(
-  notCoveredVerdict.choice === "not_covered" || notCoveredVerdict.noul > 0.8,
-  "not_covered or noul>0.8 should be NOT COVERED"
+  notCoveredVerdict.coverage === "not_covered" || notCoveredVerdict.hardNo > 0.8,
+  "not_covered or hardNo>0.8 should be NOT COVERED"
 );
 
-const needsVerificationVerdict: Verdict = { choice: "needs_verification", score: 30, noul: 0.3, raw: {} };
+const needsVerificationVerdict = { coverage: "needs_verification", coverageConfidence: 0.3, certainty: 1, hardNo: 0.3 };
 assert(
-  needsVerificationVerdict.choice === "needs_verification",
+  needsVerificationVerdict.coverage === "needs_verification",
   "needs_verification should be front desk flag"
 );
 
 console.log("✅ All smoke tests passed");
-

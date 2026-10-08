@@ -401,9 +401,14 @@ export class VerifyJob extends Agent<VerifyJobEnv, JobState> {
     if (!resp.ok) {
       const err = await resp.text();
       console.log(`[IVC] job ${s.jobId}: live dial failed ${resp.status}: ${err.slice(0, 160)}`);
-      const pointers = (err.match(/"pointer":\s*"(\/[^"]*)"/g) || []).map((p) =>
-        p.replace(/"pointer":\s*"/, "").replace(/"/, "")
-      );
+      const pointers = (() => {
+        try {
+          const parsed = JSON.parse(err) as { errors?: Array<{ source?: { pointer?: string } }> };
+          return parsed.errors?.map((e) => e.source?.pointer).filter((p): p is string => Boolean(p)) ?? [];
+        } catch {
+          return [];
+        }
+      })();
       await this.setState({
         error: `dial ${resp.status} missing: ${pointers.join(",") || err.slice(0, 80)}`,
         updatedAt: Date.now(),
