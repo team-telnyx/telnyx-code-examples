@@ -99,3 +99,11 @@ name = "CLINIC_TIMEZONE"
 [[secrets]]
 binding = "TELNYX_PUBLIC_KEY"
 name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "VOICE_ASSISTANT_ID"
+name = "VOICE_ASSISTANT_ID"
+
+[[secrets]]
+binding = "AI_MODEL"
+name = "AI_MODEL"

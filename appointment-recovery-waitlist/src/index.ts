@@ -1309,9 +1309,7 @@ export class SlotIndex extends Agent<Env, IndexState> {
   async clear(patient: string): Promise<{ ok: boolean }> {
     const state = await this.getState();
     if (!(patient in state.map)) return { ok: true };
-    const next = { ...state.map };
-    delete next[patient];
-    await this.setState({ map: next });
+    await this.setState({ map: { [patient]: null } });
     return { ok: true };
   }
 
@@ -1333,10 +1331,8 @@ export class SlotIndex extends Agent<Env, IndexState> {
   @rpc({ description: "Untrack a closed slot from the dashboard" })
   async untrackSlot(slotId: string): Promise<{ ok: boolean }> {
     const state = await this.getState();
-    if (!(slotId in state.slots)) return { ok: true };
-    const next = { ...state.slots };
-    delete next[slotId];
-    await this.setState({ slots: next });
+    if (!(slotId in (state.slots ?? {}))) return { ok: true };
+    await this.setState({ slots: { [slotId]: null } });
     return { ok: true };
   }
 
@@ -1821,6 +1817,7 @@ const ADMIN_HTML = `<!doctype html>
 <footer>drive it: <code>./demo.sh</code> · agents: <code>docs.telnyx.com → edge compute</code> · DEV-1223</footer>
 <script>
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const maskPhone = (p) => (p ? p.slice(0, 4) + "\u2022\u2022\u2022\u2022" + p.slice(-4) : "\u2014");
 const STATUS_COLORS = { open: "#f5a623", offering: "#35c2f5", filled: "#2ecc71", rescheduled: "#2ecc71", expired: "#9aa4b2", unresolved: "#e74c3c" };
 const badge = (status) => {
   const color = STATUS_COLORS[status] || "#9aa4b2";
@@ -1841,13 +1838,13 @@ function render(data) {
     const attempts = (s.ledger && s.ledger.attempts ? s.ledger.attempts : [])
       .slice(-8)
       .map((a) => '<div><span class="ch">' + esc(a.channel) + '</span><span class="st">' + esc(a.status) +
-        "</span><span class='dt'>" + esc(a.detail) + "</span></div>")
+        "</span><span class='dt'>" + esc(a.patient).replace(/\+1555(\d{4})$/, "+1555••••$1").replace(/^\+14(\d{2})\d{5}(\d{2})$/, "+1$1•••••$2") + " · " + esc(a.detail) + "</span></div>")
       .join("");
     const conf = snap.confirmation
       ? '<div class="conf">✓ confirmed — ' + esc(snap.confirmation.patient) + " via " + esc(snap.confirmation.source) + "</div>"
       : "";
     const cand = snap.currentCandidate
-      ? esc(snap.currentCandidate.name) + " · " + esc(snap.currentCandidate.role) + " · attempt " + snap.currentCandidate.attempts
+      ? esc(snap.currentCandidate.name) + " · " + esc(snap.currentCandidate.role) + " · " + maskPhone(snap.currentCandidate.phone) + " · attempt " + snap.currentCandidate.attempts
       : "—";
     return '<div class="card"><h2><span class="slot-id">' + esc(s.slotId) + "</span>" + badge(snap.status) + "</h2>" +
       '<div class="meta">' + esc(s.provider) + " · " + esc(s.startsAt) + "</div>" +
