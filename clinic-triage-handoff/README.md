@@ -1,4 +1,4 @@
-# Clinic Triage, Handoff & Escalation (DEV-1187)
+# Clinic Triage, Handoff & Escalation
 
 One Telnyx Edge function routes every inbound phone line to its own AI assistant persona, keeps a durable per-caller routing log, and escalates medical emergencies to a human on-call nurse — with an SMS alert, a spoken briefing, and a live bridge into the call.
 
