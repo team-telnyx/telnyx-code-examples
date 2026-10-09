@@ -441,6 +441,23 @@ export class SpendLedger extends Agent<Env, LedgerState> {
     return Number.isFinite(n) ? n : 100;
   }
 
+  /** True unless the gateway reports the group gone (404). Transient errors count as existing. */
+  private async groupStillExists(groupId: string): Promise<boolean> {
+    try {
+      await (await this.client()).getTokenGroup(groupId);
+      return true;
+    } catch (error) {
+      return !(error instanceof GatewayError && error.status === 404);
+    }
+  }
+
+  /** Wipe per-actor ledger rows (used when the token group was deleted out-of-band). */
+  private clearLedger(): void {
+    this.ctx.storage.sql.exec("DELETE FROM spend_days");
+    this.ctx.storage.sql.exec("DELETE FROM alerts");
+    this.ctx.storage.sql.exec("DELETE FROM guardrail_events");
+  }
+
   private requireProvisioned(state: LedgerState): void {
     if (!state.tokenGroupId) {
       throw new ValidationError(`Ledger not provisioned for tenant "${state.tenantId}"`);
@@ -578,15 +595,21 @@ export class SpendLedger extends Agent<Env, LedgerState> {
     const { tenantId: id, monthlyBudget: budget } = validateProvisionInput(tenantId, monthlyBudget);
     const state = await this.getState();
     if (state.tokenGroupId) {
-      await this.armRollup();
-      return {
-        gatewayBaseUrl: INFERENCE_BASE_URL,
-        tokenGroupId: state.tokenGroupId,
-        tokenKeyId: state.tokenKeyId ?? "",
-        tokenKey: state.tokenKeySecret ?? "",
-        allowedModels: await this.allowedModels(),
-        alreadyProvisioned: true,
-      };
+      if (await this.groupStillExists(state.tokenGroupId)) {
+        await this.armRollup();
+        return {
+          gatewayBaseUrl: INFERENCE_BASE_URL,
+          tokenGroupId: state.tokenGroupId,
+          tokenKeyId: state.tokenKeyId ?? "",
+          tokenKey: state.tokenKeySecret ?? "",
+          allowedModels: await this.allowedModels(),
+          alreadyProvisioned: true,
+        };
+      }
+      // The token group was deleted out-of-band (e.g. in the portal): rebuild
+      // the ledger fresh — durable state reset, SQL rows cleared.
+      await this.replaceState(this.initialState());
+      this.clearLedger();
     }
 
     const client = await this.client();
