@@ -237,6 +237,26 @@ Returns the dossier view: identity, provider, last visit, the full visit history
 
 ---
 
+## Live call demo
+
+Place the call with the CLI (the assistant dials you; answer and talk, then hang up):
+
+```bash
+telnyx assistant call <ASSISTANT_ID> \
+  -f +1<YOUR_TELNYX_NUMBER> -t +1<YOUR_PHONE> \
+  --texml-app-id <TEXML_APP_ID>
+```
+
+> Known CLI quirk: `@telnyx/api-cli` prints `TypeError: Cannot read properties of undefined (reading 'call_control_id')` **after** `✓ Call initiated!` — it fails to parse the TeXML response envelope, but the call itself proceeds normally. Pass `--texml-app-id` explicitly (the CLI also crashes reading it from the assistant config).
+
+Watch the dossier update within ~15 s of the filing:
+
+```bash
+curl -s https://<your-function>.telnyxcompute.com/dossier/<phone-digits> | jq
+```
+
+---
+
 ## Scripted Demo (no phone needed)
 
 Replay the two visits with curl:
