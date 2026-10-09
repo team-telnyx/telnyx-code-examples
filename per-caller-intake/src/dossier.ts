@@ -4,6 +4,7 @@ import {
   type ActorStub,
   type Env,
   type IdFromNameOptions,
+  type Secrets,
 } from "@telnyx/edge-runtime";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -30,6 +31,7 @@ export interface DossierNamespace extends ActorNamespace {
 
 export interface DossierEnv extends Env {
   DOSSIERS: DossierNamespace;
+  SECRETS: Secrets;
 }
 
 export interface DynamicVarsResponse {
@@ -214,7 +216,7 @@ export class IntakeDossier extends Agent<DossierEnv, DossierState> {
     }
 
     const rawToken = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
-    const encKey = this.getEncKey();
+    const encKey = await this.getEncKey();
     const portalToken = await encryptPortalToken(rawToken, encKey);
 
     return {
@@ -342,8 +344,10 @@ export class IntakeDossier extends Agent<DossierEnv, DossierState> {
     return rows.length > 0 ? rows[0] : null;
   }
 
-  private getEncKey(): string {
-    const key = process.env.PORTAL_ENC_KEY;
+  private async getEncKey(): Promise<string> {
+    // Secrets are declared in telnyx.toml [[secrets]] and resolved via the
+    // platform's Secrets surface; process.env is the local/test fallback.
+    const key = process.env.PORTAL_ENC_KEY ?? (await this.env.SECRETS.get("PORTAL_ENC_KEY"));
     if (!key) {
       throw new Error("PORTAL_ENC_KEY not configured");
     }
