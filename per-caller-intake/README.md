@@ -186,8 +186,10 @@ Create (or update) the assistant pointing at the deployed URL — full JSON in [
 <summary>Programmatic / CLI setup</summary>
 
 ```bash
-# Register the agent function (prints a func_id used by the platform)
-telnyx-edge new-func --actor -l ts -n per-caller-intake
+# Register the edge function (run from a parent directory that does NOT
+# already contain a folder named per-caller-intake)
+telnyx-edge new-func -l ts -n per-caller-intake --from-dir ./per-caller-intake
+# → copy the printed func_id/func_name into telnyx.toml [edge_compute]
 
 # Secrets (Steps 2-4 above)
 telnyx-edge secrets add TELNYX_PUBLIC_KEY "$PUBLIC_KEY"
@@ -211,8 +213,10 @@ telnyx-edge list
 
 Call the assistant from your phone (or replay the webhooks with curl — scripted in GUIDE.md):
 
-1. **Visit #1** — `POST /webhook/initialization` greets Sarah with `last_visit: "none"` and a fresh encrypted token. Hang up; the wrap-up turn files the visit.
-2. **Visit #2** — call again. The same actor returns the updated `last_visit` from SQL and a **new** one-time token. Inspect the dossier: `GET /dossier/<phone-digits>`.
+1. **Visit #1** — `POST /webhook/initialization` greets Sarah with `last_visit: "none"` and a fresh encrypted token. Hang up (or end the conversation); the assistant files the visit.
+2. **Visit #2** — call again. The same actor returns the updated `last_visit` from SQL and a **new** one-time token — the greeting now references the visit history. Inspect the dossier: `GET /dossier/<phone-digits>`.
+
+> Live-tested: the assistant greets with resolved variables ("the patient is Sarah … their last visit was Oct 9, 2026"), files with the caller's real number, and visit #2's summary references visit #1's history ("prefers morning contact") — the dossier, not the conversation, carried the memory.
 
 ## API Reference
 

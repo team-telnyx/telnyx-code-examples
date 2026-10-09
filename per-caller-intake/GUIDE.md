@@ -142,7 +142,7 @@ curl -X POST https://api.telnyx.com/v2/ai/assistants \
   "name": "ent-clinic-intake-concierge",
   "model": "moonshotai/Kimi-K2.6",
   "greeting": "Hello {{patient_name}} — this is the ENT clinic. Dr. {{provider}} is expecting you.",
-  "instructions": "you are the intake concierge for an ear, nose, and throat clinic. personalize every conversation using your dynamic variables: the patient is {{patient_name}}, their provider is {{provider}}, their last visit was {{last_visit}}, and their balance due is {{balance_due}}. greet the patient by name and reference their history naturally. if last_visit is none, this is their first visit — do not invent history. use the telnyx_end_user_target system variable as the caller's phone number when filing.",
+  "instructions": "you are the intake concierge for an ear, nose, and throat clinic. personalize every conversation using your dynamic variables: the patient is {{patient_name}}, their provider is {{provider}}, their last visit was {{last_visit}}, and their balance due is {{balance_due}}. greet the patient by name and reference their history naturally. if last_visit is none, this is their first visit — do not invent history. keep your turns short and warm.\n\nthe caller's phone number is {{telnyx_end_user_target}}.\n\nwhen the patient's need has been handled (appointment scheduled, question answered, or concern triaged), call the file_visit_summary tool exactly once with: telnyx_end_user_target set to {{telnyx_end_user_target}} (copy this exact value — it is a phone number, never write anything else in this field), visit_reason set to a one-to-three-word reason for this call (e.g. hearing check), follow_up set to a one-sentence summary of what was discussed, and next_step set to the concrete next action agreed (e.g. audiogram Friday). if the patient hangs up before you call it, that is fine — the tool will be available again.",
   "dynamic_variables_webhook_url": "https://<your-function>.telnyxcompute.com/webhook/initialization",
   "dynamic_variables_webhook_timeout_ms": 8000,
   "post_conversation_settings": { "enabled": true },
@@ -215,9 +215,11 @@ The assistant then opens with: *"Hi Sarah — Dr. Lee is expecting you for your 
 
 The assistant references the encrypted variable exactly where a credential belongs: `{{portal_token | portal_enc_key}}`. Telnyx decrypts it for this conversation only. A plain `dynamic_variables` value is never usable as a credential, and an encrypted variable is never substituted into instructions, greetings, or tool descriptions.
 
-### Post-conversation — filing into the dossier
+### Filing into the dossier — wrap-up or end-of-call
 
-After the call, the wrap-up turn calls `file_visit_summary`. The handler checks the bearer token (fail closed), normalizes the caller's number, and invokes `fileVisitSummary` on the caller's agent. The agent dedupes by `(visit_reason, next_step)` — Telnyx's webhook-tool retries never create duplicate rows — inserts the visit, and updates durable state.
+The assistant calls `file_visit_summary` when the patient's need has been handled — either during the live conversation (as observed in practice: the model files as soon as the visit is agreed) or in the post-conversation wrap-up turn (`post_conversation_settings: {enabled: true}` keeps webhook tools available after the call). Either way the flow is identical: the handler checks the bearer token (fail closed), normalizes the caller's number, and invokes `fileVisitSummary` on the caller's agent. The agent dedupes by `(visit_reason, next_step)` — so a mid-call filing followed by a wrap-up retry (or a platform webhook-tool retry) never creates duplicate rows — inserts the visit, and updates durable state.
+
+**Number fidelity**: the model must copy the caller's number from its context, not invent it. The recommended instruction template substitutes it literally (`the caller's phone number is {{telnyx_end_user_target}}`) — in live testing this eliminated hallucinated numbers in the tool call.
 
 **Restart proof**: kill the actor between call end and file-write and the webhook tool's retry re-fails into the idempotent path: the first attempt either committed before the kill (durable-before-reply) or never committed at all, so the retry lands exactly once. The next call greets with the filed summary.
 
