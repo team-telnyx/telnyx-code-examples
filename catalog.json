@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-09T00:16:49Z",
-  "example_count": 565,
+  "generated_at": "2026-10-09T00:18:31Z",
+  "example_count": 572,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1636,6 +1636,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omnichannel-ai-agent-python"
     },
     {
+      "folder": "omnichannel-context-carrying-python",
+      "title": "Omnichannel Context-Carrying Agent",
+      "description": "AI agent that carries customer context across email, voice, and SMS so customers never repeat themselves. Demonstrates cross-channel identity resolution with Telnyx Inference, Email, Messaging, and Call Control APIs.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omnichannel-context-carrying-python"
+    },
+    {
       "folder": "policy-renewal-campaign-python",
       "title": "Policy Renewal Campaign",
       "description": "Automated multi-channel renewal reminders. 60 days: SMS. 30 days: AI voice call reviewing coverage changes. 7 days: urgent SMS. Agent reviews lapsed policies for win-back.",
@@ -1670,6 +1679,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/run-llm-inference-python"
+    },
+    {
+      "folder": "ai-assembly-tutor-c",
+      "title": "AI Assembly Tutor",
+      "description": "Interactive LC-3 assembly tutor with a WebAssembly VM and Telnyx Inference-powered AI explanations.",
+      "product": "ai",
+      "language": "c",
+      "framework": "emscripten",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assembly-tutor-c"
     },
     {
       "folder": "storage-voicemail-archive-python",
@@ -5090,6 +5108,51 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/per-caller-intake"
+    },
+    {
+      "folder": "live-support-coach-room",
+      "title": "Live Support Coach Room",
+      "description": "A Telnyx Edge Agent that streams live AI support calls to a supervisor dashboard, injects coaching nudges mid-call, and escalates to a human via WebRTC.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/live-support-coach-room"
+    },
+    {
+      "folder": "ai-gateway-tenant-meter",
+      "title": "Multi-Tenant AI Spend Ledger with Telnyx AI Gateway",
+      "description": "A durable per-tenant billing ledger that meters AI usage, enforces budgets, and blocks secret leakage via Telnyx AI Gateway guardrails.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-gateway-tenant-meter"
+    },
+    {
+      "folder": "persistent-ai-agent-memory",
+      "title": "Persistent AI Agent Memory Demo",
+      "description": "A Python CLI tool that ingests a support transcript into Telnyx Agent Memory, polls the async operation, and recalls extracted facts to demonstrate long-term AI agent memory.",
+      "product": "ai",
+      "language": "python",
+      "framework": "cli",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/persistent-ai-agent-memory"
+    },
+    {
+      "folder": "clinic-triage-handoff",
+      "title": "Clinic Triage Handoff",
+      "description": "",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/clinic-triage-handoff"
+    },
+    {
+      "folder": "insurance-verification-caller",
+      "title": "Insurance Verification Caller — Durable Voice Actor with Jev Decision Models",
+      "description": "A durable Telnyx Edge actor that dials a carrier IVR, drives the menu via send_dtmf, captures the spoken eligibility result via STT, scores it with Jev Decision Models, and sends a one-line SMS verdict to the front desk — surviving voicemail, drops, and pod restarts.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insurance-verification-caller"
     }
   ]
 }
