@@ -21,3 +21,7 @@ name = "DOSSIER_WEBHOOK_AUTH"
 [env_vars]
 VISIT_LOOKBACK_DAYS = "365"
 PORTAL_BASE_URL = "https://portal.demo.example"
+
+[edge_compute]
+func_id = "e8a93378-108b-4645-a34c-7d518e776f3a"
+func_name = "per-caller-intake"
