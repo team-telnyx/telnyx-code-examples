@@ -1,4 +1,3 @@
-```toml
 name = "per-caller-intake"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
@@ -8,22 +7,17 @@ binding = "DOSSIERS"
 type = "IntakeDossier"
 
 [[secrets]]
-binding = "TELNYX_API_KEY"
-name = "TELNYX_API_KEY"
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
 
 [[secrets]]
-binding = "PORTAL_ENC_KEY_REF"
-name = "PORTAL_ENC_KEY_REF"
+binding = "PORTAL_ENC_KEY"
+name = "PORTAL_ENC_KEY"
 
 [[secrets]]
 binding = "DOSSIER_WEBHOOK_AUTH"
 name = "DOSSIER_WEBHOOK_AUTH"
 
-[storage.sqldb.DOSSIER_DB]
-id = "<sqldb-namespace-uuid>"
-
 [env_vars]
 VISIT_LOOKBACK_DAYS = "365"
-FILE_RETRY_MAX = "3"
 PORTAL_BASE_URL = "https://portal.demo.example"
-```

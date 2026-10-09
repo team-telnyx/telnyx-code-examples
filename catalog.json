@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-02T21:23:45Z",
-  "example_count": 564,
+  "generated_at": "2026-10-09T00:14:52Z",
+  "example_count": 565,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5081,6 +5081,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chargeback-adjudication"
+    },
+    {
+      "folder": "per-caller-intake",
+      "title": "Per-Caller Intake Concierge",
+      "description": "A durable per-caller Agent-SDK dossier that greets returning patients with personalized dynamic variables, hands off an encrypted one-time portal credential, and files post-conversation visit summaries — so every call remembers the last one.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/per-caller-intake"
     }
   ]
 }
