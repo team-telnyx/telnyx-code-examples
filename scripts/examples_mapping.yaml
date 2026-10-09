@@ -3480,6 +3480,12 @@ examples:
     folder: chargeback-adjudication
 
   - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: per-caller-intake
+
+  - product: ai
     use_case: live-support-coach-room
     language: typescript
     framework: edge

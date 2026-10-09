@@ -1,0 +1,27 @@
+name = "per-caller-intake"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "DOSSIERS"
+type = "IntakeDossier"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "PORTAL_ENC_KEY"
+name = "PORTAL_ENC_KEY"
+
+[[secrets]]
+binding = "DOSSIER_WEBHOOK_AUTH"
+name = "DOSSIER_WEBHOOK_AUTH"
+
+[env_vars]
+VISIT_LOOKBACK_DAYS = "365"
+PORTAL_BASE_URL = "https://portal.demo.example"
+
+[edge_compute]
+func_id = "e8a93378-108b-4645-a34c-7d518e776f3a"
+func_name = "per-caller-intake"
