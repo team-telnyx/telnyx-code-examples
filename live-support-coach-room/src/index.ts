@@ -136,6 +136,9 @@ export default {
     }
 
     // ── Static surfaces ──────────────────────────────────────────────
+    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "")) {
+      return Response.redirect(`${url.origin}/dashboard`, 302);
+    }
     if (req.method === "GET" && url.pathname === "/dashboard") {
       return new Response(DASHBOARD_HTML, { headers: { "content-type": "text/html;charset=utf-8" } });
     }
