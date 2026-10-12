@@ -1,0 +1,288 @@
+/* LC-3 AI Assembly Tutor — styles */
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --border: #2a2d3a;
+  --text: #e0e0e6;
+  --muted: #888;
+  --accent: #00c48f;
+  --accent-dim: #00c48f33;
+  --error: #ff5c5c;
+  --changed: #ffd966;
+  --pc-bg: #00c48f22;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+header h1 { font-size: 15px; font-weight: 600; color: var(--accent); }
+#status { color: var(--muted); font-size: 12px; }
+
+main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+.panel:last-child { border-right: none; }
+
+.panel h2 {
+  padding: 8px 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.panel h3 {
+  padding: 6px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ── Editor panel ─────────────────────────────────────────── */
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-header h2 { padding: 0; border: none; }
+
+#example-select {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+#editor {
+  flex: 1;
+  resize: none;
+  background: var(--bg);
+  color: var(--text);
+  border: none;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  tab-size: 2;
+  outline: none;
+}
+
+#errors {
+  display: none;
+  background: #2a1515;
+  color: var(--error);
+  padding: 8px 12px;
+  font-size: 12px;
+  max-height: 80px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+button:hover { background: var(--border); }
+button:active { background: var(--accent-dim); }
+
+#btn-assemble {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+#btn-assemble:hover { opacity: 0.9; }
+
+/* ── VM State panel ───────────────────────────────────────── */
+
+#flags {
+  padding: 8px 12px;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.flag {
+  display: inline-block;
+  width: 28px;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 4px;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.flag.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+#registers { padding: 0 12px; flex-shrink: 0; }
+#registers table { width: 100%; border-collapse: collapse; }
+#registers th, #registers td {
+  padding: 3px 6px;
+  text-align: left;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+#registers th { color: var(--muted); font-weight: normal; }
+#registers tr.changed td { color: var(--changed); }
+
+#memory {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 12px;
+}
+#memory table { width: 100%; border-collapse: collapse; }
+#memory th, #memory td {
+  padding: 2px 6px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+#memory th { color: var(--muted); font-weight: normal; text-align: left; }
+#memory tr.current-pc { background: var(--pc-bg); }
+
+#output {
+  height: 80px;
+  overflow-y: auto;
+  padding: 8px 12px;
+  background: var(--bg);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* ── AI Tutor panel ───────────────────────────────────────── */
+
+#chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.message {
+  margin-bottom: 12px;
+}
+
+.message-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.message-content {
+  background: var(--bg);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message.user .message-content {
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+}
+
+.quick-asks {
+  display: flex;
+  gap: 4px;
+  padding: 4px 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.quick-ask {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#chat-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 6px 10px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  outline: none;
+}
+#chat-input:focus { border-color: var(--accent); }
+
+#chat-send {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
