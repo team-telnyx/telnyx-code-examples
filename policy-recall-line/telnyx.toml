@@ -1,0 +1,18 @@
+name = "policy-recall-line"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "LIB"
+type    = "PolicyLine"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[env_vars]
+SEED_HANDBOOK_URL = "https://acme.example.com/handbook"
+BUCKET_NAME = "acme-handbook"
