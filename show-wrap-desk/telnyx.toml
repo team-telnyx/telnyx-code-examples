@@ -1,0 +1,25 @@
+name = "show-wrap-desk"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "DESKS"
+type    = "WrapDesk"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.EPISODES_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+EPISODE_URL = "https://example.com/episode.mp3"
+HOST_VOICE = "azure.en-US-AvaMultilingualNeural"
+CHAPTER_GAP_S = "60"
+STT_MODEL = "deepgram/nova-3"
+WRAP_POLL_S = "60"
+DEMO_MODE = "true"
