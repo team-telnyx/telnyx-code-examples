@@ -242,6 +242,12 @@ Returns the dossier view: identity, provider, last visit, the full visit history
 Place the call with the CLI (the assistant dials you; answer and talk, then hang up):
 
 ```bash
+# Warm the function first. After ~30 min idle the container is cold: the
+# first dynamic-variables delivery can fail at connection level, the call
+# proceeds best-effort with the raw greeting template ("Hello patient_name"),
+# and the retry lands only after the greeting has played.
+curl -s https://<your-function>.telnyxcompute.com/health
+
 telnyx assistant call <ASSISTANT_ID> \
   -f +1<YOUR_TELNYX_NUMBER> -t +1<YOUR_PHONE> \
   --texml-app-id <TEXML_APP_ID>

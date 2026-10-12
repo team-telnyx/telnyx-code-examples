@@ -211,12 +211,17 @@ telnyx-edge list
 
 ### 7. Run the two-visit demo
 
-Call the assistant from your phone (or replay the webhooks with curl — scripted in GUIDE.md):
+Warm the function, then call the assistant from your phone:
+
+```bash
+curl -s https://<your-function>.telnyxcompute.com/health   # wake a cold container
+telnyx assistant call <ASSISTANT_ID> -f +1<YOUR_TELNYX_NUMBER> -t +1<YOUR_PHONE> --texml-app-id <TEXML_APP_ID>
+```
 
 1. **Visit #1** — `POST /webhook/initialization` greets Sarah with `last_visit: "none"` and a fresh encrypted token. Hang up (or end the conversation); the assistant files the visit.
 2. **Visit #2** — call again. The same actor returns the updated `last_visit` from SQL and a **new** one-time token — the greeting now references the visit history. Inspect the dossier: `GET /dossier/<phone-digits>`.
 
-> Live-tested: the assistant greets with resolved variables ("the patient is Sarah … their last visit was Oct 9, 2026"), files with the caller's real number, and visit #2's summary references visit #1's history ("prefers morning contact") — the dossier, not the conversation, carried the memory.
+> Live-tested: the assistant greets with resolved variables ("the patient is Sarah … their last visit was Oct 9, 2026"), files with the caller's real number, and visit #2's summary references visit #1's history ("prefers morning contact") — the dossier, not the conversation, carried the memory. Skip the warm-up after a long idle and the first call may greet with the raw template (`Hello {{patient_name}}`): the cold function's first webhook delivery fails at connection level and the retry lands only after the greeting has played.
 
 ## API Reference
 
