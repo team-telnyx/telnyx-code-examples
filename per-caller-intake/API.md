@@ -209,7 +209,40 @@ Token plaintexts are never stored, so they cannot appear in this view.
 
 ---
 
+## POST /dossier/{phone_digits}/reset
+
+Dev/demo utility: wipes the dossier for one caller (visits, identity, prefs, durable state) so a fresh two-visit take can be recorded. Authenticated with the same filing-tool bearer token — **fails closed** when `DOSSIER_WEBHOOK_AUTH` is unset.
+
+### Example Request
+
+```bash
+curl -X POST https://<your-edge-url>/dossier/15551234567/reset \
+  -H "Authorization: Bearer <dossier_webhook_auth_token>"
+```
+
+### Response
+
+**200 OK**
+
+```json
+{
+  "cleared": true
+}
+```
+
+### Status Codes
+
+| Code | Description |
+|------|-------------|
+| `200` | Dossier cleared |
+| `401` | Unauthorized — missing or invalid `Authorization` header |
+| `500` | Server not configured (`DOSSIER_WEBHOOK_AUTH` unset) |
+| `404` | Unknown path |
+
+---
+
 ## GET /health
+
 
 ### Example Request
 

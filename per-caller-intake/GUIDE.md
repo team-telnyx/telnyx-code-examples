@@ -284,6 +284,10 @@ curl -s -X POST https://<your-function>.telnyxcompute.com/webhook/initialization
   -H "Content-Type: application/json" \
   -d '{...same initialization body...}'
 
+# Reset for a fresh two-visit take
+curl -s -X POST https://<your-function>.telnyxcompute.com/dossier/15551234567/reset \
+  -H "Authorization: Bearer $DOSSIER_WEBHOOK_AUTH"
+
 # Inspect the dossier
 curl -s https://<your-function>.telnyxcompute.com/dossier/15551234567
 ```

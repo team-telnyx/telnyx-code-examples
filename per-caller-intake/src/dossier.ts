@@ -23,7 +23,7 @@ export interface DossierState extends Record<string, unknown> {
 }
 
 export type IntakeDossierStub = ActorStub &
-  Pick<IntakeDossier, "handleInitialization" | "fileVisitSummary" | "dossierView">;
+  Pick<IntakeDossier, "handleInitialization" | "fileVisitSummary" | "dossierView" | "resetDossier">;
 
 export interface DossierNamespace extends ActorNamespace {
   idFromName(name: string, options?: IdFromNameOptions): IntakeDossierStub;
@@ -270,6 +270,18 @@ export class IntakeDossier extends Agent<DossierEnv, DossierState> {
 
     await this.setState({ lastVisitAt: now, lastFiledVisitId: visitId });
     return { filed: true, visit_id: visitId };
+  }
+
+  /**
+   * Dev/demo utility: wipe the dossier for a clean two-visit take.
+   * Clears visits, identity, and prefs, and resets durable state.
+   */
+  async resetDossier(): Promise<{ cleared: boolean }> {
+    this.ctx.storage.sql.exec("DELETE FROM visits");
+    this.ctx.storage.sql.exec("DELETE FROM identity");
+    this.ctx.storage.sql.exec("DELETE FROM prefs");
+    await this.setState({ lastVisitAt: null, lastFiledVisitId: null });
+    return { cleared: true };
   }
 
   /** Dev inspection: the full dossier view (never exposes token plaintexts). */

@@ -51,6 +51,19 @@ export default {
       return json(await stub.dossierView());
     }
 
+    const resetMatch = url.pathname.match(/^\/dossier\/(\d{10,15})\/reset$/);
+    if (resetMatch && req.method === "POST") {
+      const expectedToken = process.env.DOSSIER_WEBHOOK_AUTH;
+      if (!expectedToken) {
+        return errorResponse("server not configured for webhook authentication", 500);
+      }
+      if ((req.headers.get("Authorization") || "") !== `Bearer ${expectedToken}`) {
+        return errorResponse("unauthorized", 401);
+      }
+      const stub = env.DOSSIERS.idFromName(resetMatch[1]);
+      return json(await stub.resetDossier());
+    }
+
     return errorResponse("not found", 404);
   },
 };
