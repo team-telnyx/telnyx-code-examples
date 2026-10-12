@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-09T00:18:31Z",
-  "example_count": 572,
+  "generated_at": "2026-10-12T18:28:51Z",
+  "example_count": 573,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5153,6 +5153,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insurance-verification-caller"
+    },
+    {
+      "folder": "expressive-voice-reminder",
+      "title": "Expressive Voice Reminder Queue",
+      "description": "Clinic reminder queue using Telnyx AI Assistants, Ultra Expressive TTS, pronunciation dictionaries, in-call speak, post-conversation processing, and durable Edge actor retries.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/expressive-voice-reminder"
     }
   ]
 }

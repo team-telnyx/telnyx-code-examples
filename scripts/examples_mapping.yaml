@@ -3514,3 +3514,9 @@ examples:
     language: typescript
     framework: edge
     folder: insurance-verification-caller
+
+  - product: ai
+    use_case: expressive-voice-reminder
+    language: typescript
+    framework: edge
+    folder: expressive-voice-reminder
