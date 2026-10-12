@@ -3468,7 +3468,7 @@ examples:
     folder: chargeback-adjudication
 
   - product: ai
-    use_case: appointment-recovery-waitlist
+    use_case: expressive-voice-reminder
     language: typescript
     framework: edge
-    folder: appointment-recovery-waitlist
+    folder: expressive-voice-reminder
