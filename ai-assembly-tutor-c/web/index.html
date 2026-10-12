@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-edge-url="https://ai-assembly-tutor-v2-9a6d593b-1.telnyxcompute.com">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LC-3 AI Assembly Tutor — Telnyx</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<header>
+  <h1>LC-3 AI Assembly Tutor</h1>
+  <span id="status">Loading...</span>
+</header>
+
+<main>
+  <!-- ── Left: Code Editor ──────────────────────────────────── -->
+  <section id="panel-editor" class="panel">
+    <div class="panel-header">
+      <h2>Code</h2>
+      <select id="example-select">
+        <option value="">— load example —</option>
+        <option value="hello-world">Hello World</option>
+        <option value="add-numbers">Add Numbers</option>
+        <option value="countdown">Countdown</option>
+        <option value="fibonacci">Fibonacci</option>
+        <option value="calculator">Calculator</option>
+      </select>
+    </div>
+    <textarea id="editor" spellcheck="false" placeholder="; Write LC-3 assembly here...
+.ORIG x3000
+  LEA R0, HELLO
+  PUTS
+  HALT
+HELLO .STRINGZ &quot;Hello, world!&quot;
+.END"></textarea>
+    <pre id="errors"></pre>
+    <div class="toolbar">
+      <button id="btn-assemble">Assemble</button>
+      <button id="btn-step">Step</button>
+      <button id="btn-run">Run</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+  </section>
+
+  <!-- ── Center: VM State ───────────────────────────────────── -->
+  <section id="panel-state" class="panel">
+    <h2>VM State</h2>
+    <div id="flags"></div>
+    <div id="registers"></div>
+    <h3>Memory</h3>
+    <div id="memory"></div>
+    <h3>Output</h3>
+    <pre id="output"></pre>
+  </section>
+
+  <!-- ── Right: AI Tutor ────────────────────────────────────── -->
+  <section id="panel-tutor" class="panel">
+    <h2>AI Tutor</h2>
+    <div id="chat-messages"></div>
+    <div class="quick-asks">
+      <button class="quick-ask" data-question="What does this instruction do?">What does this do?</button>
+      <button class="quick-ask" data-question="Why did the condition flags change?">Why did flags change?</button>
+      <button class="quick-ask" data-question="What will happen on the next step?">What happens next?</button>
+    </div>
+    <div class="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Ask about this code..." />
+      <button id="chat-send">Send</button>
+    </div>
+  </section>
+</main>
+
+<!-- Emscripten glue (built by build.sh) -->
+<script src="wasm/lc3.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
