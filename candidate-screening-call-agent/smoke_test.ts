@@ -28,6 +28,10 @@ const opened = screen.openScreen(profile);
 assert.equal(opened.actorName, "candidate-screen-15558675309");
 assert.equal((opened.assistantPayload.voice_settings as { voice: string }).voice, "Telnyx.Ultra.Clara");
 assert.equal((opened.assistantPayload.telephony_settings as { voicemail_detection: string }).voicemail_detection, "premium");
+assert.equal((opened.assistantPayload.websocket_settings as { enabled: boolean }).enabled, true);
+assert.equal((opened.assistantPayload.post_conversation_settings as { enabled: boolean }).enabled, true);
+assert.equal((opened.assistantPayload.memory as { enabled: boolean }).enabled, true);
+assert.equal((opened.assistantPayload.enabled_features as string[]).includes("telephony"), true);
 assert.equal((opened.dialPayload as { MachineDetection: string }).MachineDetection, "Enable");
 assert.equal((opened.dialPayload as { DetectionMode: string }).DetectionMode, "Premium");
 

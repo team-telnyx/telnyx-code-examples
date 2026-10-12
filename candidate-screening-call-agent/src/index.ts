@@ -61,6 +61,7 @@ export interface EnvLike {
   OUTBOUND_TEXML_APP_ID?: string;
   OUTBOUND_CALLER_ID?: string;
   WEBHOOK_TOOL_URL?: string;
+  WEBHOOK_AUTH_REF?: string;
   SCREEN_RETRY_MAX?: string;
   MAX_CALL_MINUTES?: string;
 }
@@ -157,10 +158,18 @@ export class CandidateScreen {
       telephony_settings: {
         voicemail_detection: "premium",
       },
-      enabled_features: ["telephony"],
       websocket_settings: {
+        enabled: true,
         url: this.env.WEBHOOK_TOOL_URL ?? "https://example.com/screen/events",
+        auth_ref: this.env.WEBHOOK_AUTH_REF ?? "screen-webhook-auth",
       },
+      post_conversation_settings: {
+        enabled: true,
+      },
+      memory: {
+        enabled: true,
+      },
+      enabled_features: ["telephony"],
       tools: [
         {
           type: "webhook",
@@ -281,12 +290,12 @@ export class CandidateScreen {
   private assistantInstructions(profile: CandidateProfile): string {
     const questions = profile.rubric.map((q) => `${q.qIdx + 1}. ${q.prompt}`).join("\n");
     return [
-      `You are running a bounded pre-interview phone screen for ${profile.candidateName}.`,
-      "Ask one rubric question at a time. Do not evaluate the live interview itself.",
-      "When an answer is complete, call the score_answer webhook with qIdx and answer.",
-      "If the call resumes, start with the next unanswered question.",
+      `you are running a bounded pre-interview phone screen for ${profile.candidateName}.`,
+      "ask one rubric question at a time. do not evaluate the live interview itself.",
+      "when an answer is complete, call the score_answer webhook with qidx and answer.",
+      "if the call resumes, start with the next unanswered question.",
       "",
-      questions,
+      questions.toLowerCase(),
     ].join("\n");
   }
 
