@@ -75,7 +75,7 @@ The librarian is a single durable actor per company. It owns the source map, the
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key | Telnyx Portal |
 | `SEED_HANDBOOK_URL` | `string` | `https://acme.example.com/handbook` | no | Seed handbook URL (2–5 pages) | Your own handbook |
 | `BUCKET_NAME` | `string` | `acme-handbook` | no | Pre-created bucket in Telnyx Portal | Telnyx Portal |
-| `AI_MODEL` | `string` | `meta-llama/Llama-3.3-70B-Instruct` | no | Telnyx-hosted inference model (no BYOK key needed) | [Telnyx Inference models](https://developers.telnyx.com/docs/ai/inference) |
+| `AI_MODEL` | `string` | `moonshotai/Kimi-K3` | no | Telnyx-hosted inference model (default `moonshotai/Kimi-K3`; falls back to `zai-org/GLM-5.3-Flash` on error — no BYOK key needed) | [Telnyx Inference models](https://developers.telnyx.com/docs/ai/inference) |
 | `BASE_URL` | `string` | `https://your-worker.telnyxcompute.com` | yes (for `npm run bootstrap`) | Deployed worker URL — printed by `telnyx-edge ship` | `telnyx-edge ship` output |
 | `COMPANY` | `string` | `acme` | no | Company slug used by the bootstrap script | — |
 
@@ -99,7 +99,7 @@ The librarian is a single durable actor per company. It owns the source map, the
 > telnyx-edge new-func --actor -l ts -n policy-recall-line        # register the actor function
 > telnyx-edge secrets add SEED_HANDBOOK_URL "https://…"           # your 2-5 page handbook
 > telnyx-edge secrets add BUCKET_NAME acme-handbook               # bucket created above
-> telnyx-edge secrets add AI_MODEL meta-llama/Llama-3.3-70B-Instruct   # Telnyx-hosted inference model
+> telnyx-edge secrets add AI_MODEL moonshotai/Kimi-K3               # Telnyx-hosted inference model (fallback: zai-org/GLM-5.3-Flash)
 > telnyx-edge types && telnyx-edge ship                           # generate types and deploy
 > ```
 

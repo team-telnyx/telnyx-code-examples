@@ -255,7 +255,7 @@ Config ships as `[[secrets]]` bindings in `telnyx.toml` and is read via `SECRETS
 | `TELNYX_API_KEY`     | string | —                                | Telnyx API key (injected via secrets, never in code). |
 | `SEED_HANDBOOK_URL`  | string | `https://acme.example.com/handbook` | Demo default handbook URL.                        |
 | `BUCKET_NAME`        | string | `acme-handbook`                  | Pre-created bucket in the Telnyx Portal.           |
-| `AI_MODEL`           | string | `meta-llama/Llama-3.3-70B-Instruct` | Telnyx-hosted inference model (no BYOK key needed). |
+| `AI_MODEL`           | string | `moonshotai/Kimi-K3`             | Telnyx-hosted inference model; falls back to `zai-org/GLM-5.3-Flash` (no BYOK key needed). |
 
 Constants (hardcoded in `src/index.ts`):
 

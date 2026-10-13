@@ -134,7 +134,14 @@ export const MAX_RETRIES = 3;
 const DEFAULT_BUCKET = "acme-handbook";
 const DEFAULT_SEED_URL = "https://acme.example.com/handbook";
 /** Telnyx-hosted inference model — zero BYOK keys required (no keys in the sample). */
-export const DEFAULT_AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct";
+export const DEFAULT_AI_MODEL = "moonshotai/Kimi-K3";
+/** Fallback Telnyx-hosted model when the primary fails or returns empty content. */
+export const FALLBACK_AI_MODEL = "zai-org/GLM-5.3-Flash";
+/**
+ * Both default models are reasoning models — they emit reasoning tokens before
+ * content, so the budget needs headroom beyond the visible answer.
+ */
+const COMPLETION_MAX_TOKENS = 700;
 
 const NO_HIT_REPLY =
   "I couldn't find a matching policy in the handbook. Please contact HR for clarification.";
@@ -533,30 +540,49 @@ export class PolicyLine extends Agent<Env, PolicyState> {
     return data.data ?? [];
   }
 
-  /** LLM binding — answer composition from the top chunk (no API key in code). */
+  /**
+   * LLM binding — answer composition from the top chunk (no API key in code).
+   * Primary model first; on error or empty content, falls back to
+   * FALLBACK_AI_MODEL (both Telnyx-hosted, zero BYOK keys required).
+   */
   private async composeAnswer(
     question: string,
     chunk: string,
   ): Promise<string> {
-    const model =
-      (await readConfig(this.env, "AI_MODEL")) || DEFAULT_AI_MODEL;
-    const completion = await this.env.TELNYX.ai.openai.chat.createCompletion({
-      model,
-      max_tokens: 300,
-      temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are the company librarian. Answer the employee's question using ONLY the provided handbook excerpt. Be concise and cite the excerpt.",
-        },
-        {
-          role: "user",
-          content: `Question: ${question}\n\nHandbook excerpt:\n${chunk}`,
-        },
-      ],
-    });
-    return completion.choices[0]?.message?.content ?? NO_HIT_REPLY;
+    const configured = await readConfig(this.env, "AI_MODEL");
+    const primary = configured || DEFAULT_AI_MODEL;
+    const candidates =
+      primary === FALLBACK_AI_MODEL ? [primary] : [primary, FALLBACK_AI_MODEL];
+    let lastError: unknown;
+    for (const model of candidates) {
+      try {
+        const completion =
+          await this.env.TELNYX.ai.openai.chat.createCompletion({
+            model,
+            max_tokens: COMPLETION_MAX_TOKENS,
+            temperature: 0.2,
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are the company librarian. Answer the employee's question using ONLY the provided handbook excerpt. Be concise and cite the excerpt.",
+              },
+              {
+                role: "user",
+                content: `Question: ${question}\n\nHandbook excerpt:\n${chunk}`,
+              },
+            ],
+          });
+        const content = completion.choices[0]?.message?.content;
+        if (content && content.trim()) return content;
+        lastError = new Error(`Model ${model} returned an empty completion`);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("Answer composition failed");
   }
 }
 

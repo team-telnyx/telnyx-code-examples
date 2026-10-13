@@ -150,7 +150,7 @@ When you `POST /ask` with `{ "company": "acme", "question": "What is the PTO car
    - It composes an answer using the LLM binding:
       ```
       this.env.TELNYX.ai.openai.chat.createCompletion({
-        model: "meta-llama/Llama-3.3-70B-Instruct",
+        model: "moonshotai/Kimi-K3",   // fallback: zai-org/GLM-5.3-Flash
         messages: [
           { role: "system", content: "You are the company librarian..." },
           { role: "user", content: `Question: ...\n\nHandbook excerpt: ...` }

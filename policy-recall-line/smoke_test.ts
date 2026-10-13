@@ -7,6 +7,7 @@ import assert from "node:assert";
 import { Agent } from "@telnyx/edge-runtime";
 import mod, {
   DEFAULT_AI_MODEL,
+  FALLBACK_AI_MODEL,
   MAX_RETRIES,
   POLL_INTERVAL_S,
   REINDEX_INTERVAL_S,
@@ -49,8 +50,16 @@ check("REINDEX_INTERVAL_S is 86400 (24h)", REINDEX_INTERVAL_S === 86400);
 check("RETRY_DELAY_S is 600", RETRY_DELAY_S === 600);
 check("MAX_RETRIES is 3", MAX_RETRIES === 3);
 check(
-  "DEFAULT_AI_MODEL is Telnyx-hosted (no BYOK key)",
-  DEFAULT_AI_MODEL === "meta-llama/Llama-3.3-70B-Instruct",
+  "DEFAULT_AI_MODEL is Telnyx-hosted Kimi (no BYOK key)",
+  DEFAULT_AI_MODEL === "moonshotai/Kimi-K3",
+);
+check(
+  "FALLBACK_AI_MODEL is Telnyx-hosted GLM (no BYOK key)",
+  FALLBACK_AI_MODEL === "zai-org/GLM-5.3-Flash",
+);
+check(
+  "default models are not BYOK-gated OpenAI models",
+  !DEFAULT_AI_MODEL.startsWith("openai/") && !FALLBACK_AI_MODEL.startsWith("openai/"),
 );
 
 // Hit / no-hit decision (AC: distance <= 0.9 answers, every distance > 0.9 does not).
