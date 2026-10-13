@@ -47,7 +47,7 @@ function loadDotEnv(dir: string): EnvMap {
 
 async function main(): Promise<void> {
   const file = loadDotEnv(process.cwd());
-  const get = (key: string): string => process.env[key] ?? file[key] ?? "";
+  const get = (key: string): string => process.env[key] || file[key] || "";
 
   const baseUrl = (get("BASE_URL") || "http://localhost:8787").replace(/\/+$/, "");
   const company = get("COMPANY") || "acme";

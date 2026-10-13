@@ -2,6 +2,11 @@ name = "policy-recall-line"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
 
+# ── Function identity (created via `telnyx-edge new-func --actor -l ts -n policy-recall-line`) ──
+[edge_compute]
+func_id   = "390d1e24-d51b-4faf-a190-3b0efe08505f"
+func_name = "policy-recall-line"
+
 # ── Stateful actor: one librarian per company ───────────────────────────────
 [[actors]]
 binding = "LIB"

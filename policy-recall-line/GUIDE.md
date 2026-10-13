@@ -20,7 +20,7 @@ Before you begin, make sure you have:
 - A **Telnyx account** with API access
 - The **Telnyx Edge CLI** installed (`telnyx-edge`)
 - **Node.js 18+** and `npm` installed
-- A **handbook** you control (2–5 pages of policy text) hosted at a public URL — for the demo, use a small markdown or HTML page you can edit later to test re-indexing
+- A **handbook** you control (2–5 pages of policy text) hosted at a public **HTML** URL — for the demo, upload a small HTML page to a Telnyx bucket with `--public`, or use any public webpage you can edit later to test re-indexing. Note: the crawler skips `text/plain` responses (e.g., raw gist markdown), so a raw markdown file URL will embed successfully but index nothing.
 - A **storage bucket** created in the Telnyx Portal (e.g., `acme-handbook`)
 
 ---
@@ -294,6 +294,9 @@ Triggers an immediate re-embed for the given slug.
 |---|---|
 | `404 Unknown company` | Register the source first via `POST /source` |
 | `202 Source is still indexing` | Wait for the embed task to complete (poll interval is 60s) |
+| Embed task succeeds but search returns 0 results | The handbook URL serves `text/plain` (e.g., raw gist markdown) — the crawler only ingests HTML pages. Host the handbook as an HTML page (e.g., `telnyx storage object put acme-handbook handbook.html --key handbook.html --content-type text/html --public`) |
+| Unrelated questions return `answered: true` | The gte-large embedding model compresses distances: hits measure ~0.12 and unrelated queries ~0.24, both under `SIMILARITY_FLOOR` (0.9). Tune the floor down to ~0.45 in `src/index.ts` if you want the no-hit path to fire in live traffic |
+| `__alarm__ error` in actor logs, then `ok` | The SDK's at-least-once delivery retried a transient failure — delivery self-heals |
 | Embed task fails | Check the handbook URL is publicly accessible; check the bucket name |
 | `409 Source already registered` | Use `reindexNow` to re-embed, or delete the source state |
 | `TELNYX_API_KEY` not found | Set it in `.env` and run `telnyx-edge secrets add TELNYX_API_KEY "your_key"` |
