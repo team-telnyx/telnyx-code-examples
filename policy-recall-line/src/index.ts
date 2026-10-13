@@ -484,8 +484,8 @@ export class PolicyLine extends Agent<Env, PolicyState> {
     if (!res.ok) {
       throw new Error(`Embed start failed: ${res.status}`);
     }
-    const data = (await res.json()) as { task_id?: string };
-    const taskId = data.task_id;
+    const payload = (await res.json()) as { data?: { task_id?: string } };
+    const taskId = payload.data?.task_id;
     if (!taskId) {
       throw new Error("Embed start returned no task_id");
     }
@@ -510,8 +510,8 @@ export class PolicyLine extends Agent<Env, PolicyState> {
     if (!res.ok) {
       throw new Error(`Embed status failed: ${res.status}`);
     }
-    const data = (await res.json()) as { status?: string };
-    return data.status ?? "processing";
+    const payload = (await res.json()) as { data?: { status?: string } };
+    return payload.data?.status ?? "processing";
   }
 
   /** POST /v2/ai/embeddings/similarity-search — the RAG primitive. */
@@ -653,7 +653,9 @@ export default {
     const innerReq = new Request(`https://internal${rest}`, {
       method: req.method,
       headers: req.headers,
-      body: req.body,
+      // Buffer the body — a ReadableStream body needs `duplex: "half"` in
+      // this runtime; concrete bytes do not.
+      body: await req.arrayBuffer(),
     });
     return stub.fetch(innerReq);
   },
