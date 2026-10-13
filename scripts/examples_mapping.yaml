@@ -3514,3 +3514,9 @@ examples:
     language: typescript
     framework: edge
     folder: insurance-verification-caller
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: whatsapp-coexistence-sync-monitor
