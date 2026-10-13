@@ -31,7 +31,7 @@ Registers a handbook URL for a company. The first registration for a company **b
 | Field     | Type   | Required | Description                                                                 |
 |-----------|--------|----------|-----------------------------------------------------------------------------|
 | `company` | string | Yes      | Company slug. Used to derive the actor id: `company:<company>`.             |
-| `url`     | string | Yes      | The handbook URL to crawl and embed. Should point to 2–5 pages of text.     |
+| `url`     | string | No       | The handbook URL to crawl and embed. Falls back to the `SEED_HANDBOOK_URL` config. Should point to 2–5 pages of text. |
 
 ### Example Request
 
@@ -59,9 +59,9 @@ curl -X POST https://<deployment>/company/acme/source \
 | Status | Description                                                                 |
 |--------|-----------------------------------------------------------------------------|
 | `201`  | Source registered; embedding task started.                                  |
-| `400`  | Missing `company` or `url` in the request body, or invalid JSON.            |
+| `400`  | Missing `company` in the request body, or invalid JSON.                     |
 | `409`  | Source already registered for this company.                                 |
-| `500`  | Embedding task failed to start (e.g., Telnyx API unreachable).              |
+| `502`  | Embedding task failed to start (e.g., Telnyx API unreachable).              |
 
 ---
 
@@ -125,17 +125,13 @@ When every chunk distance is `> 0.9`, the no-hit reply is returned and the `qa_l
 
 ## RPC: `audit()`
 
-Returns the last 20 `qa_log` rows for the actor. Callable via the actor stub.
+Returns the last 20 `qa_log` rows for the actor. Callable via `agent.stub.audit()` from server-side code, or over HTTP through the worker pass-through route.
 
 ### Example Request
 
 ```bash
-curl -X POST http://<yourcompany>/company/acme/run \
-  -H "Content-Type: application/json" \
-  -d '{"method": "audit"}'
+curl -X POST https://<deployment>/company/acme/rpc/audit
 ```
-
-> **Note:** The exact wire format for RPC calls depends on the edge runtime's stub invocation. In code, this is `agent.stub.audit()`.
 
 ### Response — 200 OK
 
@@ -168,14 +164,14 @@ curl -X POST http://<yourcompany>/company/acme/run \
 
 ## RPC: `reindexNow(slug)`
 
-Triggers an immediate re-embed of the source's URL into the same bucket. A new `task_id` is generated and a fresh `poll:<taskId>` schedule is armed.
+Triggers an immediate re-embed of the source's URL into the same bucket. A new `task_id` is generated and a fresh `poll:<taskId>` schedule is armed. Callable via `agent.stub.reindexNow("company:acme")` from server-side code, or over HTTP through the worker pass-through route.
 
 ### Example Request
 
 ```bash
-curl -X POST http://<yourcompany>/company/acme/run \
+curl -X POST https://<deployment>/company/acme/rpc/reindexNow \
   -H "Content-Type: application/json" \
-  -d '{"method": "reindexNow", "params": ["company:acme"]}'
+  -d '{"slug": "company:acme"}'
 ```
 
 ### Response — 200 OK
@@ -198,9 +194,9 @@ curl -X POST http://<yourcompany>/company/acme/run \
 
 ## Internal Task Handlers
 
-These are not HTTP routes — they are scheduled actor methods invoked by the runtime.
+These are not HTTP routes — they are scheduled actor methods invoked by the runtime via `this[method](payload)`. Each is armed with a **stable id** so scheduling is an upsert (dedup + re-arm) and the task survives worker restarts.
 
-### `poll:Timer(payload)`
+### `onPollTask(payload)` — stable id `poll:<taskId>`
 
 | Field    | Type   | Description                          |
 |----------|--------|--------------------------------------|
@@ -209,11 +205,11 @@ These are not HTTP routes — they are scheduled actor methods invoked by the ru
 
 Behavior:
 
-- If the task status is `success`: flips source to `ready`, sets `lastIndexedAt`, appends an `embed_tasks` row.
-- If the task status is `failure`: increments `retries`. If `retries <= MAX_RETRIES` (3), schedules `retry:Timer` after 600s. Otherwise marks the source `failed` and logs the failure.
-- If the task status is `queued` or `processing`: re-schedules `poll:Timer` after 60s.
+- If the task status is `success`: flips source to `ready`, sets `lastIndexedAt`, and marks the `embed_tasks` row `finished_at` + `success`.
+- If the task status is `failure`: increments `retries`. If `retries <= MAX_RETRIES` (3), schedules `retry:<slug>` after 600s. Otherwise marks the source `failed` and closes the `embed_tasks` row with `status='failed'`.
+- If the task status is `queued` or `processing`: re-schedules the same stable id `poll:<taskId>` after 60s.
 
-### `retry:Timer(payload)`
+### `onRetryTask(payload)` — stable id `retry:<slug>`
 
 | Field  | Type   | Description                          |
 |--------|--------|--------------------------------------|
@@ -221,7 +217,7 @@ Behavior:
 
 Behavior: Re-starts the embed for the source's URL, stores the new `taskId`, and arms a fresh `poll:<taskId>` schedule.
 
-### `reindex:Timer(payload)`
+### `onReindexTask(payload)` — stable id `reindex:<slug>`
 
 | Field  | Type   | Description                          |
 |--------|--------|--------------------------------------|
@@ -252,11 +248,14 @@ All error responses share a consistent JSON shape:
 
 ## Environment Variables
 
+Config ships as `[[secrets]]` bindings in `telnyx.toml` and is read via `SECRETS.get()` with a plain env-var fallback (`readConfig` in `src/index.ts`) — the Edge runtime does not inject `[env_vars]` for actor projects.
+
 | Variable             | Type   | Default                          | Description                                        |
 |----------------------|--------|----------------------------------|----------------------------------------------------|
 | `TELNYX_API_KEY`     | string | —                                | Telnyx API key (injected via secrets, never in code). |
 | `SEED_HANDBOOK_URL`  | string | `https://acme.example.com/handbook` | Demo default handbook URL.                        |
 | `BUCKET_NAME`        | string | `acme-handbook`                  | Pre-created bucket in the Telnyx Portal.           |
+| `AI_MODEL`           | string | `meta-llama/Llama-3.3-70B-Instruct` | Telnyx-hosted inference model (no BYOK key needed). |
 
 Constants (hardcoded in `src/index.ts`):
 

@@ -60,6 +60,16 @@ telnyx-edge types   # regenerates telnyx-env.d.ts from telnyx.toml
 telnyx-edge ship    # deploy to the edge
 ```
 
+### 5. Bootstrap the librarian
+
+Set `BASE_URL` in `.env` to your deployed worker URL (printed by `telnyx-edge ship`), then register the seed handbook source:
+
+```bash
+npm run bootstrap
+```
+
+The first `POST /source` births the librarian actor, shelves the source with status `indexing`, and arms the stable `poll:<taskId>` and `reindex:<slug>` tasks.
+
 ---
 
 ## How It Works — Step by Step
@@ -75,9 +85,10 @@ The core of the sample is the `PolicyLine` class in `src/index.ts`, which extend
 - `fetch(req)`: the HTTP entry point — routes `/source` and `/ask` requests
 - `handleRegisterSource(req)`: the "birth" of the librarian — registers a handbook URL for a company
 - `handleAsk(req)`: the "reference desk" — answers a policy question
-- `"poll:Timer"` task handler: polls the embed task status
-- `"retry:Timer"` task handler: retries a failed embed
-- `"reindex:Timer"` task handler: re-embeds the handbook after 24 hours
+- `ensureSchema()`: idempotent `CREATE TABLE IF NOT EXISTS` for the two ledger tables
+- `onPollTask(...)`: stable-id task `poll:<taskId>` — polls the embed task status
+- `onRetryTask(...)`: stable-id task `retry:<slug>` — retries a failed embed
+- `onReindexTask(...)`: stable-id task `reindex:<slug>` — re-embeds the handbook after 24 hours
 - `@rpc() audit()`: returns the last 20 Q&A log rows
 - `@rpc() reindexNow(slug)`: triggers an immediate re-embed
 
@@ -109,18 +120,18 @@ When you `POST /source` with `{ "company": "acme", "url": "https://acme.example.
 
 ### 4. Polling the Embed Task (Crash-Safe)
 
-The `"poll:Timer"` handler is the crash-safe mechanism:
+The `onPollTask` handler (armed with the stable id `poll:<taskId>`) is the crash-safe mechanism:
 
 1. It calls `GET /v2/ai/embeddings/{task_id}` to get the status
 2. If status is `"success"`:
    - Flips the source to `ready`
    - Sets `lastIndexedAt`
-   - Appends a row to the `embed_tasks` SQL table
+   - Closes the `embed_tasks` row with `finished_at` and `status='success'`
 3. If status is `"failure"`:
    - Increments the retry counter
-   - If retries ≤ 3, schedules a `retry:<slug>` task in 600 seconds
-   - If retries > 3, marks the source as `failed`
-4. If status is `queued` or `processing` → re-schedules the `poll:<taskId>` task for another 60 seconds
+   - If retries ≤ 3, schedules a stable-id `retry:<slug>` task in 600 seconds
+   - If retries > 3, marks the source as `failed` and closes the `embed_tasks` row
+4. If status is `queued` or `processing` → re-schedules the same stable id `poll:<taskId>` for another 60 seconds
 
 **Why this matters:** The embed task is asynchronous. A naive implementation would await-loop (fragile) or ignore status entirely. The stable `poll:<taskId>` schedule is the SDK-native fix — it survives worker restarts because the schedule is durable.
 
@@ -137,15 +148,15 @@ When you `POST /ask` with `{ "company": "acme", "question": "What is the PTO car
    The response contains the top 3 chunks with their distances (lower = more similar).
 3. If the top hit has `distance <= 0.9` (the `SIMILARITY_FLOOR`):
    - It composes an answer using the LLM binding:
-     ```
-     this.env.TELNYX.ai.openai.chat.createCompletion({
-       model: "gpt-4o-mini",
-       messages: [
-         { role: "system", content: "You are the company librarian..." },
-         { role: "user", content: `Question: ...\n\nHandbook excerpt: ...` }
-       ]
-     })
-     ```
+      ```
+      this.env.TELNYX.ai.openai.chat.createCompletion({
+        model: "meta-llama/Llama-3.3-70B-Instruct",
+        messages: [
+          { role: "system", content: "You are the company librarian..." },
+          { role: "user", content: `Question: ...\n\nHandbook excerpt: ...` }
+        ]
+      })
+      ```
    - The answer is marked `answered: true`
 4. If no hit is below the floor, it returns the no-hit reply and marks `answered: false`
 5. Either way, it appends a row to the `qa_log` SQL table
@@ -154,7 +165,7 @@ When you `POST /ask` with `{ "company": "acme", "question": "What is the PTO car
 
 ### 6. The 24-Hour Reindex (Nightly Re-shelving)
 
-The `"reindex:Timer"` handler fires every 24 hours:
+The `onReindexTask` handler (stable id `reindex:<slug>`) fires every 24 hours:
 
 1. It calls `startEmbed` again with the same URL and bucket — this creates a **new** task ID
 2. It updates the source's `taskId` and sets status back to `indexing`
@@ -180,7 +191,14 @@ Two methods are exposed via `@rpc()`:
 - `audit()` — returns the last 20 `qa_log` rows (the reference ledger)
 - `reindexNow(slug)` — triggers an immediate re-embed (useful for testing or when a policy changes)
 
-These are callable from outside the actor via `stub.audit()` or `stub.reindexNow("company:acme")`.
+These are callable from outside the actor via `agent.stub.audit()` or `agent.stub.reindexNow("company:acme")`, or over HTTP through the worker's pass-through routes:
+
+```bash
+curl -X POST https://<your-worker>/company/acme/rpc/audit
+curl -X POST https://<your-worker>/company/acme/rpc/reindexNow \
+  -H "Content-Type: application/json" \
+  -d '{"slug": "company:acme"}'
+```
 
 ---
 
@@ -189,10 +207,10 @@ These are callable from outside the actor via `stub.audit()` or `stub.reindexNow
 | Primitive | How it's used |
 |---|---|
 | **Stateful Actor** (`Agent`) | One durable entity per company — owns the source map, the poll/re-index tasks, and the Q&A ledger |
-| **Stable-id scheduling** | `this.schedule(60, "poll:Timer", { taskId, slug }, { id: "poll:" + taskId })` — upserted by stable ID, survives restarts |
+| **Stable-id scheduling** | `this.schedule(60, "onPollTask", { taskId, slug }, { id: "poll:" + taskId })` — upserted by stable ID, survives restarts |
 | **Embeddings API** | `POST /v2/ai/embeddings/url` to crawl and embed; `POST /v2/ai/embeddings/similarity-search` to search |
-| **LLM binding** | `this.env.TELNYX.ai.openai.chat.createCompletion()` — zero-credential answer composition |
-| **SQL** | Two tables: `qa_log` (the reference ledger) and `embed_tasks` (the index history) |
+| **LLM binding** | `this.env.TELNYX.ai.openai.chat.createCompletion()` — zero-credential answer composition (Telnyx-hosted model) |
+| **Per-actor SQL** | `this.ctx.storage.sql` — two tables: `qa_log` (the reference ledger) and `embed_tasks` (the index history) |
 
 ---
 
@@ -215,6 +233,8 @@ To use real data:
 2. Set `BUCKET_NAME` to a bucket you own
 3. Deploy and register your source:
    ```bash
+   npm run bootstrap
+   # or, equivalent curl:
    curl -X POST https://<your-app>.telnyx.app/company/acme/source \
      -H "Content-Type: application/json" \
      -d '{"company": "acme", "url": "https://your-handbook.com"}'

@@ -1,22 +1,23 @@
 /**
- * SELF-REVIEW:
- * ✅ All spec primitives implemented (StatefulActor/Agent, schedule, SQL, Telnyx Embeddings + Storage, LLM binding)
- * ✅ smoke_test.ts verifies classes/methods exist
- * ✅ Demo mode default (no real charges; embed tasks are real but against a user-controlled bucket)
- * ✅ No credentials in code — TELNYX binding injects auth; no API key in source
- * ASSUMPTION: The spec's "stable poll:<taskId>" is implemented via this.schedule() with
- *   a stable id derived from the task id. The "retry:<slug>" task is scheduled via
- *   this.schedule() with a stable id as well. The 24h reindex uses this.schedule() with
- *   a stable id "reindex:<slug>".
+ * policy-recall-line — The Handbook Librarian (DEV-1285).
+ *
+ * One durable actor per company keeps the handbook embedded and fresh, answers
+ * every policy question from the stacks, and files every Q&A in its ledger —
+ * a reference desk that never sleeps, re-shelves itself nightly.
+ *
+ * Primitives composed:
+ *  - Stateful Actor (Agent SDK) — source map, poll/re-index tasks, Q&A ledger.
+ *  - Telnyx Embeddings + Storage — /v2/ai/embeddings/url + similarity-search.
+ *  - LLM binding — this.env.TELNYX.ai.openai.chat.createCompletion (no keys in code).
  */
 
 import {
   Agent,
   rpc,
-  type ActorContext,
   type ActorNamespace,
+  type ActorStub,
   type Env as EdgeEnv,
-  type Secrets,
+  type IdFromNameOptions,
 } from "@telnyx/edge-runtime";
 
 // ---------------------------------------------------------------------------
@@ -26,17 +27,18 @@ import {
 interface SourceRecord {
   url: string;
   bucket: string;
-  taskId?: string;
+  taskId: string | null;
   status: "indexing" | "ready" | "failed";
-  lastIndexedAt?: string;
+  lastIndexedAt: string | null;
   retries: number;
 }
 
-interface PolicyState {
+export interface PolicyState extends Record<string, unknown> {
   sources: Record<string, SourceRecord>;
 }
 
-interface QaLogRow {
+/** qa_log row as served over the API (answered as a boolean). */
+export interface QaLogRow {
   id: number;
   asked_at: string;
   question: string;
@@ -46,7 +48,8 @@ interface QaLogRow {
   answered: boolean;
 }
 
-interface EmbedTaskRow {
+/** embed_tasks row as served over the API. */
+export interface EmbedTaskRow {
   task_id: string;
   source_slug: string;
   started_at: string;
@@ -54,70 +57,159 @@ interface EmbedTaskRow {
   status: string;
 }
 
+/** One similarity-search result chunk. */
+export interface SearchHit {
+  document_chunk: string;
+  distance: number;
+}
+
 // ---------------------------------------------------------------------------
 // Environment
 // ---------------------------------------------------------------------------
 
+/** Remote-callable surface of PolicyLine (ActorStub carries fetch itself). */
+type PolicyStub = ActorStub & Pick<PolicyLine, "audit" | "reindexNow">;
+
+interface PolicyNamespace extends ActorNamespace {
+  idFromName(name: string, options?: IdFromNameOptions): PolicyStub;
+}
+
 export interface Env extends EdgeEnv {
-  SECRETS: {
-    get: (key: string) => Promise<string | undefined>;
-  };
-  LIB: ActorNamespace;
+  LIB: PolicyNamespace;
   TELNYX: {
     ai: {
       openai: {
         chat: {
-          createCompletion: (params: {
+          createCompletion(req: {
             model: string;
             messages: Array<{ role: string; content: string }>;
-          }) => Promise<{ choices: Array<{ message: { content: string } }> }>;
+            max_tokens?: number;
+            temperature?: number;
+          }): Promise<{ choices: Array<{ message: { content: string } }> }>;
         };
       };
     };
   };
-  SQL: {
-    exec: (sql: string, ...params: unknown[]) => Promise<void>;
-    query: <T>(sql: string, ...params: unknown[]) => Promise<T[]>;
-  };
-  BUCKET_NAME?: string;
-  SEED_HANDBOOK_URL?: string;
+  SECRETS: { get: (handle: string) => Promise<string> };
 }
 
 // ---------------------------------------------------------------------------
-// Constants
+// Config (secrets bindings with plain env-var fallback)
+// ---------------------------------------------------------------------------
+// The Edge runtime does NOT inject [env_vars] for actor projects, so config
+// ships as [[secrets]] bindings in telnyx.toml and is read via SECRETS.get()
+// with a plain env-var fallback (for local tooling).
+
+function directEnv(e: Env, key: string): string | undefined {
+  const v = (e as unknown as Record<string, unknown>)[key];
+  return typeof v === "string" && v.length > 0 ? v : undefined;
+}
+
+async function readConfig(e: Env, key: string): Promise<string | undefined> {
+  const direct = directEnv(e, key);
+  if (direct) return direct;
+  try {
+    const v = await e.SECRETS.get(key);
+    return v || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Constants (hardcoded demo surface — see README "Environment Variables")
 // ---------------------------------------------------------------------------
 
-const SIMILARITY_FLOOR = 0.9;
-const POLL_INTERVAL_S = 60;
-const REINDEX_INTERVAL_S = 86400;
-const RETRY_DELAY_S = 600;
-const MAX_RETRIES = 3;
+/** A chunk with distance <= SIMILARITY_FLOOR counts as a hit. */
+export const SIMILARITY_FLOOR = 0.9;
+/** Stable poll:<taskId> cadence (seconds). */
+export const POLL_INTERVAL_S = 60;
+/** Stable reindex:<slug> cadence — the nightly re-shelving (seconds). */
+export const REINDEX_INTERVAL_S = 86400;
+/** Delay before a failed embed is retried (seconds). */
+export const RETRY_DELAY_S = 600;
+/** Max retry attempts per source before it is marked failed. */
+export const MAX_RETRIES = 3;
+
 const DEFAULT_BUCKET = "acme-handbook";
 const DEFAULT_SEED_URL = "https://acme.example.com/handbook";
+/** Telnyx-hosted inference model — zero BYOK keys required (no keys in the sample). */
+export const DEFAULT_AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct";
+
 const NO_HIT_REPLY =
   "I couldn't find a matching policy in the handbook. Please contact HR for clarification.";
 
+const EMBED_URL = "https://api.telnyx.com/v2/ai/embeddings/url";
+const EMBED_TASK_URL = "https://api.telnyx.com/v2/ai/embeddings";
+const SIMILARITY_SEARCH_URL =
+  "https://api.telnyx.com/v2/ai/embeddings/similarity-search";
+
 // ---------------------------------------------------------------------------
-// Actor
+// The actor
 // ---------------------------------------------------------------------------
 
 export class PolicyLine extends Agent<Env, PolicyState> {
-  constructor(ctx: ActorContext, env: Env) {
-    super(ctx, env);
+  protected override initialState(): PolicyState {
+    return { sources: {} };
   }
 
-  protected initialState(): PolicyState {
-    return { sources: {} };
+  // -- Durable ledger schema (per-actor SQLite) -----------------------------
+
+  /** Idempotent schema setup. Safe to call on every actor entry. */
+  private ensureSchema(): void {
+    const sql = this.ctx.storage.sql;
+    sql.exec(`
+      CREATE TABLE IF NOT EXISTS qa_log (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        asked_at     TEXT NOT NULL,
+        question     TEXT NOT NULL,
+        answer       TEXT NOT NULL,
+        top_distance REAL,
+        source_slug  TEXT NOT NULL,
+        answered     INTEGER NOT NULL
+      );
+    `);
+    sql.exec(`
+      CREATE TABLE IF NOT EXISTS embed_tasks (
+        task_id     TEXT PRIMARY KEY,
+        source_slug TEXT NOT NULL,
+        started_at  TEXT NOT NULL,
+        finished_at TEXT,
+        status      TEXT NOT NULL
+      );
+    `);
   }
 
   // -- RPC surface ----------------------------------------------------------
 
   @rpc()
   async audit(): Promise<{ qaLog: QaLogRow[] }> {
-    const rows = await this.env.SQL.query<QaLogRow>(
-      "SELECT id, asked_at, question, answer, top_distance, source_slug, answered FROM qa_log ORDER BY asked_at DESC LIMIT 20"
-    );
-    return { qaLog: rows };
+    this.ensureSchema();
+    const rows = this.ctx.storage.sql
+      .exec<{
+        id: number;
+        asked_at: string;
+        question: string;
+        answer: string;
+        top_distance: number | null;
+        source_slug: string;
+        answered: number;
+      }>(
+        `SELECT id, asked_at, question, answer, top_distance, source_slug, answered
+         FROM qa_log ORDER BY id DESC LIMIT 20`,
+      )
+      .toArray();
+    return {
+      qaLog: rows.map((r) => ({
+        id: r.id,
+        asked_at: r.asked_at,
+        question: r.question,
+        answer: r.answer,
+        top_distance: r.top_distance,
+        source_slug: r.source_slug,
+        answered: r.answered === 1,
+      })),
+    };
   }
 
   @rpc()
@@ -127,283 +219,331 @@ export class PolicyLine extends Agent<Env, PolicyState> {
     if (!source) {
       throw new Error(`Unknown source slug: ${slug}`);
     }
-    const taskId = await this.startEmbed(source.url, source.bucket);
+    const taskId = await this.startEmbed(source.url, source.bucket, slug);
     source.taskId = taskId;
     source.status = "indexing";
     source.retries = 0;
     await this.setState({ sources: state.sources });
-    await this.schedule(POLL_INTERVAL_S, "poll:Timer", { taskId, slug }, { id: `poll:${taskId}` });
+    await this.schedule(POLL_INTERVAL_S, "onPollTask", { taskId, slug }, {
+      id: `poll:${taskId}`,
+    });
     return { taskId };
   }
 
-  // -- Fetch handler --------------------------------------------------------
+  // -- HTTP entry (inner actor routes; company arrives via the URL slug) ----
 
-  async fetch(req: Request): Promise<Response> {
-    const url = new URL(req.url);
-    const path = url.pathname;
-
+  override async fetch(req: Request): Promise<Response> {
+    const path = new URL(req.url).pathname;
     if (req.method === "POST" && path === "/source") {
       return this.handleRegisterSource(req);
     }
     if (req.method === "POST" && path === "/ask") {
       return this.handleAsk(req);
     }
-    return new Response(JSON.stringify({ error: "Not found" }), {
-      status: 404,
+    return this.json({ error: "Not found" }, 404);
+  }
+
+  private json(body: unknown, status: number): Response {
+    return new Response(JSON.stringify(body), {
+      status,
       headers: { "content-type": "application/json" },
     });
   }
 
   // -- Route handlers -------------------------------------------------------
 
+  /** The "birth": first registration shelves the source and starts the embed. */
   private async handleRegisterSource(req: Request): Promise<Response> {
     let body: { company?: string; url?: string };
     try {
-      body = await req.json();
+      body = (await req.json()) as { company?: string; url?: string };
     } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: { "content-type": "application/json" },
-      });
+      return this.json({ error: "Invalid JSON body" }, 400);
     }
-    const company = body.company;
-    const url = body.url;
-    if (!company || !url) {
-      return new Response(JSON.stringify({ error: "Missing 'company' or 'url'" }), {
-        status: 400,
-        headers: { "content-type": "application/json" },
-      });
+    const company = body.company?.trim();
+    if (!company) {
+      return this.json({ error: "Missing 'company'" }, 400);
     }
     const slug = `company:${company}`;
     const state = await this.getState();
     if (state.sources[slug]) {
-      return new Response(JSON.stringify({ error: "Source already registered" }), {
-        status: 409,
-        headers: { "content-type": "application/json" },
-      });
+      return this.json({ error: "Source already registered" }, 409);
     }
-    const bucket = this.env.BUCKET_NAME || DEFAULT_BUCKET;
-    const taskId = await this.startEmbed(url, bucket);
+    const url =
+      body.url?.trim() ||
+      (await readConfig(this.env, "SEED_HANDBOOK_URL")) ||
+      DEFAULT_SEED_URL;
+    const bucket =
+      (await readConfig(this.env, "BUCKET_NAME")) || DEFAULT_BUCKET;
+
+    this.ensureSchema();
+    let taskId: string;
+    try {
+      taskId = await this.startEmbed(url, bucket, slug);
+    } catch {
+      return this.json(
+        { error: "Embedding task failed to start. Check the URL and API key." },
+        502,
+      );
+    }
     state.sources[slug] = {
       url,
       bucket,
       taskId,
       status: "indexing",
+      lastIndexedAt: null,
       retries: 0,
     };
     await this.setState({ sources: state.sources });
-    await this.schedule(POLL_INTERVAL_S, "poll:Timer", { taskId, slug }, { id: `poll:${taskId}` });
-    await this.schedule(REINDEX_INTERVAL_S, "reindex:Timer", { slug }, { id: `reindex:${slug}` });
-    return new Response(JSON.stringify({ slug, taskId, status: "indexing" }), {
-      status: 201,
-      headers: { "content-type": "application/json" },
+    await this.schedule(POLL_INTERVAL_S, "onPollTask", { taskId, slug }, {
+      id: `poll:${taskId}`,
     });
+    await this.schedule(REINDEX_INTERVAL_S, "onReindexTask", { slug }, {
+      id: `reindex:${slug}`,
+    });
+    return this.json({ slug, taskId, status: "indexing" }, 201);
   }
 
+  /** The "reference desk": search the stacks, compose, and log the Q&A. */
   private async handleAsk(req: Request): Promise<Response> {
     let body: { company?: string; question?: string };
     try {
-      body = await req.json();
+      body = (await req.json()) as { company?: string; question?: string };
     } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-        status: 400,
-        headers: { "content-type": "application/json" },
-      });
+      return this.json({ error: "Invalid JSON body" }, 400);
     }
-    const company = body.company;
-    const question = body.question;
+    const company = body.company?.trim();
+    const question = body.question?.trim();
     if (!company || !question) {
-      return new Response(JSON.stringify({ error: "Missing 'company' or 'question'" }), {
-        status: 400,
-        headers: { "content-type": "application/json" },
-      });
+      return this.json({ error: "Missing 'company' or 'question'" }, 400);
     }
     const slug = `company:${company}`;
     const state = await this.getState();
     const source = state.sources[slug];
     if (!source) {
-      return new Response(JSON.stringify({ error: "Unknown company. Register a source first." }), {
-        status: 404,
-        headers: { "content-type": "application/json" },
-      });
+      return this.json(
+        { error: "Unknown company. Register a source first." },
+        404,
+      );
     }
     if (source.status !== "ready") {
-      return new Response(JSON.stringify({ error: "Source is still indexing. Try again shortly." }), {
-        status: 202,
-        headers: { "content-type": "application/json" },
-      });
+      return this.json(
+        { error: "Source is still indexing. Try again shortly." },
+        202,
+      );
     }
 
-    // Similarity search
-    const searchResult = await this.similaritySearch(source.bucket, question, 3);
-    const topHit = searchResult.data?.[0];
-    let answer: string;
-    let answered: boolean;
-    let topDistance: number;
+    this.ensureSchema();
+    try {
+      const search = await this.similaritySearch(source.bucket, question, 3);
+      const topHit = selectTopHit(search);
+      const answered = topHit !== null;
+      const answer = topHit
+        ? await this.composeAnswer(question, topHit.document_chunk)
+        : NO_HIT_REPLY;
 
-    if (topHit && topHit.distance <= SIMILARITY_FLOOR) {
-      topDistance = topHit.distance;
-      answer = await this.composeAnswer(question, topHit.document_chunk);
-      answered = true;
-    } else {
-      topDistance = topHit?.distance ?? 1.0;
-      answer = NO_HIT_REPLY;
-      answered = false;
+      this.ctx.storage.sql.exec(
+        `INSERT INTO qa_log (asked_at, question, answer, top_distance, source_slug, answered)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        new Date().toISOString(),
+        question,
+        answer,
+        topHit ? topHit.distance : null,
+        slug,
+        answered ? 1 : 0,
+      );
+
+      return this.json(
+        {
+          answer,
+          topDistance: topHit ? topHit.distance : null,
+          answered,
+        },
+        200,
+      );
+    } catch {
+      return this.json(
+        { error: "Answer lookup failed. Try again shortly." },
+        500,
+      );
     }
-
-    // Ledger write
-    await this.env.SQL.exec(
-      `INSERT INTO qa_log (question, answer, top_distance, source_slug, answered) VALUES (?, ?, ?, ?, ?)`,
-      question,
-      answer,
-      topDistance,
-      slug,
-      answered ? 1 : 0
-    );
-
-    return new Response(
-      JSON.stringify({ answer, topDistance, answered }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
   }
 
-  // -- Task handlers (dispatched by name) -----------------------------------
+  // -- Task handlers (dispatched by name; stable ids upsert) ----------------
 
-  async "poll:Timer"(payload: { taskId: string; slug: string }): Promise<void> {
+  /** Stable-id task `poll:<taskId>` — the crash-safe embed poller. */
+  async onPollTask(payload: { taskId: string; slug: string }): Promise<void> {
     const { taskId, slug } = payload;
     const state = await this.getState();
     const source = state.sources[slug];
-    if (!source) return;
+    if (!source || source.taskId !== taskId) return;
 
     const status = await this.getEmbedTaskStatus(taskId);
     if (status === "success") {
       source.status = "ready";
       source.lastIndexedAt = new Date().toISOString();
       await this.setState({ sources: state.sources });
-      await this.env.SQL.exec(
-        `INSERT INTO embed_tasks (task_id, source_slug, started_at, finished_at, status) VALUES (?, ?, ?, ?, ?)`,
+      this.ctx.storage.sql.exec(
+        `UPDATE embed_tasks SET finished_at = ?, status = 'success' WHERE task_id = ?`,
+        new Date().toISOString(),
         taskId,
-        slug,
-        new Date().toISOString(),
-        new Date().toISOString(),
-        "success"
       );
     } else if (status === "failure") {
       source.retries += 1;
       if (source.retries <= MAX_RETRIES) {
-        source.status = "indexing";
         await this.setState({ sources: state.sources });
-        await this.schedule(RETRY_DELAY_S, "retry:Timer", { slug }, { id: `retry:${slug}` });
+        await this.schedule(RETRY_DELAY_S, "onRetryTask", { slug }, {
+          id: `retry:${slug}`,
+          maxRetries: MAX_RETRIES,
+        });
       } else {
         source.status = "failed";
         await this.setState({ sources: state.sources });
-        await this.env.SQL.exec(
-          `INSERT INTO embed_tasks (task_id, source_slug, started_at, finished_at, status) VALUES (?, ?, ?, ?, ?)`,
+        this.ctx.storage.sql.exec(
+          `UPDATE embed_tasks SET finished_at = ?, status = 'failed' WHERE task_id = ?`,
+          new Date().toISOString(),
           taskId,
-          slug,
-          new Date().toISOString(),
-          new Date().toISOString(),
-          "failed"
         );
       }
     } else {
-      // queued or processing — re-schedule
-      await this.schedule(POLL_INTERVAL_S, "poll:Timer", { taskId, slug }, { id: `poll:${taskId}` });
+      // queued or processing — re-book the next look on the same stable id.
+      await this.schedule(POLL_INTERVAL_S, "onPollTask", { taskId, slug }, {
+        id: `poll:${taskId}`,
+      });
     }
   }
 
-  async "retry:Timer"(payload: { slug: string }): Promise<void> {
+  /** Stable-id task `retry:<slug>` — re-embed after a failed task. */
+  async onRetryTask(payload: { slug: string }): Promise<void> {
     const { slug } = payload;
     const state = await this.getState();
     const source = state.sources[slug];
-    if (!source || source.status !== "indexing") return;
+    if (!source || source.status === "ready") return;
 
-    const taskId = await this.startEmbed(source.url, source.bucket);
+    const taskId = await this.startEmbed(source.url, source.bucket, slug);
     source.taskId = taskId;
+    source.status = "indexing";
     await this.setState({ sources: state.sources });
-    await this.schedule(POLL_INTERVAL_S, "poll:Timer", { taskId, slug }, { id: `poll:${taskId}` });
+    await this.schedule(POLL_INTERVAL_S, "onPollTask", { taskId, slug }, {
+      id: `poll:${taskId}`,
+    });
   }
 
-  async "reindex:Timer"(payload: { slug: string }): Promise<void> {
+  /** Stable-id task `reindex:<slug>` — the nightly re-shelving. */
+  async onReindexTask(payload: { slug: string }): Promise<void> {
     const { slug } = payload;
     const state = await this.getState();
     const source = state.sources[slug];
     if (!source) return;
 
-    const taskId = await this.startEmbed(source.url, source.bucket);
+    const taskId = await this.startEmbed(source.url, source.bucket, slug);
     source.taskId = taskId;
     source.status = "indexing";
     source.retries = 0;
     await this.setState({ sources: state.sources });
-    await this.schedule(POLL_INTERVAL_S, "poll:Timer", { taskId, slug }, { id: `poll:${taskId}` });
-    await this.schedule(REINDEX_INTERVAL_S, "reindex:Timer", { slug }, { id: `reindex:${slug}` });
+    await this.schedule(POLL_INTERVAL_S, "onPollTask", { taskId, slug }, {
+      id: `poll:${taskId}`,
+    });
+    await this.schedule(REINDEX_INTERVAL_S, "onReindexTask", { slug }, {
+      id: `reindex:${slug}`,
+    });
   }
 
-  // -- Telnyx API helpers ---------------------------------------------------
+  // -- Telnyx Embeddings API helpers ---------------------------------------
 
-  private async startEmbed(url: string, bucket: string): Promise<string> {
-    const apiKey = await this.env.SECRETS.getSecret("TELNYX_API_KEY");
-    if (!apiKey) {
+  private async apiKey(): Promise<string> {
+    const key = await this.env.SECRETS.get("TELNYX_API_KEY");
+    if (!key) {
       throw new Error("TELNYX_API_KEY secret not configured");
     }
-    const res = await fetch("https://api.telnyx.com/v2/ai/embeddings/url", {
+    return key;
+  }
+
+  /** POST /v2/ai/embeddings/url — crawl + embed, returns the async task id. */
+  private async startEmbed(
+    url: string,
+    bucket: string,
+    slug: string,
+  ): Promise<string> {
+    const key = await this.apiKey();
+    const res = await fetch(EMBED_URL, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        authorization: `Bearer ${apiKey}`,
+        authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({ url, bucket_name: bucket }),
     });
     if (!res.ok) {
       throw new Error(`Embed start failed: ${res.status}`);
     }
-    const data = (await res.json()) as { task_id: string };
-    return data.task_id;
+    const data = (await res.json()) as { task_id?: string };
+    const taskId = data.task_id;
+    if (!taskId) {
+      throw new Error("Embed start returned no task_id");
+    }
+    // The ledger row is appended when the task STARTS, not when it ends.
+    this.ensureSchema();
+    this.ctx.storage.sql.exec(
+      `INSERT OR REPLACE INTO embed_tasks (task_id, source_slug, started_at, finished_at, status)
+       VALUES (?, ?, ?, NULL, 'processing')`,
+      taskId,
+      slug,
+      new Date().toISOString(),
+    );
+    return taskId;
   }
 
+  /** GET /v2/ai/embeddings/{task_id} — queued | processing | success | failure. */
   private async getEmbedTaskStatus(taskId: string): Promise<string> {
-    const apiKey = await this.env.SECRETS.getSecret("TELNYX_API_KEY");
-    if (!apiKey) {
-      throw new Error("TELNYX_API_KEY secret not configured");
-    }
-    const res = await fetch(`https://api.telnyx.com/v2/ai/embeddings/${taskId}`, {
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-      },
+    const key = await this.apiKey();
+    const res = await fetch(`${EMBED_TASK_URL}/${taskId}`, {
+      headers: { authorization: `Bearer ${key}` },
     });
     if (!res.ok) {
       throw new Error(`Embed status failed: ${res.status}`);
     }
-    const data = (await res.json()) as { status: string };
-    return data.status;
+    const data = (await res.json()) as { status?: string };
+    return data.status ?? "processing";
   }
 
+  /** POST /v2/ai/embeddings/similarity-search — the RAG primitive. */
   private async similaritySearch(
     bucket: string,
     query: string,
-    numOfDocs = 3
-  ): Promise<{ data?: Array<{ document_chunk: string; distance: number }> }> {
-    const apiKey = await this.env.SECRETS.getSecret("TELNYX_API_KEY");
-    if (!apiKey) {
-      throw new Error("TELNYX_API_KEY secret not configured");
-    }
-    const res = await fetch("https://api.telnyx.com/v2/ai/embeddings/similarity-search", {
+    numOfDocs = 3,
+  ): Promise<SearchHit[]> {
+    const key = await this.apiKey();
+    const res = await fetch(SIMILARITY_SEARCH_URL, {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        authorization: `Bearer ${apiKey}`,
+        authorization: `Bearer ${key}`,
       },
-      body: JSON.stringify({ bucket_name: bucket, query, num_of_docs: numOfDocs }),
+      body: JSON.stringify({
+        bucket_name: bucket,
+        query,
+        num_of_docs: numOfDocs,
+      }),
     });
     if (!res.ok) {
       throw new Error(`Similarity search failed: ${res.status}`);
     }
-    return (await res.json()) as { data?: Array<{ document_chunk: string; distance: number }> };
+    const data = (await res.json()) as { data?: SearchHit[] };
+    return data.data ?? [];
   }
 
-  private async composeAnswer(question: string, chunk: string): Promise<string> {
+  /** LLM binding — answer composition from the top chunk (no API key in code). */
+  private async composeAnswer(
+    question: string,
+    chunk: string,
+  ): Promise<string> {
+    const model =
+      (await readConfig(this.env, "AI_MODEL")) || DEFAULT_AI_MODEL;
     const completion = await this.env.TELNYX.ai.openai.chat.createCompletion({
-      model: "gpt-4o-mini",
+      model,
+      max_tokens: 300,
+      temperature: 0.2,
       messages: [
         {
           role: "system",
@@ -421,34 +561,74 @@ export class PolicyLine extends Agent<Env, PolicyState> {
 }
 
 // ---------------------------------------------------------------------------
-// Fetch handler — routes to the actor by company slug
+// Pure helpers (unit-testable without the actor runtime)
+// ---------------------------------------------------------------------------
+
+/** Return the best hit (lowest distance) when it is within the floor, else null. */
+export function selectTopHit(search: SearchHit[]): SearchHit | null {
+  const hits = search.filter((h) => h && Number.isFinite(h.distance));
+  if (hits.length === 0) return null;
+  const best = hits.reduce((a, b) => (b.distance < a.distance ? b : a));
+  if (best.distance > SIMILARITY_FLOOR) return null;
+  return best;
+}
+
+// ---------------------------------------------------------------------------
+// Fetch handler — routes every request to the actor by company slug
 // ---------------------------------------------------------------------------
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
-    const url = new URL(req.url);
-    const path = url.pathname;
+    const path = new URL(req.url).pathname;
 
-    // Extract company from path: /company/<slug>/...
+    if (path === "/health") {
+      return new Response(JSON.stringify({ status: "ok", agent: "PolicyLine" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    // POST /company/<company>/source | /ask | /rpc/audit | /rpc/reindexNow
     const match = path.match(/^\/company\/([^/]+)(\/.*)?$/);
-    if (!match) {
+    if (!match || req.method !== "POST") {
       return new Response(JSON.stringify({ error: "Not found" }), {
         status: 404,
         headers: { "content-type": "application/json" },
       });
     }
     const company = match[1];
-    const stub = env.LIB.get(env.LIB.idFromName(`company:${company}`));
-    const innerReq = new Request(
-      `https://internal${match[2] ?? "/"}`,
-      {
-        method: req.method,
-        headers: req.headers,
-        body: req.body,
+    const rest = match[2] ?? "/";
+    const stub = env.LIB.idFromName(`company:${company}`);
+
+    if (rest === "/rpc/audit") {
+      const result = await stub.audit();
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
+    if (rest === "/rpc/reindexNow") {
+      const body = (await req.json().catch(() => ({}))) as { slug?: string };
+      const slug = body.slug || `company:${company}`;
+      try {
+        const result = await stub.reindexNow(slug);
+        return new Response(JSON.stringify(result), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      } catch {
+        return new Response(
+          JSON.stringify({ error: "Unknown source slug." }),
+          { status: 404, headers: { "content-type": "application/json" } },
+        );
       }
-    );
+    }
+
+    const innerReq = new Request(`https://internal${rest}`, {
+      method: req.method,
+      headers: req.headers,
+      body: req.body,
+    });
     return stub.fetch(innerReq);
   },
 };
-
-export { PolicyLine };

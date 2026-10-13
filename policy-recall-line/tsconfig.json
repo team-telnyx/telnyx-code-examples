@@ -7,9 +7,9 @@
     "types": ["@telnyx/edge-runtime"],
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "smoke_test.ts", "bootstrap.ts"]
 }

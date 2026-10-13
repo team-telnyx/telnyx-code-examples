@@ -75,6 +75,33 @@ The librarian is a single durable actor per company. It owns the source map, the
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key | Telnyx Portal |
 | `SEED_HANDBOOK_URL` | `string` | `https://acme.example.com/handbook` | no | Seed handbook URL (2–5 pages) | Your own handbook |
 | `BUCKET_NAME` | `string` | `acme-handbook` | no | Pre-created bucket in Telnyx Portal | Telnyx Portal |
+| `AI_MODEL` | `string` | `meta-llama/Llama-3.3-70B-Instruct` | no | Telnyx-hosted inference model (no BYOK key needed) | [Telnyx Inference models](https://developers.telnyx.com/docs/ai/inference) |
+| `BASE_URL` | `string` | `https://your-worker.telnyxcompute.com` | yes (for `npm run bootstrap`) | Deployed worker URL — printed by `telnyx-edge ship` | `telnyx-edge ship` output |
+| `COMPANY` | `string` | `acme` | no | Company slug used by the bootstrap script | — |
+
+> **Note:** the Edge runtime does **not** inject `[env_vars]` for actor projects. Config ships as `[[secrets]]` bindings in `telnyx.toml` and is read via `SECRETS.get()` with a plain env-var fallback (`readConfig` in `src/index.ts`). The `.env` file is for local tooling (including `npm run bootstrap`) only.
+
+**Hardcoded demo constants** (in `src/index.ts`):
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `SIMILARITY_FLOOR` | `0.9` | A chunk with distance ≤ 0.9 counts as a hit |
+| `POLL_INTERVAL_S` | `60` | Stable `poll:<taskId>` task cadence (seconds) |
+| `REINDEX_INTERVAL_S` | `86400` | Stable `reindex:<slug>` cadence — the nightly re-shelving |
+| `RETRY_DELAY_S` | `600` | Delay before a failed embed is retried |
+| `MAX_RETRIES` | `3` | Max retry attempts per source before it is marked `failed` |
+
+> **Agent / CLI access** — all of the above can be provisioned from the CLI/agent without the portal:
+>
+> ```bash
+> telnyx auth set-key KEY…                                        # human CLI auth (or TELNYX_API_KEY env var for agents)
+> telnyx storage buckets create acme-handbook                     # create the handbook bucket
+> telnyx-edge new-func --actor -l ts -n policy-recall-line        # register the actor function
+> telnyx-edge secrets add SEED_HANDBOOK_URL "https://…"           # your 2-5 page handbook
+> telnyx-edge secrets add BUCKET_NAME acme-handbook               # bucket created above
+> telnyx-edge secrets add AI_MODEL meta-llama/Llama-3.3-70B-Instruct   # Telnyx-hosted inference model
+> telnyx-edge types && telnyx-edge ship                           # generate types and deploy
+> ```
 
 ## Setup
 
@@ -98,20 +125,35 @@ The librarian is a single durable actor per company. It owns the source map, the
    # Edit .env and set your TELNYX_API_KEY
    ```
 
-4. **Authenticate the Telnyx Edge CLI**
+4. **Create the bucket** in the Telnyx Portal (e.g., `acme-handbook`) and set `SEED_HANDBOOK_URL` to a small handbook you control (2–5 pages).
+
+5. **Authenticate the Telnyx Edge CLI**
 
    ```bash
    telnyx-edge auth api-key set "$TELNYX_API_KEY"
    ```
 
-5. **Generate types and deploy**
+6. **Generate types and deploy**
 
    ```bash
    telnyx-edge types
    telnyx-edge ship
    ```
 
-6. **Create the bucket** in the Telnyx Portal (e.g., `acme-handbook`) and set `SEED_HANDBOOK_URL` to a small handbook you control (2–5 pages).
+7. **Bootstrap the librarian** — register the seed handbook source. The first registration births the actor, shelves the source with status `indexing`, and arms the stable poll/reindex tasks.
+
+   ```bash
+   # Set BASE_URL in .env to your deployed worker URL first
+   npm run bootstrap
+   ```
+
+8. **Ask a policy question** once the index is ready (the poll task flips the source to `ready`):
+
+   ```bash
+   curl -X POST https://<your-worker>/company/acme/ask \
+     -H "Content-Type: application/json" \
+     -d '{"company": "acme", "question": "What is the PTO carry-over cap?"}'
+   ```
 
 ## API Reference
 
@@ -123,6 +165,7 @@ Registers a handbook source for a company. The first registration births the lib
 
 ```json
 {
+  "company": "acme",
   "url": "https://acme.example.com/handbook"
 }
 ```
@@ -145,6 +188,7 @@ Asks a policy question. The librarian searches the embedded handbook and compose
 
 ```json
 {
+  "company": "acme",
   "question": "What is the PTO carry-over cap?"
 }
 ```
@@ -171,11 +215,21 @@ Asks a policy question. The librarian searches the embedded handbook and compose
 
 ### `@rpc audit()`
 
-Returns the last 20 Q&A ledger rows.
+Returns the last 20 Q&A ledger rows. Invoked via `agent.stub.audit()`, or over HTTP through the worker pass-through:
+
+```bash
+curl -X POST https://<your-worker>/company/acme/rpc/audit
+```
 
 ### `@rpc reindexNow(slug)`
 
-Triggers an immediate re-embed of the handbook for a given company slug.
+Triggers an immediate re-embed of the handbook for a given company slug. Invoked via `agent.stub.reindexNow("company:acme")`, or over HTTP through the worker pass-through:
+
+```bash
+curl -X POST https://<your-worker>/company/acme/rpc/reindexNow \
+  -H "Content-Type: application/json" \
+  -d '{"slug": "company:acme"}'
+```
 
 ## Troubleshooting
 
@@ -189,15 +243,22 @@ Triggers an immediate re-embed of the handbook for a given company slug.
 
 ## Agent Discovery
 
-- [Agent Signup](https://telnyx.com/agent-signup.md)
-- [Team Telnyx AI](https://github.com/team-telnyx/ai)
-- [llms.txt](https://developers.telnyx.com/llms.txt)
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **Agent signup**: [telnyx.com/agent-signup.md](https://telnyx.com/agent-signup.md) — automated account provisioning via agent mail; get an API key with no human intervention
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **Telnyx AI repo**: [github.com/team-telnyx/ai](https://github.com/team-telnyx/ai)
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI (human)**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Related Examples
 
-- **Semantic Search for Support Tickets** — a stateless script that searches embedded support docs without a durable actor or ledger.
-- **Call Center Agent** — a stateful agent that handles inbound calls with Call Control and AI inference.
-- **SMS Auto-Responder** — a stateless webhook that replies to inbound SMS with a fixed message.
+- [semantic-search-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/semantic-search-python/README.md) — the stateless sibling: similarity search over support tickets with no durable actor, no re-index, no ledger
+- [edge-customer-agent-typescript](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-customer-agent-typescript/README.md) — durable entity agent per phone number (StatefulActors deep-dive)
+- [shipment-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/shipment-agent/README.md) — the actor IS the package: push-only status notifications across carriers
+- [order-status-self-service](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/order-status-self-service/README.md) — per-customer durable agent answering questions from per-actor SQL + message history
 
 ## Resources
 

@@ -1,65 +1,80 @@
 /**
- * Smoke test for policy-recall-line.
- * Verifies the actor class, its methods, and the fetch handler exist.
- * Run with: npx tsx smoke_test.ts
+ * Smoke test — loads the module, verifies the Agent contract, the task-method
+ * surface, and the pure hit/no-hit decision logic.
+ * Run with: npm test (tsx smoke_test.ts).
  */
+import assert from "node:assert";
+import { Agent } from "@telnyx/edge-runtime";
+import mod, {
+  DEFAULT_AI_MODEL,
+  MAX_RETRIES,
+  POLL_INTERVAL_S,
+  REINDEX_INTERVAL_S,
+  RETRY_DELAY_S,
+  SIMILARITY_FLOOR,
+  PolicyLine,
+  selectTopHit,
+  type PolicyState,
+  type SearchHit,
+} from "./src/index";
 
-import { PolicyLine, rpc } from "./src/index";
+const proto = PolicyLine.prototype as unknown as Record<string, unknown>;
 
-async function runSmokeTest(): Promise<void> {
-  console.log("Running smoke test for policy-recall-line...");
-
-  // Verify the actor class exists and extends Agent
-  if (typeof PolicyLine !== "function") {
-    throw new Error("PolicyLine class not exported");
-  }
-  console.log("✅ PolicyLine class exists");
-
-  // Verify the rpc decorator is exported
-  if (typeof rpc !== "function") {
-    throw new Error("rpc decorator not exported");
-  }
-  console.log("✅ rpc decorator exported");
-
-  // Verify the actor has the expected public methods
-  const proto = PolicyLine.prototype as any;
-  const expectedMethods = [
-    "fetch",
-    "audit",
-    "reindexNow",
-    "poll:Timer",
-    "retry:Timer",
-    "reindex:Timer",
-  ];
-  for (const method of expectedMethods) {
-    if (typeof proto[method] !== "function") {
-      throw new Error(`Missing method: ${method}`);
-    }
-  }
-  console.log("✅ All expected actor methods present");
-
-  // Verify the default export (fetch handler) exists
-  const mod = await import("./src/index");
-  if (typeof mod.default !== "function") {
-    throw new Error("Default fetch handler export missing");
-  }
-  console.log("✅ Default fetch handler exported");
-
-  // Verify constants are sane
-  const state = new PolicyLine({} as any, {} as any);
-  if (typeof state.initialState !== "function") {
-    throw new Error("initialState method missing");
-  }
-  const initial = state.initialState();
-  if (!initial.sources || typeof initial.sources !== "object") {
-    throw new Error("initialState must return { sources: {} }");
-  }
-  console.log("✅ initialState returns correct shape");
-
-  console.log("\nAll smoke tests passed! 🎉");
+function check(name: string, condition: boolean): void {
+  assert.ok(condition, name);
+  console.log(`  ✓ ${name}`);
 }
 
-runSmokeTest().catch((err) => {
-  console.error("Smoke test failed:", err);
-  process.exit(1);
-});
+check("PolicyLine extends Agent", PolicyLine.prototype instanceof Agent);
+check("has fetch hook", typeof proto.fetch === "function");
+check("has handleRegisterSource method", typeof proto.handleRegisterSource === "function");
+check("has handleAsk method", typeof proto.handleAsk === "function");
+check("has onPollTask method", typeof proto.onPollTask === "function");
+check("has onRetryTask method", typeof proto.onRetryTask === "function");
+check("has onReindexTask method", typeof proto.onReindexTask === "function");
+check("has audit rpc method", typeof proto.audit === "function");
+check("has reindexNow rpc method", typeof proto.reindexNow === "function");
+check("has ensureSchema method", typeof proto.ensureSchema === "function");
+check("has startEmbed method", typeof proto.startEmbed === "function");
+check("has similaritySearch method", typeof proto.similaritySearch === "function");
+check("has composeAnswer method", typeof proto.composeAnswer === "function");
+
+const initial = (proto.initialState as () => PolicyState).call({});
+assert.deepEqual(initial, { sources: {} });
+console.log("  ✓ initialState returns { sources: {} }");
+
+check("SIMILARITY_FLOOR is 0.9", SIMILARITY_FLOOR === 0.9);
+check("POLL_INTERVAL_S is 60", POLL_INTERVAL_S === 60);
+check("REINDEX_INTERVAL_S is 86400 (24h)", REINDEX_INTERVAL_S === 86400);
+check("RETRY_DELAY_S is 600", RETRY_DELAY_S === 600);
+check("MAX_RETRIES is 3", MAX_RETRIES === 3);
+check(
+  "DEFAULT_AI_MODEL is Telnyx-hosted (no BYOK key)",
+  DEFAULT_AI_MODEL === "meta-llama/Llama-3.3-70B-Instruct",
+);
+
+// Hit / no-hit decision (AC: distance <= 0.9 answers, every distance > 0.9 does not).
+check("selectTopHit picks the top chunk within the floor", selectTopHit([
+  { document_chunk: "PTO carry-over cap is 5 days.", distance: 0.31 },
+  { document_chunk: "Expense policy.", distance: 0.62 },
+])?.document_chunk.includes("PTO carry-over") === true);
+check("selectTopHit picks the LOWEST distance, not just data[0]", selectTopHit([
+  { document_chunk: "worse", distance: 0.5 },
+  { document_chunk: "best", distance: 0.31 },
+])?.document_chunk === "best");
+check("selectTopHit treats distance exactly at the floor as a hit", selectTopHit([
+  { document_chunk: "boundary", distance: 0.9 },
+]) !== null);
+check("selectTopHit returns null when every distance exceeds the floor", selectTopHit([
+  { document_chunk: "unrelated", distance: 0.94 },
+  { document_chunk: "also unrelated", distance: 0.99 },
+]) === null);
+check("selectTopHit returns null on an empty result", selectTopHit([]) === null);
+check("selectTopHit ignores malformed chunks", selectTopHit([
+  { document_chunk: "no distance", distance: Number.NaN },
+] as SearchHit[]) === null);
+
+check("default export has fetch handler", typeof mod.fetch === "function");
+check("PolicyLine is exported", typeof PolicyLine === "function");
+
+console.log("✅ smoke_test.ts: All checks passed");

@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "A durable librarian actor that keeps a company handbook embedded, answers policy questions via similarity search, and logs every Q&A in its ledger.",
   "main": "src/index.ts",
+  "type": "module",
   "scripts": {
+    "bootstrap": "tsx bootstrap.ts",
     "deploy": "telnyx-edge ship",
     "types": "telnyx-edge types",
-    "test": "npx tsx smoke_test.ts"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run smoke",
+    "smoke": "tsx smoke_test.ts"
   },
   "dependencies": {
     "@telnyx/edge-runtime": "^0.15.1"
