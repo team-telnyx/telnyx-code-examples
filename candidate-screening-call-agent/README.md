@@ -50,10 +50,6 @@ The Linear architecture maps to these sample methods:
 - `resumeAfterDrop()` proves the restart behavior.
 - `screenView()` returns dashboard-ready state for a recruiter.
 
-## Demo Talking Points
-
-Use this one for a higher-quality video. The story is clean: a recruiter triggers a screen, the AI calls the candidate, the candidate answers structured questions, and the dashboard updates with scores. The durable actor is the important part because it prevents a dropped call from becoming a messy restart.
-
 ## Troubleshooting
 
 - `TELNYX_API_KEY` missing: add it to `.env` or as an Edge secret before deployment.
