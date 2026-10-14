@@ -3,10 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-14T20:54:13Z",
-  "example_count": 573,
-  "generated_at": "2026-10-14T22:45:26Z",
-  "example_count": 574,
+  "generated_at": "2026-10-14T23:05:25Z",
+  "example_count": 575,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5164,6 +5162,8 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/show-wrap-desk"
+    },
+    {
       "folder": "candidate-screening-call-agent",
       "title": "Candidate Screening Call Agent",
       "description": "Event-driven recruiting phone screen with Telnyx AI Assistants, outbound TeXML AI calls, durable candidate state, Decision Models scoring, and a live recruiter dashboard.",
