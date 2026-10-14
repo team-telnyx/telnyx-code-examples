@@ -25,6 +25,29 @@ telnyx-edge ship
 
 Set `TELNYX_API_KEY`, `OUTBOUND_TEXML_APP_ID`, and `OUTBOUND_CALLER_ID` before placing a real call. The smoke test runs locally and does not dial a phone number. `npm run dashboard` opens the local recruiter dashboard: enter the candidate's phone number, click Start AI Screening Call, and the live transcript and scorecard update as the call progresses.
 
+## Environment Variables
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `TELNYX_API_KEY` | yes | Your Telnyx API key |
+| `OUTBOUND_TEXML_APP_ID` | yes | TeXML application id used for the outbound AI call |
+| `OUTBOUND_CALLER_ID` | yes | Your voice-capable Telnyx phone number |
+| `CANDIDATE_PHONE` | dashboard demo | The candidate phone the dashboard dials (your own number) |
+| `WEBHOOK_TOOL_URL` | Edge deploy only | Deployed function URL for the assistant's score_answer tool. The local dashboard runs without it |
+| `MAX_CALL_MINUTES`, `SCREEN_RETRY_MAX` | optional | Call time cap (default 12) and redial cap (default 2) |
+| `TELENYX_ASSISTANT_VOICE` | optional | Pin a voice id; otherwise a hosted Telnyx Ultra voice is resolved automatically |
+
+> Agent / CLI access:
+>
+> The assistant is created and reused automatically on the first call. Before that, you only need a voice-capable number and a TeXML application:
+>
+> ```
+> telnyx numbers list
+> telnyx texml-applications create --friendly-name candidate-screening --voice-url https://example.com
+> ```
+>
+> Copy the application id into `OUTBOUND_TEXML_APP_ID`. Deploying the durable actor and the scoring webhook to Telnyx Edge is optional — `telnyx-edge ship` — the local dashboard demo works standalone.
+
 ## How It Works
 
 1. An ATS or recruiter calls `openScreen(candidate, phone, role, rubric[])`.
