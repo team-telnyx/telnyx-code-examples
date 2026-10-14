@@ -3520,3 +3520,13 @@ examples:
     language: typescript
     framework: edge
     folder: show-wrap-desk
+    use_case: candidate-screening-call-agent
+    language: typescript
+    framework: edge
+    folder: candidate-screening-call-agent
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: policy-recall-line

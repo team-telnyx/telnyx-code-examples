@@ -1,0 +1,34 @@
+name = "policy-recall-line"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# ── Stateful actor: one librarian per company ───────────────────────────────
+[[actors]]
+binding = "LIB"
+type    = "PolicyLine"
+
+# ── Telnyx API binding: pre-authenticated SDK client (env.TELNYX) ───────────
+# Used inside the actor for zero-credential answer composition:
+#   this.env.TELNYX.ai.openai.chat.createCompletion(...)
+[telnyx]
+binding = "TELNYX"
+
+# ── Secrets ─────────────────────────────────────────────────────────────────
+# NOTE: the Edge runtime does NOT inject [env_vars] for actor projects, so all
+# config ships as [[secrets]] bindings and is read via SECRETS.get() (with a
+# plain env-var fallback in readConfig).
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "SEED_HANDBOOK_URL"
+name    = "SEED_HANDBOOK_URL"
+
+[[secrets]]
+binding = "BUCKET_NAME"
+name    = "BUCKET_NAME"
+
+[[secrets]]
+binding = "AI_MODEL"
+name    = "AI_MODEL"
