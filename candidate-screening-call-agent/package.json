@@ -7,10 +7,13 @@
   "scripts": {
     "deploy": "telnyx-edge ship",
     "typecheck": "tsc --noEmit",
-    "smoke": "tsx smoke_test.ts"
+    "smoke": "tsx smoke_test.ts",
+    "demo": "tsx demo.ts",
+    "dashboard": "tsx dashboard.ts"
   },
   "dependencies": {
-    "@telnyx/edge-runtime": "^0.15.1"
+    "@telnyx/edge-runtime": "^0.15.1",
+    "telnyx": "^7.26.0"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

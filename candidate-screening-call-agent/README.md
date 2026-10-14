@@ -18,10 +18,12 @@ cp .env.example .env
 npm install
 npm run typecheck
 npm run smoke
+npm run demo
+npm run dashboard
 telnyx-edge ship
 ```
 
-Set `TELNYX_API_KEY`, `OUTBOUND_TEXML_APP_ID`, and `OUTBOUND_CALLER_ID` before placing a real call. The smoke test runs locally and does not dial a phone number.
+Set `TELNYX_API_KEY`, `OUTBOUND_TEXML_APP_ID`, and `OUTBOUND_CALLER_ID` before placing a real call. The smoke test runs locally and does not dial a phone number. `npm run dashboard` opens the local recruiter dashboard: enter the candidate's phone number, click Start AI Screening Call, and the live transcript and scorecard update as the call progresses.
 
 ## How It Works
 
@@ -58,6 +60,7 @@ Use this one for a higher-quality video. The story is clean: a recruiter trigger
 - No outbound call: confirm `OUTBOUND_TEXML_APP_ID` and `OUTBOUND_CALLER_ID` are real Telnyx resources.
 - The assistant starts from question one after a drop: check that the same phone digits are used for the actor ID.
 - Scores look too strict: tune the rubric's `idealSignals` for the role.
+- `Voice ... not found` when creating the assistant: prebuilt Ultra voices are account-scoped. The local dashboard resolves a hosted `Telnyx.Ultra` voice automatically; set `TELENYX_ASSISTANT_VOICE` to pin one.
 
 ## Related Examples
 
