@@ -11,9 +11,11 @@ import {
   actorNameForPhone,
   defaultRubric,
   questionsListText,
+  sampleAnswers,
   sanitizeText,
   screenCallInstructions,
 } from "./workflow.js";
+import { dashboardHtml } from "./dashboard-html.js";
 
 /**
  * Candidate Screening Call Agent — Telnyx Edge Compute sample.
@@ -34,7 +36,13 @@ import {
 export type CandidateScreenStub = ActorStub &
   Pick<
     CandidateScreen,
-    "openScreen" | "recordAnswer" | "screenView" | "resumeAfterDrop" | "dialVariables" | "setAssistantRef"
+    | "openScreen"
+    | "recordAnswer"
+    | "screenView"
+    | "resumeAfterDrop"
+    | "dialVariables"
+    | "setAssistantRef"
+    | "resetScreen"
   > & {
     setState(state: Record<string, unknown>): Promise<void>;
   };
@@ -136,6 +144,11 @@ export class CandidateScreen extends Agent<ScreenActorEnv, ScreenState> {
     const result = screen.resumeAfterDrop();
     await this.commit(screen);
     return result;
+  }
+
+  /** Clears the screen back to idle (dashboard Reset Demo). */
+  async resetScreen(): Promise<void> {
+    await this.replaceState(this.initialState());
   }
 }
 
@@ -360,6 +373,84 @@ async function placeScreeningCall(
   return { assistantId, callSid };
 }
 
+function redactPhone(phone?: string): string {
+  if (!phone || phone.length < 8) return phone ?? "";
+  return `${phone.slice(0, 3)}***${phone.slice(-4)}`;
+}
+
+function demoPhone(): string {
+  return process.env.CANDIDATE_PHONE ?? "";
+}
+
+function idleView(phone: string): Record<string, unknown> {
+  return {
+    candidate: "Jordan Lee",
+    phone,
+    role: "developer advocate",
+    status: "idle",
+    currentQIdx: 0,
+    answers: [],
+    scores: [],
+    summary: { complete: false, averageScore: 0, recommendedNextStep: "pending" },
+    events: [],
+  };
+}
+
+async function edgeState(env: ScreenFunctionEnv): Promise<Record<string, unknown>> {
+  const phone = demoPhone();
+  const profile: CandidateProfile = { ...demoProfile(phone), rubric: defaultRubric("developer advocate") };
+  let view: Record<string, unknown> | null = null;
+  if (phone) {
+    try {
+      const stub = env.SCREENS.idFromName(actorNameForPhone(phone));
+      view = await stub.screenView();
+    } catch {
+      view = null;
+    }
+  }
+  return {
+    profile,
+    view: view ?? idleView(phone),
+    config: { callerId: redactPhone(process.env.OUTBOUND_CALLER_ID), texmlAppId: process.env.OUTBOUND_TEXML_APP_ID ?? null },
+  };
+}
+
+async function liveTranscript(): Promise<{ conversationId: string | null; transcript: Array<{ role: string; text: string; at: string }> }> {
+  const listed = (await telnyxGet("/ai/conversations?page%5Bsize%5D=10")) as { data?: Array<Record<string, unknown>> };
+  const ours = (listed.data ?? []).find(
+    (item) => typeof item.system_prompt === "string" && String(item.system_prompt).includes("pre-interview phone screen"),
+  );
+  if (!ours || typeof ours.id !== "string") return { conversationId: null, transcript: [] };
+  const msgs = (await telnyxGet(`/ai/conversations/${encodeURIComponent(ours.id)}/messages?page%5Bsize%5D=50`)) as {
+    data?: Array<Record<string, unknown>>;
+  };
+  const transcript = (msgs.data ?? [])
+    .map((message) => ({
+      role: String(message.role ?? "unknown"),
+      text: sanitizeText(String(message.text ?? "")),
+      at: String(message.created_at ?? ""),
+    }))
+    .filter((message) => message.at !== "" && message.text !== "")
+    .sort((a, b) => a.at.localeCompare(b.at))
+    .slice(-12);
+  return { conversationId: ours.id, transcript };
+}
+
+async function telnyxStatus(): Promise<Record<string, unknown>> {
+  const phoneNumbers = (await telnyxGet("/phone_numbers?page%5Bsize%5D=100")) as {
+    data?: Array<Record<string, unknown>>;
+  };
+  const callerId = process.env.OUTBOUND_CALLER_ID ?? "";
+  const selected = (phoneNumbers.data ?? []).find((item) => item.phone_number === callerId);
+  return {
+    connected: Boolean(process.env.TELNYX_API_KEY),
+    callerId: redactPhone(callerId),
+    texmlApplication: { id: process.env.OUTBOUND_TEXML_APP_ID ?? null },
+    numberCount: phoneNumbers.data?.length ?? 0,
+    selectedNumber: selected ? { status: selected.status, connection_id: selected.connection_id } : null,
+  };
+}
+
 // ── Function handler ─────────────────────────────────────────────────────
 
 export default {
@@ -368,6 +459,55 @@ export default {
     try {
       if (url.pathname === "/healthz") {
         return Response.json({ ok: true, sample: "candidate-screening-call-agent" });
+      }
+
+      // recruiter dashboard (same UI as the local demo)
+      if (url.pathname === "/" && req.method === "GET") {
+        return new Response(dashboardHtml(), {
+          headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+        });
+      }
+      if (url.pathname === "/api/state" && req.method === "GET") {
+        return Response.json(await edgeState(env));
+      }
+      if (url.pathname === "/api/live" && req.method === "GET") {
+        return Response.json(await liveTranscript());
+      }
+      if (url.pathname === "/api/telnyx" && req.method === "GET") {
+        return Response.json(await telnyxStatus());
+      }
+      if (url.pathname === "/api/call" && req.method === "POST") {
+        const body = (await req.json()) as { phone?: string };
+        const result = await placeScreeningCall(env, body.phone ?? demoPhone());
+        return Response.json(result);
+      }
+      if (url.pathname === "/api/reset" && req.method === "POST") {
+        const phone = demoPhone();
+        if (!phone) return Response.json({ error: "CANDIDATE_PHONE is not configured" }, { status: 400 });
+        const stub = env.SCREENS.idFromName(actorNameForPhone(phone));
+        await stub.resetScreen();
+        return Response.json(await edgeState(env));
+      }
+      if (url.pathname === "/api/answer" && req.method === "POST") {
+        const body = (await req.json()) as { qIdx?: number; answer?: string };
+        const phone = demoPhone();
+        if (!phone) return Response.json({ error: "CANDIDATE_PHONE is not configured" }, { status: 400 });
+        const qIdx = Number(body.qIdx);
+        if (Number.isNaN(qIdx)) return Response.json({ error: "qIdx is required" }, { status: 400 });
+        const stub = env.SCREENS.idFromName(actorNameForPhone(phone));
+        const score = await stub.recordAnswer(qIdx, body.answer || sampleAnswers[qIdx] || "short answer");
+        return Response.json({ score, state: await edgeState(env) });
+      }
+      if (url.pathname === "/api/autofill" && req.method === "POST") {
+        const phone = demoPhone();
+        if (!phone) return Response.json({ error: "CANDIDATE_PHONE is not configured" }, { status: 400 });
+        const stub = env.SCREENS.idFromName(actorNameForPhone(phone));
+        const view = await stub.screenView();
+        const answered = new Set(((view.answers as Array<{ qIdx: number }>) ?? []).map((row) => row.qIdx));
+        for (const [qIdx, answer] of sampleAnswers.entries()) {
+          if (!answered.has(qIdx)) await stub.recordAnswer(qIdx, answer);
+        }
+        return Response.json(await edgeState(env));
       }
 
       // score_answer webhook tool from the AI assistant

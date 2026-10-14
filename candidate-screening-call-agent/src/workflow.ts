@@ -399,3 +399,12 @@ function normalizeProfile(profile: CandidateProfile): CandidateProfile {
   }
   return { ...profile, rubric };
 }
+
+export const sampleAnswers = [
+
+  "I built Telnyx developer examples and measured activation from docs to first API call.",
+  "I explained webhooks with a specific example for a developer audience and tracked outcome.",
+  "I debugged a customer issue, found the root cause, documented the tradeoff, and shipped follow-up.",
+  "I measure usage, activation, and qualitative feedback from developers.",
+  "I am excited about this role because it blends building and teaching for developers, and i get to work on things they can run.",
+];
