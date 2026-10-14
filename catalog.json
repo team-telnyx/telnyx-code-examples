@@ -3,7 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-13T20:37:34Z",
+  "generated_at": "2026-10-14T20:54:13Z",
   "example_count": 573,
   "examples": [
     {
@@ -5155,13 +5155,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insurance-verification-caller"
     },
     {
-      "folder": "policy-recall-line",
-      "title": "Policy Recall Line — The Handbook Librarian",
-      "description": "A durable, self-refreshing company librarian that answers policy questions from an embedded handbook and keeps a permanent Q&A ledger.",
+      "folder": "show-wrap-desk",
+      "title": "Show Wrap Desk — AI Podcast Production Studio",
+      "description": "A durable AI agent that transcribes, chapterizes, writes show notes, and cuts a trailer for podcast episodes — surviving crashes between every stage.",
       "product": "ai",
       "language": "typescript",
       "framework": "edge",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/policy-recall-line"
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/show-wrap-desk"
     }
   ]
 }
