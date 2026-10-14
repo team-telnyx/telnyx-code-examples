@@ -1,0 +1,26 @@
+name = "candidate-screening-call-agent"
+main = "src/index.ts"
+compatibility_date = "2026-10-08"
+
+[[actors]]
+binding = "SCREENS"
+type = "CandidateScreen"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[edge_compute]
+func_id = "eae45744-2c72-4510-9775-c28c66f01389"
+func_name = "anusha-candidate-screening-call-agent"
+
+[env_vars]
+OUTBOUND_TEXML_APP_ID = "3070026760641840550"
+OUTBOUND_CALLER_ID = "+18438683285"
+WEBHOOK_TOOL_URL = "https://anusha-candidate-screening-call-agent-eae45744-2.telnyxcompute.com/screen/score"
+SCREEN_RETRY_MAX = "2"
+MAX_CALL_MINUTES = "12"
