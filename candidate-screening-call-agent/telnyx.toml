@@ -15,12 +15,12 @@ binding = "TELNYX_PUBLIC_KEY"
 name = "TELNYX_PUBLIC_KEY"
 
 [edge_compute]
-func_id = "replace-with-your-function-id"
+func_id = "eae45744-2c72-4510-9775-c28c66f01389"
 func_name = "anusha-candidate-screening-call-agent"
 
 [env_vars]
-OUTBOUND_TEXML_APP_ID = "00000000-0000-0000-0000-000000000000"
-OUTBOUND_CALLER_ID = "+15551234567"
-WEBHOOK_TOOL_URL = "https://your-deployment.example.com/screen/score"
+OUTBOUND_TEXML_APP_ID = "3070026760641840550"
+OUTBOUND_CALLER_ID = "+18438683285"
+WEBHOOK_TOOL_URL = "https://anusha-candidate-screening-call-agent-eae45744-2.telnyxcompute.com/screen/score"
 SCREEN_RETRY_MAX = "2"
 MAX_CALL_MINUTES = "12"
