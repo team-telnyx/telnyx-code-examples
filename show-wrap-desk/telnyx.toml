@@ -14,6 +14,6 @@ binding = "TELNYX_API_KEY"
 name = "TELNYX_API_KEY"
 
 [env_vars]
-AI_MODEL = "zai-org/GLM-5.2"
+AI_MODEL = "zai-org/GLM-5.3-Flash"
 EPISODE_URL = "https://archive.org/download/sonnet_116_librivox/sonnet_116_shakespeare_add_64kb.mp3"
 HOST_VOICE = "azure.en-US-AvaMultilingualNeural"

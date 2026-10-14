@@ -113,7 +113,7 @@ interface Env {
 export const TELNYX_API = "https://api.telnyx.com/v2";
 export const TTS_WS_URL = "wss://api.telnyx.com/v2/text-to-speech/speech";
 export const STT_MODEL = "deepgram/nova-3";
-export const DEFAULT_AI_MODEL = "zai-org/GLM-5.2";
+export const DEFAULT_AI_MODEL = "zai-org/GLM-5.3-Flash";
 export const DEFAULT_HOST_VOICE = "azure.en-US-AvaMultilingualNeural";
 /** Silences longer than this (seconds) split the transcript into chapters. */
 export const CHAPTER_GAP_S = 60;
