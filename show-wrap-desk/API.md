@@ -1,165 +1,119 @@
-# API Reference — Show Wrap Desk
+# API Reference — show-wrap-desk
 
-This document is the typed HTTP contract for the Show Wrap Desk sample. It covers every route exposed by the deployed Edge worker.
+Base URL for all requests: `https://<your-deployment>.telnyxcompute.com`
+(the URL `npm run deploy` prints).
 
-Base URL for all requests: `https://<your-deployment>.telnyx-edge.com`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/wrap` | Register a new episode for wrapping (or resume a mid-wrap episode). |
+| `GET` | `/wrapstatus/{episodeId}?show={show}` | Retrieve the wrap ledger for a specific episode. |
+| `GET` | `/health/liveness` | Liveness check. |
+| `GET` | `/health/readiness` | Readiness check. |
 
-All request and response bodies are JSON (`Content-Type: application/json`) unless otherwise noted.
+## `POST /wrap`
 
----
+Register a new episode for wrapping. The first call for a show births the
+`show:<show>` actor desk; subsequent calls for new episodes reuse the same
+desk instance. Re-POSTing the same `show` + `audioUrl` while an episode is
+mid-wrap **resumes** it instead of duplicating it.
 
-## Routes Overview
+```bash
+curl -X POST https://your-deployment.telnyx.com/wrap \
+  -H "Content-Type: application/json" \
+  -d '{"show": "tok-podcast", "audioUrl": "https://archive.org/download/sonnet_116_librivox/sonnet_116_shakespeare_add_64kb.mp3"}'
+```
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/api/wrap` | Register a new episode for wrapping (or resume an existing desk). |
-| `GET` | `/api/wrapstatus/{episodeId}` | Retrieve the wrap ledger for a specific episode. |
-| `*` | `*` | Any other path/method returns `404 Not Found`. |
-
----
-
-## `POST /api/wrap`
-
-Registers an episode with the wrap desk. The first call for a given `show` births the durable desk actor (`env.DESKS.get("show:" + show)`). Subsequent calls for the same `show` reuse the same desk instance — the episode ledger, message history, and resume state persist.
-
-The desk immediately stores the episode with status `transcribing` and arms the wrap task. The wrap pipeline (transcribe → chapterize → notes → trailer) runs asynchronously; this endpoint returns as soon as the episode is registered.
-
-### Request Body
+**Request body:**
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `show` | `string` | **Yes** | The show identifier. Used as the actor name (`ctx.env.DESK.get("show:" + show)`). Must be a non-empty string. |
-| `audioUrl` | `string` | **Yes** | Publicly accessible URL to the raw episode audio file (MP3/WAV, ≤100 MB for live STT). Must be a non-empty string. |
+| `show` | `string` | **Yes** | The show identifier. The desk actor is `show:<show>`. |
+| `audioUrl` | `string` | No | Publicly fetchable mp3/wav. Defaults to the `EPISODE_URL` binding. |
 
-### Example Request
-
-```bash
-curl -X POST https://your-deployment.telnyx.com/api/wrap \
-  -H "Content-Type: application/json" \
-  -d '{
-    "show": "tok-podcast",
-    "audioUrl": "https://example.com/episodes/ep-42.mp3"
-  }'
-```
-
-### Response — `202 Accepted`
+**Response (202 Accepted):**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `episodeId` | `string` | The UUID assigned to this episode. Use this with `GET /api/wrapstatus/{episodeId}`. |
-| `status` | `string` | Always `"transcribing"` at registration time. |
+| `episodeId` | `string` | UUID for this episode. Use with `GET /wrapstatus/{episodeId}`. |
+| `status` | `string` | `transcribing` for a new episode; the current status on resume. |
+| `resumed` | `boolean` | `true` when an unfinished episode with the same `audioUrl` was found and re-armed. |
 
 ```json
-{
-  "episodeId": "3f2b8c1e-9a4d-4f6e-8c2a-1b7d5e9f0a3c",
-  "status": "transcribing"
-}
+{ "episodeId": "3f9b8c1e-9a4d-4f6e-8c2a-1b7d5e9f0a3c", "status": "transcribing", "resumed": false }
 ```
 
-### Response — `400 Bad Request`
+## `GET /wrapstatus/{episodeId}?show={show}`
 
-Returned when `show` or `audioUrl` is missing or empty.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `error` | `string` | Human-readable error message. |
-
-```json
-{
-  "error": "show and audioUrl required"
-}
-```
-
-### Status Codes
-
-| Code | Description |
-|------|-------------|
-| `202` | Episode registered; wrap pipeline started. |
-| `400` | Missing or invalid `show` / `audioUrl`. |
-| `500` | Internal error (e.g., actor could not be reached, state store failure). |
-
----
-
-## `GET /api/wrapstatus/{episodeId}`
-
-Returns the wrap ledger row for a given episode: current status, chapter list, show-notes preview, and trailer byte count.
-
-### Path Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `episodeId` | `string` | **Yes** | The episode UUID returned by `POST /api/wrap`. |
-
-### Example Request
+Returns the ledger row for one episode plus the desk's full episode ledger.
 
 ```bash
-curl https://your-deployment-address.telnyx.com/api/wrapstatus/3f9b8c1e-9a4d-4f6e-8c2a-1b7d5e9f0a3c
+curl "https://your-deployment.telnyx.com/wrapstatus/3f9b8c1e-9a4d-4f6e-8c2a-1b7d5e9f0a3c?show=tok-podcast"
 ```
 
-### Response — `200 OK`
+| Parameter | In | Type | Required | Description |
+|-----------|-----|------|----------|-------------|
+| `episodeId` | path | `string` | **Yes** | The episode UUID returned by `POST /wrap`. |
+| `show` | query | `string` | **Yes** | The show identifier; routes to the same `show:<show>` actor that wrapped the episode. |
+
+**Response (200):**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `status` | `string` | One of `"transcribing"`, `"chapterizing"`, `"notes"`, `"wrapped"`, or `"unknown"` if the episode does not exist. |
-| `chapters` | `array` | List of chapter objects. Empty array if not yet chapterized. |
-| `chapters[].title` | `string` | LLM-generated chapter title. |
-| `chapters[].start` | `number` | Start time in seconds (float). |
-| `chapters[].end` | `number` | End time in seconds (float). |
-| `notesPreview` | `string` | First 200 characters of the show notes markdown. Empty string if notes not yet written. |
-| `trailerBytes` | `number` | Byte count of the generated trailer audio. `0` if trailer not yet generated. |
+| `status` | `string` | `transcribing` \| `chapterizing` \| `notes` \| `wrapped` |
+| `error` | `string` | Present when the last stage attempt failed (the scheduler retries with backoff). |
+| `chapters` | `array` | `{title, start, end}` per chapter, in order. |
+| `notesPreview` | `string` | First 200 characters of the show notes markdown. |
+| `trailerBytes` | `number` | Decoded size of the trailer mp3, in bytes (0 until cut). |
+| `episodes` | `array` | Every episode on this desk: `{ep_id, audio_url, status, created_at, wrapped_at}`. |
 
 ```json
 {
   "status": "wrapped",
   "chapters": [
-    { "title": "Cold Open: The Hook", "start": 0.0, "end": 84.2 },
-    { "title": "Interview: The Guest", "start": 144.7, "end": 612.9 },
-    { "title": "Wrap-Up & Takeaways", "start": 613.0, "end": 720.5 }
+    { "title": "A Sonnet About Constant Love", "start": 5.68, "end": 21.04 },
+    { "title": "The Marriage of True Minds", "start": 22.1, "end": 45.8 }
   ],
-  "notesPreview": "# Show Notes\n\nIn this episode we dive into the future of AI-driven podcast production...",
-  "trailerBytes": 245760
+  "notesPreview": "# Show Notes\n\nIn this episode, we read Shakespeare's Sonnet 116...",
+  "trailerBytes": 156960,
+  "episodes": [
+    {
+      "ep_id": "3f9b8c1e-9a4d-4f6e-8c2a-1b7d5e9f0a3c",
+      "audio_url": "https://archive.org/download/sonnet_116_librivox/sonnet_116_shakespeare_add_64kb.mp3",
+      "status": "wrapped",
+      "created_at": "2026-10-14T13:00:00.000Z",
+      "wrapped_at": "2026-10-14T13:02:11.000Z"
+    }
+  ]
 }
 ```
 
-### Response — `404 Not Found`
+## The wrap pipeline
 
-Returned when the path does not match a known route (e.g., missing `episodeId`).
+`POST /wrap` is asynchronous. The pipeline progresses through four statuses:
 
-```json
-{
-  "error": "Not Found"
-}
+```
+transcribing → chapterizing → notes → wrapped
 ```
 
-### Status Codes
+Each stage is idempotent: it checks its `assets`/`chapters` rows before
+running, and the wrap task is scheduled once per episode under the stable id
+`wrap:<epId>`. If a worker crashes mid-pipeline, the next wake — the re-armed
+task, or the same `POST /wrap` again — resumes at the unfinished stage with
+earlier output intact. Poll `GET /wrapstatus/{episodeId}?show=...` to observe
+progress.
 
-| Code | Description |
-|------|-------------|
-| `200` | Ledger row returned (even if episode is unknown — `status` will be `"unknown"`). |
-| `404` | Route not found (e.g., `/api/wrapstatus/` with no ID). |
-| `500` | Internal error (e.g., SQL query failure). |
+## Telnyx endpoints consumed by this service
 
----
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `POST /v2/ai/audio/transcriptions` | POST | Diarized transcription (`deepgram/nova-3`, `verbose_json`) — [reference](https://developers.telnyx.com/api-reference/audio/transcribe-speech-to-text) |
+| `wss://api.telnyx.com/v2/text-to-speech/speech` | WebSocket | Trailer synthesis until `isFinal: true` — [reference](https://developers.telnyx.com/api-reference/websockets/stream-text-to-speech-over-websocket) |
+| `ai.openai.chat.createCompletion` (TELNYX binding) | — | Chapter titles, show notes, trailer script — [models](https://developers.telnyx.com/docs/inference/models) |
 
-## Error Handling
+## Error responses
 
-All error responses follow a consistent JSON shape:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `error` | `string` | Short, human-readable error description. |
-
-Internal exceptions are logged server-side via `app.logger.exception(...)` and never leak stack traces or sensitive details into the HTTP response.
-
----
-
-## Notes on the Wrap Pipeline
-
-The `POST /api/wrap` endpoint is asynchronous. The pipeline progresses through four stages:
-
-1. **`transcribing`** — Audio is sent to the STT API (`deepgram/nova-3` with diarization). The transcript is stored exactly once.
-2. **`chapterizing`** — Words are grouped into speaker turns; gaps > 60s become chapter boundaries; the LLM writes titles.
-3. **`notes`** — Show notes markdown is composed from the transcript + chapters.
-4. **`wrapped`** — Trailer audio is generated via TTS WebSocket and stored.
-
-Each stage is idempotent. If the worker crashes mid-pipeline, the next wake resumes from the last completed stage — no stage is re-run. Poll `GET /api/wrapstatus/{episodeId}` to observe progress.
+| Status | Cause |
+|--------|-------|
+| `400` | Missing `show`/`audioUrl` on `/wrap`, or missing `episodeId`/`show` on `/wrapstatus`. |
+| `404` | Route not found (e.g. `/wrapstatus` with no id). |
+| `5xx` | Stage failure; check the `error` field on the ledger row. |
