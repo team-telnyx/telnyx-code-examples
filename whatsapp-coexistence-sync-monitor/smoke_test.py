@@ -66,11 +66,10 @@ def test_message_logger_appends():
         "event_id": "evt_123",
         "event_type": "message.echo",
         "origin": "whatsapp_business_app",
-        "from": "+15551234567",
-        "to": "+15559876543",
+        "origin_matches_biz_app": True,
         "text": "Hello from the app",
         "message_id": "msg_456",
-        "cost": None,
+        "billing_confirmed": True,
     }
     logger.append(event)
 
@@ -79,7 +78,7 @@ def test_message_logger_appends():
     assert len(lines) == 1
     parsed = json.loads(lines[0])
     assert parsed["event_id"] == "evt_123"
-    assert parsed["cost"] is None
+    assert parsed["billing_confirmed"] is True
 
     os.unlink(log_path)
 
@@ -172,9 +171,12 @@ def test_webhook_accepts_valid_signature(monkeypatch):
     assert entry["event_type"] == "message.echo"
     assert entry["origin"] == "whatsapp_business_app"
     assert entry["origin_matches_biz_app"] is True
-    assert entry["cost"] == {"amount": None, "currency": None}
     assert entry["billing_confirmed"] is True
     assert entry["text"] == "Hello from the WhatsApp Business app"
+    # PII minimization: raw phone numbers and monetary amounts are never persisted
+    assert "from" not in entry
+    assert "to" not in entry
+    assert "cost" not in entry
 
 
 def test_webhook_accepts_absent_cost_field(monkeypatch):
@@ -192,7 +194,6 @@ def test_webhook_accepts_absent_cost_field(monkeypatch):
     with open(app.ECHO_LOG_PATH, "r", encoding="utf-8") as f:
         entries = [json.loads(line) for line in f if line.strip()]
     last = [e for e in entries if e["event_id"] == "evt_live_2"][0]
-    assert last["cost"] is None
     assert last["billing_confirmed"] is True
 
 

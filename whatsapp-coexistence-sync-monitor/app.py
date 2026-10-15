@@ -108,7 +108,9 @@ class StateChecker:
                     "coexistence_state": number.coexistence_state,
                 }
 
-        raise ValueError(f"Phone number {self.phone_number} not found in WABA {self.waba_id}")
+        raise ValueError(
+            "Configured WHATSAPP_NUMBER was not found in the configured WABA"
+        )
 
     def verify_with_number_api(self) -> dict:
         """Cross-check the number via GET /v2/whatsapp/phone_numbers/{phone_number}.
@@ -267,6 +269,8 @@ def whatsapp_echo_webhook():
     # 4. Validate the echo semantics (acceptance criteria #2 and #3)
     # - origin must be 'whatsapp_business_app' for a manual-channel echo
     # - cost must be null / {amount: null, currency: null} (no billing event)
+    # Raw phone numbers and monetary amounts are never logged or persisted —
+    # only boolean verdicts derived from them (PII minimization).
     origin_matches_biz_app = origin == "whatsapp_business_app"
     cost = message.get("cost")
     if cost is None:
@@ -276,9 +280,8 @@ def whatsapp_echo_webhook():
     else:
         billing_confirmed = False
         app.logger.warning(
-            "Unexpected non-null cost on message.echo %s: %s — possible billing event",
+            "Unexpected non-null cost on message.echo %s — possible billing event",
             event_id,
-            cost,
         )
     if not origin_matches_biz_app:
         app.logger.warning(
@@ -287,18 +290,15 @@ def whatsapp_echo_webhook():
             origin,
         )
 
-    # 5. Log the message (append-only JSONL)
+    # 5. Log the message (append-only JSONL, PII-minimized)
     log_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "event_id": event_id,
         "event_type": event_type,
         "origin": origin,
         "origin_matches_biz_app": origin_matches_biz_app,
-        "from": message.get("from"),
-        "to": message.get("to"),
         "text": message.get("text"),
         "message_id": message.get("id"),
-        "cost": message.get("cost"),  # null for manual-channel echoes
         "billing_confirmed": billing_confirmed,
     }
     message_logger.append(log_entry)
@@ -339,8 +339,8 @@ def _startup_state_check() -> None:
 
     if not state.get("is_on_biz_app"):
         raise SystemExit(
-            f"Phone number {WHATSAPP_NUMBER} is not on the WhatsApp Business app "
-            f"(is_on_biz_app={state.get('is_on_biz_app')}). "
+            "Startup state check failed: the configured WhatsApp number is not on "
+            "the WhatsApp Business app (is_on_biz_app=False). "
             "Enable coexistence for this number before running the sample."
         )
 
@@ -351,17 +351,13 @@ def _startup_state_check() -> None:
         raise SystemExit(f"Number API cross-check failed: {exc}") from exc
     if not number_state.get("is_on_biz_app"):
         raise SystemExit(
-            f"Number API cross-check: phone number {WHATSAPP_NUMBER} is not on the "
-            f"WhatsApp Business app (is_on_biz_app={number_state.get('is_on_biz_app')})."
+            "Startup state check failed: Number API cross-check reports the "
+            "configured number is not on the WhatsApp Business app."
         )
 
     app.logger.info(
         "Startup state check passed: number=%s is_on_biz_app=%s coexistence_state=%s",
-        (
-            ("***" + str(state.get("phone_number"))[-4:])
-            if state.get("phone_number")
-            else None
-        ),
+        "configured",
         state.get("is_on_biz_app"),
         state.get("coexistence_state"),
     )

@@ -105,10 +105,14 @@ Each accepted `message.echo` event is logged as one JSON line, including:
 
 - ISO timestamp
 - Event ID
-- From / To numbers
+- `origin` and whether it matches `whatsapp_business_app` (`origin_matches_biz_app`)
 - Message text
 - Message ID
-- `cost` field (which will be `null` for manual-channel echoes)
+- `billing_confirmed` — `true` when `cost` is `null` / `{ "amount": null, "currency": null }`
+  (no billing event for the manual-channel echo)
+
+Raw phone numbers (`from`/`to`) and monetary amounts are intentionally **not** persisted —
+only the boolean verdicts derived from them (PII minimization).
 
 The log path defaults to `echo_log.jsonl` in the working directory and can be overridden with the `ECHO_LOG_PATH` env var.
 
