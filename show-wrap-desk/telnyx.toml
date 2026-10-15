@@ -6,6 +6,10 @@ compatibility_date = "2026-05-01"
 binding = "DESKS"
 type = "WrapDesk"
 
+[edge_compute]
+func_id = "f60e0879-50e6-4a53-9198-99bd06b79361"
+func_name = "show-wrap-desk"
+
 [telnyx]
 binding = "TELNYX"
 
