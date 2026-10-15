@@ -287,7 +287,11 @@ def _startup_state_check() -> None:
 
     app.logger.info(
         "Startup state check passed: number=%s is_on_biz_app=%s coexistence_state=%s",
-        state.get("phone_number"),
+        (
+            ("***" + str(state.get("phone_number"))[-4:])
+            if state.get("phone_number")
+            else None
+        ),
         state.get("is_on_biz_app"),
         state.get("coexistence_state"),
     )
