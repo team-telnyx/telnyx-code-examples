@@ -104,6 +104,7 @@ interface DeskNamespace extends ActorNamespace {
 interface Env {
   DESKS: DeskNamespace;
   TELNYX: TelnyxBinding;
+  SECRETS: { get(binding: "TELNYX_API_KEY"): Promise<string> };
   TELNYX_API_KEY: string;
   AI_MODEL: string;
   EPISODE_URL: string;
@@ -124,11 +125,10 @@ export const TRAILER_MAX_CHARS = 400;
 interface TtsSocket {
   send(data: string): void;
   close(): void;
+  accept?(): void;
   addEventListener(type: "open" | "message" | "error" | "close", listener: (event: unknown) => void): void;
   readyState: number;
 }
-
-type TtsSocketFactory = (url: string) => TtsSocket;
 
 // ── Pure helpers (exported for the smoke test) ──────────────────────────────
 
@@ -236,20 +236,43 @@ export function transcriptText(words: TranscriptionWord[]): string {
   return words.map((w) => w.word).join(" ");
 }
 
-/** Open a WebSocket, carrying auth headers when the client allows it. */
+/**
+ * Open a WebSocket to the TTS endpoint and wait for its handshake, carrying
+ * the Authorization header. Prefers the `ws` client (Node and runtime bundles
+ * resolve it); falls back to the platform's own WebSocket — which may carry
+ * the account credential itself, otherwise the handshake is refused and the
+ * wrap tick retries with backoff.
+ */
 async function openTtsSocket(url: string, headers: Record<string, string>): Promise<TtsSocket> {
-  const Global = (globalThis as { WebSocket?: new (url: string) => unknown }).WebSocket;
-  if (!Global) throw new Error("this runtime does not expose a WebSocket client");
-  if (Object.keys(headers).length === 0) return new Global(url) as TtsSocket;
+  let socket: TtsSocket | null = null;
   try {
     const { WebSocket: HeaderSocket } = await import("ws");
-    return new HeaderSocket(url, { headers }) as unknown as TtsSocket;
+    socket = new HeaderSocket(url, { headers }) as unknown as TtsSocket;
   } catch {
-    // Platform runtime without a module loader — its WebSocket may carry
-    // credentials itself; otherwise the handshake will be refused and the
-    // wrap tick will retry with backoff.
-    return new Global(url) as TtsSocket;
+    const Global = (globalThis as { WebSocket?: new (url: string) => unknown }).WebSocket;
+    if (!Global) throw new Error("this runtime does not expose a WebSocket client");
+    socket = new Global(url) as TtsSocket;
   }
+  await awaitOpen(socket);
+  return socket;
+}
+
+/** Resolve when the socket reaches the OPEN state; reject on error/close/timeout. */
+async function awaitOpen(socket: TtsSocket, timeoutMs = 15000): Promise<void> {
+  if (socket.readyState === 1) return;
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const settle = (err?: Error) => {
+      if (settled) return;
+      settled = true;
+      if (err) reject(err);
+      else resolve();
+    };
+    socket.addEventListener("open", () => settle());
+    socket.addEventListener("error", () => settle(new Error("the TTS WebSocket connection was refused")));
+    socket.addEventListener("close", () => settle(new Error("the TTS WebSocket closed before it opened")));
+    setTimeout(() => settle(new Error("the TTS WebSocket handshake timed out")), timeoutMs);
+  });
 }
 
 /**
@@ -336,7 +359,13 @@ export class WrapDesk extends Agent<Env, WrapState> {
     );
   }
 
-  private getApiKey(): string {
+  private async getApiKey(): Promise<string> {
+    try {
+      const k = await this.env.SECRETS.get("TELNYX_API_KEY");
+      if (k && k.trim()) return k.trim();
+    } catch {
+      // fall through to env / process fallbacks
+    }
     return (this.env.TELNYX_API_KEY ?? process.env.TELNYX_API_KEY ?? "").trim();
   }
 
@@ -371,6 +400,11 @@ export class WrapDesk extends Agent<Env, WrapState> {
     );
     await this.schedule(0, "wrapTick", { episodeId }, { id: `wrap:${episodeId}` });
     return { episodeId, status: "transcribing", resumed: false };
+  }
+
+  /** Re-arm the episode's wrap task under its stable id (upsert, no dupes). */
+  private async armNextTick(episodeId: string): Promise<void> {
+    await this.schedule(0, "wrapTick", { episodeId }, { id: `wrap:${episodeId}` });
   }
 
   /** One pipeline step, dispatched by the episode's current status. */
@@ -474,6 +508,7 @@ export class WrapDesk extends Agent<Env, WrapState> {
     if (this.hasAsset(episodeId, "transcript")) {
       // Already cut — advance without re-transcribing.
       await this.setStatus(episodeId, "chapterizing");
+      await this.armNextTick(episodeId);
       return;
     }
 
@@ -485,6 +520,7 @@ export class WrapDesk extends Agent<Env, WrapState> {
       new Date().toISOString()
     );
     await this.setStatus(episodeId, "chapterizing");
+    await this.armNextTick(episodeId);
   }
 
   /**
@@ -493,7 +529,7 @@ export class WrapDesk extends Agent<Env, WrapState> {
    * one, is not followable by the STT service's own file_url fetch).
    */
   private async callTranscription(audioUrl: string): Promise<TranscriptionWord[]> {
-    const apiKey = this.getApiKey();
+    const apiKey = await this.getApiKey();
     if (!apiKey) throw new Error("TELNYX_API_KEY is not configured");
 
     const audio = await fetch(audioUrl);
@@ -528,6 +564,7 @@ export class WrapDesk extends Agent<Env, WrapState> {
   private async chapterize(episodeId: string): Promise<void> {
     if (this.hasChapters(episodeId)) {
       await this.setStatus(episodeId, "notes");
+      await this.armNextTick(episodeId);
       return;
     }
 
@@ -548,6 +585,7 @@ export class WrapDesk extends Agent<Env, WrapState> {
       );
     }
     await this.setStatus(episodeId, "notes");
+    await this.armNextTick(episodeId);
   }
 
   /** One LLM call writes a title for every chapter. */
@@ -565,7 +603,11 @@ export class WrapDesk extends Agent<Env, WrapState> {
 
   // ── Stage 3: write the liner notes, then cut the trailer ─────────────────
 
-  /** Notes are written first; the trailer follows; then the episode lands wrapped. */
+  /**
+   * Notes are written first; the trailer follows in the NEXT invocation (the
+   * task re-arm yields the turn, keeping every invocation well inside the
+   * method wall-clock budget); then the episode lands wrapped.
+   */
   private async finishNotesAndTrailer(episodeId: string): Promise<void> {
     if (!this.hasAsset(episodeId, "notes")) {
       const notes = await this.composeShowNotes(episodeId);
@@ -575,6 +617,8 @@ export class WrapDesk extends Agent<Env, WrapState> {
         notes,
         new Date().toISOString()
       );
+      await this.armNextTick(episodeId);
+      return;
     }
     if (!this.hasAsset(episodeId, "trailer")) {
       await this.cutTrailer(episodeId);
@@ -589,7 +633,7 @@ export class WrapDesk extends Agent<Env, WrapState> {
       "Write SEO-friendly show notes for this podcast episode in markdown. " +
       "Include a one-paragraph summary, key takeaways as a bullet list, and " +
       "one standout pull-quote.\n\nTranscript (may be truncated):\n" +
-      transcriptText(words).slice(0, 3000) +
+      transcriptText(words).slice(0, 1200) +
       "\n\nChapters:\n" +
       chapters.map((c) => `- ${c.title} (${c.start}s–${c.end}s)`).join("\n");
     return this.complete(prompt, "You are a podcast show-notes writer.");
@@ -602,7 +646,7 @@ export class WrapDesk extends Agent<Env, WrapState> {
 
     const script = await this.writeTrailerScript(chapters);
     const voice = this.env.HOST_VOICE?.trim() || DEFAULT_HOST_VOICE;
-    const apiKey = this.getApiKey();
+    const apiKey = await this.getApiKey();
     const audioBase64 = await synthesizeTrailerAudio(script, voice, apiKey);
     if (!audioBase64) throw new Error("the TTS WebSocket returned no audio");
 
@@ -646,7 +690,7 @@ export class WrapDesk extends Agent<Env, WrapState> {
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
       ],
-      max_tokens: 2000,
+      max_tokens: 1200,
       temperature: 0.4,
     });
     const content = completion?.choices?.[0]?.message?.content?.trim() ?? "";
