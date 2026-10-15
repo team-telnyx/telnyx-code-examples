@@ -3520,6 +3520,8 @@ examples:
     language: typescript
     framework: edge
     folder: show-wrap-desk
+
+  - product: ai
     use_case: candidate-screening-call-agent
     language: typescript
     framework: edge

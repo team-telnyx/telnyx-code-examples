@@ -96,7 +96,7 @@ The system is built around a single durable actor per show. The `WrapDesk` agent
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API v2 key (secret, used by the STT upload and the TTS WebSocket) | [Portal](https://portal.telnyx.com/api-keys) |
 | `EPISODE_URL` | `string` | `https://archive.org/download/sonnet_116_librivox/sonnet_116_shakespeare_add_64kb.mp3` | no | Default episode audio URL (public-domain LibriVox recording) | Any public mp3/wav |
-| `AI_MODEL` | `string` | `zai-org/GLM-5.2` | no | Inference model for chapter titles, show notes, trailer script (in `telnyx.toml`) | [Models](https://developers.telnyx.com/docs/inference/models) |
+| `AI_MODEL` | `string` | `zai-org/GLM-5.3-Flash` | no | Inference model for chapter titles, show notes, trailer script (in `telnyx.toml`) | [Models](https://developers.telnyx.com/docs/inference/models) |
 | `HOST_VOICE` | `string` | `azure.en-US-AvaMultilingualNeural` | no | TTS voice for the trailer (in `telnyx.toml`) | `GET /text-to-speech/voices` |
 
 Demo constants compiled into the code: `STT_MODEL` = `deepgram/nova-3`, `CHAPTER_GAP_S` = 60, trailer cap 400 characters.
