@@ -23,7 +23,7 @@ SELF-REVIEW:
 ✅ Invalid signature → HTTP 401, body not processed (acceptance criterion)
 ✅ Webhook while NOT active → HTTP 200, skipped, warning logged (design decision #3)
 ✅ origin validated against 'whatsapp_business_app' (acceptance criterion #2)
-✅ cost verified null / {amount: null, currency: null} → billing_confirmed flag
+✅ cost verified null / {amount: null, currency: null} → no_charge flag
    in the audit log (acceptance criterion #3)
 ASSUMPTION: The spec says "coexistence_state" values include 'active' as the only
   state that allows Cloud API sends. This sample treats any other state as
@@ -274,11 +274,11 @@ def whatsapp_echo_webhook():
     origin_matches_biz_app = origin == "whatsapp_business_app"
     cost = message.get("cost")
     if cost is None:
-        billing_confirmed = True  # cost field absent or explicitly null
+        no_charge = True  # cost field absent or explicitly null
     elif isinstance(cost, dict) and cost.get("amount") is None and cost.get("currency") is None:
-        billing_confirmed = True
+        no_charge = True
     else:
-        billing_confirmed = False
+        no_charge = False
         app.logger.warning(
             "Unexpected non-null cost on message.echo %s — possible billing event",
             event_id,
@@ -299,15 +299,15 @@ def whatsapp_echo_webhook():
         "origin_matches_biz_app": origin_matches_biz_app,
         "text": message.get("text"),
         "message_id": message.get("id"),
-        "billing_confirmed": billing_confirmed,
+        "no_charge": no_charge,
     }
     message_logger.append(log_entry)
 
     app.logger.info(
-        "Logged message.echo %s (origin=%s, billing_confirmed=%s)",
+        "Logged message.echo %s (origin=%s, no_charge=%s)",
         event_id,
         origin,
-        billing_confirmed,
+        no_charge,
     )
     return jsonify({"ok": True}), 200
 

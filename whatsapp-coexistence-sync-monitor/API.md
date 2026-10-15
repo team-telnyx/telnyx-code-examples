@@ -186,7 +186,7 @@ Every accepted `message.echo` event is validated against the acceptance criteria
 | Check                  | Expected value                                          | Logged as                    |
 | ---------------------- | ------------------------------------------------------- | ---------------------------- |
 | Event origin           | `origin == "whatsapp_business_app"`                     | `origin_matches_biz_app`     |
-| No billing event       | `cost` is `null` or `{ "amount": null, "currency": null }` | `billing_confirmed`       |
+| No billing event       | `cost` is `null` or `{ "amount": null, "currency": null }` | `no_charge`       |
 
 If `cost` is unexpectedly non-null (a billing event fired) or `origin` is not `whatsapp_business_app`, the service logs a warning and records the failed check in the log entry — the monitor never silently drops a billing anomaly.
 

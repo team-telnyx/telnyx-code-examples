@@ -108,7 +108,7 @@ Each accepted `message.echo` event is logged as one JSON line, including:
 - `origin` and whether it matches `whatsapp_business_app` (`origin_matches_biz_app`)
 - Message text
 - Message ID
-- `billing_confirmed` — `true` when `cost` is `null` / `{ "amount": null, "currency": null }`
+- `no_charge` — `true` when `cost` is `null` / `{ "amount": null, "currency": null }`
   (no billing event for the manual-channel echo)
 
 Raw phone numbers (`from`/`to`) and monetary amounts are intentionally **not** persisted —

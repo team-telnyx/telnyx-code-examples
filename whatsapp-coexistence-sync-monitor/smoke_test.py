@@ -69,7 +69,7 @@ def test_message_logger_appends():
         "origin_matches_biz_app": True,
         "text": "Hello from the app",
         "message_id": "msg_456",
-        "billing_confirmed": True,
+        "no_charge": True,
     }
     logger.append(event)
 
@@ -78,7 +78,7 @@ def test_message_logger_appends():
     assert len(lines) == 1
     parsed = json.loads(lines[0])
     assert parsed["event_id"] == "evt_123"
-    assert parsed["billing_confirmed"] is True
+    assert parsed["no_charge"] is True
 
     os.unlink(log_path)
 
@@ -171,7 +171,7 @@ def test_webhook_accepts_valid_signature(monkeypatch):
     assert entry["event_type"] == "message.echo"
     assert entry["origin"] == "whatsapp_business_app"
     assert entry["origin_matches_biz_app"] is True
-    assert entry["billing_confirmed"] is True
+    assert entry["no_charge"] is True
     assert entry["text"] == "Hello from the WhatsApp Business app"
     # PII minimization: raw phone numbers and monetary amounts are never persisted
     assert "from" not in entry
@@ -180,7 +180,7 @@ def test_webhook_accepts_valid_signature(monkeypatch):
 
 
 def test_webhook_accepts_absent_cost_field(monkeypatch):
-    """A null/absent cost is still flagged billing_confirmed (AC #3)."""
+    """A null/absent cost is still flagged no_charge (AC #3)."""
     import app
 
     monkeypatch.setattr(app, "TELNYX_PUBLIC_KEY", B64_PUBLIC_KEY)
@@ -194,11 +194,11 @@ def test_webhook_accepts_absent_cost_field(monkeypatch):
     with open(app.ECHO_LOG_PATH, "r", encoding="utf-8") as f:
         entries = [json.loads(line) for line in f if line.strip()]
     last = [e for e in entries if e["event_id"] == "evt_live_2"][0]
-    assert last["billing_confirmed"] is True
+    assert last["no_charge"] is True
 
 
 def test_webhook_flags_unexpected_billing(monkeypatch):
-    """A non-null cost.amount means a billing event — must NOT be billing_confirmed."""
+    """A non-null cost.amount means a billing event — must NOT be no_charge."""
     import app
 
     monkeypatch.setattr(app, "TELNYX_PUBLIC_KEY", B64_PUBLIC_KEY)
@@ -212,7 +212,7 @@ def test_webhook_flags_unexpected_billing(monkeypatch):
     with open(app.ECHO_LOG_PATH, "r", encoding="utf-8") as f:
         entries = [json.loads(line) for line in f if line.strip()]
     last = [e for e in entries if e["event_id"] == "evt_live_3"][0]
-    assert last["billing_confirmed"] is False
+    assert last["no_charge"] is False
 
 
 def test_webhook_flags_unexpected_origin(monkeypatch):
