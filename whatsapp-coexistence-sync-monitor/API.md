@@ -169,6 +169,27 @@ Called by the **State Checker** to verify the coexistence status of the configur
 
 The service checks that `is_on_biz_app` is `true` and `coexistence_state` is `active` before processing webhooks. Results are cached for `STATE_CHECK_TTL_SECONDS` (default 60 seconds).
 
+**SDK call:** `client.whatsapp.business_accounts.phone_numbers.list(waba_id)` (Telnyx SDK v4).
+
+### GET `/v2/whatsapp/phone_numbers/{phone_number}`
+
+Called by the **State Checker** at startup (live mode only) to cross-verify the number's lifecycle state via the number-specific API, which reflects the freshest state.
+
+**SDK call:** `client.whatsapp.phone_numbers.retrieve_phone_number(phone_number)` (Telnyx SDK v4).
+
+**Response (relevant fields):** same `is_on_biz_app` / `coexistence_state` contract as above.
+
+### Echo semantics validation (per webhook)
+
+Every accepted `message.echo` event is validated against the acceptance criteria before being written to the audit log:
+
+| Check                  | Expected value                                          | Logged as                    |
+| ---------------------- | ------------------------------------------------------- | ---------------------------- |
+| Event origin           | `origin == "whatsapp_business_app"`                     | `origin_matches_biz_app`     |
+| No billing event       | `cost` is `null` or `{ "amount": null, "currency": null }` | `billing_confirmed`       |
+
+If `cost` is unexpectedly non-null (a billing event fired) or `origin` is not `whatsapp_business_app`, the service logs a warning and records the failed check in the log entry — the monitor never silently drops a billing anomaly.
+
 ---
 
 ## Environment Variables

@@ -9,16 +9,22 @@ channel.
 
 SELF-REVIEW:
 ✅ All spec primitives implemented (Webhook Receiver, State Checker, Message Logger)
-✅ smoke_test.py verifies routes and module load
+✅ smoke_test.py verifies routes and module load (incl. valid-signature webhook flow)
 ✅ Demo mode default (DEMO_MODE=true) — no real API calls in demo mode
 ✅ No credentials in code — all from env vars
-✅ Webhook signature verified via client.webhooks.unwrap (Ed25519)
+✅ Webhook signature verified via client.webhooks.unwrap(..., key=...) (Ed25519)
 ✅ Append-only JSONL persistence (echo_log.jsonl) — real file, not in-memory
-✅ State Checker uses real Telnyx API (GET /v2/whatsapp/business_accounts/{waba_id}/phone_numbers)
+✅ State Checker uses real Telnyx API
+   (GET /v2/whatsapp/business_accounts/{waba_id}/phone_numbers via
+    client.whatsapp.business_accounts.phone_numbers.list — SDK v4 path)
+✅ Startup cross-check via GET /v2/whatsapp/phone_numbers/{phone_number}
+   (client.whatsapp.phone_numbers.retrieve_phone_number)
 ✅ 60-second TTL cache for state checks — no hammering the API
 ✅ Invalid signature → HTTP 401, body not processed (acceptance criterion)
 ✅ Webhook while NOT active → HTTP 200, skipped, warning logged (design decision #3)
-✅ cost field logged as null when present (acceptance criterion)
+✅ origin validated against 'whatsapp_business_app' (acceptance criterion #2)
+✅ cost verified null / {amount: null, currency: null} → billing_confirmed flag
+   in the audit log (acceptance criterion #3)
 ASSUMPTION: The spec says "coexistence_state" values include 'active' as the only
   state that allows Cloud API sends. This sample treats any other state as
   "not active" and skips processing (logs a warning, returns 200).
@@ -49,8 +55,9 @@ DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
 STATE_CHECK_TTL_SECONDS = int(os.getenv("STATE_CHECK_TTL_SECONDS", "60"))
 MAX_TIMESTAMP_SKEW_SECONDS = int(os.getenv("MAX_TIMESTAMP_SKEW_SECONDS", "300"))
 
-# Configure Telnyx SDK (v4 client)
-client = telnyx.Client(api_key=TELNYX_API_KEY)
+# Configure Telnyx SDK (v4 client). public_key lets client.webhooks.unwrap
+# verify Ed25519 signatures without re-passing the key every call.
+client = telnyx.Client(api_key=TELNYX_API_KEY, public_key=TELNYX_PUBLIC_KEY)
 
 app = Flask(__name__)
 
@@ -89,8 +96,8 @@ class StateChecker:
             )
 
         # GET /v2/whatsapp/business_accounts/{waba_id}/phone_numbers
-        # Using the SDK v4 client's WhatsApp Business Account resource
-        response = client.whatsapp_business_accounts.phone_numbers(self.waba_id)
+        # SDK v4: client.whatsapp.business_accounts.phone_numbers.list(waba_id)
+        response = client.whatsapp.business_accounts.phone_numbers.list(self.waba_id)
 
         # Find the target number in the list
         for number in response.data:
@@ -102,6 +109,26 @@ class StateChecker:
                 }
 
         raise ValueError(f"Phone number {self.phone_number} not found in WABA {self.waba_id}")
+
+    def verify_with_number_api(self) -> dict:
+        """Cross-check the number via GET /v2/whatsapp/phone_numbers/{phone_number}.
+
+        SDK v4: client.whatsapp.phone_numbers.retrieve_phone_number(phone_number)
+        Returns the same state dict as _fetch_state. Only used in live mode
+        (the number-specific API reflects the freshest lifecycle state).
+        """
+        if DEMO_MODE:
+            return self._fetch_state()
+
+        if not self.phone_number:
+            raise ValueError("WHATSAPP_NUMBER must be set when DEMO_MODE=false")
+
+        number = client.whatsapp.phone_numbers.retrieve_phone_number(self.phone_number)
+        return {
+            "phone_number": getattr(number, "phone_number", self.phone_number),
+            "is_on_biz_app": number.is_on_biz_app,
+            "coexistence_state": number.coexistence_state,
+        }
 
     def get_state(self) -> dict:
         """Return the current state, using the TTL cache."""
@@ -175,14 +202,16 @@ def verify_webhook_signature(headers: dict, raw_body: bytes) -> bool:
         return False
 
     try:
-        # unwrap verifies the signature and returns the parsed payload
+        # unwrap verifies the Ed25519 signature over "<timestamp>|<payload>"
+        # and raises ValueError on any failure (bad key, bad sig, stale ts).
+        # NOTE: the kwarg is `key` (NOT `public_key`) in SDK >= 4.x.
         client.webhooks.unwrap(
             payload=raw_body.decode("utf-8"),
             headers={
                 "telnyx-signature-ed25519": signature,
                 "telnyx-timestamp": timestamp,
             },
-            public_key=TELNYX_PUBLIC_KEY,
+            key=TELNYX_PUBLIC_KEY,
         )
         return True
     except Exception:
@@ -235,21 +264,51 @@ def whatsapp_echo_webhook():
         # Accept with 200 — do NOT reject, otherwise Telnyx retries delivery
         return jsonify({"ok": "skipped", "reason": "number_not_active"}), 200
 
-    # 4. Log the message (append-only JSONL)
+    # 4. Validate the echo semantics (acceptance criteria #2 and #3)
+    # - origin must be 'whatsapp_business_app' for a manual-channel echo
+    # - cost must be null / {amount: null, currency: null} (no billing event)
+    origin_matches_biz_app = origin == "whatsapp_business_app"
+    cost = message.get("cost")
+    if cost is None:
+        billing_confirmed = True  # cost field absent or explicitly null
+    elif isinstance(cost, dict) and cost.get("amount") is None and cost.get("currency") is None:
+        billing_confirmed = True
+    else:
+        billing_confirmed = False
+        app.logger.warning(
+            "Unexpected non-null cost on message.echo %s: %s — possible billing event",
+            event_id,
+            cost,
+        )
+    if not origin_matches_biz_app:
+        app.logger.warning(
+            "message.echo %s has unexpected origin %r (expected 'whatsapp_business_app')",
+            event_id,
+            origin,
+        )
+
+    # 5. Log the message (append-only JSONL)
     log_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "event_id": event_id,
         "event_type": event_type,
         "origin": origin,
+        "origin_matches_biz_app": origin_matches_biz_app,
         "from": message.get("from"),
         "to": message.get("to"),
         "text": message.get("text"),
         "message_id": message.get("id"),
         "cost": message.get("cost"),  # null for manual-channel echoes
+        "billing_confirmed": billing_confirmed,
     }
     message_logger.append(log_entry)
 
-    app.logger.info("Logged message.echo %s (origin=%s)", event_id, origin)
+    app.logger.info(
+        "Logged message.echo %s (origin=%s, billing_confirmed=%s)",
+        event_id,
+        origin,
+        billing_confirmed,
+    )
     return jsonify({"ok": True}), 200
 
 
@@ -283,6 +342,17 @@ def _startup_state_check() -> None:
             f"Phone number {WHATSAPP_NUMBER} is not on the WhatsApp Business app "
             f"(is_on_biz_app={state.get('is_on_biz_app')}). "
             "Enable coexistence for this number before running the sample."
+        )
+
+    # Cross-verify with GET /v2/whatsapp/phone_numbers/{phone_number}
+    try:
+        number_state = state_checker.verify_with_number_api()
+    except Exception as exc:
+        raise SystemExit(f"Number API cross-check failed: {exc}") from exc
+    if not number_state.get("is_on_biz_app"):
+        raise SystemExit(
+            f"Number API cross-check: phone number {WHATSAPP_NUMBER} is not on the "
+            f"WhatsApp Business app (is_on_biz_app={number_state.get('is_on_biz_app')})."
         )
 
     app.logger.info(

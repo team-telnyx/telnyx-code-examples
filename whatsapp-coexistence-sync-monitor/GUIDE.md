@@ -125,14 +125,14 @@ def verify_webhook_signature(headers: dict, raw_body: bytes) -> bool:
     if abs(time.time() - ts) > MAX_TIMESTAMP_SKEW_SECONDS:
         return False
 
-    # Verify using the Telnyx SDK
+    # Verify using the Telnyx SDK (kwarg is `key` in SDK >= 4.x)
     client.webhooks.unwrap(
         payload=raw_body.decode("utf-8"),
         headers={
             "telnyx-signature-ed25519": signature,
             "telnyx-timestamp": timestamp,
         },
-        public_key=TELNYX_PUBLIC_KEY,
+        key=TELNYX_PUBLIC_KEY,
     )
 ```
 
