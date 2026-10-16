@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Support — Email &amp; WhatsApp</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    background: #0d1117;
+    color: #c9d1d9;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header */
+.header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.header-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f0f6fc;
+    white-space: nowrap;
+}
+
+.header-subtitle {
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.header-accent { color: #00C7B7; }
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-idle { background: #30363d; color: #8b949e; }
+.status-running { background: #00C7B733; color: #00C7B7; border: 1px solid #00C7B755; animation: pulse 1.5s ease-in-out infinite; }
+.status-complete { background: #3fb95033; color: #3fb950; border: 1px solid #3fb95055; }
+.status-error { background: #f8514933; color: #f85149; border: 1px solid #f8514955; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.header-spacer { flex: 1; }
+
+.btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: #00C7B7;
+    border-color: #00C7B7;
+    color: #0d1117;
+}
+
+.btn-primary:hover { background: #00dbc9; }
+
+.btn-primary:disabled {
+    background: #21262d;
+    border-color: #30363d;
+    color: #484f58;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #21262d;
+    color: #c9d1d9;
+}
+
+.btn-secondary:hover { background: #30363d; }
+
+/* Journey progress bar */
+.progress-bar {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    justify-content: center;
+}
+
+.progress-step {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.progress-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #21262d;
+    border: 2px solid #30363d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #484f58;
+    transition: all 0.4s ease;
+    position: relative;
+}
+
+.progress-dot.active {
+    background: #00C7B733;
+    border-color: #00C7B7;
+    color: #00C7B7;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.progress-dot.complete {
+    background: #00C7B7;
+    border-color: #00C7B7;
+    color: #0d1117;
+}
+
+.progress-dot-label {
+    position: absolute;
+    top: 36px;
+    font-size: 9px;
+    color: #484f58;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.progress-dot.active .progress-dot-label,
+.progress-dot.complete .progress-dot-label { color: #8b949e; }
+
+.progress-line {
+    width: 60px;
+    height: 2px;
+    background: #30363d;
+    transition: background 0.4s ease;
+}
+
+.progress-line.complete { background: #00C7B7; }
+
+/* Main layout — four columns */
+.container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel + .panel { border-left: 1px solid #30363d; }
+
+.panel-customer { width: 200px; min-width: 180px; }
+.panel-email { flex: 1; min-width: 240px; }
+.panel-whatsapp { width: 340px; min-width: 300px; }
+.panel-order { width: 280px; min-width: 240px; }
+
+.panel-header {
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8b949e;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+}
+
+.panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.panel-body::-webkit-scrollbar { width: 6px; }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+/* Customer profile panel */
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00C7B7, #0077b6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 auto 16px;
+}
+
+.profile-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f0f6fc;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.profile-id {
+    font-size: 10px;
+    color: #484f58;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.profile-field {
+    margin-bottom: 12px;
+}
+
+.profile-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #484f58;
+    margin-bottom: 2px;
+}
+
+.profile-value {
+    font-size: 12px;
+    color: #c9d1d9;
+    word-break: break-all;
+}
+
+/* Email pane */
+.email-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    animation: slideIn 0.3s ease-out;
+}
+
+.email-card.inbound { border-left: 3px solid #58a6ff; }
+.email-card.outbound { border-left: 3px solid #3fb950; }
+
+.email-card-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    border-bottom: 1px solid #30363d;
+}
+
+.email-direction {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.email-card.inbound .email-direction { background: #58a6ff33; color: #58a6ff; }
+.email-card.outbound .email-direction { background: #3fb95033; color: #3fb950; }
+
+.email-from {
+    color: #8b949e;
+    flex: 1;
+}
+
+.email-time {
+    color: #484f58;
+    font-size: 10px;
+}
+
+.email-subject {
+    padding: 10px 14px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #f0f6fc;
+}
+
+.email-body {
+    padding: 4px 14px 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #8b949e;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* WhatsApp phone frame */
+.wa-frame {
+    background: #0b141a;
+    border-radius: 20px;
+    border: 2px solid #30363d;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: -16px;
+}
+
+.wa-header {
+    background: #075E54;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wa-header-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #fff;
+}
+
+.wa-header-info {
+    flex: 1;
+}
+
+.wa-header-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.wa-header-status {
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+}
+
+.wa-chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    background: #0b141a;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wa-chat::-webkit-scrollbar { width: 4px; }
+.wa-chat::-webkit-scrollbar-track { background: transparent; }
+.wa-chat::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+.wa-bubble {
+    max-width: 85%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+}
+
+.wa-bubble.inbound {
+    background: #1f2c34;
+    color: #e9edef;
+    align-self: flex-start;
+    border-top-left-radius: 0;
+}
+
+.wa-bubble.outbound {
+    background: #005c4b;
+    color: #e9edef;
+    align-self: flex-end;
+    border-top-right-radius: 0;
+}
+
+.wa-bubble-time {
+    font-size: 9px;
+    color: rgba(255,255,255,0.45);
+    text-align: right;
+    margin-top: 4px;
+}
+
+.wa-ticks {
+    color: #53bdeb;
+    margin-left: 4px;
+    font-size: 10px;
+}
+
+.wa-bubble-image {
+    max-width: 100%;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: #30363d;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8b949e;
+    font-size: 11px;
+    padding: 20px;
+    text-align: center;
+}
+
+.wa-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #484f58;
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.8;
+}
+
+/* Order & Timeline panel */
+.order-widget {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.order-widget-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #484f58;
+    margin-bottom: 8px;
+}
+
+.order-id {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f0f6fc;
+    margin-bottom: 4px;
+}
+
+.order-product {
+    font-size: 12px;
+    color: #8b949e;
+    margin-bottom: 12px;
+}
+
+.order-status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.4s ease;
+}
+
+.order-status-delivered { background: #8b949e33; color: #8b949e; }
+.order-status-damage_reported { background: #d2992233; color: #d29922; }
+.order-status-replacement_shipping { background: #58a6ff33; color: #58a6ff; }
+.order-status-resolved { background: #3fb95033; color: #3fb950; }
+
+.order-detail {
+    margin-top: 12px;
+}
+
+.order-detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    padding: 4px 0;
+    border-bottom: 1px solid #21262d;
+}
+
+.order-detail-label { color: #484f58; }
+.order-detail-value { color: #c9d1d9; }
+
+.order-photo {
+    margin-top: 12px;
+    background: #21262d;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+
+.order-photo-label {
+    font-size: 10px;
+    color: #484f58;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.order-photo-img {
+    width: 100%;
+    border-radius: 6px;
+    background: #30363d;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8b949e;
+    font-size: 11px;
+    padding: 16px;
+}
+
+/* Event timeline */
+.timeline-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #484f58;
+    margin-bottom: 12px;
+}
+
+.timeline-event {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 4px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.timeline-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 16px;
+    flex-shrink: 0;
+}
+
+.timeline-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #30363d;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.timeline-dot.email { background: #58a6ff; }
+.timeline-dot.whatsapp { background: #25D366; }
+.timeline-dot.system { background: #d29922; }
+
+.timeline-connector {
+    width: 1px;
+    flex: 1;
+    background: #21262d;
+    min-height: 12px;
+}
+
+.timeline-content {
+    padding-bottom: 10px;
+    flex: 1;
+}
+
+.timeline-text {
+    font-size: 11px;
+    line-height: 1.4;
+    color: #8b949e;
+}
+
+.timeline-time {
+    font-size: 9px;
+    color: #484f58;
+    margin-top: 2px;
+}
+
+/* Empty state */
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #484f58;
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.8;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Footer */
+.footer {
+    background: #161b22;
+    border-top: 1px solid #30363d;
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: #8b949e;
+}
+
+.footer a {
+    color: #00C7B7;
+    text-decoration: none;
+}
+
+.footer a:hover { text-decoration: underline; }
+.footer-spacer { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div>
+        <div class="header-title"><span class="header-accent">TelnyxDemo</span> Corp</div>
+        <div class="header-subtitle">Customer Support &mdash; Email &amp; WhatsApp</div>
+    </div>
+    <span class="header-spacer"></span>
+    <button id="btnRun" class="btn btn-primary" onclick="runJourney()">Run Demo Journey</button>
+    <button class="btn btn-secondary" onclick="resetUI()">Reset</button>
+</div>
+
+<div class="container">
+    <!-- Customer Profile -->
+    <div class="panel panel-customer">
+        <div class="panel-header">Customer</div>
+        <div class="panel-body" id="customerPanel">
+            <div class="empty-state" id="customerEmpty">
+                Customer profile will<br>appear here.
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Thread -->
+    <div class="panel panel-email">
+        <div class="panel-header">Email Thread</div>
+        <div class="panel-body" id="emailPanel">
+            <div class="empty-state" id="emailEmpty">
+                Email messages will appear here.
+            </div>
+        </div>
+    </div>
+
+    <!-- WhatsApp Thread -->
+    <div class="panel panel-whatsapp">
+        <div class="panel-header">WhatsApp</div>
+        <div class="panel-body" style="padding:0;overflow:hidden;" id="whatsappPanelOuter">
+            <div class="wa-frame" id="waFrame">
+                <div class="wa-header" id="waHeader" style="display:none;">
+                    <div class="wa-header-avatar">S</div>
+                    <div class="wa-header-info">
+                        <div class="wa-header-name">Support Agent</div>
+                        <div class="wa-header-status">online</div>
+                    </div>
+                </div>
+                <div class="wa-chat" id="waChat">
+                    <div class="wa-empty" id="waEmpty">
+                        WhatsApp messages<br>will appear here.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order + Timeline -->
+    <div class="panel panel-order">
+        <div class="panel-header">Order &amp; Timeline</div>
+        <div class="panel-body" id="orderPanel">
+            <div class="empty-state" id="orderEmpty">
+                Order details and event<br>timeline will appear here.
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    <span>Powered by <a href="https://telnyx.com" target="_blank">Telnyx</a> Email &amp; WhatsApp APIs</span>
+    <span class="footer-spacer"></span>
+    <a href="/customers">Customers</a>
+    <a href="/conversations">Conversations</a>
+    <a href="/orders">Orders</a>
+    <a href="/health">Health</a>
+</div>
+
+<script>
+let eventSource = null;
+let isRunning = false;
+let currentStep = 0;
+
+function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+}
+
+function maskPhone(phone) {
+    if (!phone || phone.length < 6) return phone;
+    return phone.slice(0, 3) + '\u2022'.repeat(phone.length - 7) + phone.slice(-4);
+}
+
+function fmtTime(iso) {
+    try {
+        return new Date(iso).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch { return ''; }
+}
+
+function setStatus(state) {
+    const b = document.getElementById('statusBadge');
+    b.className = 'status-badge status-' + state;
+    b.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+}
+
+function clearEmpty(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+}
+
+/* Progress bar */
+function setProgressStep(step) {
+    for (let i = 1; i <= 5; i++) {
+        const dot = document.getElementById('pDot' + i);
+        dot.classList.remove('active', 'complete');
+        if (i < step) dot.classList.add('complete');
+        else if (i === step) dot.classList.add('active');
+    }
+    for (let i = 1; i <= 4; i++) {
+        const line = document.getElementById('pLine' + i);
+        line.classList.remove('complete');
+        if (i < step) line.classList.add('complete');
+    }
+    currentStep = step;
+}
+
+/* Customer Profile */
+function showCustomer(customer) {
+    clearEmpty('customerEmpty');
+    const panel = document.getElementById('customerPanel');
+    const initials = (customer.name || '').split(' ').map(w => w[0]).join('').toUpperCase();
+    panel.innerHTML =
+        '<div class="profile-avatar">' + esc(initials) + '</div>' +
+        '<div class="profile-name">' + esc(customer.name) + '</div>' +
+        '<div class="profile-id">' + esc(customer.id) + '</div>' +
+        '<div class="profile-field"><div class="profile-label">Email</div><div class="profile-value">' + esc(customer.email) + '</div></div>' +
+        '<div class="profile-field"><div class="profile-label">Phone</div><div class="profile-value">' + esc(maskPhone(customer.phone)) + '</div></div>' +
+        '<div class="profile-field"><div class="profile-label">Customer Since</div><div class="profile-value">' + esc(customer.created_at || 'Today') + '</div></div>';
+}
+
+/* Email thread */
+function addEmail(direction, from, subject, body, ts) {
+    clearEmpty('emailEmpty');
+    const panel = document.getElementById('emailPanel');
+    const card = document.createElement('div');
+    card.className = 'email-card ' + direction;
+    card.innerHTML =
+        '<div class="email-card-header">' +
+            '<span class="email-direction">' + esc(direction) + '</span>' +
+            '<span class="email-from">' + esc(from) + '</span>' +
+            '<span class="email-time">' + esc(fmtTime(ts)) + '</span>' +
+        '</div>' +
+        '<div class="email-subject">' + esc(subject) + '</div>' +
+        '<div class="email-body">' + esc(body) + '</div>';
+    panel.appendChild(card);
+    panel.scrollTop = panel.scrollHeight;
+}
+
+/* WhatsApp bubbles */
+function showWaHeader(name) {
+    const header = document.getElementById('waHeader');
+    header.style.display = 'flex';
+    const avatar = header.querySelector('.wa-header-avatar');
+    avatar.textContent = (name || 'S')[0].toUpperCase();
+}
+
+function addWaBubble(direction, text, ts, mediaUrl) {
+    clearEmpty('waEmpty');
+    const chat = document.getElementById('waChat');
+    const bubble = document.createElement('div');
+    bubble.className = 'wa-bubble ' + direction;
+    let html = '';
+    if (mediaUrl) {
+        html += '<div class="wa-bubble-image">[Photo: damaged item]</div>';
+    }
+    html += esc(text);
+    html += '<div class="wa-bubble-time">' + esc(fmtTime(ts));
+    if (direction === 'outbound') {
+        html += '<span class="wa-ticks"> &#10003;&#10003;</span>';
+    }
+    html += '</div>';
+    bubble.innerHTML = html;
+    chat.appendChild(bubble);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+/* Order widget */
+function showOrder(order) {
+    clearEmpty('orderEmpty');
+    const panel = document.getElementById('orderPanel');
+    // Keep timeline if exists
+    let timelineEl = panel.querySelector('.timeline-section');
+    const timelineHTML = timelineEl ? timelineEl.outerHTML : '<div class="timeline-section"><div class="timeline-title">Event Timeline</div><div id="timelineList"></div></div>';
+
+    let photoHTML = '';
+    if (order.damage_photo_url) {
+        photoHTML = '<div class="order-photo"><div class="order-photo-label">Damage Photo</div><div class="order-photo-img">[Photo: damaged item]</div></div>';
+    }
+
+    let trackingHTML = '';
+    if (order.tracking) {
+        trackingHTML += '<div class="order-detail-row"><span class="order-detail-label">Tracking</span><span class="order-detail-value">' + esc(order.tracking) + '</span></div>';
+    }
+    if (order.replacement_tracking) {
+        trackingHTML += '<div class="order-detail-row"><span class="order-detail-label">Replacement</span><span class="order-detail-value">' + esc(order.replacement_tracking) + '</span></div>';
+    }
+
+    const statusClass = 'order-status-' + (order.status || 'delivered').replace(/\s+/g, '_');
+
+    // Rebuild order widget but preserve timeline
+    const existingTimeline = panel.querySelector('.timeline-section');
+    const savedTimeline = existingTimeline ? existingTimeline.outerHTML : null;
+
+    // Remove old order widget only
+    const oldWidget = panel.querySelector('.order-widget');
+    const oldPhoto = panel.querySelector('.order-photo-section');
+    if (oldWidget) oldWidget.remove();
+    if (oldPhoto) oldPhoto.remove();
+
+    const widget = document.createElement('div');
+    widget.innerHTML =
+        '<div class="order-widget">' +
+            '<div class="order-widget-title">Order</div>' +
+            '<div class="order-id">' + esc(order.id) + '</div>' +
+            '<div class="order-product">' + esc(order.product) + '</div>' +
+            '<span class="order-status-badge ' + statusClass + '">' + esc((order.status || '').replace(/_/g, ' ')) + '</span>' +
+            '<div class="order-detail">' +
+                trackingHTML +
+            '</div>' +
+            photoHTML +
+        '</div>';
+    panel.insertBefore(widget.firstChild, panel.firstChild);
+}
+
+/* Timeline */
+function addTimelineEvent(channel, text, ts) {
+    const panel = document.getElementById('orderPanel');
+    clearEmpty('orderEmpty');
+
+    let section = panel.querySelector('.timeline-section');
+    if (!section) {
+        section = document.createElement('div');
+        section.className = 'timeline-section';
+        section.innerHTML = '<div class="timeline-title">Event Timeline</div><div id="timelineList"></div>';
+        panel.appendChild(section);
+    }
+    const list = section.querySelector('#timelineList');
+
+    const ev = document.createElement('div');
+    ev.className = 'timeline-event';
+    ev.innerHTML =
+        '<div class="timeline-line">' +
+            '<div class="timeline-dot ' + esc(channel) + '"></div>' +
+            '<div class="timeline-connector"></div>' +
+        '</div>' +
+        '<div class="timeline-content">' +
+            '<div class="timeline-text">' + esc(text) + '</div>' +
+            '<div class="timeline-time">' + esc(fmtTime(ts)) + '</div>' +
+        '</div>';
+    list.appendChild(ev);
+    panel.scrollTop = panel.scrollHeight;
+}
+
+/* SSE connection */
+function connectSSE() {
+    if (eventSource) eventSource.close();
+    eventSource = new EventSource('/stream');
+
+    eventSource.onmessage = function(e) {
+        let data;
+        try { data = JSON.parse(e.data); } catch { return; }
+        const ts = data.ts || new Date().toISOString();
+
+        /* Journey progress */
+        if (data.type === 'journey.progress') {
+            setProgressStep(data.step || 1);
+        }
+
+        /* Customer registered */
+        if (data.type === 'customer.registered') {
+            showCustomer(data.customer || {});
+        }
+
+        /* Order update */
+        if (data.type === 'order.update') {
+            showOrder(data.order || {});
+        }
+
+        /* Email events */
+        if (data.type === 'channel.email') {
+            const dir = data.direction || 'inbound';
+            const from = dir === 'inbound' ? (data.from || '') : (data.from || 'Support');
+            addEmail(dir, from, data.subject || '', data.body || '', ts);
+            addTimelineEvent('email', (dir === 'inbound' ? 'Received' : 'Sent') + ': ' + (data.subject || ''), ts);
+        }
+
+        /* WhatsApp events */
+        if (data.type === 'channel.whatsapp') {
+            if (!document.getElementById('waHeader').style.display || document.getElementById('waHeader').style.display === 'none') {
+                showWaHeader(data.customer_name || 'Support');
+            }
+            const dir = data.direction || 'inbound';
+            addWaBubble(dir, data.text || '', ts, data.media_url || null);
+            addTimelineEvent('whatsapp', (dir === 'inbound' ? 'Received' : 'Sent') + ': ' + (data.text || '').substring(0, 60), ts);
+        }
+
+        /* Status update */
+        if (data.type === 'status.update') {
+            setStatus(data.status || 'running');
+        }
+
+        /* Identity resolved */
+        if (data.type === 'agent.identity_resolved') {
+            const cust = data.customer || {};
+            showCustomer(cust);
+            addTimelineEvent('system', 'Identified: ' + (cust.name || 'unknown') + ' via ' + (data.channel || ''), ts);
+        }
+
+        /* AI agent thinking */
+        if (data.type === 'agent.thinking') {
+            addTimelineEvent('system', 'AI: ' + (data.content || '').substring(0, 80), ts);
+        }
+
+        /* AI agent tool call */
+        if (data.type === 'agent.tool_call') {
+            addTimelineEvent('system', 'AI calling: ' + (data.tool || ''), ts);
+        }
+
+        /* AI agent error */
+        if (data.type === 'agent.error') {
+            addTimelineEvent('system', 'Error: ' + (data.error || ''), ts);
+        }
+
+        /* Journey complete */
+        if (data.type === 'journey.complete') {
+            setStatus('complete');
+            isRunning = false;
+            document.getElementById('btnRun').disabled = false;
+            // Complete all dots
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById('pDot' + i).classList.remove('active');
+                document.getElementById('pDot' + i).classList.add('complete');
+            }
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('pLine' + i).classList.add('complete');
+            }
+            addTimelineEvent('system', 'Journey complete - issue resolved', ts);
+        }
+    };
+}
+
+function runJourney() {
+    if (isRunning) return;
+    isRunning = true;
+    setStatus('running');
+    document.getElementById('btnRun').disabled = true;
+
+    connectSSE();
+
+    fetch('/demo/journey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.error) {
+            setStatus('error');
+            isRunning = false;
+            document.getElementById('btnRun').disabled = false;
+        }
+    })
+    .catch(err => {
+        setStatus('error');
+        isRunning = false;
+        document.getElementById('btnRun').disabled = false;
+    });
+}
+
+function resetUI() {
+    if (eventSource) { eventSource.close(); eventSource = null; }
+    isRunning = false;
+    currentStep = 0;
+    setStatus('idle');
+    document.getElementById('btnRun').disabled = false;
+
+    // Reset progress
+    for (let i = 1; i <= 5; i++) {
+        const dot = document.getElementById('pDot' + i);
+        dot.classList.remove('active', 'complete');
+    }
+    for (let i = 1; i <= 4; i++) {
+        document.getElementById('pLine' + i).classList.remove('complete');
+    }
+
+    document.getElementById('customerPanel').innerHTML =
+        '<div class="empty-state" id="customerEmpty">Customer profile will<br>appear here.</div>';
+    document.getElementById('emailPanel').innerHTML =
+        '<div class="empty-state" id="emailEmpty">Email messages will appear here.</div>';
+    document.getElementById('waChat').innerHTML =
+        '<div class="wa-empty" id="waEmpty">WhatsApp messages<br>will appear here.</div>';
+    document.getElementById('waHeader').style.display = 'none';
+    document.getElementById('orderPanel').innerHTML =
+        '<div class="empty-state" id="orderEmpty">Order details and event<br>timeline will appear here.</div>';
+
+    fetch('/demo/reset', { method: 'POST' }).catch(() => {});
+}
+
+connectSSE();
+</script>
+</body>
+</html>
