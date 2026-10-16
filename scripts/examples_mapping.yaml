@@ -3517,6 +3517,9 @@ examples:
 
   - product: ai
     use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: whatsapp-coexistence-sync-monitor
     language: typescript
     framework: edge
     folder: show-wrap-desk

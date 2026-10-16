@@ -567,6 +567,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [webhook-aggregator-fanout](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-aggregator-fanout/README.md) | Python | Aggregate, deduplicate, and fan out Telnyx webhooks to multiple action queues (call and SMS) with SQLite event logging. |
 | [webhook-debugger-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-debugger-ai-assistant-python/README.md) | Python | Webhook Debugger AI Assistant - catch, inspect, and debug Telnyx webhooks with AI explanations. |
 | [webrtc-ai-interpreter-live-calls-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webrtc-ai-interpreter-live-calls-python/README.md) | Python | WebRTC AI Interpreter for Live Calls - real-time translation between two callers speaking different languages. |
+| [whatsapp-coexistence-sync-monitor](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-coexistence-sync-monitor/README.md) | Python | Monitor a coexistence-enabled WhatsApp number by verifying lifecycle state via the Telnyx API and logging message.echo webhooks from the WhatsApp Business app. |
 
 </details>
 

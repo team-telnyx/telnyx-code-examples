@@ -3,6 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
+  "generated_at": "2026-10-15T22:55:14Z",
+  "example_count": 573,
   "generated_at": "2026-10-14T23:05:25Z",
   "example_count": 575,
   "examples": [
@@ -5155,6 +5157,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insurance-verification-caller"
     },
     {
+      "folder": "whatsapp-coexistence-sync-monitor",
+      "title": "WhatsApp Coexistence Sync Monitor",
+      "description": "Monitor a coexistence-enabled WhatsApp number by verifying lifecycle state via the Telnyx API and logging message.echo webhooks from the WhatsApp Business app.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-coexistence-sync-monitor"
       "folder": "show-wrap-desk",
       "title": "Show Wrap Desk — AI Podcast Production Studio",
       "description": "A durable AI agent that transcribes, chapterizes, writes show notes, and cuts a trailer for podcast episodes — surviving crashes between every stage.",
