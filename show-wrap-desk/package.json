@@ -1,0 +1,24 @@
+{
+  "name": "show-wrap-desk",
+  "version": "1.0.0",
+  "description": "STT+TTS flagship demo: a podcast producer's wrap desk that transcribes, chapterizes, writes show notes, and cuts a trailer in the host's own voice.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "npx tsx smoke_test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  },
+  "license": "MIT"
+}

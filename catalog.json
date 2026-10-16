@@ -5,6 +5,8 @@
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
   "generated_at": "2026-10-15T22:55:14Z",
   "example_count": 573,
+  "generated_at": "2026-10-14T23:05:25Z",
+  "example_count": 575,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5162,6 +5164,31 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-coexistence-sync-monitor"
+      "folder": "show-wrap-desk",
+      "title": "Show Wrap Desk — AI Podcast Production Studio",
+      "description": "A durable AI agent that transcribes, chapterizes, writes show notes, and cuts a trailer for podcast episodes — surviving crashes between every stage.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/show-wrap-desk"
+    },
+    {
+      "folder": "candidate-screening-call-agent",
+      "title": "Candidate Screening Call Agent",
+      "description": "Event-driven recruiting phone screen with Telnyx AI Assistants, outbound TeXML AI calls, durable candidate state, Decision Models scoring, and a live recruiter dashboard.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/candidate-screening-call-agent"
+    },
+    {
+      "folder": "policy-recall-line",
+      "title": "Policy Recall Line — The Handbook Librarian",
+      "description": "A durable, self-refreshing company librarian that answers policy questions from an embedded handbook and keeps a permanent Q&A ledger.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/policy-recall-line"
     }
   ]
 }

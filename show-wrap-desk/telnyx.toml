@@ -1,0 +1,23 @@
+name = "show-wrap-desk"
+main = "src/index.ts"
+compatibility_date = "2026-05-01"
+
+[[actors]]
+binding = "DESKS"
+type = "WrapDesk"
+
+[edge_compute]
+func_id = "f60e0879-50e6-4a53-9198-99bd06b79361"
+func_name = "show-wrap-desk"
+
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[env_vars]
+AI_MODEL = "zai-org/GLM-5.3-Flash"
+EPISODE_URL = "https://archive.org/download/sonnet_116_librivox/sonnet_116_shakespeare_add_64kb.mp3"
+HOST_VOICE = "azure.en-US-AvaMultilingualNeural"
