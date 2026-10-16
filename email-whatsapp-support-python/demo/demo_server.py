@@ -1,8 +1,9 @@
 """Demo server for the Email & WhatsApp customer support dashboard.
 
-Runs the full 5-step damaged-order journey without Telnyx credentials.
-Mock functions replace real API calls; a scripted journey plays out
-via webhook payloads posted to the Flask test client.
+Runs the full damaged-order journey without Telnyx credentials.
+Mock functions replace real API calls; the AI agentic loop in app.py
+runs with scripted inference responses so all outbound actions happen
+automatically from just 2 inbound webhook payloads.
 
 Run from the email-whatsapp-support-python/ directory:
     python demo/demo_server.py
@@ -24,7 +25,7 @@ if _PROJECT_ROOT not in sys.path:
 
 # Hermetic demo environment — set BEFORE importing app.
 os.environ.setdefault("TELNYX_API_KEY", "demo_dummy_key")
-os.environ.setdefault("TELNYX_EMAIL_FROM", "support@telnyxdemo.com")
+os.environ.setdefault("TELNYX_EMAIL_FROM", "harpreet@telnyx.com")
 os.environ.setdefault("WHATSAPP_NUMBER", "+15550001234")
 os.environ.setdefault("MESSAGING_PROFILE_ID", "demo_profile_id")
 os.environ.setdefault("DB_PATH", os.path.join(_PROJECT_ROOT, "demo_support.db"))
@@ -74,15 +75,266 @@ def _mock_send_whatsapp(to_number, text, template=None, media_url=None):
 
 
 # ---------------------------------------------------------------------------
+# Mock AI Inference — scripted tool calls for the demo journey
+# ---------------------------------------------------------------------------
+_demo_step = "start"
+
+
+def _mock_call_inference(messages):
+    """Return scripted responses that drive the 5-step demo journey.
+
+    The agentic loop in app.py calls this instead of the real Telnyx API.
+    We inspect the user message to determine which step we're on, then
+    return pre-built tool_calls that the loop executes automatically.
+    """
+    global _demo_step
+    time.sleep(1.5)  # Simulate inference latency
+
+    user_content = ""
+    has_tool_results = False
+    for m in messages:
+        if m.get("role") == "user":
+            user_content = m.get("content", "")
+        if m.get("role") == "tool":
+            has_tool_results = True
+
+    # --- Email inbound: first call → tool calls ---
+    if "Inbound email from customer" in user_content and "Handle this customer email" in user_content:
+        if has_tool_results:
+            # Tools already executed, finish the loop
+            return {
+                "choices": [{
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": "I've acknowledged Maria's email, updated the order status, and sent a WhatsApp message requesting a damage photo.",
+                    },
+                }],
+            }
+        _demo_step = "email_processed"
+        return {
+            "choices": [{
+                "finish_reason": "tool_calls",
+                "message": {
+                    "role": "assistant",
+                    "content": "I'll acknowledge the damage report via email, update the order status, and request a photo via WhatsApp.",
+                    "tool_calls": [
+                        {
+                            "id": "call_email_ack",
+                            "type": "function",
+                            "function": {
+                                "name": "send_email",
+                                "arguments": json.dumps({
+                                    "to_email": "maria.santos@example.com",
+                                    "subject": "Re: Damaged Order \u2014 ORD-2024-7891",
+                                    "body": (
+                                        "Dear Maria,\n\n"
+                                        "Thank you for contacting us about your damaged order ORD-2024-7891. "
+                                        "We're sorry to hear about the condition of your Wireless Noise-Cancelling Headphones.\n\n"
+                                        "To expedite your replacement, we'll reach out to you on WhatsApp "
+                                        "to collect a photo of the damage. Please have your phone ready.\n\n"
+                                        "Reference: SR-2024-0456\n\n"
+                                        "Best regards,\n"
+                                        "TelnyxDemo Corp Support"
+                                    ),
+                                }),
+                            },
+                        },
+                        {
+                            "id": "call_order_damage",
+                            "type": "function",
+                            "function": {
+                                "name": "update_order",
+                                "arguments": json.dumps({
+                                    "order_id": "ORD-2024-7891",
+                                    "status": "damage_reported",
+                                }),
+                            },
+                        },
+                        {
+                            "id": "call_wa_photo_req",
+                            "type": "function",
+                            "function": {
+                                "name": "send_whatsapp",
+                                "arguments": json.dumps({
+                                    "to_number": "+31626781895",
+                                    "text": (
+                                        "Hi Maria! This is TelnyxDemo Corp Support regarding your "
+                                        "damaged order ORD-2024-7891.\n\n"
+                                        "Could you please send us a photo of the damaged headphones? "
+                                        "This will help us process your replacement quickly."
+                                    ),
+                                }),
+                            },
+                        },
+                    ],
+                },
+            }],
+        }
+
+    # --- WhatsApp photo inbound: first call → tool calls ---
+    if "Inbound WhatsApp message from customer" in user_content and "Handle this WhatsApp message" in user_content:
+        if has_tool_results:
+            # Check if resolve_case was already called
+            for m in messages:
+                if m.get("role") == "tool":
+                    try:
+                        result = json.loads(m.get("content", "{}"))
+                        if result.get("status") == "resolved":
+                            return {
+                                "choices": [{
+                                    "finish_reason": "stop",
+                                    "message": {
+                                        "role": "assistant",
+                                        "content": "Case resolved. Maria's replacement headphones have been shipped and she's been notified via both WhatsApp and email.",
+                                    },
+                                }],
+                            }
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+            # Second round of tools: shipping email + resolve
+            _demo_step = "resolving"
+            return {
+                "choices": [{
+                    "finish_reason": "tool_calls",
+                    "message": {
+                        "role": "assistant",
+                        "content": "Now I'll send the shipping confirmation email and close the case.",
+                        "tool_calls": [
+                            {
+                                "id": "call_ship_email",
+                                "type": "function",
+                                "function": {
+                                    "name": "send_email",
+                                    "arguments": json.dumps({
+                                        "to_email": "maria.santos@example.com",
+                                        "subject": "Replacement Shipped \u2014 ORD-2024-7891",
+                                        "body": (
+                                            "Dear Maria,\n\n"
+                                            "Great news! Your replacement Wireless Noise-Cancelling Headphones "
+                                            "have been shipped.\n\n"
+                                            "Replacement Tracking: 1Z999AA10987654321\n"
+                                            "Estimated Delivery: 2-3 business days\n\n"
+                                            "No need to return the damaged pair \u2014 you can recycle or dispose "
+                                            "of it at your convenience.\n\n"
+                                            "Reference: SR-2024-0456\n\n"
+                                            "Thank you for your patience, and we apologize for the inconvenience.\n\n"
+                                            "Best regards,\n"
+                                            "TelnyxDemo Corp Support"
+                                        ),
+                                    }),
+                                },
+                            },
+                            {
+                                "id": "call_order_resolved",
+                                "type": "function",
+                                "function": {
+                                    "name": "update_order",
+                                    "arguments": json.dumps({
+                                        "order_id": "ORD-2024-7891",
+                                        "status": "resolved",
+                                    }),
+                                },
+                            },
+                            {
+                                "id": "call_resolve",
+                                "type": "function",
+                                "function": {
+                                    "name": "resolve_case",
+                                    "arguments": json.dumps({
+                                        "summary": (
+                                            "Damaged-order support completed across Email & WhatsApp:\n"
+                                            "1. Customer reported damaged headphones via email\n"
+                                            "2. Acknowledged via email, requested photo via WhatsApp\n"
+                                            "3. Customer sent damage photo via WhatsApp\n"
+                                            "4. Replacement approved and confirmed via WhatsApp\n"
+                                            "5. Shipping confirmation sent via email\n"
+                                            "Order ORD-2024-7891: delivered \u2192 damage_reported \u2192 replacement_shipping \u2192 resolved"
+                                        ),
+                                    }),
+                                },
+                            },
+                        ],
+                    },
+                }],
+            }
+        # First round: photo received → update order + confirm replacement on WA
+        _demo_step = "wa_photo_processed"
+        return {
+            "choices": [{
+                "finish_reason": "tool_calls",
+                "message": {
+                    "role": "assistant",
+                    "content": "I can see the damage photo. I'll update the order, confirm the replacement via WhatsApp, and prepare the shipping confirmation.",
+                    "tool_calls": [
+                        {
+                            "id": "call_order_photo",
+                            "type": "function",
+                            "function": {
+                                "name": "update_order",
+                                "arguments": json.dumps({
+                                    "order_id": "ORD-2024-7891",
+                                    "damage_photo_url": "https://example.com/damage-photo-001.jpg",
+                                }),
+                            },
+                        },
+                        {
+                            "id": "call_wa_confirm",
+                            "type": "function",
+                            "function": {
+                                "name": "send_whatsapp",
+                                "arguments": json.dumps({
+                                    "to_number": "+31626781895",
+                                    "text": (
+                                        "Thank you for the photo, Maria. We can clearly see the damage "
+                                        "and have approved a replacement.\n\n"
+                                        "A new pair of Wireless Noise-Cancelling Headphones will be "
+                                        "shipped to you today. You'll receive a shipping confirmation "
+                                        "email shortly with tracking details."
+                                    ),
+                                }),
+                            },
+                        },
+                        {
+                            "id": "call_order_shipping",
+                            "type": "function",
+                            "function": {
+                                "name": "update_order",
+                                "arguments": json.dumps({
+                                    "order_id": "ORD-2024-7891",
+                                    "status": "replacement_shipping",
+                                    "replacement_tracking": "1Z999AA10987654321",
+                                }),
+                            },
+                        },
+                    ],
+                },
+            }],
+        }
+
+    # Default fallback
+    return {
+        "choices": [{
+            "finish_reason": "stop",
+            "message": {
+                "role": "assistant",
+                "content": "Processing complete.",
+            },
+        }],
+    }
+
+
+# ---------------------------------------------------------------------------
 # Import and patch the real app
 # ---------------------------------------------------------------------------
 import app as real_app  # noqa: E402
 
 real_app.init_db()
 
-# Patch channel functions with mocks
+# Patch channel functions and inference with mocks
 real_app.send_email = _mock_send_email
 real_app.send_whatsapp = _mock_send_whatsapp
+real_app.call_inference = _mock_call_inference
 
 from app import app  # noqa: E402
 from flask import jsonify  # noqa: E402
@@ -95,7 +347,7 @@ DEMO_CUSTOMER = {
     "id": "cust_maria_santos",
     "name": "Maria Santos",
     "email": "maria.santos@example.com",
-    "phone": "+15551234567",
+    "phone": "+31626781895",
 }
 
 DEMO_ORDER = {
@@ -107,10 +359,19 @@ DEMO_ORDER = {
 
 
 # ---------------------------------------------------------------------------
-# Scripted 5-step journey
+# Simplified journey — only sends 2 inbound webhook payloads.
+# The AI agentic loop (with mock inference) handles all outbound steps.
 # ---------------------------------------------------------------------------
 def _run_demo_journey():
-    """Simulate the full customer support journey via webhook payloads."""
+    """Simulate the customer support journey via webhook payloads.
+
+    Only 2 actions are scripted: the inbound email and the inbound WhatsApp
+    photo. Everything else (email ack, WhatsApp photo request, replacement
+    confirmation, shipping email, order updates) happens automatically via
+    the AI agentic loop in app.py.
+    """
+    global _demo_step
+    _demo_step = "start"
     client = app.test_client()
 
     # Register the customer
@@ -148,9 +409,13 @@ def _run_demo_journey():
     time.sleep(2)
 
     # -----------------------------------------------------------------------
-    # Step 1a: Maria emails about damaged headphones (inbound email)
+    # Step 1: Maria emails about damaged headphones (inbound email)
+    # The agentic loop will automatically:
+    #   - Send acknowledgment email
+    #   - Update order status to damage_reported
+    #   - Send WhatsApp message requesting damage photo
     # -----------------------------------------------------------------------
-    print("\n  [Step 1a] Inbound email — Maria reports damage...")
+    print("\n  [Step 1] Inbound email — Maria reports damage...")
     real_app.sse_publish("journey.progress", {"step": 1})
     time.sleep(0.5)
 
@@ -159,7 +424,7 @@ def _run_demo_journey():
             "event_type": "email.received",
             "payload": {
                 "from": {"email": DEMO_CUSTOMER["email"]},
-                "subject": "Damaged Order — ORD-2024-7891",
+                "subject": "Damaged Order \u2014 ORD-2024-7891",
                 "body": (
                     "Hi,\n\n"
                     "I received my order ORD-2024-7891 (Wireless Noise-Cancelling "
@@ -172,78 +437,22 @@ def _run_demo_journey():
         },
     })
 
-    # Update order status
-    real_app.update_order(DEMO_ORDER["id"], status="damage_reported")
-    real_app.sse_publish("order.update", {
-        "order": {
-            **DEMO_ORDER,
-            "customer_id": DEMO_CUSTOMER["id"],
-            "status": "damage_reported",
-            "damage_photo_url": None,
-            "replacement_tracking": None,
-        },
-    })
-    time.sleep(3)
-
-    # -----------------------------------------------------------------------
-    # Step 1b: Auto-acknowledgment email (outbound email)
-    # -----------------------------------------------------------------------
-    print("  [Step 1b] Outbound email — acknowledgment...")
-    ack_subject = "Re: Damaged Order — ORD-2024-7891"
-    ack_body = (
-        "Dear Maria,\n\n"
-        "Thank you for contacting us about your damaged order ORD-2024-7891. "
-        "We're sorry to hear about the condition of your headphones.\n\n"
-        "To expedite your replacement, we'll reach out to you on WhatsApp "
-        "to collect a photo of the damage. Please have your phone ready.\n\n"
-        "Reference: SR-2024-0456\n\n"
-        "Best regards,\n"
-        "TelnyxDemo Corp Support"
-    )
-    _mock_send_email(DEMO_CUSTOMER["email"], ack_subject, ack_body)
-    real_app.store_message(
-        DEMO_CUSTOMER["id"], "email", "assistant",
-        f"Subject: {ack_subject}\n{ack_body}",
-    )
-    real_app.sse_publish("channel.email", {
-        "direction": "outbound",
-        "from": "support@telnyxdemo.com",
-        "subject": ack_subject,
-        "body": ack_body,
-        "customer": DEMO_CUSTOMER,
-    })
-    time.sleep(3)
-
-    # -----------------------------------------------------------------------
-    # Step 2: WhatsApp template message requesting damage photo (outbound WA)
-    # -----------------------------------------------------------------------
-    print("  [Step 2] Outbound WhatsApp — requesting damage photo...")
-    real_app.sse_publish("journey.progress", {"step": 2})
-    time.sleep(0.5)
-
-    wa_request_text = (
-        "Hi Maria! This is TelnyxDemo Corp Support regarding your "
-        "damaged order ORD-2024-7891.\n\n"
-        "Could you please send us a photo of the damaged headphones? "
-        "This will help us process your replacement quickly."
-    )
-    _mock_send_whatsapp(DEMO_CUSTOMER["phone"], wa_request_text)
-    real_app.store_message(
-        DEMO_CUSTOMER["id"], "whatsapp", "assistant", wa_request_text,
-    )
-    real_app.sse_publish("channel.whatsapp", {
-        "direction": "outbound",
-        "text": wa_request_text,
-        "customer": DEMO_CUSTOMER,
-        "customer_name": DEMO_CUSTOMER["name"],
-    })
-    time.sleep(3)
-
-    # -----------------------------------------------------------------------
-    # Step 3: Maria sends photo + description via WhatsApp (inbound WA)
-    # -----------------------------------------------------------------------
-    print("  [Step 3] Inbound WhatsApp — Maria sends damage photo...")
+    # Wait for the agentic loop to finish processing
+    time.sleep(8)
     real_app.sse_publish("journey.progress", {"step": 3})
+
+    # -----------------------------------------------------------------------
+    # Step 2: Maria sends photo + description via WhatsApp (inbound WA)
+    # The agentic loop will automatically:
+    #   - Update order with damage photo URL
+    #   - Confirm replacement on WhatsApp
+    #   - Update order to replacement_shipping
+    #   - Send shipping confirmation email
+    #   - Update order to resolved
+    #   - Resolve the case
+    # -----------------------------------------------------------------------
+    print("\n  [Step 2] Inbound WhatsApp — Maria sends damage photo...")
+    real_app.sse_publish("journey.progress", {"step": 4})
     time.sleep(0.5)
 
     client.post("/webhooks/whatsapp", json={
@@ -260,121 +469,11 @@ def _run_demo_journey():
         },
     })
 
-    # Update order with damage photo
-    real_app.update_order(DEMO_ORDER["id"], damage_photo_url="https://example.com/damage-photo-001.jpg")
-    real_app.sse_publish("order.update", {
-        "order": {
-            **DEMO_ORDER,
-            "customer_id": DEMO_CUSTOMER["id"],
-            "status": "damage_reported",
-            "damage_photo_url": "https://example.com/damage-photo-001.jpg",
-            "replacement_tracking": None,
-        },
-    })
-    time.sleep(3)
+    # Wait for the agentic loop to finish
+    time.sleep(12)
 
-    # -----------------------------------------------------------------------
-    # Step 4: Support confirms replacement via WhatsApp (outbound WA)
-    # -----------------------------------------------------------------------
-    print("  [Step 4] Outbound WhatsApp — replacement approved...")
-    real_app.sse_publish("journey.progress", {"step": 4})
-    time.sleep(0.5)
-
-    wa_confirm_text = (
-        "Thank you for the photo, Maria. We can clearly see the damage "
-        "and have approved a replacement.\n\n"
-        "A new pair of Wireless Noise-Cancelling Headphones will be "
-        "shipped to you today. You'll receive a shipping confirmation "
-        "email shortly with tracking details."
-    )
-    _mock_send_whatsapp(DEMO_CUSTOMER["phone"], wa_confirm_text)
-    real_app.store_message(
-        DEMO_CUSTOMER["id"], "whatsapp", "assistant", wa_confirm_text,
-    )
-    real_app.sse_publish("channel.whatsapp", {
-        "direction": "outbound",
-        "text": wa_confirm_text,
-        "customer": DEMO_CUSTOMER,
-        "customer_name": DEMO_CUSTOMER["name"],
-    })
-
-    # Update order status
-    real_app.update_order(DEMO_ORDER["id"], status="replacement_shipping")
-    real_app.sse_publish("order.update", {
-        "order": {
-            **DEMO_ORDER,
-            "customer_id": DEMO_CUSTOMER["id"],
-            "status": "replacement_shipping",
-            "damage_photo_url": "https://example.com/damage-photo-001.jpg",
-            "replacement_tracking": None,
-        },
-    })
-    time.sleep(3)
-
-    # -----------------------------------------------------------------------
-    # Step 5: Shipping confirmation email (outbound email)
-    # -----------------------------------------------------------------------
-    print("  [Step 5] Outbound email — shipping confirmation...")
+    # Mark all progress steps complete
     real_app.sse_publish("journey.progress", {"step": 5})
-    time.sleep(0.5)
-
-    ship_subject = "Replacement Shipped — ORD-2024-7891"
-    ship_body = (
-        "Dear Maria,\n\n"
-        "Great news! Your replacement Wireless Noise-Cancelling Headphones "
-        "have been shipped.\n\n"
-        "Replacement Tracking: 1Z999AA10987654321\n"
-        "Estimated Delivery: 2-3 business days\n\n"
-        "No need to return the damaged pair — you can recycle or dispose "
-        "of it at your convenience.\n\n"
-        "Reference: SR-2024-0456\n\n"
-        "Thank you for your patience, and we apologize for the inconvenience.\n\n"
-        "Best regards,\n"
-        "TelnyxDemo Corp Support"
-    )
-    _mock_send_email(DEMO_CUSTOMER["email"], ship_subject, ship_body)
-    real_app.store_message(
-        DEMO_CUSTOMER["id"], "email", "assistant",
-        f"Subject: {ship_subject}\n{ship_body}",
-    )
-    real_app.sse_publish("channel.email", {
-        "direction": "outbound",
-        "from": "support@telnyxdemo.com",
-        "subject": ship_subject,
-        "body": ship_body,
-        "customer": DEMO_CUSTOMER,
-    })
-
-    # Final order update
-    real_app.update_order(
-        DEMO_ORDER["id"],
-        status="resolved",
-        replacement_tracking="1Z999AA10987654321",
-    )
-    real_app.sse_publish("order.update", {
-        "order": {
-            **DEMO_ORDER,
-            "customer_id": DEMO_CUSTOMER["id"],
-            "status": "resolved",
-            "damage_photo_url": "https://example.com/damage-photo-001.jpg",
-            "replacement_tracking": "1Z999AA10987654321",
-        },
-    })
-    time.sleep(2)
-
-    # Journey complete
-    real_app.sse_publish("journey.complete", {
-        "summary": (
-            "Journey complete! Damaged-order support across Email & WhatsApp:\n\n"
-            "1. Email in  - Maria reported damaged headphones\n"
-            "2. Email out - Auto-acknowledgment, mentioned WhatsApp follow-up\n"
-            "3. WA out    - Requested damage photo\n"
-            "4. WA in     - Maria sent photo + description\n"
-            "5. WA out    - Confirmed replacement approved\n"
-            "6. Email out - Shipping confirmation with tracking\n\n"
-            "Order status: delivered -> damage_reported -> replacement_shipping -> resolved"
-        ),
-    })
     print("\n  Journey complete!")
 
 
@@ -398,6 +497,8 @@ def demo_log():
 @app.route("/demo/reset", methods=["POST"])
 def demo_reset():
     """Reset demo state for a fresh run."""
+    global _demo_step
+    _demo_step = "start"
     _demo_log.clear()
     conn = sqlite3.connect(os.environ["DB_PATH"])
     conn.execute("DELETE FROM conversations")

@@ -30,6 +30,12 @@ from app import app  # noqa: E402
 
 real_app.init_db()
 
+# Patch call_inference so background threads don't hit real API
+def _noop_call_inference(messages):
+    return {"choices": [{"finish_reason": "stop", "message": {"role": "assistant", "content": "Test."}}]}
+
+real_app.call_inference = _noop_call_inference
+
 
 class TestImports(unittest.TestCase):
     """Verify core modules import correctly."""
@@ -39,6 +45,8 @@ class TestImports(unittest.TestCase):
         self.assertTrue(hasattr(app, "app"))
         self.assertTrue(hasattr(app, "init_db"))
         self.assertTrue(hasattr(app, "sse_publish"))
+        self.assertTrue(hasattr(app, "call_inference"))
+        self.assertTrue(hasattr(app, "mask_phone"))
 
     def test_demo_importable(self):
         # Just verify the demo module's path is valid
@@ -126,6 +134,29 @@ class TestDatabase(unittest.TestCase):
         self.assertIsInstance(orders, list)
 
 
+class TestMaskPhone(unittest.TestCase):
+    """Verify phone number masking."""
+
+    def test_mask_normal_number(self):
+        # +31626781895 is 12 chars: first 3 + 5 bullets + last 4
+        self.assertEqual(real_app.mask_phone("+31626781895"), "+31\u2022\u2022\u2022\u2022\u20221895")
+
+    def test_mask_short_number(self):
+        self.assertEqual(real_app.mask_phone("+123"), "+123")
+
+    def test_mask_none(self):
+        self.assertIsNone(real_app.mask_phone(None))
+
+    def test_mask_empty(self):
+        self.assertEqual(real_app.mask_phone(""), "")
+
+    def test_mask_us_number(self):
+        result = real_app.mask_phone("+15551234567")
+        self.assertTrue(result.startswith("+15"))
+        self.assertTrue(result.endswith("4567"))
+        self.assertIn("\u2022", result)
+
+
 class TestWebhooks(unittest.TestCase):
     """Verify webhook handlers process payloads correctly."""
 
@@ -150,7 +181,7 @@ class TestWebhooks(unittest.TestCase):
         })
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
-        self.assertEqual(data["status"], "received")
+        self.assertEqual(data["status"], "processing")
 
     def test_email_webhook_unknown_customer(self):
         resp = self.client.post("/webhooks/email", json={
@@ -183,14 +214,16 @@ class TestWebhooks(unittest.TestCase):
                 "payload": {
                     "direction": "inbound",
                     "from": {"phone_number": "+15558887777"},
-                    "text": "Hello from WhatsApp",
-                    "media": [],
+                    "body": {
+                        "type": "text",
+                        "text": {"body": "Hello from WhatsApp"},
+                    },
                 },
             },
         })
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
-        self.assertEqual(data["status"], "received")
+        self.assertEqual(data["status"], "processing")
 
     def test_whatsapp_webhook_with_media(self):
         resp = self.client.post("/webhooks/whatsapp", json={
@@ -199,10 +232,13 @@ class TestWebhooks(unittest.TestCase):
                 "payload": {
                     "direction": "inbound",
                     "from": {"phone_number": "+15558887777"},
-                    "text": "Photo attached",
-                    "media": [
-                        {"url": "https://example.com/photo.jpg", "content_type": "image/jpeg"},
-                    ],
+                    "body": {
+                        "type": "image",
+                        "image": {
+                            "url": "https://example.com/photo.jpg",
+                            "caption": "Photo attached",
+                        },
+                    },
                 },
             },
         })
@@ -215,7 +251,10 @@ class TestWebhooks(unittest.TestCase):
                 "payload": {
                     "direction": "outbound",
                     "from": {"phone_number": "+15558887777"},
-                    "text": "Outbound",
+                    "body": {
+                        "type": "text",
+                        "text": {"body": "Outbound"},
+                    },
                 },
             },
         })
@@ -270,8 +309,13 @@ class TestDemoJourney(unittest.TestCase):
                 "payload": {
                     "direction": "inbound",
                     "from": {"phone_number": "+15551112222"},
-                    "text": "Here is the damage photo",
-                    "media": [{"url": "https://example.com/photo.jpg"}],
+                    "body": {
+                        "type": "image",
+                        "image": {
+                            "url": "https://example.com/photo.jpg",
+                            "caption": "Here is the damage photo",
+                        },
+                    },
                 },
             },
         })

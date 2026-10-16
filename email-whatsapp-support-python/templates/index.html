@@ -636,33 +636,9 @@ body {
         <div class="header-title"><span class="header-accent">TelnyxDemo</span> Corp</div>
         <div class="header-subtitle">Customer Support &mdash; Email &amp; WhatsApp</div>
     </div>
-    <span id="statusBadge" class="status-badge status-idle">Idle</span>
     <span class="header-spacer"></span>
     <button id="btnRun" class="btn btn-primary" onclick="runJourney()">Run Demo Journey</button>
     <button class="btn btn-secondary" onclick="resetUI()">Reset</button>
-</div>
-
-<!-- Journey Progress Bar -->
-<div class="progress-bar" id="progressBar">
-    <div class="progress-step">
-        <div class="progress-dot" id="pDot1">1<span class="progress-dot-label">Report</span></div>
-    </div>
-    <div class="progress-line" id="pLine1"></div>
-    <div class="progress-step">
-        <div class="progress-dot" id="pDot2">2<span class="progress-dot-label">Request Photo</span></div>
-    </div>
-    <div class="progress-line" id="pLine2"></div>
-    <div class="progress-step">
-        <div class="progress-dot" id="pDot3">3<span class="progress-dot-label">Photo Sent</span></div>
-    </div>
-    <div class="progress-line" id="pLine3"></div>
-    <div class="progress-step">
-        <div class="progress-dot" id="pDot4">4<span class="progress-dot-label">Approved</span></div>
-    </div>
-    <div class="progress-line" id="pLine4"></div>
-    <div class="progress-step">
-        <div class="progress-dot" id="pDot5">5<span class="progress-dot-label">Shipped</span></div>
-    </div>
 </div>
 
 <div class="container">
@@ -738,6 +714,11 @@ function esc(s) {
     return d.innerHTML;
 }
 
+function maskPhone(phone) {
+    if (!phone || phone.length < 6) return phone;
+    return phone.slice(0, 3) + '\u2022'.repeat(phone.length - 7) + phone.slice(-4);
+}
+
 function fmtTime(iso) {
     try {
         return new Date(iso).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -781,7 +762,7 @@ function showCustomer(customer) {
         '<div class="profile-name">' + esc(customer.name) + '</div>' +
         '<div class="profile-id">' + esc(customer.id) + '</div>' +
         '<div class="profile-field"><div class="profile-label">Email</div><div class="profile-value">' + esc(customer.email) + '</div></div>' +
-        '<div class="profile-field"><div class="profile-label">Phone</div><div class="profile-value">' + esc(customer.phone) + '</div></div>' +
+        '<div class="profile-field"><div class="profile-label">Phone</div><div class="profile-value">' + esc(maskPhone(customer.phone)) + '</div></div>' +
         '<div class="profile-field"><div class="profile-label">Customer Since</div><div class="profile-value">' + esc(customer.created_at || 'Today') + '</div></div>';
 }
 
@@ -936,7 +917,7 @@ function connectSSE() {
         /* Email events */
         if (data.type === 'channel.email') {
             const dir = data.direction || 'inbound';
-            const from = dir === 'inbound' ? (data.from || '') : 'support@telnyxdemo.com';
+            const from = dir === 'inbound' ? (data.from || '') : (data.from || 'Support');
             addEmail(dir, from, data.subject || '', data.body || '', ts);
             addTimelineEvent('email', (dir === 'inbound' ? 'Received' : 'Sent') + ': ' + (data.subject || ''), ts);
         }
@@ -951,10 +932,31 @@ function connectSSE() {
             addTimelineEvent('whatsapp', (dir === 'inbound' ? 'Received' : 'Sent') + ': ' + (data.text || '').substring(0, 60), ts);
         }
 
+        /* Status update */
+        if (data.type === 'status.update') {
+            setStatus(data.status || 'running');
+        }
+
         /* Identity resolved */
         if (data.type === 'agent.identity_resolved') {
             const cust = data.customer || {};
+            showCustomer(cust);
             addTimelineEvent('system', 'Identified: ' + (cust.name || 'unknown') + ' via ' + (data.channel || ''), ts);
+        }
+
+        /* AI agent thinking */
+        if (data.type === 'agent.thinking') {
+            addTimelineEvent('system', 'AI: ' + (data.content || '').substring(0, 80), ts);
+        }
+
+        /* AI agent tool call */
+        if (data.type === 'agent.tool_call') {
+            addTimelineEvent('system', 'AI calling: ' + (data.tool || ''), ts);
+        }
+
+        /* AI agent error */
+        if (data.type === 'agent.error') {
+            addTimelineEvent('system', 'Error: ' + (data.error || ''), ts);
         }
 
         /* Journey complete */

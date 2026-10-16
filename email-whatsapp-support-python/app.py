@@ -59,11 +59,15 @@ def sse_publish(event_type, data):
 # Configuration
 # ---------------------------------------------------------------------------
 TELNYX_API_KEY = os.getenv("TELNYX_API_KEY", "")
-TELNYX_EMAIL_FROM = os.getenv("TELNYX_EMAIL_FROM", "")
+TELNYX_EMAIL_API_KEY = os.getenv("TELNYX_EMAIL_API_KEY", "") or TELNYX_API_KEY
+TELNYX_WHATSAPP_API_KEY = os.getenv("TELNYX_WHATSAPP_API_KEY", "") or TELNYX_API_KEY
+TELNYX_EMAIL_FROM = os.getenv("TELNYX_EMAIL_FROM", "harpreet@telnyx.com")
 WHATSAPP_NUMBER = os.getenv("WHATSAPP_NUMBER", "")
 MESSAGING_PROFILE_ID = os.getenv("MESSAGING_PROFILE_ID", "")
 PORT = int(os.getenv("PORT", "5050"))
 DB_PATH = os.getenv("DB_PATH", "support.db")
+INFERENCE_URL = "https://api.telnyx.com/v2/ai/chat/completions"
+AI_MODEL = os.getenv("AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
 
 
 # ---------------------------------------------------------------------------
@@ -257,7 +261,7 @@ def send_email(to_email, subject, body):
     resp = requests.post(
         "https://api.telnyx.com/v2/emails",
         headers={
-            "Authorization": f"Bearer {TELNYX_API_KEY}",
+            "Authorization": f"Bearer {TELNYX_EMAIL_API_KEY}",
             "Content-Type": "application/json",
         },
         json={
@@ -272,24 +276,49 @@ def send_email(to_email, subject, body):
     return resp.json()
 
 
-def send_whatsapp(to_number, text, template=None, media_url=None):
-    """Send a WhatsApp message via the Telnyx Messaging API."""
+def send_whatsapp(to_number, text, template=None, template_params=None, media_url=None):
+    """Send a WhatsApp message via the Telnyx WhatsApp API.
+
+    For business-initiated conversations (no active 24-hour window), use
+    template= with an approved template name and template_params= for
+    the positional parameters.  Once the customer replies the 24-hour
+    freeform window opens and plain text/image messages work.
+    """
     payload = {
         "from": WHATSAPP_NUMBER,
         "to": to_number,
-        "text": text,
-        "messaging_profile_id": MESSAGING_PROFILE_ID,
-        "type": "whatsapp",
     }
-    if media_url:
-        payload["media_urls"] = [media_url]
+
     if template:
-        payload["template"] = template
+        # Business-initiated: use an approved template
+        components = []
+        if template_params:
+            components.append({
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": str(p)} for p in template_params
+                ],
+            })
+        payload["whatsapp_message"] = {
+            "type": "template",
+            "template": {
+                "name": template,
+                "language": {"policy": "deterministic", "code": "en_US"},
+                "components": components,
+            },
+        }
+    elif media_url:
+        payload["whatsapp_message"] = {
+            "type": "image",
+            "image": {"link": media_url, "caption": text},
+        }
+    else:
+        payload["whatsapp_message"] = {"type": "text", "text": {"body": text}}
 
     resp = requests.post(
-        "https://api.telnyx.com/v2/messages",
+        "https://api.telnyx.com/v2/messages/whatsapp",
         headers={
-            "Authorization": f"Bearer {TELNYX_API_KEY}",
+            "Authorization": f"Bearer {TELNYX_WHATSAPP_API_KEY}",
             "Content-Type": "application/json",
         },
         json=payload,
@@ -297,6 +326,330 @@ def send_whatsapp(to_number, text, template=None, media_url=None):
     )
     resp.raise_for_status()
     return resp.json()
+
+
+# ---------------------------------------------------------------------------
+# Phone masking
+# ---------------------------------------------------------------------------
+def mask_phone(phone):
+    """Mask a phone number for dashboard display: +31••••••1895."""
+    if not phone or len(phone) < 6:
+        return phone
+    return phone[:3] + "\u2022" * (len(phone) - 7) + phone[-4:]
+
+
+# ---------------------------------------------------------------------------
+# AI Agentic Loop — system prompt, tools, inference
+# ---------------------------------------------------------------------------
+SYSTEM_PROMPT = """You are an AI customer support agent for TelnyxDemo Corp, handling damaged-order support across Email and WhatsApp channels.
+
+You have access to the customer's full conversation history across both channels. Use this context to provide seamless, cross-channel support.
+
+Guidelines:
+- Use EMAIL for: formal acknowledgments, shipping confirmations with tracking numbers, case summaries
+- Use WHATSAPP for: quick updates, requesting photos of damage, short confirmations
+- Always reference the customer by name
+- When a customer reports damage via email, acknowledge by email AND reach out on WhatsApp to request a damage photo
+- When you receive a damage photo via WhatsApp, confirm replacement approval on WhatsApp, then send shipping confirmation via email
+- Use update_order to track status changes through the pipeline: damage_reported → replacement_shipping → resolved
+- Call resolve_case when the issue is fully resolved
+
+WhatsApp messaging rules:
+- Send plain text WhatsApp messages (do NOT use templates). The customer has already initiated the conversation.
+- If a template is needed in the future, available templates are: 'support_damage_photo' (params: customer_name, order_id) and 'support_replacement_confirm' (params: customer_name, order_id, tracking_number).
+
+Order status pipeline: delivered → damage_reported → replacement_shipping → resolved"""
+
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "send_email",
+            "description": "Send a formal email to the customer. Use for acknowledgments, shipping confirmations, and case summaries.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "to_email": {"type": "string", "description": "Recipient email address"},
+                    "subject": {"type": "string", "description": "Email subject line"},
+                    "body": {"type": "string", "description": "Email body text"},
+                },
+                "required": ["to_email", "subject", "body"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "send_whatsapp",
+            "description": (
+                "Send a WhatsApp message to the customer. "
+                "For the FIRST outbound message to a customer you MUST use a template to initiate the conversation. "
+                "Available templates: "
+                "'support_damage_photo' (params: customer_name, order_id) — request a damage photo. "
+                "'support_replacement_confirm' (params: customer_name, order_id, tracking_number) — confirm replacement shipment. "
+                "After the customer replies, you may send plain text messages without a template."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "to_number": {"type": "string", "description": "Recipient phone number in E.164 format"},
+                    "text": {"type": "string", "description": "Message text (used for plain text messages, ignored when template is set)"},
+                    "template": {"type": "string", "description": "Template name for business-initiated messages: 'support_damage_photo' or 'support_replacement_confirm'"},
+                    "template_params": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Positional parameters for the template (e.g. [customer_name, order_id])",
+                    },
+                },
+                "required": ["to_number"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_order",
+            "description": "Update an order's status or details. Use to track damage reports, attach photos, add replacement tracking, etc.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "order_id": {"type": "string", "description": "The order ID to update"},
+                    "status": {"type": "string", "description": "New status: damage_reported, replacement_shipping, or resolved"},
+                    "damage_photo_url": {"type": "string", "description": "URL of the damage photo"},
+                    "replacement_tracking": {"type": "string", "description": "Tracking number for the replacement shipment"},
+                },
+                "required": ["order_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "resolve_case",
+            "description": "Mark the support case as resolved. Call this when the issue is fully handled.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "summary": {"type": "string", "description": "Brief summary of how the case was resolved"},
+                },
+                "required": ["summary"],
+            },
+        },
+    },
+]
+
+
+def call_inference(messages):
+    """Call the Telnyx AI Inference API and return the raw JSON response."""
+    resp = requests.post(
+        INFERENCE_URL,
+        headers={
+            "Authorization": f"Bearer {TELNYX_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": AI_MODEL,
+            "messages": messages,
+            "tools": TOOLS,
+            "max_tokens": 4096,
+        },
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def execute_tool(tool_name, tool_input, customer):
+    """Route an AI tool call to the appropriate channel function."""
+    if tool_name == "send_email":
+        to_email = tool_input.get("to_email", customer.get("email", ""))
+        subject = tool_input.get("subject", "")
+        body = tool_input.get("body", "")
+        send_email(to_email, subject, body)
+        store_message(customer["id"], "email", "assistant", f"Subject: {subject}\n{body}")
+        sse_publish("channel.email", {
+            "direction": "outbound",
+            "from": TELNYX_EMAIL_FROM,
+            "subject": subject,
+            "body": body,
+            "customer": customer,
+        })
+        return json.dumps({"status": "sent", "channel": "email", "to": to_email})
+
+    if tool_name == "send_whatsapp":
+        to_number = tool_input.get("to_number", customer.get("phone", ""))
+        text = tool_input.get("text", "")
+        template = tool_input.get("template")
+        template_params = tool_input.get("template_params")
+        try:
+            send_whatsapp(to_number, text, template=template, template_params=template_params)
+        except requests.HTTPError:
+            # Template may not be approved yet or window issue — fall back to plain text
+            if template and text:
+                app.logger.warning("Template '%s' failed, falling back to plain text", template)
+                send_whatsapp(to_number, text)
+            elif template and template_params:
+                # Build a plain text version from the template params
+                fallback = f"Hi {template_params[0]}, " + " ".join(str(p) for p in template_params[1:])
+                app.logger.warning("Template '%s' failed, sending fallback text", template)
+                send_whatsapp(to_number, fallback)
+            else:
+                raise
+        display_text = text if not template else f"[Template: {template}] params={template_params}"
+        store_message(customer["id"], "whatsapp", "assistant", display_text)
+        sse_publish("channel.whatsapp", {
+            "direction": "outbound",
+            "text": text,
+            "customer": customer,
+            "customer_name": customer.get("name", ""),
+        })
+        return json.dumps({"status": "sent", "channel": "whatsapp", "to": to_number})
+
+    if tool_name == "update_order":
+        order_id = tool_input.get("order_id", "")
+        fields = {k: v for k, v in tool_input.items() if k != "order_id" and v is not None}
+        if fields:
+            update_order(order_id, **fields)
+        order = get_order(order_id)
+        if order:
+            sse_publish("order.update", {"order": order})
+        return json.dumps({"status": "updated", "order": order})
+
+    if tool_name == "resolve_case":
+        summary = tool_input.get("summary", "Case resolved")
+        sse_publish("journey.complete", {"summary": summary})
+        return json.dumps({"status": "resolved", "summary": summary})
+
+    return json.dumps({"error": f"Unknown tool: {tool_name}"})
+
+
+def process_inbound_email(customer, from_email, subject, body):
+    """Process an inbound email: run the AI agentic loop to generate responses."""
+    history = get_conversation_history(customer["id"])
+    history_text = "\n".join(
+        f"[{msg['channel']}] {msg['role']}: {msg['content']}" for msg in history
+    )
+
+    orders = get_orders_for_customer(customer["id"])
+    orders_text = "\n".join(
+        f"Order {o['id']}: {o['product']} — status: {o['status']}" for o in orders
+    ) if orders else "No orders found."
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                f"Customer: {customer['name']} (email: {customer['email']}, "
+                f"phone: {customer.get('phone', 'N/A')})\n\n"
+                f"Customer orders:\n{orders_text}\n\n"
+                f"Inbound email from customer:\nSubject: {subject}\n{body}\n\n"
+                f"Full conversation history:\n{history_text}\n\n"
+                "Handle this customer email. Acknowledge via email, update order status, "
+                "and reach out on WhatsApp if you need a damage photo."
+            ),
+        },
+    ]
+
+    sse_publish("agent.thinking", {"content": "Processing inbound email and generating reply..."})
+
+    # Agentic loop
+    while True:
+        data = call_inference(messages)
+        choice = data["choices"][0]
+        msg = choice["message"]
+
+        if msg.get("content"):
+            sse_publish("agent.thinking", {"content": msg["content"]})
+
+        if not msg.get("tool_calls"):
+            if msg.get("content"):
+                sse_publish("agent.done", {"content": msg["content"]})
+            break
+
+        messages.append(msg)
+
+        for tc in msg["tool_calls"]:
+            fn = tc["function"]
+            tool_name = fn["name"]
+            tool_input = json.loads(fn.get("arguments", "{}"))
+
+            sse_publish("agent.tool_call", {"tool": tool_name, "input": tool_input})
+            result = execute_tool(tool_name, tool_input, customer)
+            sse_publish("agent.tool_result", {"tool": tool_name, "result": result})
+
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc["id"],
+                "content": result,
+            })
+
+
+def process_inbound_whatsapp(customer, from_number, text, media_urls):
+    """Process an inbound WhatsApp message: run the AI agentic loop to generate responses."""
+    history = get_conversation_history(customer["id"])
+    history_text = "\n".join(
+        f"[{msg['channel']}] {msg['role']}: {msg['content']}" for msg in history
+    )
+
+    orders = get_orders_for_customer(customer["id"])
+    orders_text = "\n".join(
+        f"Order {o['id']}: {o['product']} — status: {o['status']}" for o in orders
+    ) if orders else "No orders found."
+
+    media_info = ""
+    if media_urls:
+        media_info = f"\nAttached media: {', '.join(media_urls)}"
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                f"Customer: {customer['name']} (email: {customer['email']}, "
+                f"phone: {customer.get('phone', 'N/A')})\n\n"
+                f"Customer orders:\n{orders_text}\n\n"
+                f"Inbound WhatsApp message from customer:\n{text}{media_info}\n\n"
+                f"Full conversation history:\n{history_text}\n\n"
+                "Handle this WhatsApp message. If a damage photo was received, "
+                "update the order with the photo URL, confirm replacement on WhatsApp, "
+                "and send shipping confirmation via email."
+            ),
+        },
+    ]
+
+    sse_publish("agent.thinking", {"content": "Processing inbound WhatsApp message..."})
+
+    # Agentic loop
+    while True:
+        data = call_inference(messages)
+        choice = data["choices"][0]
+        msg = choice["message"]
+
+        if msg.get("content"):
+            sse_publish("agent.thinking", {"content": msg["content"]})
+
+        if not msg.get("tool_calls"):
+            if msg.get("content"):
+                sse_publish("agent.done", {"content": msg["content"]})
+            break
+
+        messages.append(msg)
+
+        for tc in msg["tool_calls"]:
+            fn = tc["function"]
+            tool_name = fn["name"]
+            tool_input = json.loads(fn.get("arguments", "{}"))
+
+            sse_publish("agent.tool_call", {"tool": tool_name, "input": tool_input})
+            result = execute_tool(tool_name, tool_input, customer)
+            sse_publish("agent.tool_result", {"tool": tool_name, "result": result})
+
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc["id"],
+                "content": result,
+            })
 
 
 # ---------------------------------------------------------------------------
@@ -327,11 +680,18 @@ def handle_email():
     if not customer:
         return jsonify({"status": "unknown_customer"}), 200
 
+    sse_publish("status.update", {"status": "running"})
+    sse_publish("customer.registered", {"customer": customer})
     sse_publish("agent.identity_resolved", {
         "channel": "email",
         "customer": customer,
         "identifier": from_email,
     })
+
+    # Publish order info if available
+    orders = get_orders_for_customer(customer["id"])
+    if orders:
+        sse_publish("order.update", {"order": orders[0]})
 
     store_message(
         customer["id"], "email", "user",
@@ -345,7 +705,16 @@ def handle_email():
         "customer": customer,
     })
 
-    return jsonify({"status": "received"}), 200
+    # Process in background thread so webhook returns fast
+    def _process():
+        try:
+            process_inbound_email(customer, from_email, subject, body)
+        except Exception as exc:
+            app.logger.error("Email processing failed: %s", exc)
+            sse_publish("agent.error", {"error": str(exc)})
+
+    threading.Thread(target=_process, daemon=True).start()
+    return jsonify({"status": "processing"}), 200
 
 
 @app.route("/webhooks/whatsapp", methods=["POST"])
@@ -366,8 +735,21 @@ def handle_whatsapp():
         return jsonify({"status": "ignored"}), 200
 
     from_number = p.get("from", {}).get("phone_number", "")
-    text = p.get("text", "")
-    media = p.get("media", [])
+    body = p.get("body", {})
+    msg_type = body.get("type", "text")
+
+    # Extract text — location depends on message type
+    if msg_type == "text":
+        text = body.get("text", {}).get("body", "") if isinstance(body.get("text"), dict) else body.get("text", "")
+    else:
+        text = body.get("caption", "") or body.get(msg_type, {}).get("caption", "") or ""
+
+    # Extract media URL from image/video/document/audio types
+    media_urls = []
+    for mtype in ("image", "video", "document", "audio"):
+        media_obj = body.get(mtype, {})
+        if isinstance(media_obj, dict) and media_obj.get("url"):
+            media_urls.append(media_obj["url"])
 
     if not from_number:
         return jsonify({"status": "ignored"}), 200
@@ -376,27 +758,41 @@ def handle_whatsapp():
     if not customer:
         return jsonify({"status": "unknown_customer"}), 200
 
+    sse_publish("status.update", {"status": "running"})
+    sse_publish("customer.registered", {"customer": customer})
     sse_publish("agent.identity_resolved", {
         "channel": "whatsapp",
         "customer": customer,
         "identifier": from_number,
     })
 
-    media_urls = [m.get("url", "") for m in media if m.get("url")]
     content = text
     if media_urls:
-        content += "\n[Attachments: " + ", ".join(media_urls) + "]"
+        content += ("\n" if content else "") + "[Attachments: " + ", ".join(media_urls) + "]"
+    if not content:
+        content = f"[{msg_type} message received]"
 
     store_message(customer["id"], "whatsapp", "user", content)
+    display_text = text or (f"[Photo attached]" if media_urls else f"[{msg_type} message]")
     sse_publish("channel.whatsapp", {
         "direction": "inbound",
         "from": from_number,
-        "text": text,
+        "text": display_text,
+        "media_url": media_urls[0] if media_urls else None,
         "media_urls": media_urls,
         "customer": customer,
     })
 
-    return jsonify({"status": "received"}), 200
+    # Process in background thread so webhook returns fast
+    def _process():
+        try:
+            process_inbound_whatsapp(customer, from_number, text, media_urls)
+        except Exception as exc:
+            app.logger.error("WhatsApp processing failed: %s", exc)
+            sse_publish("agent.error", {"error": str(exc)})
+
+    threading.Thread(target=_process, daemon=True).start()
+    return jsonify({"status": "processing"}), 200
 
 
 # ---------------------------------------------------------------------------
@@ -414,6 +810,19 @@ def health():
 @app.route("/customers", methods=["GET"])
 def api_list_customers():
     return jsonify(list_customers())
+
+
+@app.route("/customers/register", methods=["POST"])
+def api_register_customer():
+    """Register a new customer via API."""
+    data = request.get_json()
+    if not data or not data.get("id") or not data.get("name"):
+        return jsonify({"error": "id and name are required"}), 400
+    customer = register_customer(
+        data["id"], data["name"],
+        email=data.get("email"), phone=data.get("phone"),
+    )
+    return jsonify(customer), 201
 
 
 @app.route("/conversations", methods=["GET"])
