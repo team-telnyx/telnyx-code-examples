@@ -1,0 +1,7 @@
+# Verified against telnyx 2.4.x. The SDK's webhook verification surface
+# (telnyx.Webhook.construct_event) and the HTTP client (telnyx.post/telnyx.get)
+# are stable across the 2.x line; pin below 3.0 to avoid silent breakage.
+flask>=3.0.0,<4.0.0
+telnyx>=2.4.0,<2.5.0
+python-dotenv>=1.0.0,<2.0.0
+pytest>=8.0.0,<9.0.0
