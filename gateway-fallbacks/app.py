@@ -513,7 +513,8 @@ def route_ledger() -> tuple[dict, int]:
         start = _require_iso_date(request.args.get("start_date"), "start_date")
         end = _require_iso_date(request.args.get("end_date"), "end_date")
     except ValueError as exc:
-        return {"error": str(exc)}, 400
+        app.logger.warning("ledger validation failed", exc_info=exc)
+        return {"error": "invalid request parameters"}, 400
     if DEMO_MODE:
         return {"events": []}, 200
     try:
