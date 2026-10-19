@@ -3520,6 +3520,9 @@ examples:
     language: python
     framework: flask
     folder: whatsapp-coexistence-sync-monitor
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
     language: typescript
     framework: edge
     folder: show-wrap-desk
@@ -3539,5 +3542,5 @@ examples:
   - product: ai
     use_case: "auto-generated-from-linear"
     language: python
-    framework: flask
+    framework: ""
     folder: gateway-fallbacks

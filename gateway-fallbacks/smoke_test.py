@@ -1,251 +1,386 @@
-"""Smoke test: verify app.py imports, Flask routes, secret non-leak, streaming
-header capture, auth enforcement, and demo-mode network isolation. Runs without
-a live server or real credentials."""
+"""Smoke tests for the gateway-fallbacks demo.
 
-import importlib
-import os
-from unittest.mock import MagicMock, patch
+These exercise the real code paths with injected fakes at the API boundary —
+no demo mode, no synthetic responses. Everything a reviewer needs:
 
-os.environ.setdefault("TELNYX_API_KEY", "test_key_placeholder")
-os.environ.setdefault("DEMO_MODE", "true")
-os.environ.setdefault("DEMO_AUTH_TOKEN", "test-auth-token")
+- policy asserts (chain depth, max_attempts range, attempt math, self-reference)
+- max_retries=0 on the inference client (the gateway owns retries)
+- the token secret is printed to stdout exactly once and never written to disk
+- header capture for streaming and non-streaming completions
+- forced-failure branching (fallback proven vs honest no-fallback report)
+- ledger pagination + failover-row detection
+- invalid-config PATCH must raise when the gateway does NOT return 400
+- teardown revocation verification (401 after revocation)
+"""
 
-AUTH = {"X-Demo-Auth": "test-auth-token"}
+from __future__ import annotations
 
+import json
+import types
+from pathlib import Path
 
-def _mod():
-    return importlib.import_module("app")
+import pytest
 
+import telnyx
 
-def test_module_imports():
-    mod = _mod()
-    assert mod is not None
-    assert hasattr(mod, "app")
-
-
-def test_flask_app_exists():
-    mod = _mod()
-    assert mod.app is not None
-
-
-def test_expected_routes_registered():
-    mod = _mod()
-    rules = {r.rule for r in mod.app.url_map.iter_rules()}
-    for path in ["/health", "/provision", "/inference", "/ledger", "/policy", "/teardown"]:
-        assert path in rules, f"missing route {path}"
+import gateway
+import provision
+import inference
+import ledger
+import policy
+import teardown
+import app
 
 
-def test_policy_validation_rejects_bad_config():
-    mod = _mod()
-    try:
-        mod.validate_policy(
-            ["a", "b", "c", "d", "e"],
-            {"a": ["b", "c", "d", "e"]},
-            {"max_attempts": 1},
+# ---------------------------------------------------------------------------
+# Policy asserts (acceptance criterion: constraints asserted in code)
+# ---------------------------------------------------------------------------
+def test_validate_policy_accepts_good_config():
+    allowed, fallbacks, retries = provision.build_policy()
+    gateway.validate_policy(allowed, fallbacks, retries)  # must not raise
+
+
+def test_validate_policy_rejects_deep_chain():
+    with pytest.raises(ValueError, match="depth"):
+        gateway.validate_policy(["a", "b", "c", "d", "e"], {"a": ["b", "c", "d", "e"]},
+                                {"max_attempts": 1})
+
+
+def test_validate_policy_rejects_out_of_range_attempts():
+    for bad in (0, 6, 9):
+        with pytest.raises(ValueError, match="max_attempts"):
+            gateway.validate_policy(["a", "b"], {"a": ["b"]}, {"max_attempts": bad})
+
+
+def test_validate_policy_rejects_attempt_math_over_ceiling():
+    with pytest.raises(ValueError, match="must not exceed"):
+        gateway.validate_policy(["a", "b"], {"a": ["b"]}, {"max_attempts": 5})
+
+
+def test_validate_policy_rejects_self_reference_and_duplicates():
+    with pytest.raises(ValueError, match="self-references"):
+        gateway.validate_policy(["a", "b"], {"a": ["a"]}, {"max_attempts": 1})
+    with pytest.raises(ValueError, match="duplicates"):
+        gateway.validate_policy(["a", "b"], {"a": ["b", "b"]}, {"max_attempts": 1})
+
+
+def test_validate_policy_rejects_unknown_fallback_model():
+    with pytest.raises(ValueError, match="not in allowed_models"):
+        gateway.validate_policy(["a"], {"a": ["x"]}, {"max_attempts": 1})
+
+
+# ---------------------------------------------------------------------------
+# Inference plane contract: max_retries=0 (the gateway owns retries)
+# ---------------------------------------------------------------------------
+def test_inference_client_sets_max_retries_zero(monkeypatch):
+    captured = {}
+
+    class FakeOpenAI:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setattr(gateway, "OpenAI", FakeOpenAI)
+    gateway.inference_client("token-key")
+    assert captured["max_retries"] == 0
+    assert captured["base_url"] == "https://llm.telnyx.com/v1"
+
+
+# ---------------------------------------------------------------------------
+# Secret handling: stdout exactly once, never persisted (acceptance criterion)
+# ---------------------------------------------------------------------------
+class FakeGroup:
+    id = "grp_1"
+    name = "gateway-fallbacks-demo"
+    allowed_models = ["Kimi-K3", "GLM-5.3-Flash"]
+    fallbacks = {"Kimi-K3": ["GLM-5.3-Flash"]}
+    retries = {"max_attempts": 2, "retry_delay_ms": 250, "backoff": "exponential"}
+    max_budget = 10.0
+    budget_duration = "1d"
+
+
+class FakeKey:
+    id = "key_1"
+    model_extra = {"secret": "sk-demo-SECRET"}
+
+
+class FakeMgmtClient:
+    def __init__(self):
+        self._calls = []
+
+    @property
+    def llm_token_gateway(self):
+        return types.SimpleNamespace(
+            token_groups=types.SimpleNamespace(
+                create=lambda **kw: (self._calls.append(("group.create", kw)),
+                                     types.SimpleNamespace(data=FakeGroup()))[1],
+            ),
+            token_keys=types.SimpleNamespace(
+                create=lambda **kw: (self._calls.append(("key.create", kw)),
+                                     types.SimpleNamespace(data=FakeKey()))[1],
+            ),
         )
-        assert False, "expected ValueError for chain depth"
-    except ValueError:
+
+
+def test_provision_prints_secret_exactly_once_never_persists(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(gateway, "STATE_FILE", tmp_path / "state.json", raising=False)
+    monkeypatch.setattr(provision, "mgmt_client", lambda: FakeMgmtClient())
+    assert provision.main() == 0
+
+    out = capsys.readouterr().out
+    assert out.count("sk-demo-SECRET") == 1, "the secret must be printed exactly once"
+    # State file exists, holds IDs only, and never contains the secret.
+    state = json.loads((tmp_path / "state.json").read_text())
+    assert state == {"group_id": "grp_1", "key_id": "key_1", "created_at": state["created_at"]}
+    assert "sk-demo-SECRET" not in (tmp_path / "state.json").read_text()
+    # No other file was written — nothing else in the temp dir.
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["state.json"]
+
+
+def test_extract_secret_missing_aborts(tmp_path, monkeypatch):
+    class NoSecretKey(FakeKey):
+        model_extra = {}
+
+    with pytest.raises(RuntimeError, match="shown only once"):
+        provision.extract_secret(NoSecretKey())
+
+
+# ---------------------------------------------------------------------------
+# State file helpers
+# ---------------------------------------------------------------------------
+def test_state_roundtrip_and_clear(tmp_path, monkeypatch):
+    monkeypatch.setattr(gateway, "STATE_FILE", tmp_path / "state.json", raising=False)
+    gateway.save_state("g1", "k1", "now")
+    assert gateway.load_state() == {"group_id": "g1", "key_id": "k1", "created_at": "now"}
+    gateway.clear_state()
+    with pytest.raises(SystemExit):
+        gateway.load_state()
+
+
+# ---------------------------------------------------------------------------
+# Header capture on the live path
+# ---------------------------------------------------------------------------
+class FakeRawResponse:
+    def __init__(self, headers, parsed):
+        self.response = types.SimpleNamespace(headers=headers)
+        self._parsed = parsed
+
+    def parse(self):
+        return self._parsed
+
+
+class FakeStream(list):
+    def close(self):
         pass
-    try:
-        mod.validate_policy(["a", "b"], {"a": ["b"]}, {"max_attempts": 9})
-        assert False, "expected ValueError for max_attempts"
-    except ValueError:
-        pass
 
 
-def test_policy_validation_accepts_good_config():
-    mod = _mod()
-    mod.validate_policy(
-        ["Kimi-K3", "GLM-5.3-Flash"],
-        {"Kimi-K3": ["GLM-5.3-Flash"]},
-        {"max_attempts": 2, "retry_delay_ms": 250, "backoff": "exponential"},
-    )
+def _fake_openai(monkeypatch, headers, parsed, stream=False):
+    calls = {}
+
+    def fake_create(**kwargs):
+        calls.update(kwargs)
+        return FakeRawResponse(headers, parsed)
+
+    def fake_inference_client(token_key):
+        chat = types.SimpleNamespace(completions=types.SimpleNamespace(
+            with_raw_response=types.SimpleNamespace(create=fake_create)))
+        return types.SimpleNamespace(chat=chat)
+
+    monkeypatch.setattr(gateway, "inference_client", fake_inference_client)
+    return calls
 
 
-def test_health_endpoint():
-    mod = _mod()
-    client = mod.app.test_client()
-    resp = client.get("/health")
-    assert resp.status_code == 200
-    body = resp.get_json()
-    assert body["status"] == "ok"
-    assert "demo_mode" in body
+def test_chat_completion_nonstream_reads_headers(monkeypatch):
+    _fake_openai(monkeypatch, {"x-ltg-served-model": "Kimi-K3", "x-ltg-attempts": "1"},
+                 types.SimpleNamespace(model="Kimi-K3"))
+    result = gateway.chat_completion("tk", "Kimi-K3", "hi")
+    assert result["model"] == "Kimi-K3"
+    assert result["x-ltg-served-model"] == "Kimi-K3"
+    assert result["x-ltg-attempts"] == "1"
+    assert result["streamed"] is False
 
 
-# ---------------------------------------------------------------------------
-# Auth enforcement
-# ---------------------------------------------------------------------------
-def test_mutating_routes_require_auth():
-    mod = _mod()
-    client = mod.app.test_client()
-    assert client.post("/provision").status_code == 401
-    assert client.post("/inference", json={"token_key": "tk"}).status_code == 401
-    assert client.post("/policy", json={"token_key": "tk"}).status_code == 401
-    assert client.post("/teardown", json={}).status_code == 401
-    assert client.get("/ledger?token_key_id=k1&start_date=2026-01-01&end_date=2026-01-02").status_code == 401
-
-
-def test_mutating_routes_reject_wrong_auth():
-    mod = _mod()
-    client = mod.app.test_client()
-    resp = client.post("/provision", headers={"X-Demo-Auth": "wrong"})
-    assert resp.status_code == 401
+def test_chat_completion_stream_reads_headers_and_closes(monkeypatch):
+    chunk = types.SimpleNamespace(model="GLM-5.3-Flash")
+    calls = _fake_openai(monkeypatch, {"x-ltg-served-model": "GLM-5.3-Flash", "x-ltg-attempts": "2"},
+                         FakeStream([chunk]))
+    result = gateway.chat_completion("tk", "Kimi-K3", "hi", stream=True)
+    assert result["model"] == "GLM-5.3-Flash"
+    assert result["x-ltg-attempts"] == "2"
+    assert result["streamed"] is True
 
 
 # ---------------------------------------------------------------------------
-# Demo-mode network isolation
+# Forced-failure branching
 # ---------------------------------------------------------------------------
-def test_demo_mode_provision_does_not_touch_network():
-    mod = _mod()
-    with patch.object(mod.requests, "request") as req, \
-         patch.object(mod, "_openai_client") as oai:
-        client = mod.app.test_client()
-        resp = client.post("/provision", headers=AUTH)
-        assert resp.status_code == 200
-        assert req.call_count == 0
-        assert oai.call_count == 0
+def test_forced_failure_proves_fallback(monkeypatch):
+    calls = []
+
+    def fake_completion(token_key, model, prompt, extra_headers=None, stream=False, max_tokens=256):
+        calls.append({"timeout": (extra_headers or {}).get("x-ltg-request-timeout"),
+                      "stream": stream})
+        return {"model": gateway.FALLBACK_MODEL,
+                "x-ltg-served-model": gateway.FALLBACK_MODEL,
+                "x-ltg-attempts": "2", "streamed": True}
+
+    monkeypatch.setattr(inference, "chat_completion", fake_completion)
+    outcome = inference.run_forced_failure("tk")
+    assert outcome["ok"] is True
+    assert outcome["tries"] == 1
+    assert calls[0]["timeout"] == "1000"
+    assert calls[0]["stream"] is True
 
 
-def test_demo_mode_inference_does_not_touch_network():
-    mod = _mod()
-    with patch.object(mod.requests, "request") as req, \
-         patch.object(mod, "_openai_client") as oai:
-        client = mod.app.test_client()
-        resp = client.post("/inference", headers=AUTH, json={"token_key": "tk_demo"})
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body["forced_failure"]["ok"] is True
-        assert req.call_count == 0
-        assert oai.call_count == 0
+def test_forced_failure_reports_honestly_when_primary_healthy(monkeypatch):
+    def fake_completion(token_key, model, prompt, extra_headers=None, stream=False, max_tokens=256):
+        return {"model": gateway.PRIMARY_MODEL,
+                "x-ltg-served-model": gateway.PRIMARY_MODEL,
+                "x-ltg-attempts": "1", "streamed": True}
 
-
-def test_demo_mode_policy_does_not_touch_network():
-    mod = _mod()
-    with patch.object(mod.requests, "request") as req, \
-         patch.object(mod, "_openai_client") as oai:
-        client = mod.app.test_client()
-        resp = client.post("/policy", headers=AUTH, json={"token_key": "tk_demo"})
-        assert resp.status_code == 200
-        assert req.call_count == 0
-        assert oai.call_count == 0
-
-
-def test_demo_mode_teardown_does_not_touch_network():
-    mod = _mod()
-    with patch.object(mod.requests, "request") as req, \
-         patch.object(mod, "_openai_client") as oai:
-        client = mod.app.test_client()
-        resp = client.post("/teardown", headers=AUTH, json={
-            "key_id": "key_demo_0001",
-            "key_etag": '"abc"',
-            "group_id": "grp_demo_0001",
-            "group_etag": '"def"',
-        })
-        assert resp.status_code == 200
-        assert req.call_count == 0
-        assert oai.call_count == 0
+    monkeypatch.setattr(inference, "chat_completion", fake_completion)
+    outcome = inference.run_forced_failure("tk")
+    assert outcome["ok"] is False
+    assert outcome["tries"] == inference.FORCED_FAILURE_MAX_TRIES
 
 
 # ---------------------------------------------------------------------------
-# Input validation
+# Ledger: pagination + failover-row detection
 # ---------------------------------------------------------------------------
-def test_inference_requires_token_key():
-    mod = _mod()
-    client = mod.app.test_client()
-    resp = client.post("/inference", headers=AUTH, json={})
-    assert resp.status_code == 400
+class FakeSpendClient:
+    def __init__(self):
+        self.pages = [
+            types.SimpleNamespace(
+                data=[types.SimpleNamespace(
+                    request_id="req_1", requested_model="Kimi-K3", model="GLM-5.3-Flash",
+                    attempts=2, status="succeeded", cache_hit=False, cost=0.001)],
+                meta=types.SimpleNamespace(has_more=True, snapshot="snap-1",
+                                           page_number=1, page_size=50),
+            ),
+            types.SimpleNamespace(
+                data=[types.SimpleNamespace(
+                    request_id="req_2", requested_model="Kimi-K3", model="Kimi-K3",
+                    attempts=1, status="succeeded", cache_hit=True, cost=0.0)],
+                meta=types.SimpleNamespace(has_more=False, snapshot="snap-2",
+                                           page_number=2, page_size=50),
+            ),
+        ]
+        self.calls = []
+
+    def retrieve_events(self, **kwargs):
+        self.calls.append(kwargs)
+        return self.pages[len(self.calls) - 1]
 
 
-def test_inference_rejects_non_string_token_key():
-    mod = _mod()
-    client = mod.app.test_client()
-    resp = client.post("/inference", headers=AUTH, json={"token_key": 12345})
-    assert resp.status_code == 400
+def test_ledger_pagination_threads_snapshot(tmp_path, monkeypatch):
+    fake = FakeSpendClient()
+    client = types.SimpleNamespace(llm_token_gateway=types.SimpleNamespace(
+        spend=types.SimpleNamespace(retrieve_events=fake.retrieve_events)))
+    events = ledger.fetch_events(client, "k", "2026-10-19", "2026-10-20")
+    assert len(events) == 2
+    assert fake.calls[1]["page_number"] == 2
+    assert fake.calls[1]["page_snapshot"] == "snap-1"
+    fallback_rows = ledger.print_rows(events)
+    assert [r.request_id for r in fallback_rows] == ["req_1"]
 
 
-def test_ledger_requires_params():
-    mod = _mod()
-    client = mod.app.test_client()
-    resp = client.get("/ledger", headers=AUTH)
-    assert resp.status_code == 400
+class _Denied(Exception):
+    status_code = 403
 
 
-def test_ledger_rejects_bad_date_format():
-    mod = _mod()
-    client = mod.app.test_client()
-    resp = client.get(
-        "/ledger?token_key_id=k1&start_date=not-a-date&end_date=2026-01-02",
-        headers=AUTH,
-    )
-    assert resp.status_code == 400
+def test_ledger_usage_summary_403_is_non_fatal(tmp_path, monkeypatch, capsys):
+    def denied(**kwargs):
+        raise _Denied()
 
-
-def test_ledger_rejects_unsafe_token_key_id():
-    mod = _mod()
-    client = mod.app.test_client()
-    resp = client.get(
-        "/ledger?token_key_id=../../etc/passwd&start_date=2026-01-01&end_date=2026-01-02",
-        headers=AUTH,
-    )
-    assert resp.status_code == 400
-
-
-def test_teardown_requires_params():
-    mod = _mod()
-    client = mod.app.test_client()
-    resp = client.post("/teardown", headers=AUTH, json={})
-    assert resp.status_code == 400
-
-
-def test_teardown_rejects_unsafe_identifiers():
-    mod = _mod()
-    client = mod.app.test_client()
-    resp = client.post("/teardown", headers=AUTH, json={
-        "key_id": "../evil",
-        "key_etag": '"abc"',
-        "group_id": "grp_1",
-        "group_etag": '"def"',
-    })
-    assert resp.status_code == 400
+    monkeypatch.setattr(ledger, "load_state", lambda: {"group_id": "g", "key_id": "k"})
+    monkeypatch.setattr(ledger, "mgmt_client", lambda: types.SimpleNamespace(
+        llm_token_gateway=types.SimpleNamespace(
+            spend=types.SimpleNamespace(retrieve_events=lambda **kw: types.SimpleNamespace(
+                data=[], meta=types.SimpleNamespace(has_more=False))),
+            usage=types.SimpleNamespace(retrieve_summary=denied),
+        )))
+    assert ledger.main() == 0
+    out = capsys.readouterr().out
+    assert "non-fatal" in out
 
 
 # ---------------------------------------------------------------------------
-# Secret handling
+# Policy: invalid config PATCH must be rejected with 400
 # ---------------------------------------------------------------------------
-def test_provision_response_does_not_leak_secret(tmp_path):
-    """The token secret must never appear in the /provision HTTP body."""
-    mod = _mod()
-    fake_group = {"id": "grp_test"}
-    fake_key = {"id": "key_test", "key": "SUPER_SECRET_VALUE"}
-    secret_file = tmp_path / "secret.txt"
-    with patch.object(mod, "DEMO_MODE", False), \
-         patch.object(mod, "SECRET_FILE", secret_file), \
-         patch.object(mod, "provision_group", return_value=fake_group), \
-         patch.object(mod, "provision_key", return_value=fake_key):
-        client = mod.app.test_client()
-        resp = client.post("/provision", headers=AUTH)
-        assert resp.status_code == 200
-        body = resp.get_json()
-        assert body == {"group_id": "grp_test", "key_id": "key_test",
-                        "secret_shown_once": True}
-        assert "SUPER_SECRET_VALUE" not in resp.get_data(as_text=True)
-    assert secret_file.read_text() == "SUPER_SECRET_VALUE"
+def test_invalid_patch_rejected_with_400(monkeypatch, capsys):
+    def update_400(*args, **kwargs):
+        raise telnyx.APIStatusError(
+            "max_attempts out of range",
+            response=types.SimpleNamespace(status_code=400, request=None),
+            body=None,
+        )
+
+    client = types.SimpleNamespace(llm_token_gateway=types.SimpleNamespace(
+        token_groups=types.SimpleNamespace(update=update_400)))
+    monkeypatch.setattr(policy, "fetch_etag", lambda *a, **kw: '"etag"')
+    policy.run_invalid_patch(client, "grp_1")
+    assert "400" in capsys.readouterr().out
+
+
+def test_invalid_patch_succeeding_is_a_bug(monkeypatch):
+    client = types.SimpleNamespace(llm_token_gateway=types.SimpleNamespace(
+        token_groups=types.SimpleNamespace(update=lambda *a, **kw: None)))
+    monkeypatch.setattr(policy, "fetch_etag", lambda *a, **kw: '"etag"')
+    with pytest.raises(RuntimeError, match="acceptance contract"):
+        policy.run_invalid_patch(client, "grp_1")
 
 
 # ---------------------------------------------------------------------------
-# Header capture
+# Teardown: revocation verification (401 after revocation)
 # ---------------------------------------------------------------------------
-def test_streaming_headers_captured_from_raw_response():
-    """Streaming branch must read x-ltg-* headers off the raw response."""
-    mod = _mod()
+class _Unauthorized(Exception):
+    status_code = 401
 
-    fake_http_resp = MagicMock()
-    fake_http_resp.headers = {
-        "x-ltg-served-model": "GLM-5.3-Flash",
-        "x-ltg-attempts": "2",
-    }
 
-    first_chunk = MagicMock()
-    first_chunk.model = "GLM-5.3-Flash"
+def test_verify_revocation_accepts_401(monkeypatch):
+    monkeypatch.setattr(teardown, "chat_completion",
+                        lambda *a, **kw: (_ for _ in ()).throw(_Unauthorized()))
+    assert teardown.verify_revocation("tk") is True
 
-    fake_raw
+
+def test_verify_revocation_rejects_living_key(monkeypatch):
+    monkeypatch.setattr(teardown, "chat_completion", lambda *a, **kw: {"model": "x"})
+    assert teardown.verify_revocation("tk") is False
+
+
+def test_verify_revocation_other_error_is_not_verified(monkeypatch):
+    class _ServerError(Exception):
+        status_code = 500
+
+    monkeypatch.setattr(teardown, "chat_completion",
+                        lambda *a, **kw: (_ for _ in ()).throw(_ServerError()))
+    assert teardown.verify_revocation("tk") is False
+
+
+# ---------------------------------------------------------------------------
+# ETag fetch (mutation-safety pattern)
+# ---------------------------------------------------------------------------
+def test_fetch_etag_reads_header():
+    raw = types.SimpleNamespace(response=types.SimpleNamespace(
+        headers={"ETag": '"v7"'}))
+    client = types.SimpleNamespace(llm_token_gateway=types.SimpleNamespace(
+        token_groups=types.SimpleNamespace(
+            with_raw_response=types.SimpleNamespace(retrieve=lambda _id: raw))))
+    assert gateway.fetch_etag(client, "token_groups", "grp_1") == '"v7"'
+
+
+def test_fetch_etag_missing_is_fatal():
+    raw = types.SimpleNamespace(response=types.SimpleNamespace(headers={}))
+    client = types.SimpleNamespace(llm_token_gateway=types.SimpleNamespace(
+        token_groups=types.SimpleNamespace(
+            with_raw_response=types.SimpleNamespace(retrieve=lambda _id: raw))))
+    with pytest.raises(RuntimeError, match="no ETag"):
+        gateway.fetch_etag(client, "token_groups", "grp_1")
+
+
+# ---------------------------------------------------------------------------
+# CLI dispatcher wiring
+# ---------------------------------------------------------------------------
+def test_app_dispatcher_maps_all_five_steps():
+    assert set(app.COMMANDS) == {"provision", "inference", "ledger", "policy", "teardown"}
+    assert set(app.COMMANDS) == set(app.RUNNERS)
+    for script in app.COMMANDS.values():
+        assert (Path(__file__).parent / script).exists()

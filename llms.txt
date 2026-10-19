@@ -520,6 +520,7 @@
 - [Webhook Aggregator with Fanout](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-aggregator-fanout/README.md): Aggregate, deduplicate, and fan out Telnyx webhooks to multiple action queues (call and SMS) with SQLite event logging.
 - [Webhook Debugger AI Assistant](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-debugger-ai-assistant-python/README.md): Webhook Debugger AI Assistant - catch, inspect, and debug Telnyx webhooks with AI explanations.
 - [WebRTC AI Interpreter for Live Calls](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webrtc-ai-interpreter-live-calls-python/README.md): WebRTC AI Interpreter for Live Calls - real-time translation between two callers speaking different languages.
+- [WhatsApp Coexistence Sync Monitor](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-coexistence-sync-monitor/README.md): Monitor a coexistence-enabled WhatsApp number by verifying lifecycle state via the Telnyx API and logging message.echo webhooks from the WhatsApp Business app.
 
 ## SIP Trunking
 

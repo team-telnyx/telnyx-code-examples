@@ -7,7 +7,7 @@ env/
 .env
 .env.*
 !.env.example
-.token_secret
+.gateway_state.json
 .pytest_cache/
 .coverage
 htmlcov/

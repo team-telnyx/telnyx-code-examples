@@ -72,7 +72,7 @@ email-whatsapp-support-python/
 
 ## API Endpoints
 
-See [API.md](API.md) for the full endpoint reference.
+See [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/API.md) for the full endpoint reference.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
