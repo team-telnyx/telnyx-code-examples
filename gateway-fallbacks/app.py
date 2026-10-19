@@ -533,7 +533,8 @@ def route_policy() -> tuple[dict, int]:
     try:
         token_key = _require_nonempty_str(body, "token_key")
     except ValueError as exc:
-        return {"error": str(exc)}, 400
+        app.logger.warning("policy request validation failed: %s", exc)
+        return {"error": "invalid request payload"}, 400
     if DEMO_MODE:
         return _demo_policy(), 200
     try:
