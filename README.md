@@ -392,7 +392,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(167 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(170 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -506,6 +506,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [extract-structured-json-with-ai-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/extract-structured-json-with-ai-python/README.md) | Python | Extract structured JSON from support tickets, emails, leads, or incident reports with Telnyx AI Inference. |
 | [fax-to-ai-document-processor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/fax-to-ai-document-processor-python/README.md) | Python | Fax to AI Document Processor - receive fax, AI extracts data, forwards structured summary. |
 | [full-stack-ai-contact-center-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/full-stack-ai-contact-center-python/README.md) | Python | Full-Stack AI Contact Center - complete contact center: IVR + queue + AI agent assist + recording + live analytics. |
+| [gateway-fallbacks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/gateway-fallbacks/README.md) | Python | Provision an AI Gateway token group with fallbacks and retries, prove failover via x-ltg-served-model / x-ltg-attempts headers, and confirm the same story in the spend ledger. |
 | [get-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/get-ai-assistant-python/README.md) | Python | --- |
 | [global-ip-failover-monitor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/global-ip-failover-monitor-python/README.md) | Python | Global IP Failover Monitor - monitor Global IP endpoints across regions, auto-failover between healthy endpoints. |
 | [insurance-claims-intake-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/insurance-claims-intake-python/README.md) | Python | Policyholder calls, AI collects incident details, accepts photos via MMS, creates claim, assigns adjuster, texts status updates. Adjuster reviews AI-prepared claim. |
@@ -567,7 +568,6 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [webhook-aggregator-fanout](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-aggregator-fanout/README.md) | Python | Aggregate, deduplicate, and fan out Telnyx webhooks to multiple action queues (call and SMS) with SQLite event logging. |
 | [webhook-debugger-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-debugger-ai-assistant-python/README.md) | Python | Webhook Debugger AI Assistant - catch, inspect, and debug Telnyx webhooks with AI explanations. |
 | [webrtc-ai-interpreter-live-calls-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webrtc-ai-interpreter-live-calls-python/README.md) | Python | WebRTC AI Interpreter for Live Calls - real-time translation between two callers speaking different languages. |
-| [whatsapp-coexistence-sync-monitor](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-coexistence-sync-monitor/README.md) | Python | Monitor a coexistence-enabled WhatsApp number by verifying lifecycle state via the Telnyx API and logging message.echo webhooks from the WhatsApp Business app. |
 
 </details>
 
