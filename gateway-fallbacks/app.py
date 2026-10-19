@@ -489,8 +489,9 @@ def route_inference() -> tuple[dict, int]:
     body = request.get_json(silent=True) or {}
     try:
         token_key = _require_nonempty_str(body, "token_key")
-    except ValueError as exc:
-        return {"error": str(exc)}, 400
+    except ValueError:
+        app.logger.warning("invalid inference request payload", exc_info=True)
+        return {"error": "invalid request"}, 400
     if DEMO_MODE:
         return _demo_inference(), 200
     try:
