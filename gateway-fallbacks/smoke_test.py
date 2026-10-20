@@ -163,7 +163,7 @@ def test_state_roundtrip_and_clear(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 class FakeRawResponse:
     def __init__(self, headers, parsed):
-        self.response = types.SimpleNamespace(headers=headers)
+        self.headers = headers
         self._parsed = parsed
 
     def parse(self):
@@ -215,6 +215,7 @@ def test_chat_completion_stream_reads_headers_and_closes(monkeypatch):
 # Forced-failure branching
 # ---------------------------------------------------------------------------
 def test_forced_failure_proves_fallback(monkeypatch):
+    monkeypatch.setattr(inference, "FORCED_FAILURE_SETTLE_WAIT_S", 0)
     calls = []
 
     def fake_completion(token_key, model, prompt, extra_headers=None, stream=False, max_tokens=256):
@@ -233,6 +234,8 @@ def test_forced_failure_proves_fallback(monkeypatch):
 
 
 def test_forced_failure_reports_honestly_when_primary_healthy(monkeypatch):
+    monkeypatch.setattr(inference, "FORCED_FAILURE_SETTLE_WAIT_S", 0)
+
     def fake_completion(token_key, model, prompt, extra_headers=None, stream=False, max_tokens=256):
         return {"model": gateway.PRIMARY_MODEL,
                 "x-ltg-served-model": gateway.PRIMARY_MODEL,

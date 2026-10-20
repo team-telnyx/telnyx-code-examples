@@ -66,9 +66,21 @@ def mgmt_client() -> telnyx.Telnyx:
     return telnyx.Telnyx(api_key=api_key())
 
 
+_INFER_CLIENTS: dict[str, OpenAI] = {}
+
+
 def inference_client(token_key: str) -> OpenAI:
-    """Client for the inference plane. max_retries=0 — see module docstring."""
-    return OpenAI(api_key=token_key, base_url=INFER_BASE, max_retries=0)
+    """Client for the inference plane. max_retries=0 — see module docstring.
+
+    One client per token key is cached on purpose: a reused connection skips
+    the TLS handshake on every call, which measurably changes whether a
+    fallback attempt completes inside the gateway's first-event deadline.
+    """
+    client = _INFER_CLIENTS.get(token_key)
+    if client is None:
+        client = OpenAI(api_key=token_key, base_url=INFER_BASE, max_retries=0)
+        _INFER_CLIENTS[token_key] = client
+    return client
 
 
 def validate_policy(
@@ -150,8 +162,11 @@ def clear_state() -> None:
 # START_DATE / END_DATE so the demo can be replayed on any day.
 # ---------------------------------------------------------------------------
 def spend_date_range() -> tuple[str, str]:
-    start = os.getenv("START_DATE") or date.today().strftime("%Y-%m-%d")
-    end = os.getenv("END_DATE") or (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+    """Half-open UTC [start, end). The ledger is keyed on UTC dates — using the
+    local date would silently miss events when local is behind UTC."""
+    today = datetime.now(timezone.utc).date()
+    start = os.getenv("START_DATE") or today.strftime("%Y-%m-%d")
+    end = os.getenv("END_DATE") or (today + timedelta(days=1)).strftime("%Y-%m-%d")
     return start, end
 
 
@@ -159,6 +174,25 @@ def spend_date_range() -> tuple[str, str]:
 # Inference helpers. Headers come off the raw response so the observation
 # layer works for both streaming and non-streaming calls.
 # ---------------------------------------------------------------------------
+def _headers_of(raw: Any) -> Any:
+    """Read the HTTP headers off an OpenAI SDK raw-response wrapper.
+
+    The OpenAI SDK's `with_raw_response` returns a LegacyAPIResponse whose
+    headers hang directly off the object; the Telnyx SDK wraps them under
+    `.response`. Support both shapes.
+    """
+    headers = getattr(raw, "headers", None)
+    if headers is None:
+        http_resp = getattr(raw, "response", None)
+        headers = getattr(http_resp, "headers", None)
+    if headers is None:
+        raise RuntimeError(
+            "raw response exposes no headers — the x-ltg-* observation contract "
+            "depends on them (pin openai>=1.40.0,<2.0.0)"
+        )
+    return headers
+
+
 def chat_completion(
     token_key: str,
     model: str,
@@ -169,9 +203,11 @@ def chat_completion(
 ) -> dict[str, Any]:
     """Send one chat completion; return the serving model + x-ltg-* headers.
 
-    For streaming calls the gateway's x-ltg-* headers are attached to the
-    initial response, so we read them from the SDK's with_raw_response wrapper
-    before consuming the stream.
+    The gateway's x-ltg-* headers ride the initial response, so we read them
+    from the SDK's with_raw_response wrapper. With stream=True, parse()
+    returns an OpenAI Stream when the response is SSE, or a buffered
+    ChatCompletion model when the gateway had to stitch a fallback mid-stream;
+    both shapes are handled.
     """
     client = inference_client(token_key)
     kwargs: dict[str, Any] = {
@@ -181,17 +217,26 @@ def chat_completion(
     }
     if extra_headers:
         kwargs["extra_headers"] = extra_headers
+    if stream:
+        kwargs["stream"] = True
 
     raw = client.chat.completions.with_raw_response.create(**kwargs)
-    headers = raw.response.headers
+    headers = _headers_of(raw)
     if stream:
-        raw_stream = raw.parse()
-        try:
-            first = next(iter(raw_stream), None)
-        finally:
-            raw_stream.close()
+        parsed = raw.parse()
+        if hasattr(parsed, "close"):  # SSE: parse() returned an OpenAI Stream
+            try:
+                first = next(iter(parsed), None)
+            finally:
+                try:
+                    parsed.close()
+                except Exception:  # noqa: BLE001 - close() cleanup is best-effort
+                    pass
+            model = getattr(first, "model", None) if first else None
+        else:  # the gateway buffered the completion (e.g. mid-stream failover)
+            model = getattr(parsed, "model", None)
         return {
-            "model": getattr(first, "model", None) if first else None,
+            "model": model or headers.get("x-ltg-served-model"),
             "x-ltg-served-model": headers.get("x-ltg-served-model"),
             "x-ltg-attempts": headers.get("x-ltg-attempts"),
             "streamed": True,
@@ -236,7 +281,7 @@ def fetch_etag(client: telnyx.Telnyx, kind: str, resource_id: str) -> str:
         raw = client.llm_token_gateway.token_keys.with_raw_response.retrieve(resource_id)
     else:
         raise ValueError(f"unknown resource kind {kind}")
-    etag = raw.response.headers.get("ETag")
+    etag = _headers_of(raw).get("ETag")
     if not etag:
         raise RuntimeError(f"GET /{kind}/{resource_id} returned no ETag header")
     return etag

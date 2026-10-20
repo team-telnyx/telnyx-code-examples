@@ -128,9 +128,9 @@ OpenAI Chat Completions shape. The client MUST be built with `max_retries=0`: SD
 | Header | Demo value | Effect |
 |--------|-----------|--------|
 | `x-ltg-request-timeout` | `1000` | Bounds each *streaming* attempt's time to its first provider event; the forced-failure trigger |
-| `x-ltg-max-attempts` | `1` | Tightens the attempt ceiling for this one request |
-| `x-ltg-retry-delay` | `100` | Retry-delay floor for this request (ms) |
-| `x-ltg-backoff` | `constant` | Retry backoff curve for this request |
+| `x-ltg-max-attempts` | `1` | Tightens the attempt ceiling for this one request (may go below the group value) |
+| `x-ltg-retry-delay` | `1000` | Retry-delay for this request (ms); must be ≥ the group's `retry_delay_ms` (the group value is a floor), else 400 |
+| `x-ltg-backoff` | `exponential` | Retry backoff curve for this request; must be ≥ the group's curve in strictness (`constant` < `linear` < `exponential`), else 400 |
 
 **Response**
 

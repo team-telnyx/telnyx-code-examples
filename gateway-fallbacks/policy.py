@@ -34,13 +34,29 @@ from gateway import (
     token_key as read_token_key,
 )
 
+# The group's values are FLOORS for the overlay knobs (verified live): the
+# request may tighten attempts downward and raise the delay, but a delay below
+# the group's 250ms or a backoff curve looser than the group's exponential is
+# rejected with 400.
 OVERLAY_HEADERS = {
     "x-ltg-max-attempts": "1",
-    "x-ltg-retry-delay": "100",
-    "x-ltg-backoff": "constant",
+    "x-ltg-retry-delay": "1000",
+    "x-ltg-backoff": "exponential",
 }
 CACHE_TTL_SECONDS = 60
 CACHE_PROMPT = "Name the three states of matter in one short sentence."
+
+
+def wait_for_key_ready(client: Any, key_id: str, timeout_s: int = 60) -> None:
+    """Group PATCHes trigger token-key re-provisioning; inference during the
+    'pending' window fails with 503 enforcement_unavailable. Poll until ready."""
+    deadline = time.monotonic() + timeout_s
+    while time.monotonic() < deadline:
+        key = client.llm_token_gateway.token_keys.retrieve(key_id).data
+        if getattr(key, "provisioning", "ready") in (None, "ready"):
+            return
+        time.sleep(3)
+    raise RuntimeError("token key did not return to provisioning=ready after the PATCH")
 
 
 def run_overlay(token_key: str) -> dict[str, Any]:
@@ -51,6 +67,8 @@ def run_overlay(token_key: str) -> dict[str, Any]:
     print(f"   {describe_attempt(result)}")
     if int(result.get("x-ltg-attempts") or 0) > 1:
         print("   NOTE: the overlay caps attempts at 1 per step for this request.")
+    print("   (Group values are floors: the overlay tightened attempts to 1 and raised "
+          "the retry delay to 1000ms for this request only.)")
     return result
 
 
@@ -77,7 +95,7 @@ def run_invalid_patch(client: Any, group_id: str) -> None:
     )
 
 
-def run_cache_ttl_patch(client: Any, group_id: str, token_key: str) -> None:
+def run_cache_ttl_patch(client: Any, group_id: str, key_id: str, token_key: str) -> None:
     """PATCH cache_ttl=60, then prove an identical repeat request is a cache hit."""
     print(f"3. cache_ttl PATCH demo (cache_ttl={CACHE_TTL_SECONDS}s):")
     etag = fetch_etag(client, "token_groups", group_id)
@@ -89,6 +107,7 @@ def run_cache_ttl_patch(client: Any, group_id: str, token_key: str) -> None:
     ).data
     print(f"   PATCH accepted; stored cache_ttl={group.cache_ttl}")
 
+    wait_for_key_ready(client, key_id)
     first = chat_completion(token_key, PRIMARY_MODEL, CACHE_PROMPT)
     print(f"   first request:  {describe_attempt(first)}")
     time.sleep(2)
@@ -114,7 +133,7 @@ def main() -> int:
     print()
     run_invalid_patch(client, state["group_id"])
     print()
-    run_cache_ttl_patch(client, state["group_id"], token_key)
+    run_cache_ttl_patch(client, state["group_id"], state["key_id"], token_key)
     print()
     print(f"Expected fallback models remain {PRIMARY_MODEL} -> {FALLBACK_MODEL}.")
     print("Next: python teardown.py")

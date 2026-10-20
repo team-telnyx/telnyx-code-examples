@@ -24,6 +24,12 @@ regardless of exact field naming.
 
 from __future__ import annotations
 
+import time
+import uuid
+
+import telnyx
+from openai import APIStatusError
+
 from gateway import (
     FALLBACK_MODEL,
     PRIMARY_MODEL,
@@ -39,14 +45,24 @@ from gateway import (
 # The primary's first provider event must miss this deadline (ms) for the
 # gateway to classify the attempt as an uncertain failure and fall back.
 FORCED_FAILURE_TIMEOUT_MS = "1000"
-FORCED_FAILURE_MAX_TOKENS = 4096  # long-form generation, but bounded
+# Output length does not affect TTFT — keep it modest; the heavy INPUT below
+# is what pushes the primary's time-to-first-event past the deadline.
+FORCED_FAILURE_MAX_TOKENS = 64
 FORCED_FAILURE_MAX_TRIES = 3
+FORCED_FAILURE_SETTLE_WAIT_S = 8
 
-FORCED_FAILURE_PROMPT_BASE = (
+# ~22k tokens of essay text per try: measured live as the band where
+# Kimi-K3's prefill exceeds the 1s first-event deadline (so the attempt times
+# out and the gateway falls back) while GLM-5.3-Flash's faster prefill still
+# completes within its own deadline. A unique nonce interleaved per try breaks
+# the token-block pattern, so the provider's KV cache can never shortcut
+# prefill on a repeat.
+FORCED_FAILURE_ESSAY = (
     "Write an extremely long, detailed, exhaustive essay about distributed "
     "systems consensus algorithms, covering Paxos, Raft, and Byzantine fault "
     "tolerance in depth. Do not stop early. "
 )
+FORCED_FAILURE_REPS = 400
 
 
 def list_models(token_key: str) -> list[str]:
@@ -54,34 +70,57 @@ def list_models(token_key: str) -> list[str]:
     return [model.id for model in client.models.list().data]
 
 
-def run_forced_failure(token_key: str) -> dict:
-    """Trip the primary via streaming + 1 s timeout overlay; prove the fallback.
+def build_forced_failure_prompt() -> str:
+    """Heavy prompt with a unique nonce interleaved every repetition, so the
+    token-block pattern is unique per try and provider KV caching cannot
+    shortcut the prefill."""
+    nonce = uuid.uuid4().hex[:8]
+    return " ".join(
+        f"{FORCED_FAILURE_ESSAY} variation {nonce}-{i}." for i in range(FORCED_FAILURE_REPS)
+    )
 
-    Returns {"ok": bool, "result": {...}, "tries": int}. ok is True only when
-    the gateway actually served the fallback model with more than one attempt.
+
+def run_forced_failure(token_key: str) -> dict:
+    """Trip the primary via streaming + 1s timeout overlay; prove the fallback.
+
+    Each try is a fresh race: the primary's prefill must exceed the 1s
+    first-event deadline while the faster fallback completes within its own.
+    A 5xx (both attempts timed out — the prompt overshot the fallback's
+    threshold) or a budget-exceeded 403 (reservation too large) is caught and
+    the next try proceeds. Returns {"ok": bool, "result": {...}, "tries": int};
+    ok is True only when the gateway actually served the fallback model.
     """
-    base = FORCED_FAILURE_PROMPT_BASE
     result: dict = {}
     for attempt in range(1, FORCED_FAILURE_MAX_TRIES + 1):
-        # Progressively heavier prompt widens the time-to-first-event window,
-        # making the 1 s deadline progressively harder to meet.
-        prompt = base * attempt
+        prompt = build_forced_failure_prompt()
         print(f"  forced-failure try {attempt}/{FORCED_FAILURE_MAX_TRIES}: "
               f"streaming against {PRIMARY_MODEL} with x-ltg-request-timeout: {FORCED_FAILURE_TIMEOUT_MS} "
-              f"(prompt x{attempt})")
-        result = chat_completion(
-            token_key,
-            PRIMARY_MODEL,
-            prompt,
-            extra_headers={"x-ltg-request-timeout": FORCED_FAILURE_TIMEOUT_MS},
-            stream=True,
-            max_tokens=FORCED_FAILURE_MAX_TOKENS,
-        )
+              f"(~{FORCED_FAILURE_REPS * 55} input tokens)")
+        try:
+            result = chat_completion(
+                token_key,
+                PRIMARY_MODEL,
+                prompt,
+                extra_headers={
+                    "x-ltg-request-timeout": FORCED_FAILURE_TIMEOUT_MS,
+                    "x-ltg-max-attempts": "1",
+                },
+                stream=True,
+                max_tokens=FORCED_FAILURE_MAX_TOKENS,
+            )
+        except (APIStatusError, telnyx.APIStatusError) as exc:
+            print(f"    gateway rejected this try (HTTP {getattr(exc, 'status_code', '?')}) — "
+                  "the whole chain timed out or the reservation exceeded budget; trying again")
+            if attempt < FORCED_FAILURE_MAX_TRIES:
+                time.sleep(FORCED_FAILURE_SETTLE_WAIT_S)
+            continue
         print(f"    {describe_attempt(result)}")
         served = result.get("x-ltg-served-model")
         attempts = int(result.get("x-ltg-attempts") or 0)
         if served == FALLBACK_MODEL and attempts >= 2:
             return {"ok": True, "result": result, "tries": attempt}
+        if attempt < FORCED_FAILURE_MAX_TRIES:
+            time.sleep(FORCED_FAILURE_SETTLE_WAIT_S)
     return {"ok": False, "result": result, "tries": FORCED_FAILURE_MAX_TRIES}
 
 

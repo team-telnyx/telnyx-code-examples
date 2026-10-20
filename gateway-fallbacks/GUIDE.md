@@ -60,9 +60,9 @@ The step finishes with `GET /usage/summary` (the combined group dashboard: `data
 
 ## Step 4 — `policy.py`: the policy knobs, demonstrated
 
-1. **Per-request overlay.** One request carrying `x-ltg-max-attempts: 1`, `x-ltg-retry-delay: 100`, `x-ltg-backoff: constant` — the group policy tightened for a single request without a group PATCH.
+1. **Per-request overlay.** One request carrying `x-ltg-max-attempts: 1`, `x-ltg-retry-delay: 1000`, `x-ltg-backoff: exponential` — the group policy tightened for a single request without a group PATCH. The group's values are *floors* (verified live): a delay below the group's `retry_delay_ms` or a backoff curve looser than the group's is rejected with 400, so the overlay can only make the policy more conservative for that one request.
 2. **Invalid config is rejected with 400.** A PATCH with `retries.max_attempts: 9` (outside 1..5) is sent with a fresh ETag; the gateway responds 400 and the group is unchanged. This is the same constraint contract `gateway.validate_policy` asserts locally — enforced by the server, proven live.
-3. **`cache_ttl` PATCH demo.** PATCH `cache_ttl: 60` (with `If-Match` + `Idempotency-Key`), then send one identical request twice: the second is served from cache — `x-ltg-attempts: 0` — and the ledger row will show `cache_hit: true`. Every PATCH reads a fresh ETag first; a stale one yields 412, which is the docs' read-before-mutate pattern in action.
+3. **`cache_ttl` PATCH demo.** PATCH `cache_ttl: 60` (with `If-Match` + `Idempotency-Key`), wait for the key to return to `provisioning: ready` (a PATCH triggers re-provisioning; inference during `pending` fails with `503 enforcement_unavailable`), then send one identical request twice: the second should be served from cache — `x-ltg-attempts: 0` — and the ledger row will show `cache_hit: true`. Caching is documented as best effort (entries can be evicted early and replicas can miss), so the script reports the honest outcome either way. Every PATCH reads a fresh ETag first; a stale one yields 412, which is the docs' read-before-mutate pattern in action.
 
 ## Step 5 — `teardown.py`: revoke, delete, and *prove* it
 

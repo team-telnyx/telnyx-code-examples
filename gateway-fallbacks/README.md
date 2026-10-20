@@ -81,7 +81,9 @@ Two planes and one observation layer. The boundary between the planes is where m
 
 **Reservation model:** budget and TPM capacity for planned attempts are reserved up front and released at settlement. After each call, `inference.py` GETs the token group and prints the raw budget/reservation fields (`spend`, `reserved_spend`, `max_budget`, `budget_duration`) so the reservation-release behavior is visible regardless of exact field naming.
 
-**Forced-failure mechanism (doc-grounded, near-deterministic):** the forced-failure run reuses the provisioned group and key. It sends a **streaming** request against the primary with the per-request overlay `x-ltg-request-timeout: 1000` and a deliberately heavy long-form prompt. The overlay bounds each streaming attempt's time to its first provider event, so the primary's first event misses the 1 s deadline → timeout → the gateway moves to the fallback. `inference.py` asserts `x-ltg-served-model == GLM-5.3-Flash` and `x-ltg-attempts >= 2`; if the primary happens to answer inside 1 s it retries up to 3 times with progressively heavier prompts and reports honestly if the fallback never fired.
+**Forced-failure mechanism (doc-grounded, near-deterministic):** the forced-failure run reuses the provisioned group and key. It sends a **streaming** request against the primary with the per-request overlay `x-ltg-request-timeout: 1000` and a deliberately heavy prompt (~22k tokens, with a unique nonce interleaved so the provider's KV cache cannot shortcut prefill on a repeat). The overlay bounds each streaming attempt's time to its first provider event, so the primary's first event misses the 1 s deadline → timeout → the gateway moves to the fallback. `inference.py` asserts `x-ltg-served-model == GLM-5.3-Flash` and `x-ltg-attempts >= 2`; if the primary happens to answer inside 1 s it retries up to 3 times and reports honestly if the fallback never fired. Provider latency drifts, so this is a race by design — the ladder exists to win it.
+
+**Response caching (best effort):** the docs are explicit that caching is best effort — entries can be evicted before their TTL and equivalent requests on different replicas can miss. On this account the identical-repeat request in `policy.py` may not show a cache hit; the script reports the honest outcome either way and points at the ledger's `cache_hit` column for confirmation.
 
 ## Environment Variables
 
@@ -187,7 +189,7 @@ Security contract: the dashboard binds to `127.0.0.1` only, reads the token key 
 | `provision.py` | `POST /token_groups`, `POST /token_keys` | `allowed_models`, `fallbacks`, `retries`, `max_budget`, `budget_duration`; key secret (create response only) |
 | `inference.py` | `GET /v1/models`, `POST /v1/chat/completions` (+ stream), `GET /token_groups/{id}` | `x-ltg-served-model`, `x-ltg-attempts`, `x-ltg-request-timeout`, `reserved_spend` |
 | `ledger.py` | `GET /spend/events` (snapshot pagination), `GET /usage/summary` | `requested_model`, `model`, `attempts`, `status`, `cache_hit`; `data.totals`, `data.by_day`, `data.by_model` |
-| `policy.py` | `PATCH /token_groups/{id}` ×2, `POST /v1/chat/completions` | overlay headers; invalid `retries` → **400**; `cache_ttl: 60` → cache hit (`x-ltg-attempts: 0`, `cache_hit: true`) |
+| `policy.py` | `PATCH /token_groups/{id}` ×2, `POST /v1/chat/completions` | overlay headers; invalid `retries` → **400**; `cache_ttl: 60` → identical repeat (cache hit is best effort: `x-ltg-attempts: 0`, `cache_hit: true` when it fires) |
 | `teardown.py` | `GET` ×2 (ETag), `DELETE /token_keys/{id}`, `DELETE /token_groups/{id}` | `If-Match`, `Idempotency-Key`; post-revocation call must be **401** |
 | `dashboard.py` (optional) | local Flask routes only | `GET /api/state`, `POST /api/actions/normal-call`, `POST /api/actions/force-failure`; localhost-only, token key from env |
 
