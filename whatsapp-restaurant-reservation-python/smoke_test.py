@@ -58,16 +58,20 @@ class TestRestaurants(unittest.TestCase):
         resp = self.client.get("/api/restaurants")
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
-        self.assertIsInstance(data, list)
-        self.assertGreater(len(data), 0)
+        self.assertIn("restaurants", data)
+        self.assertIn("total", data)
+        self.assertIn("page", data)
+        self.assertIn("total_pages", data)
+        self.assertIsInstance(data["restaurants"], list)
+        self.assertGreater(len(data["restaurants"]), 0)
 
     def test_search_restaurants(self):
         resp = self.client.get("/api/restaurants?q=Kas")
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
-        self.assertIsInstance(data, list)
+        self.assertIsInstance(data["restaurants"], list)
         # Should find De Kas
-        names = [r["name"] for r in data]
+        names = [r["name"] for r in data["restaurants"]]
         self.assertTrue(any("Kas" in n for n in names))
 
     @patch("app.fetch_google_restaurants")

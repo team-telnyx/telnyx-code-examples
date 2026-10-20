@@ -283,13 +283,90 @@ PRICE_LEVEL_MAP = {
 }
 
 
-def fetch_google_restaurants(city=None, cuisine_filter=None, limit=20):
+def _parse_google_places(places, cuisine_filter=None):
+    """Parse a list of Google Places API place objects into our restaurant dict format."""
+    restaurants = []
+    for place in places:
+        name = place.get("displayName", {}).get("text", "")
+        if not name:
+            continue
+
+        location = place.get("location", {})
+        cuisine_label = (place.get("primaryTypeDisplayName", {}).get("text", "") or "").lower()
+        cuisine_label = cuisine_label.replace(" restaurant", "").strip()
+
+        # Photo
+        photos = place.get("photos", [])
+        photo_url = get_place_photo_url(photos[0]["name"]) if photos else None
+        if not photo_url:
+            photo_url = get_cuisine_photo(cuisine_label)
+
+        # Price
+        price_level = PRICE_LEVEL_MAP.get(place.get("priceLevel", ""), "")
+        price_range_obj = place.get("priceRange", {})
+        price_range = ""
+        if price_range_obj:
+            lo = price_range_obj.get("startPrice", {})
+            hi = price_range_obj.get("endPrice", {})
+            currency = lo.get("currencyCode", "EUR")
+            sym = {"EUR": "\u20ac", "USD": "$", "GBP": "\u00a3"}.get(currency, currency + " ")
+            lo_val = lo.get("units", "")
+            hi_val = hi.get("units", "")
+            if lo_val and hi_val:
+                price_range = f"{sym}{lo_val}\u2013{sym}{hi_val}"
+
+        # Hours
+        hours_obj = place.get("regularOpeningHours", {})
+        open_now = hours_obj.get("openNow")
+        weekday_hours = hours_obj.get("weekdayDescriptions", [])
+
+        restaurants.append({
+            "id": f"gp-{place.get('id', '')}",
+            "name": name,
+            "cuisine": cuisine_label or (cuisine_filter.lower() if cuisine_filter else ""),
+            "address": place.get("shortFormattedAddress") or place.get("formattedAddress", ""),
+            "phone": place.get("internationalPhoneNumber", ""),
+            "lat": location.get("latitude"),
+            "lon": location.get("longitude"),
+            "photo_url": photo_url,
+            "rating": place.get("rating"),
+            "rating_count": place.get("userRatingCount", 0),
+            "price_level": price_level,
+            "price_range": price_range,
+            "website": place.get("websiteUri", ""),
+            "maps_url": place.get("googleMapsUri", ""),
+            "open_now": 1 if open_now else (0 if open_now is False else None),
+            "hours": json.dumps(weekday_hours) if weekday_hours else "",
+            "reservable": 1 if place.get("reservable") else 0,
+            "vegetarian": 1 if place.get("servesVegetarianFood") else 0,
+            "outdoor_seating": 1 if place.get("outdoorSeating") else 0,
+            "dine_in": 1 if place.get("dineIn") else 0,
+            "delivery": 1 if place.get("delivery") else 0,
+            "takeout": 1 if place.get("takeout") else 0,
+        })
+    return restaurants
+
+
+_GOOGLE_FIELD_MASK = (
+    "places.id,places.displayName,places.formattedAddress,"
+    "places.shortFormattedAddress,places.location,"
+    "places.internationalPhoneNumber,"
+    "places.primaryTypeDisplayName,places.photos,"
+    "places.rating,places.userRatingCount,"
+    "places.priceLevel,places.priceRange,"
+    "places.websiteUri,places.googleMapsUri,"
+    "places.regularOpeningHours,"
+    "places.reservable,places.servesVegetarianFood,"
+    "places.outdoorSeating,places.dineIn,"
+    "places.delivery,places.takeout,"
+    "nextPageToken"
+)
+
+
+def fetch_google_restaurants(city=None, cuisine_filter=None):
     """Fetch restaurants from Google Places API (Text Search).
 
-    Args:
-        city: City name to search in (default: DEFAULT_CITY)
-        cuisine_filter: Cuisine type to filter by (e.g. "indian", "italian"). None = all.
-        limit: Max restaurants to return.
+    Follows nextPageToken to retrieve all available results (up to ~60).
     """
     if not GOOGLE_PLACES_API_KEY:
         app.logger.warning("GOOGLE_PLACES_API_KEY not set, skipping Google Places")
@@ -299,99 +376,42 @@ def fetch_google_restaurants(city=None, cuisine_filter=None, limit=20):
     cuisine_part = f"{cuisine_filter} " if cuisine_filter and cuisine_filter.lower() != "all" else ""
     query = f"{cuisine_part}restaurants in {city}"
 
+    all_places = []
+    page_token = None
+
     try:
-        resp = requests.post(
-            GOOGLE_PLACES_URL,
-            headers={
-                "Content-Type": "application/json",
-                "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
-                "X-Goog-FieldMask": (
-                    "places.id,places.displayName,places.formattedAddress,"
-                    "places.shortFormattedAddress,places.location,"
-                    "places.internationalPhoneNumber,"
-                    "places.primaryTypeDisplayName,places.photos,"
-                    "places.rating,places.userRatingCount,"
-                    "places.priceLevel,places.priceRange,"
-                    "places.websiteUri,places.googleMapsUri,"
-                    "places.regularOpeningHours,"
-                    "places.reservable,places.servesVegetarianFood,"
-                    "places.outdoorSeating,places.dineIn,"
-                    "places.delivery,places.takeout"
-                ),
-            },
-            json={"textQuery": query, "maxResultCount": limit},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        for _ in range(3):  # Google allows max 3 pages (60 results)
+            body = {"textQuery": query, "maxResultCount": 20}
+            if page_token:
+                body["pageToken"] = page_token
 
-        restaurants = []
-        for place in data.get("places", []):
-            name = place.get("displayName", {}).get("text", "")
-            if not name:
-                continue
+            resp = requests.post(
+                GOOGLE_PLACES_URL,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+                    "X-Goog-FieldMask": _GOOGLE_FIELD_MASK,
+                },
+                json=body,
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            all_places.extend(data.get("places", []))
 
-            location = place.get("location", {})
-            cuisine_label = (place.get("primaryTypeDisplayName", {}).get("text", "") or "").lower()
-            cuisine_label = cuisine_label.replace(" restaurant", "").strip()
+            page_token = data.get("nextPageToken")
+            if not page_token:
+                break
 
-            # Photo
-            photos = place.get("photos", [])
-            photo_url = get_place_photo_url(photos[0]["name"]) if photos else None
-            if not photo_url:
-                photo_url = get_cuisine_photo(cuisine_label)
-
-            # Price
-            price_level = PRICE_LEVEL_MAP.get(place.get("priceLevel", ""), "")
-            price_range_obj = place.get("priceRange", {})
-            price_range = ""
-            if price_range_obj:
-                lo = price_range_obj.get("startPrice", {})
-                hi = price_range_obj.get("endPrice", {})
-                currency = lo.get("currencyCode", "EUR")
-                sym = {"EUR": "\u20ac", "USD": "$", "GBP": "\u00a3"}.get(currency, currency + " ")
-                lo_val = lo.get("units", "")
-                hi_val = hi.get("units", "")
-                if lo_val and hi_val:
-                    price_range = f"{sym}{lo_val}\u2013{sym}{hi_val}"
-
-            # Hours
-            hours_obj = place.get("regularOpeningHours", {})
-            open_now = hours_obj.get("openNow")
-            weekday_hours = hours_obj.get("weekdayDescriptions", [])
-
-            restaurants.append({
-                "id": f"gp-{place.get('id', '')}",
-                "name": name,
-                "cuisine": cuisine_label or (cuisine_filter.lower() if cuisine_filter else ""),
-                "address": place.get("shortFormattedAddress") or place.get("formattedAddress", ""),
-                "phone": place.get("internationalPhoneNumber", ""),
-                "lat": location.get("latitude"),
-                "lon": location.get("longitude"),
-                "photo_url": photo_url,
-                "rating": place.get("rating"),
-                "rating_count": place.get("userRatingCount", 0),
-                "price_level": price_level,
-                "price_range": price_range,
-                "website": place.get("websiteUri", ""),
-                "maps_url": place.get("googleMapsUri", ""),
-                "open_now": 1 if open_now else (0 if open_now is False else None),
-                "hours": json.dumps(weekday_hours) if weekday_hours else "",
-                "reservable": 1 if place.get("reservable") else 0,
-                "vegetarian": 1 if place.get("servesVegetarianFood") else 0,
-                "outdoor_seating": 1 if place.get("outdoorSeating") else 0,
-                "dine_in": 1 if place.get("dineIn") else 0,
-                "delivery": 1 if place.get("delivery") else 0,
-                "takeout": 1 if place.get("takeout") else 0,
-            })
-        return restaurants
+        return _parse_google_places(all_places, cuisine_filter)
 
     except Exception as exc:
         app.logger.warning("Google Places API failed: %s", exc)
-        return []
+        # Return whatever we've parsed so far
+        return _parse_google_places(all_places, cuisine_filter) if all_places else []
 
 
-def get_fallback_restaurants(city=None, cuisine_filter=None, limit=20):
+def get_fallback_restaurants(city=None, cuisine_filter=None):
     """Return fallback restaurants, filtered by city and cuisine."""
     city = city or DEFAULT_CITY
     pool = FALLBACK_RESTAURANTS.get(city, FALLBACK_RESTAURANTS.get("Amsterdam", []))
@@ -401,7 +421,7 @@ def get_fallback_restaurants(city=None, cuisine_filter=None, limit=20):
     for r in pool:
         if not r.get("photo_url"):
             r["photo_url"] = get_cuisine_photo(r.get("cuisine", ""))
-    return pool[:limit]
+    return pool
 
 
 def seed_restaurants():
@@ -415,11 +435,11 @@ def seed_restaurants():
         return
 
     app.logger.info("Fetching restaurants from Google Places API...")
-    restaurants = fetch_google_restaurants(city=DEFAULT_CITY, limit=20)
+    restaurants = fetch_google_restaurants(city=DEFAULT_CITY)
 
     if len(restaurants) < 5:
         app.logger.info("Using fallback restaurant data")
-        restaurants = get_fallback_restaurants(city=DEFAULT_CITY, limit=20)
+        restaurants = get_fallback_restaurants(city=DEFAULT_CITY)
 
     now = datetime.now(timezone.utc).isoformat()
     for r in restaurants:
@@ -443,6 +463,32 @@ def seed_restaurants():
     conn.commit()
     conn.close()
     app.logger.info("Seeded %d restaurants", len(restaurants))
+
+
+def _cache_restaurants(restaurants):
+    """Insert a list of restaurant dicts into the DB (full 23-column INSERT)."""
+    now = datetime.now(timezone.utc).isoformat()
+    conn = get_db()
+    for r in restaurants:
+        conn.execute(
+            "INSERT OR IGNORE INTO restaurants "
+            "(id, name, cuisine, address, phone, lat, lon, photo_url, "
+            "rating, rating_count, price_level, price_range, website, maps_url, "
+            "open_now, hours, reservable, vegetarian, outdoor_seating, "
+            "dine_in, delivery, takeout, cached_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (r["id"], r["name"], r.get("cuisine", ""), r.get("address", ""),
+             r.get("phone", ""), r.get("lat"), r.get("lon"),
+             r.get("photo_url", ""), r.get("rating"), r.get("rating_count", 0),
+             r.get("price_level", ""), r.get("price_range", ""),
+             r.get("website", ""), r.get("maps_url", ""),
+             r.get("open_now"), r.get("hours", ""),
+             r.get("reservable", 0), r.get("vegetarian", 0),
+             r.get("outdoor_seating", 0), r.get("dine_in", 0),
+             r.get("delivery", 0), r.get("takeout", 0), now),
+        )
+    conn.commit()
+    conn.close()
 
 
 # ---------------------------------------------------------------------------
@@ -591,13 +637,39 @@ def cancel_reservation(reservation_id):
     return reservation
 
 
-def search_restaurants(query_str):
-    """Search restaurants by name or cuisine."""
+def search_restaurants(query_str, city=None):
+    """Search restaurants by name or cuisine. If city is given and no cached
+    results exist, fetch fresh data from Google Places first."""
     conn = get_db()
-    rows = conn.execute(
-        "SELECT * FROM restaurants WHERE name LIKE ? OR cuisine LIKE ? LIMIT 10",
-        (f"%{query_str}%", f"%{query_str}%"),
-    ).fetchall()
+    if city:
+        rows = conn.execute(
+            "SELECT * FROM restaurants WHERE (name LIKE ? OR cuisine LIKE ?) AND address LIKE ? LIMIT 10",
+            (f"%{query_str}%", f"%{query_str}%", f"%{city}%"),
+        ).fetchall()
+        if not rows:
+            # Fetch from Google Places for this city + query
+            conn.close()
+            search_term = f"{query_str} restaurants in {city}" if query_str else city
+            fetch_google_restaurants(search_term)
+            conn = get_db()
+            rows = conn.execute(
+                "SELECT * FROM restaurants WHERE (name LIKE ? OR cuisine LIKE ?) AND address LIKE ? LIMIT 10",
+                (f"%{query_str}%", f"%{query_str}%", f"%{city}%"),
+            ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM restaurants WHERE name LIKE ? OR cuisine LIKE ? LIMIT 10",
+            (f"%{query_str}%", f"%{query_str}%"),
+        ).fetchall()
+        if not rows and query_str:
+            # Try fetching from Google Places
+            conn.close()
+            fetch_google_restaurants(query_str)
+            conn = get_db()
+            rows = conn.execute(
+                "SELECT * FROM restaurants WHERE name LIKE ? OR cuisine LIKE ? LIMIT 10",
+                (f"%{query_str}%", f"%{query_str}%"),
+            ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
@@ -691,43 +763,48 @@ def send_whatsapp_buttons(to, body_text, buttons):
 # ---------------------------------------------------------------------------
 # AI Agentic Loop — system prompt, tools, inference
 # ---------------------------------------------------------------------------
-SYSTEM_PROMPT = f"""You are a friendly restaurant reservation assistant for {DEFAULT_CITY} restaurants. You help customers browse restaurants and book tables via WhatsApp.
+SYSTEM_PROMPT = f"""You are a friendly restaurant reservation assistant. You help customers browse restaurants and book tables via WhatsApp. You can find restaurants in any city — just ask the customer where they'd like to dine.
 
 Today's date is {datetime.now(timezone.utc).strftime('%Y-%m-%d')} ({datetime.now(timezone.utc).strftime('%A')}).
 
 Available time slots: {', '.join(TIME_SLOTS)}
 
 CRITICAL RULES:
+- ALWAYS use the send_whatsapp tool to reply to the customer. NEVER put your reply in a plain text response — it MUST go through send_whatsapp. Every turn must end with exactly one send_whatsapp call.
 - Send EXACTLY ONE WhatsApp message per turn. After calling send_whatsapp, STOP. Do not call send_whatsapp again — wait for the customer to reply.
-- You may call search_restaurants, check_availability, or other data tools multiple times before sending your ONE message.
+- You may call search_restaurants, check_availability, or other data tools multiple times before sending your ONE message via send_whatsapp.
 - Keep messages short — this is WhatsApp, not email. 1-3 sentences max.
+- Always use send_whatsapp with message_type="text" — do NOT use "list" or "buttons" message types.
 
 Conversation flow:
-1. Customer says hi → Greet them and ask what they're looking for (restaurant name, cuisine, or general browsing). Send ONE text message.
-2. Customer mentions a restaurant → Use search_restaurants to find it, then reply with the match and ask for date and party size. ONE message.
-3. Customer provides details → Use check_availability, then tell them available times and ask them to pick one. ONE message.
-4. Customer picks a time → Use make_reservation to book it, then send a confirmation summary. ONE message.
-5. If the customer wants to cancel → Use get_customer_reservations, then cancel_reservation, then confirm cancellation. ONE message.
+1. Customer says hi → Greet them and ask what they're looking for. Call send_whatsapp with your greeting.
+2. Customer mentions a restaurant → Use search_restaurants to find it, then call send_whatsapp with the match and ask for date and party size.
+3. Customer provides details → Use check_availability, then call send_whatsapp with available times.
+4. Customer picks a time → Use make_reservation to book it, then call send_whatsapp with confirmation.
+5. If the customer wants to cancel → Use get_customer_reservations, then cancel_reservation, then call send_whatsapp to confirm cancellation.
 
 Other guidelines:
 - NEVER invent or guess the customer's name. You only know their phone number. If you need their name, ask them. Until they tell you, do not use any name.
 - Default to today's date if the customer says "tonight" or "today"
 - Parse relative dates: "tomorrow", "this Friday", "next week", etc.
-- If a voice note transcription is provided, respond naturally to its content
-- Always use send_whatsapp with message_type="text" — do NOT use "list" or "buttons" message types"""
+- If a voice note transcription is provided, respond naturally to its content"""
 
 TOOLS = [
     {
         "type": "function",
         "function": {
             "name": "search_restaurants",
-            "description": "Search for restaurants by name or cuisine in the database. Returns matching restaurants with details.",
+            "description": "Search for restaurants by name or cuisine in a given city. If no cached results exist, fetches live data from Google Places. Always pass the city when the customer mentions a location.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "Search query — restaurant name or cuisine type (e.g. 'De Kas', 'italian', 'seafood')",
+                        "description": "Search query — restaurant name or cuisine type (e.g. 'De Kas', 'indian', 'seafood')",
+                    },
+                    "city": {
+                        "type": "string",
+                        "description": "City or area to search in (e.g. 'Heemstede', 'Amsterdam', 'Rotterdam')",
                     },
                 },
                 "required": ["query"],
@@ -880,7 +957,7 @@ def call_inference(messages):
 def execute_tool(tool_name, tool_input, customer_phone):
     """Route an AI tool call to the appropriate function."""
     if tool_name == "search_restaurants":
-        results = search_restaurants(tool_input.get("query", ""))
+        results = search_restaurants(tool_input.get("query", ""), city=tool_input.get("city"))
         return json.dumps({"restaurants": results}, default=str)
 
     if tool_name == "check_availability":
@@ -1007,9 +1084,25 @@ def process_inbound_whatsapp(from_number, text):
             sse_publish("agent.thinking", {"content": msg["content"]})
 
         if not msg.get("tool_calls"):
-            # No more tools — AI is done
+            # No more tools — AI is done. If it produced text but never
+            # called send_whatsapp, send the text to the customer directly.
             if msg.get("content"):
-                sse_publish("agent.done", {"content": msg["content"]})
+                try:
+                    send_whatsapp_text(from_number, msg["content"])
+                    store_message(from_number, "assistant", msg["content"])
+                    # Publish as channel.whatsapp so the phone simulator
+                    # renders a chat bubble (same event as send_whatsapp tool).
+                    sse_publish("channel.whatsapp", {
+                        "direction": "outbound",
+                        "text": msg["content"],
+                        "to": from_number,
+                        "message_type": "text",
+                    })
+                except Exception as exc:
+                    app.logger.error("Auto-send failed: %s", exc)
+                    sse_publish("agent.error", {"error": str(exc)})
+            showTyping_done = True
+            sse_publish("agent.done", {"content": "Message sent"})
             break
 
         messages.append(msg)
@@ -1207,7 +1300,7 @@ def health():
 
 @app.route("/api/restaurants", methods=["GET"])
 def api_restaurants():
-    """List restaurants. Accepts ?city=, ?cuisine=, ?q= query params.
+    """List restaurants with pagination. Accepts ?city=, ?cuisine=, ?q=, ?page=, ?per_page=.
 
     When city or cuisine changes, fetches fresh data from Google Places API
     (falling back to hardcoded data if the API is down).
@@ -1215,6 +1308,8 @@ def api_restaurants():
     city = request.args.get("city", "").strip() or DEFAULT_CITY
     cuisine = request.args.get("cuisine", "").strip() or "All"
     q = request.args.get("q", "").strip()
+    page = max(1, request.args.get("page", 1, type=int))
+    per_page = min(50, max(1, request.args.get("per_page", 12, type=int)))
 
     # Check if we have cached data for this city
     conn = get_db()
@@ -1226,22 +1321,10 @@ def api_restaurants():
 
     # If no cached data for this city, fetch fresh
     if not rows:
-        restaurants = fetch_google_restaurants(city=city, cuisine_filter=None, limit=20)
+        restaurants = fetch_google_restaurants(city=city, cuisine_filter=None)
         if len(restaurants) < 3:
-            restaurants = get_fallback_restaurants(city=city, limit=20)
-        # Cache them
-        now = datetime.now(timezone.utc).isoformat()
-        conn = get_db()
-        for r in restaurants:
-            conn.execute(
-                "INSERT OR IGNORE INTO restaurants (id, name, cuisine, address, phone, lat, lon, photo_url, cached_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (r["id"], r["name"], r.get("cuisine", ""), r.get("address", ""),
-                 r.get("phone", ""), r.get("lat"), r.get("lon"),
-                 r.get("photo_url", ""), now),
-            )
-        conn.commit()
-        conn.close()
+            restaurants = get_fallback_restaurants(city=city)
+        _cache_restaurants(restaurants)
         result = restaurants
     else:
         result = [dict(r) for r in rows]
@@ -1252,7 +1335,9 @@ def api_restaurants():
         filtered = [r for r in result if cf in (r.get("cuisine") or "").lower()]
         # If no matches in cache, do a targeted Google Places search
         if not filtered and GOOGLE_PLACES_API_KEY:
-            filtered = fetch_google_restaurants(city=city, cuisine_filter=cuisine, limit=20)
+            filtered = fetch_google_restaurants(city=city, cuisine_filter=cuisine)
+            if filtered:
+                _cache_restaurants(filtered)
         result = filtered
 
     # Apply text search filter
@@ -1260,7 +1345,20 @@ def api_restaurants():
         ql = q.lower()
         result = [r for r in result if ql in (r.get("name") or "").lower() or ql in (r.get("cuisine") or "").lower()]
 
-    return jsonify(result[:20])
+    # Paginate
+    total = len(result)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    page = min(page, total_pages)
+    start = (page - 1) * per_page
+    page_items = result[start:start + per_page]
+
+    return jsonify({
+        "restaurants": page_items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages,
+    })
 
 
 @app.route("/api/restaurants/refresh", methods=["POST"])
@@ -1275,32 +1373,11 @@ def api_refresh_restaurants():
     conn.commit()
     conn.close()
 
-    restaurants = fetch_google_restaurants(city=city, limit=20)
+    restaurants = fetch_google_restaurants(city=city)
     if len(restaurants) < 3:
-        restaurants = get_fallback_restaurants(city=city, limit=20)
+        restaurants = get_fallback_restaurants(city=city)
 
-    now = datetime.now(timezone.utc).isoformat()
-    conn = get_db()
-    for r in restaurants:
-        conn.execute(
-            "INSERT OR IGNORE INTO restaurants "
-            "(id, name, cuisine, address, phone, lat, lon, photo_url, "
-            "rating, rating_count, price_level, price_range, website, maps_url, "
-            "open_now, hours, reservable, vegetarian, outdoor_seating, "
-            "dine_in, delivery, takeout, cached_at) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (r["id"], r["name"], r.get("cuisine", ""), r.get("address", ""),
-             r.get("phone", ""), r.get("lat"), r.get("lon"),
-             r.get("photo_url", ""), r.get("rating"), r.get("rating_count", 0),
-             r.get("price_level", ""), r.get("price_range", ""),
-             r.get("website", ""), r.get("maps_url", ""),
-             r.get("open_now"), r.get("hours", ""),
-             r.get("reservable", 0), r.get("vegetarian", 0),
-             r.get("outdoor_seating", 0), r.get("dine_in", 0),
-             r.get("delivery", 0), r.get("takeout", 0), now),
-        )
-    conn.commit()
-    conn.close()
+    _cache_restaurants(restaurants)
     return jsonify({"status": "refreshed", "count": len(restaurants), "city": city})
 
 
