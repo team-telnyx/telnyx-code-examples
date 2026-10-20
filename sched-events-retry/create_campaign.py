@@ -1,15 +1,15 @@
 # SELF-REVIEW:
-# \u2705 Creates one phone_call scheduled event per contact via POST .../scheduled_events
-# \u2705 Encodes retry bounds: max_retries_client_errors 0-10, retry_interval_secs 60-86400
-# \u2705 Demonstrates the phone-call-only 400 by attempting retry fields on an sms_chat event
-# \u2705 SMS guard runs against the API even in demo mode (non-routable placeholder, deliberate 400 probe)
-# \u2705 Validates contact phone numbers against E.164 before building the payload
-# \u2705 Sanitizes contact names (strips control chars, caps length) before interpolation
-# \u2705 Staggers scheduled_at_fixed_datetime evenly across the window (--spread minutes)
-# \u2705 Demo mode default: prints the payloads instead of dispatching real calls
-# \u2705 No credentials in code; TELNYX_API_KEY from env
+# ✅ Creates one phone_call scheduled event per contact via POST .../scheduled_events
+# ✅ Encodes retry bounds: max_retries_client_errors 0-10, retry_interval_secs 60-86400
+# ✅ Demonstrates the phone-call-only 400 by attempting retry fields on an sms_chat event
+# ✅ SMS guard runs against the API even in demo mode (non-routable placeholder, deliberate 400 probe)
+# ✅ Validates contact phone numbers against E.164 before building the payload
+# ✅ Sanitizes contact names (strips control chars, caps length) before interpolation
+# ✅ Staggers scheduled_at_fixed_datetime evenly across the window (--spread minutes)
+# ✅ Demo mode default: prints the payloads instead of dispatching real calls
+# ✅ No credentials in code; TELNYX_API_KEY from env
 
-"""Step 1 \u2014 schedule the retry campaign.
+"""Step 1 — schedule the retry campaign.
 
 Creates one `phone_call` scheduled event per contact against a single assistant.
 Each event carries its own retry budget (`max_retries_client_errors` +
@@ -46,7 +46,7 @@ FROM_NUMBER = os.getenv("TELNYX_FROM_NUMBER", "+1555XXXXXXXX")
 SIP_REGION = os.getenv("TELNYX_SIP_REGION", "us-east")
 DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() in ("1", "true", "yes")
 
-# Documented bounds \u2014 encoded as constants so the sample is self-documenting.
+# Documented bounds — encoded as constants so the sample is self-documenting.
 MAX_RETRIES_MIN, MAX_RETRIES_MAX = 0, 10
 RETRY_INTERVAL_MIN, RETRY_INTERVAL_MAX = 60, 86400
 DEFAULT_MAX_RETRIES = 3
@@ -164,15 +164,15 @@ def demonstrate_sms_guard(campaign_id: str, max_retries: int, retry_interval: in
         channel="sms_chat",
     )
     if not (API_KEY and ASSISTANT_ID):
-        print("[guard] TELNYX_API_KEY / TELNYX_ASSISTANT_ID not set \u2014 cannot probe; "
+        print("[guard] TELNYX_API_KEY / TELNYX_ASSISTANT_ID not set — cannot probe; "
               "retry fields are phone-call-only (documented constraint).")
         return
     try:
         resp = requests.post(_events_url(), headers=_headers(), json=payload, timeout=30)
         if resp.status_code == 400:
-            print(f"[guard] \u2705 Got expected 400: {resp.json().get('errors', resp.text)}")
+            print(f"[guard] ✅ Got expected 400: {resp.json().get('errors', resp.text)}")
         else:
-            print(f"[guard] \u26a0\ufe0f  Expected 400, got {resp.status_code}: {resp.text[:200]}")
+            print(f"[guard] ⚠️  Expected 400, got {resp.status_code}: {resp.text[:200]}")
     except requests.RequestException as exc:
         print(f"[guard] request failed: {exc}")
 
@@ -201,7 +201,7 @@ def _main() -> int:
     campaign_id = f"camp-{uuid.uuid4().hex[:8]}"
     step = timedelta(minutes=args.spread) / max(len(contacts), 1)
 
-    print(f"Campaign {campaign_id} \u2014 {len(contacts)} contacts, spread {args.spread}m")
+    print(f"Campaign {campaign_id} — {len(contacts)} contacts, spread {args.spread}m")
     print(f"Retry budget: {args.max_retries} retries @ {args.retry_interval}s (up to {args.max_retries + 1} attempts)\n")
 
     demonstrate_sms_guard(campaign_id, args.max_retries, args.retry_interval)

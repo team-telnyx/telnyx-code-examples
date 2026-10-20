@@ -1,16 +1,16 @@
 # SELF-REVIEW:
-# \u2705 Polls GET .../scheduled_events every 30s and GET .../{event_id} for call_attempts
-# \u2705 Rebuilds the per-attempt ledger (attempt_number, attempted_at, call_status, ...)
-# \u2705 Asserts clock-restart semantics between retryable-terminal attempts
-# \u2705 Asserts the DISTINGUISHING case: first retry fired at T1+interval, NOT schedule+interval
-# \u2705 Dead-letters exhausted-budget events ONCE per event (dedup set)
-# \u2705 Dead-letter CSV includes masked phone so replay can re-schedule contacts
-# \u2705 Populates cancelled_ids from canceled event statuses (report counts them as cancelled)
-# \u2705 Terminates when every manifest event reaches a terminal status (or --once/--max-polls)
-# \u2705 Persists per-event attempt summaries to the manifest for report.py
-# \u2705 No credentials in code; contact names/phones masked in dead-letter CSV
+# ✅ Polls GET .../scheduled_events every 30s and GET .../{event_id} for call_attempts
+# ✅ Rebuilds the per-attempt ledger (attempt_number, attempted_at, call_status, ...)
+# ✅ Asserts clock-restart semantics between retryable-terminal attempts
+# ✅ Asserts the DISTINGUISHING case: first retry fired at T1+interval, NOT schedule+interval
+# ✅ Dead-letters exhausted-budget events ONCE per event (dedup set)
+# ✅ Dead-letter CSV includes masked phone so replay can re-schedule contacts
+# ✅ Populates cancelled_ids from canceled event statuses (report counts them as cancelled)
+# ✅ Terminates when every manifest event reaches a terminal status (or --once/--max-polls)
+# ✅ Persists per-event attempt summaries to the manifest for report.py
+# ✅ No credentials in code; contact names/phones masked in dead-letter CSV
 
-"""Step 2 \u2014 watch the campaign and rebuild attempt forensics.
+"""Step 2 — watch the campaign and rebuild attempt forensics.
 
 Scheduled Events has no webhook surface, so polling `GET .../scheduled_events`
 is the documented way to observe it. For each event this script prints status
@@ -101,7 +101,7 @@ def verify_retry_clock(attempts: list[dict[str, Any]], retry_interval: int) -> l
     The clock only restarts after a terminal attempt whose call_status is in
     RETRYABLE_STATUSES (busy / no-answer / failed / canceled). Pairs where the
     previous attempt is `completed`, in-flight, or has no terminal status are
-    skipped \u2014 they are not retry triggers.
+    skipped — they are not retry triggers.
     """
     violations: list[str] = []
     for prev, nxt in zip(attempts, attempts[1:]):
@@ -133,7 +133,7 @@ def verify_clock_restart(
     mean it fires at `attempt_1.attempted_at + retry_interval_secs`, which is
     strictly later whenever attempt #1 itself fired after the schedule (the
     normal case). We flag a violation when the first retry fires *before*
-    `attempt_1.attempted_at + retry_interval_secs` \u2014 the only way that happens
+    `attempt_1.attempted_at + retry_interval_secs` — the only way that happens
     is if the platform restarted the clock at the original schedule instead.
     """
     if len(attempts) < 2 or not scheduled_at:
@@ -148,7 +148,7 @@ def verify_clock_restart(
     if second_at.timestamp() < restart_earliest:
         return [
             f"attempt 2 fired {second_at.isoformat()} before attempt 1 "
-            f"({first['attempted_at']}) + {retry_interval}s \u2014 clock did NOT restart "
+            f"({first['attempted_at']}) + {retry_interval}s — clock did NOT restart "
             f"at the terminal attempt (schedule+interval would be "
             f"{datetime.fromtimestamp(schedule_earliest, tz=timezone.utc).isoformat()})"
         ]
@@ -223,7 +223,7 @@ def _main() -> int:
     args = parser.parse_args()
 
     if not args.manifest.exists():
-        print(f"error: {args.manifest} not found \u2014 run create_campaign.py first", file=sys.stderr)
+        print(f"error: {args.manifest} not found — run create_campaign.py first", file=sys.stderr)
         return 2
 
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
@@ -263,7 +263,7 @@ def _main() -> int:
                 continue
             violations = print_ledger(event, args.retry_interval)
             for v in violations:
-                print(f"  \u274c RETRY CLOCK VIOLATION: {v}")
+                print(f"  ❌ RETRY CLOCK VIOLATION: {v}")
             violations_total += len(violations)
 
             summaries[event_id] = summarize_event(event)
@@ -274,10 +274,10 @@ def _main() -> int:
             if status == "failed" and event.get("errors") and event_id not in dead_lettered:
                 write_dead_letter(dead_letter, event)
                 dead_lettered.add(event_id)
-                print(f"  \u2620\ufe0f  dead-lettered {event_id}")
+                print(f"  ☠️  dead-lettered {event_id}")
             for att in event.get("call_attempts") or []:
                 if att.get("call_status") == "completed" and att.get("conversation_id"):
-                    print(f"  \u2705 {event_id} conversation_id={att['conversation_id']}")
+                    print(f"  ✅ {event_id} conversation_id={att['conversation_id']}")
 
             if status in TERMINAL_EVENT_STATUSES:
                 terminal_events.add(event_id)
@@ -300,7 +300,7 @@ def _main() -> int:
     args.manifest.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     if violations_total:
-        print(f"\n\u274c {violations_total} retry-clock violation(s) detected", file=sys.stderr)
+        print(f"\n❌ {violations_total} retry-clock violation(s) detected", file=sys.stderr)
         return 1
     print("\nWatcher finished. Next: python report.py")
     return 0

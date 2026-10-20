@@ -1,10 +1,10 @@
 # SELF-REVIEW:
-# \u2705 Cancels every event in the manifest via DELETE .../scheduled_events/{event_id}
-# \u2705 Writes cancelled_ids into the manifest so report.py counts them as cancelled (not failed)
-# \u2705 Demo mode default: prints the DELETE it would issue, no live request
-# \u2705 No credentials in code; TELNYX_API_KEY from env
+# ✅ Cancels every event in the manifest via DELETE .../scheduled_events/{event_id}
+# ✅ Writes cancelled_ids into the manifest so report.py counts them as cancelled (not failed)
+# ✅ Demo mode default: prints the DELETE it would issue, no live request
+# ✅ No credentials in code; TELNYX_API_KEY from env
 
-"""Step 4 \u2014 teardown: cancel all created events.
+"""Step 4 — teardown: cancel all created events.
 
 Contacts removed from the CSV after creation are cancelled before dispatch via
 `DELETE .../scheduled_events/{event_id}`. Cancelled events are counted as
@@ -48,7 +48,7 @@ def cancel_event(event_id: str) -> bool:
     if resp.status_code == 200:
         return True
     # 400 = already dispatched/terminal, 404 = gone, 500 = server error: log and keep going.
-    print(f"  \u26a0\ufe0f  {event_id}: DELETE returned {resp.status_code}: {resp.text[:200]}", file=sys.stderr)
+    print(f"  ⚠️  {event_id}: DELETE returned {resp.status_code}: {resp.text[:200]}", file=sys.stderr)
     return False
 
 
@@ -58,7 +58,7 @@ def _main() -> int:
     args = parser.parse_args()
 
     if not args.manifest.exists():
-        print(f"error: {args.manifest} not found \u2014 run create_campaign.py first", file=sys.stderr)
+        print(f"error: {args.manifest} not found — run create_campaign.py first", file=sys.stderr)
         return 2
 
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))

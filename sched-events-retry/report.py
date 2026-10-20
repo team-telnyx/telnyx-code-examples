@@ -1,11 +1,11 @@
 # SELF-REVIEW:
-# \u2705 Aggregates final event states into the campaign scorecard
-# \u2705 Separates reached-on-first-attempt from reached-on-retry-N (from manifest attempt_summaries)
-# \u2705 Dead-letters exhausted-budget events with their final call_status
-# \u2705 Counts cancelled events explicitly (from manifest cancelled_ids), not as a residual
-# \u2705 No credentials in code; reads only the local manifest + dead-letter CSV
+# ✅ Aggregates final event states into the campaign scorecard
+# ✅ Separates reached-on-first-attempt from reached-on-retry-N (from manifest attempt_summaries)
+# ✅ Dead-letters exhausted-budget events with their final call_status
+# ✅ Counts cancelled events explicitly (from manifest cancelled_ids), not as a residual
+# ✅ No credentials in code; reads only the local manifest + dead-letter CSV
 
-"""Step 3 \u2014 offline campaign scorecard.
+"""Step 3 — offline campaign scorecard.
 
 Reads the campaign manifest (including the per-event attempt summaries written
 by the watcher) and the dead-letter CSV, then prints the delivery report: total
@@ -66,7 +66,7 @@ def build_scorecard(manifest: dict, dead_letters: list[dict[str, str]]) -> dict:
 
 
 def print_scorecard(card: dict) -> None:
-    print(f"Campaign scorecard \u2014 {card['campaign_id']}")
+    print(f"Campaign scorecard — {card['campaign_id']}")
     print("=" * 52)
     print(f"  total events          : {card['total_events']}")
     print(f"  reached (first attempt): {card['reached_first_attempt']}")
@@ -93,7 +93,7 @@ def _main() -> int:
     args = parser.parse_args()
 
     if not args.manifest.exists():
-        print(f"error: {args.manifest} not found \u2014 run create_campaign.py first")
+        print(f"error: {args.manifest} not found — run create_campaign.py first")
         return 2
 
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))

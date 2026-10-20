@@ -1,4 +1,4 @@
-# API Reference \u2014 Scheduled-Events Retry Campaign Desk
+# API Reference — Scheduled-Events Retry Campaign Desk
 
 Typed contract for every Telnyx endpoint this sample calls, plus the CLI surface of each workflow script.
 
@@ -24,22 +24,22 @@ Create one scheduled event. For this sample, one event = one outbound call with 
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `telnyx_conversation_channel` | string | yes | `"phone_call"` for this sample. Retry fields are **phone-call only** \u2014 sending them with `"sms_chat"` returns `400`. |
+| `telnyx_conversation_channel` | string | yes | `"phone_call"` for this sample. Retry fields are **phone-call only** — sending them with `"sms_chat"` returns `400`. |
 | `telnyx_end_user_target` | string | yes | The contact's phone number in E.164 (`+15551234567`). |
 | `telnyx_agent_target` | string | yes | The outbound caller ID. From `TELNYX_FROM_NUMBER`. |
 | `scheduled_at_fixed_datetime` | string (ISO-8601 UTC) | yes | Absolute dispatch time, e.g. `2026-10-20T15:00:00Z`. Staggered per contact across the `--spread` window. |
 | `text` | string | yes | The call script the assistant speaks. |
 | `conversation_metadata` | object | no | Free-form attribution tags. This sample sets `campaign_id` and `contact_name`; the watcher filters the list endpoint on `campaign_id`. |
-| `max_retries_client_errors` | integer | conditional | Retry budget on top of the initial dispatch. Bounds **0\u201310**. `0` = 1 total attempt, `3` = up to 4, `10` = up to 11. Must be sent together with `retry_interval_secs`. |
-| `retry_interval_secs` | integer | conditional | Seconds between attempts. Bounds **60\u201386400**. Must be sent together with `max_retries_client_errors`. |
+| `max_retries_client_errors` | integer | conditional | Retry budget on top of the initial dispatch. Bounds **0–10**. `0` = 1 total attempt, `3` = up to 4, `10` = up to 11. Must be sent together with `retry_interval_secs`. |
+| `retry_interval_secs` | integer | conditional | Seconds between attempts. Bounds **60–86400**. Must be sent together with `max_retries_client_errors`. |
 | `call_settings` | object | no | Phone-call-only settings. |
 | `call_settings.sip_region` | string | no | Region pin for the outbound leg, e.g. `"us-east"`. From `TELNYX_SIP_REGION`. |
 
 **Validation rules encoded in `create_campaign.py` (`validate_retry_budget`):**
 
-- `max_retries_client_errors` must be within `0\u201310`.
-- `retry_interval_secs` must be within `60\u201386400`.
-- The two must move together \u2014 one without the other is a `400`.
+- `max_retries_client_errors` must be within `0–10`.
+- `retry_interval_secs` must be within `60–86400`.
+- The two must move together — one without the other is a `400`.
 
 ### Example request
 
@@ -63,7 +63,7 @@ curl -X POST "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/sched
   }'
 ```
 
-### Response \u2014 `200 OK`
+### Response — `200 OK`
 
 ```json
 {
@@ -92,7 +92,7 @@ curl -X POST "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/sched
 | Code | Meaning | Sample behavior |
 |------|---------|-----------------|
 | `200` | Event created. | `event_id` appended to the manifest. |
-| `400` | Validation failure \u2014 retry fields out of bounds, retry fields sent without their pair, or retry fields on a non-`phone_call` channel. | `demonstrate_sms_guard()` catches this deliberately to prove the phone-call-only constraint. |
+| `400` | Validation failure — retry fields out of bounds, retry fields sent without their pair, or retry fields on a non-`phone_call` channel. | `demonstrate_sms_guard()` catches this deliberately to prove the phone-call-only constraint. |
 | `404` | `assistant_id` not found. | `raise_for_status()` propagates; the contact is skipped and logged. |
 | `500` | Telnyx-side error. | `raise_for_status()` propagates; the contact is skipped and logged. |
 
@@ -100,7 +100,7 @@ curl -X POST "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/sched
 
 ## `GET /v2/ai/assistants/{assistant_id}/scheduled_events`
 
-Paginated list of scheduled events. This is the watcher's discovery call \u2014 Scheduled Events has **no webhook surface**, so polling is the documented way to observe it.
+Paginated list of scheduled events. This is the watcher's discovery call — Scheduled Events has **no webhook surface**, so polling is the documented way to observe it.
 
 ### Path parameters
 
@@ -122,7 +122,7 @@ curl -G "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/scheduled_
   --data-urlencode "page[size]=250"
 ```
 
-### Response \u2014 `200 OK`
+### Response — `200 OK`
 
 ```json
 {
@@ -157,7 +157,7 @@ The watcher filters this list on `conversation_metadata.campaign_id` so it only 
 
 ## `GET /v2/ai/assistants/{assistant_id}/scheduled_events/{event_id}`
 
-Single-event detail. This is the forensics source \u2014 the `call_attempts` array is the per-attempt ledger.
+Single-event detail. This is the forensics source — the `call_attempts` array is the per-attempt ledger.
 
 ### Path parameters
 
@@ -173,7 +173,7 @@ curl "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/scheduled_eve
   -H "Authorization: Bearer $TELNYX_API_KEY"
 ```
 
-### Response \u2014 `200 OK`
+### Response — `200 OK`
 
 ```json
 {
@@ -220,7 +220,7 @@ curl "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/scheduled_eve
 }
 ```
 
-### `call_attempts[]` \u2014 `AssistantScheduledCallAttempt`
+### `call_attempts[]` — `AssistantScheduledCallAttempt`
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -228,7 +228,7 @@ curl "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/scheduled_eve
 | `attempted_at` | string (ISO-8601 UTC) | When the attempt fired. The retry clock is measured from this value. |
 | `call_status` | string | Outcome of the attempt. Retryable: `busy`, `no-answer`, `failed`, `canceled`. Terminal success: `completed`. |
 | `call_duration` | integer | Call duration in seconds. |
-| `telnyx_call_control_id` | string | Call Control ID for the attempt \u2014 use it to correlate with Call Control events. |
+| `telnyx_call_control_id` | string | Call Control ID for the attempt — use it to correlate with Call Control events. |
 | `conversation_id` | string | Present on `completed` attempts. Recorded by the watcher for transcript follow-up. |
 
 ### Event statuses
@@ -243,7 +243,7 @@ curl "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/scheduled_eve
 
 ### Retry clock semantics (asserted by `watch_campaign.py`)
 
-After a terminal attempt at time `T`, the next attempt fires at **`T + retry_interval_secs`** \u2014 the clock restarts at `now + interval`, **not** at the original schedule + interval. `verify_retry_clock()` asserts `attempts[n+1].attempted_at >= attempts[n].attempted_at + retry_interval_secs` and returns a violation string for any attempt that fires early.
+After a terminal attempt at time `T`, the next attempt fires at **`T + retry_interval_secs`** — the clock restarts at `now + interval`, **not** at the original schedule + interval. `verify_retry_clock()` asserts `attempts[n+1].attempted_at >= attempts[n].attempted_at + retry_interval_secs` and returns a violation string for any attempt that fires early.
 
 ### Status codes
 
@@ -274,7 +274,7 @@ curl -X DELETE "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/sch
   -H "Authorization: Bearer $TELNYX_API_KEY"
 ```
 
-### Response \u2014 `200 OK`
+### Response — `200 OK`
 
 ```json
 {
@@ -290,7 +290,7 @@ curl -X DELETE "https://api.telnyx.com/v2/ai/assistants/$TELNYX_ASSISTANT_ID/sch
 | Code | Meaning | Sample behavior |
 |------|---------|-----------------|
 | `200` | Event cancelled. | Counted as `cancelled` in the scorecard. |
-| `400` | Event already dispatched or terminal \u2014 cannot cancel. | Logged; the event keeps its terminal status. |
+| `400` | Event already dispatched or terminal — cannot cancel. | Logged; the event keeps its terminal status. |
 | `404` | Event not found. | Logged; skipped. |
 | `500` | Telnyx-side error. | Logged; skipped. |
 
@@ -307,8 +307,8 @@ Each workflow step is a standalone script. `app.py` is a thin help-dispatcher th
 | `--contacts` | path | `contacts.csv` | CSV with `name,phone` columns. |
 | `--start` | string | **required** | ISO-8601 UTC start, e.g. `2026-10-20T15:00:00Z`. |
 | `--spread` | integer | `45` | Minutes across which contacts are staggered evenly. |
-| `--max-retries` | integer | `3` | `max_retries_client_errors`. Bounds `0\u201310`. |
-| `--retry-interval` | integer | `300` | `retry_interval_secs`. Bounds `60\u201386400`. |
+| `--max-retries` | integer | `3` | `max_retries_client_errors`. Bounds `0–10`. |
+| `--retry-interval` | integer | `300` | `retry_interval_secs`. Bounds `60–86400`. |
 
 Exit codes: `0` success, `2` validation/config error. Writes `campaign_manifest.json`.
 

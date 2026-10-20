@@ -1,4 +1,4 @@
-# Scheduled-Events Retry Campaign Desk \u2014 Developer Guide
+# Scheduled-Events Retry Campaign Desk — Developer Guide
 
 A step-by-step walkthrough of the `sched-events-retry` sample: how to schedule a
 deadline-aware outbound call campaign on Telnyx Assistant Scheduled Events, how
@@ -14,11 +14,11 @@ go deep on the mechanics, the retry clock, and the forensics.
 
 Every outbound-call campaign owner asks the same three questions:
 
-1. **How do I retry no-answers?** \u2014 the platform should retry busy / no-answer /
+1. **How do I retry no-answers?** — the platform should retry busy / no-answer /
    failed / canceled outcomes for me, without me writing a scheduler.
-2. **When exactly does the next attempt fire?** \u2014 is it `original_schedule +
+2. **When exactly does the next attempt fire?** — is it `original_schedule +
    interval`, or `last_attempt + interval`? The answer changes your deadline math.
-3. **How do I reconstruct what happened?** \u2014 I need a per-call ledger, not a
+3. **How do I reconstruct what happened?** — I need a per-call ledger, not a
    single terminal status.
 
 This sample answers all three with a runnable campaign and a forensic report. It
@@ -31,7 +31,7 @@ composes four pieces:
 | Watcher | `watch_campaign.py` | Polls events, rebuilds the attempt ledger, verifies the retry clock |
 | Report | `report.py` | Offline scorecard: reached / retry-N / dead-letter |
 
-The **event** \u2014 not the campaign \u2014 is the unit of retry. Campaign-level
+The **event** — not the campaign — is the unit of retry. Campaign-level
 orchestration lives in the scripts, not in the platform.
 
 ---
@@ -75,7 +75,7 @@ cp .env.example .env
 
 - `create_campaign.py` prints the exact JSON payload it *would* POST and
   generates fake `demo-*` event IDs. No calls are placed, no charges incurred.
-- `watch_campaign.py` prints a notice and exits the poll loop immediately \u2014
+- `watch_campaign.py` prints a notice and exits the poll loop immediately —
   there are no live events to observe.
 - `report.py` still runs and prints a scorecard from whatever manifest and
   dead-letter file exist.
@@ -96,11 +96,11 @@ MAX_RETRIES_MIN, MAX_RETRIES_MAX = 0, 10
 RETRY_INTERVAL_MIN, RETRY_INTERVAL_MAX = 60, 86400
 ```
 
-- `max_retries_client_errors: 0` \u2192 **1 total attempt**
-- `max_retries_client_errors: 3` \u2192 **up to 4 total attempts**
-- `max_retries_client_errors: 10` \u2192 **up to 11 total attempts**
+- `max_retries_client_errors: 0` → **1 total attempt**
+- `max_retries_client_errors: 3` → **up to 4 total attempts**
+- `max_retries_client_errors: 10` → **up to 11 total attempts**
 - `retry_interval_secs` must be between **60 and 86400** seconds.
-- The two fields **must move together** \u2014 setting one without the other is a
+- The two fields **must move together** — setting one without the other is a
   `400`.
 - Retry fields are **phone-call only**. Setting them on an `sms_chat` event is a
   `400`.
@@ -113,7 +113,7 @@ behavior the watcher verifies.
 
 ---
 
-## 5. Step 1 \u2014 `create_campaign.py`
+## 5. Step 1 — `create_campaign.py`
 
 ### 5.1 Loading and validating contacts
 
@@ -126,7 +126,7 @@ Grace Hopper,+15551230002
 ```
 
 `validate_retry_budget()` enforces the documented bounds and the move-together
-rule before any request is made \u2014 you get a clear `ValueError` instead of a
+rule before any request is made — you get a clear `ValueError` instead of a
 cryptic `400` from the API.
 
 ### 5.2 Building the payload
@@ -151,7 +151,7 @@ cryptic `400` from the API.
 ```
 
 The `conversation_metadata` block is how the watcher later filters events down to
-*this* campaign \u2014 the platform does not have a campaign object, so attribution
+*this* campaign — the platform does not have a campaign object, so attribution
 is your job.
 
 ### 5.3 The SMS guard
@@ -161,7 +161,7 @@ is your job.
 `400`, which the script catches and prints:
 
 ```
-[guard] \u2705 Got expected 400: [{'code': '...', 'detail': 'retry fields are only supported for phone_call'}]
+[guard] ✅ Got expected 400: [{'code': '...', 'detail': 'retry fields are only supported for phone_call'}]
 ```
 
 This is the runnable proof of the phone-call-only constraint. In demo mode the
@@ -207,7 +207,7 @@ That manifest is the handoff to the watcher.
 
 ---
 
-## 6. Step 2 \u2014 `watch_campaign.py`
+## 6. Step 2 — `watch_campaign.py`
 
 ### 6.1 Why polling
 
@@ -215,17 +215,17 @@ Scheduled Events has **no webhook surface**. There is no callback to register
 and no event stream to subscribe to. Polling `GET .../scheduled_events` is the
 documented way to observe them. The watcher polls every 30 seconds.
 
-If you find yourself hunting for a webhook that does not exist \u2014 stop. Poll.
+If you find yourself hunting for a webhook that does not exist — stop. Poll.
 
 ### 6.2 The poll loop
 
 Each cycle:
 
-1. `list_events()` \u2014 `GET .../scheduled_events?page[size]=250`, then filter to
+1. `list_events()` — `GET .../scheduled_events?page[size]=250`, then filter to
    events whose `conversation_metadata.campaign_id` matches the manifest.
-2. For each event, `get_event(event_id)` \u2014 `GET .../scheduled_events/{event_id}`
+2. For each event, `get_event(event_id)` — `GET .../scheduled_events/{event_id}`
    to pull the full `call_attempts` ledger.
-3. Print any status transition (`pending` \u2192 dispatched \u2192 terminal).
+3. Print any status transition (`pending` → dispatched → terminal).
 4. Print the per-attempt ledger.
 5. Verify the retry clock.
 6. Dead-letter exhausted-budget events; record `conversation_id` on completion.
@@ -243,7 +243,7 @@ Once `call_attempts` is populated, the watcher prints each attempt:
 
 Each `AssistantScheduledCallAttempt` carries `attempt_number`, `attempted_at`,
 `call_status`, `call_duration`, and `telnyx_call_control_id`. This array is the
-forensics source \u2014 everything the report knows comes from here.
+forensics source — everything the report knows comes from here.
 
 ### 6.4 Verifying the retry clock
 
@@ -265,7 +265,7 @@ have fired at `15:05:00` (schedule + 300s) rather than `15:05:12` (attempt #1 +
 300s). The assertion catches that distinction and fails loudly:
 
 ```
-  \u274c RETRY CLOCK VIOLATION: attempt 2 fired 2026-10-20T15:01:00Z before 2026-10-20T15:00:00Z + 300s
+  ❌ RETRY CLOCK VIOLATION: attempt 2 fired 2026-10-20T15:01:00Z before 2026-10-20T15:00:00Z + 300s
 ```
 
 The watcher exits with code `1` if any violation is detected, so it is safe to
@@ -286,11 +286,11 @@ wire into CI.
 python watch_campaign.py --retry-interval 300
 ```
 
-Use `--once` to poll a single time and exit \u2014 useful for CI and smoke runs.
+Use `--once` to poll a single time and exit — useful for CI and smoke runs.
 
 ---
 
-## 7. Step 3 \u2014 `report.py`
+## 7. Step 3 — `report.py`
 
 The report is offline: it reads `campaign_manifest.json` and `dead_letter.csv`
 and computes the scorecard. No API calls.
@@ -320,7 +320,7 @@ python report.py
 ```
 
 ```
-Campaign scorecard \u2014 camp-1a2b3c4d
+Campaign scorecard — camp-1a2b3c4d
 ====================================================
   total events          : 50
   dead-lettered         : 7
@@ -349,7 +349,7 @@ This is the documented teardown path for a campaign you no longer want to run.
 
 ---
 
-## 9. `app.py` \u2014 the dispatcher
+## 9. `app.py` — the dispatcher
 
 `app.py` is a thin help-dispatcher. It does not implement any workflow. Running
 it prints the three workflow steps and their typical run order:
@@ -374,7 +374,7 @@ The smoke tests verify:
 
 - Every workflow module imports cleanly and exposes `_main()`.
 - `app.py` advertises exactly the three workflow scripts.
-- `validate_retry_budget()` enforces the 0\u201310 / 60\u201386400 bounds and the
+- `validate_retry_budget()` enforces the 0–10 / 60–86400 bounds and the
   move-together rule.
 - `verify_retry_clock()` flags attempts that fire too early and passes attempts
   that respect the interval.
@@ -388,11 +388,11 @@ The smoke tests verify:
 | --- | --- | --- |
 | `400` on create | Retry fields on an `sms_chat` event | Use `telnyx_conversation_channel: "phone_call"` |
 | `400` on create | Only one of the two retry fields set | Set both `max_retries_client_errors` and `retry_interval_secs` |
-| `ValueError: max_retries_client_errors must be 0-10` | Out-of-range budget | Clamp to 0\u201310 |
-| `ValueError: retry_interval_secs must be 60-86400` | Interval too short/long | Clamp to 60\u201386400 |
+| `ValueError: max_retries_client_errors must be 0-10` | Out-of-range budget | Clamp to 0–10 |
+| `ValueError: retry_interval_secs must be 60-86400` | Interval too short/long | Clamp to 60–86400 |
 | Watcher never sees events | `DEMO_MODE=true` | Set `DEMO_MODE=false` |
 | Watcher sees no events | `conversation_metadata.campaign_id` mismatch | Re-run `create_campaign.py`; the manifest holds the ID |
-| `RETRY CLOCK VIOLATION` | Attempt fired before `prev + interval` | Investigate \u2014 this is the assertion the sample exists to make |
+| `RETRY CLOCK VIOLATION` | Attempt fired before `prev + interval` | Investigate — this is the assertion the sample exists to make |
 
 ---
 
@@ -406,9 +406,9 @@ The smoke tests verify:
 
 Once you have the campaign running, the natural extensions are:
 
-- **Transcript follow-up** \u2014 the watcher already prints `conversation_id` on
+- **Transcript follow-up** — the watcher already prints `conversation_id` on
   completion; pipe those into your CRM.
-- **Dead-letter replay** \u2014 re-schedule the contacts in `dead_letter.csv` with a
+- **Dead-letter replay** — re-schedule the contacts in `dead_letter.csv` with a
   fresh campaign ID and a larger budget.
-- **Alerting** \u2014 wire the watcher's exit code into your CI or a cron job so a
+- **Alerting** — wire the watcher's exit code into your CI or a cron job so a
   retry-clock violation pages you.
