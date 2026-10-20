@@ -392,7 +392,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(167 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(170 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -523,6 +523,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [live-support-coach-room](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/live-support-coach-room/README.md) | Typescript | A Telnyx Edge Agent that streams live AI support calls to a supervisor dashboard, injects coaching nudges mid-call, and escalates to a human via WebRTC. |
 | [maintenance-request-dispatch-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/maintenance-request-dispatch-python/README.md) | Python | Tenant texts issue, AI categorizes and estimates cost, auto-dispatches vendor for routine work, manager approves orders over $500 via SMS reply. |
 | [missions-ai-task-runner-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/missions-ai-task-runner-python/README.md) | Python | Missions AI Task Runner - AI-driven task execution within the Telnyx Missions framework. AI decides next steps based on task results. |
+| [missions-audit](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/missions-audit/README.md) | Python | Drive one Telnyx AI Missions mission end-to-end and render a complete, replayable audit trail of what was planned, what ran, and what failed. |
 | [moderation-classifier-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/moderation-classifier-python/README.md) | Python | AI Moderation Classifier — classify user-generated content as safe/spam/abuse/hate/harassment/self-harm using embeddings pre-filter + LLM judgment via Telnyx AI Inference. |
 | [multi-agent-debate](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-agent-debate/README.md) | Typescript | Two AI agents debate a topic with turn-based arguments, live WebSocket broadcasting, and audience voting tallied in SQL. |
 | [multi-channel-ai-helpdesk-with-ticketing-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-channel-ai-helpdesk-with-ticketing-python/README.md) | Python | Multi-Channel AI Helpdesk with Ticketing - voice + SMS + WhatsApp support with auto-ticket creation. |
@@ -567,7 +568,6 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [webhook-aggregator-fanout](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-aggregator-fanout/README.md) | Python | Aggregate, deduplicate, and fan out Telnyx webhooks to multiple action queues (call and SMS) with SQLite event logging. |
 | [webhook-debugger-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webhook-debugger-ai-assistant-python/README.md) | Python | Webhook Debugger AI Assistant - catch, inspect, and debug Telnyx webhooks with AI explanations. |
 | [webrtc-ai-interpreter-live-calls-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/webrtc-ai-interpreter-live-calls-python/README.md) | Python | WebRTC AI Interpreter for Live Calls - real-time translation between two callers speaking different languages. |
-| [whatsapp-coexistence-sync-monitor](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-coexistence-sync-monitor/README.md) | Python | Monitor a coexistence-enabled WhatsApp number by verifying lifecycle state via the Telnyx API and logging message.echo webhooks from the WhatsApp Business app. |
 
 </details>
 
