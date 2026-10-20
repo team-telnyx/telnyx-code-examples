@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+flagged.csv
+remediation_request_id.txt
+remediation_report.md
+.pytest_cache/
+*.egg-info/
