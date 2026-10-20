@@ -3556,3 +3556,9 @@ examples:
     language: python
     framework: vanilla
     folder: missions-audit
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: insights-pipeline
