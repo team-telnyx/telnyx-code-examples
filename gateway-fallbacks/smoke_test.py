@@ -466,6 +466,35 @@ def test_dashboard_state_ready_and_failover_flagged(tmp_path, monkeypatch):
     assert body["usage"]["warning"].startswith("usage read permission")
 
 
+def test_dashboard_state_serializes_sdk_pydantic_models(tmp_path, monkeypatch):
+    """Regression: the SDK returns group.retries as a pydantic Retries model,
+    which plain jsonify cannot serialize."""
+    import dashboard
+
+    from telnyx.types.llm_token_gateway import token_group as token_group_types
+
+    class PydanticGroup(FakeDashboardGroup):
+        retries = token_group_types.Retries(
+            max_attempts=2, backoff="exponential", retry_delay_ms=250
+        )
+
+    dashboard, client = _dashboard_client(tmp_path, monkeypatch, token_key="sk-demo-SECRET")
+    dashboard.ledger.mgmt_client = lambda: types.SimpleNamespace(
+        llm_token_gateway=types.SimpleNamespace(
+            token_groups=types.SimpleNamespace(
+                retrieve=lambda _id: types.SimpleNamespace(data=PydanticGroup()))))
+    dashboard.spend_date_range = lambda: ("2026-10-19", "2026-10-20")
+    dashboard.ledger.fetch_events = lambda *a, **kw: []
+    dashboard.ledger.usage_summary_safe = lambda *a, **kw: (None, "w")
+    resp = client.get("/api/state")
+    body = resp.get_json()
+    assert resp.status_code == 200
+    assert body["group"]["retries"] == {
+        "max_attempts": 2, "backoff": "exponential", "request_timeout_ms": None,
+        "retry_delay_ms": 250,
+    }
+
+
 def test_dashboard_state_never_leaks_token_key(tmp_path, monkeypatch):
     dashboard, client = _dashboard_client(tmp_path, monkeypatch, token_key="sk-demo-SECRET")
     _patch_dashboard_state(dashboard, monkeypatch)
