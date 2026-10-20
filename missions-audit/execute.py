@@ -49,6 +49,13 @@ INSTRUCTIONS = (
 
 E164 = re.compile(r"^\+[1-9]\d{7,14}$")
 
+SCHEDULE_DELAY_SECONDS = 60
+
+
+class TelnyxAPIError(RuntimeError):
+    """A Telnyx API call failed. Raised (not SystemExit) so the worker can
+    record the failure in the missions ledger before exiting."""
+
 
 def _headers() -> dict[str, str]:
     api_key = os.getenv("TELNYX_API_KEY")
@@ -69,7 +76,7 @@ def _die_on_error(resp: requests.Response) -> None:
             )
         except Exception:
             detail = resp.text[:200]
-        raise SystemExit(
+        raise TelnyxAPIError(
             f"HTTP {resp.status_code} {resp.request.method} {resp.request.url}: {detail or resp.reason}"
         )
 
@@ -200,13 +207,16 @@ def create_assistant() -> str:
 
 def create_scheduled_event(assistant_id: str, agent_target: str, end_user_target: str) -> dict:
     """POST .../scheduled_events - schedule the outreach call (201, bare response)."""
+    # The API rejects timestamps in the past, and "now" loses that race by the
+    # time the request is processed - schedule 60s ahead (verified live).
+    scheduled_at = time.strftime(
+        "%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() + SCHEDULE_DELAY_SECONDS)
+    )
     body = {
         "telnyx_conversation_channel": "phone_call",
         "telnyx_agent_target": agent_target,
         "telnyx_end_user_target": end_user_target,
-        "scheduled_at_fixed_datetime": time.strftime(
-            "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
-        ),
+        "scheduled_at_fixed_datetime": scheduled_at,
     }
     resp = requests.post(
         f"{API_BASE}/ai/assistants/{assistant_id}/scheduled_events",
@@ -247,8 +257,6 @@ def _run_step(mission_id: str, run_id: str, step: dict, work) -> tuple[bool, obj
     log_event(mission_id, run_id, "step_started", f"Step {step_id} started", step_id)
     try:
         detail = work()
-    except SystemExit:
-        raise
     except Exception as exc:  # noqa: BLE001 - surfaced to the ledger, not swallowed
         update_step(mission_id, run_id, step_id, "failed")
         log_event(
@@ -305,7 +313,7 @@ def _poll_event(mission_id: str, run_id: str, assistant_id: str, event_id: str) 
     while time.time() < deadline:
         try:
             event = get_scheduled_event(assistant_id, event_id)
-        except SystemExit as exc:
+        except Exception as exc:  # noqa: BLE001 - poll failure is recorded, not swallowed
             log_event(
                 mission_id, run_id, "error",
                 f"Poll request failed for scheduled event {event_id}",
@@ -349,7 +357,7 @@ def _link_and_print(mission_id: str, run_id: str, assistant_id: str) -> None:
     """Link the assistant to the run, recording a linkage failure as an event."""
     try:
         link_agent(mission_id, run_id, assistant_id)
-    except SystemExit as exc:
+    except Exception as exc:  # noqa: BLE001 - linkage failure is recorded, not fatal
         print(f"WARNING: failed to link assistant to run: {exc}", file=sys.stderr)
         log_event(
             mission_id,
