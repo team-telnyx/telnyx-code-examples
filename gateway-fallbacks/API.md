@@ -143,3 +143,44 @@ OpenAI Chat Completions shape. The client MUST be built with `max_retries=0`: SD
 On streaming requests the headers ride the initial response; `gateway.chat_completion` reads them via the SDK's `with_raw_response` accessor before consuming the stream.
 
 **Errors:** `401` for a revoked or missing token key (the post-revocation proof in `teardown.py` asserts this), `429`/`529` definite no-work (same-step retry), `408`/`5xx` uncertain (fallback step), context-length rejection is terminal.
+
+## Local dashboard (optional) — `dashboard.py`
+
+Presentation glue for the five-script demo; not part of the acceptance surface. Binds to `127.0.0.1:8079` by default (`PORT` overrides). The token key is read only from the `GATEWAY_TOKEN_KEY` environment variable — never accepted from, or returned in, any HTTP request/response. Errors return generic messages; details go to the server log.
+
+### `GET /`
+
+Serves `dashboard.html` (single page, no build step, no external assets).
+
+### `GET /api/state`
+
+Live snapshot for the UI poll (every 3 s).
+
+**Response**
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `status` | string | `ready` \| `unprovisioned` \| `error` |
+| `group` | object | `id`, `allowed_models`, `fallbacks`, `retries`, `spend`, `reserved_spend`, `max_budget`, `budget_duration`, `cache_ttl` |
+| `token_key_present` | bool | Whether actions are enabled (the key itself is never included) |
+| `window` | object | `start_date`, `end_date` of the ledger query |
+| `events[]` | object[] | Serialized spend events, newest first: `created_at`, `requested_model`, `model`, `attempts`, `status`, `cache_hit`, `cost`, `is_failover` (`requested_model ≠ model`) |
+| `usage` | object | Totals + `by_model`, or `{"warning": ...}` when the summary call is denied (403) |
+
+`unprovisioned` responses include `instructions` pointing at `provision.py`.
+
+### `POST /api/actions/normal-call`
+
+Fires one non-stream completion against the primary using the server-side env token key.
+
+**Response:** `{ "result": { "model", "x-ltg-served-model", "x-ltg-attempts", "streamed": false } }` · **Errors:** `400` when `GATEWAY_TOKEN_KEY` is unset; `502` with a generic message when the call fails.
+
+### `POST /api/actions/force-failure`
+
+Runs the forced-failure routine from `inference.py` (streaming, `x-ltg-request-timeout: 1000`, up to 3 tries).
+
+**Response:** `{ "outcome": { "ok": bool, "tries": int, "result": { "model", "x-ltg-served-model", "x-ltg-attempts", "streamed": true } } }` — `ok: true` means the fallback actually served; `ok: false` is the honest no-failover report. Same error semantics as the normal-call route.
+
+### `GET /<anything else>`
+
+`404 {"error": "not found"}`.

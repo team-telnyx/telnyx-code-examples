@@ -75,6 +75,10 @@ The step finishes with `GET /usage/summary` (the combined group dashboard: `data
 
 The OpenAI client is built with `max_retries=0` (`gateway.inference_client`). The gateway's retries and fallbacks are a *policy* with observability — headers, attempt counting, ledger rows. SDK retries are additional requests on top: they double-bill, inflate attempt counts, and break the `x-ltg-attempts` contract. One retry layer, one bill, one story.
 
+## Optional: live dashboard
+
+`python dashboard.py` opens the same demo in a browser at `http://127.0.0.1:8079`: the call log renders `requested_model` vs served model with failover rows highlighted, a budget/reservation gauge shows the reservation model live, and the two action buttons fire the normal call and the forced-failure run server-side (the token key is read from the environment only — never from HTTP input, never returned). The ledger lags a few seconds behind the live header story; the dashboard polls every 3 s so the failover row appears shortly after *FAILOVER PROVEN* is rendered.
+
 ## The Semantics Cheat-Sheet
 
 | Failure class | Gateway behavior |

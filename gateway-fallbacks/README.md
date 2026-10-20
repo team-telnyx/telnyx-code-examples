@@ -91,6 +91,7 @@ Two planes and one observation layer. The boundary between the planes is where m
 | `PRIMARY_MODEL` | `string` | `Kimi-K3` | no | Primary model alias (default `Kimi-K3`) | AI Gateway model list |
 | `FALLBACK_MODEL` | `string` | `GLM-5.3-Flash` | no | Fallback model alias (default `GLM-5.3-Flash`) | AI Gateway model list |
 | `GATEWAY_TOKEN_KEY` | `string` | *(printed once by provision.py)* | **yes** (steps 2-5) | The token key secret for the inference plane | `provision.py` output |
+| `PORT` | `string` | `8079` | no | Dashboard server port (dashboard only) | — |
 | `START_DATE` / `END_DATE` | `string` | `2026-10-19` | no | Ledger window override; defaults to `[today, tomorrow)` UTC | — |
 
 > **Agent / CLI access**
@@ -168,6 +169,15 @@ python teardown.py
 
 `provision.py` writes a small state file (`.gateway_state.json`, IDs only — never the secret) that the later steps read; `teardown.py` deletes it when the revocation is verified.
 
+### Optional: live dashboard
+
+`python dashboard.py` serves a single-page UI at `http://127.0.0.1:8079` that makes the failover proof presentable: it polls `GET /spend/events` and the token group every 3 s, renders the call log with `requested_model` vs served model, highlights failover rows (`attempts ≥ 2`) and cache hits, shows a budget/reservation gauge, and fires the two demo calls server-side:
+
+- **Normal call (primary)** — one non-stream completion; headers rendered immediately.
+- **Force failure (streaming, 1 s timeout)** — the forced-failure run from `inference.py`; when the fallback fires you see *FAILOVER PROVEN* with the header values, and the ledger row appears on the next poll.
+
+Security contract: the dashboard binds to `127.0.0.1` only, reads the token key from the `GATEWAY_TOKEN_KEY` environment variable (never from HTTP input, never returned in any response), and returns generic error messages. The provisioning/teardown lifecycle stays in the CLI scripts.
+
 ## API Reference
 
 `app.py` is a thin CLI dispatcher (`python app.py provision|inference|ledger|policy|teardown`); the five steps live in the sibling scripts. The gateway surface each step touches:
@@ -179,6 +189,7 @@ python teardown.py
 | `ledger.py` | `GET /spend/events` (snapshot pagination), `GET /usage/summary` | `requested_model`, `model`, `attempts`, `status`, `cache_hit`; `data.totals`, `data.by_day`, `data.by_model` |
 | `policy.py` | `PATCH /token_groups/{id}` ×2, `POST /v1/chat/completions` | overlay headers; invalid `retries` → **400**; `cache_ttl: 60` → cache hit (`x-ltg-attempts: 0`, `cache_hit: true`) |
 | `teardown.py` | `GET` ×2 (ETag), `DELETE /token_keys/{id}`, `DELETE /token_groups/{id}` | `If-Match`, `Idempotency-Key`; post-revocation call must be **401** |
+| `dashboard.py` (optional) | local Flask routes only | `GET /api/state`, `POST /api/actions/normal-call`, `POST /api/actions/force-failure`; localhost-only, token key from env |
 
 The typed request/response shapes for every endpoint above are in [`API.md`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/gateway-fallbacks/API.md).
 

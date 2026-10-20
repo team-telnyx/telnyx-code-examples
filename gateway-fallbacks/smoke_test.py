@@ -11,6 +11,8 @@ no demo mode, no synthetic responses. Everything a reviewer needs:
 - ledger pagination + failover-row detection
 - invalid-config PATCH must raise when the gateway does NOT return 400
 - teardown revocation verification (401 after revocation)
+- dashboard: state serialization, failover flags, token key taken from env
+  only (never from HTTP input, never returned), generic error bodies
 """
 
 from __future__ import annotations
@@ -384,3 +386,127 @@ def test_app_dispatcher_maps_all_five_steps():
     assert set(app.COMMANDS) == set(app.RUNNERS)
     for script in app.COMMANDS.values():
         assert (Path(__file__).parent / script).exists()
+
+
+# ---------------------------------------------------------------------------
+# Optional dashboard (localhost UI for the five-script demo)
+# ---------------------------------------------------------------------------
+class FakeDashboardGroup:
+    id = "grp_1"
+    allowed_models = ["Kimi-K3", "GLM-5.3-Flash"]
+    fallbacks = {"Kimi-K3": ["GLM-5.3-Flash"]}
+    retries = {"max_attempts": 2, "retry_delay_ms": 250, "backoff": "exponential"}
+    spend = 0.0
+    reserved_spend = 0.0002
+    max_budget = 10.0
+    budget_duration = "1d"
+    cache_ttl = 60
+
+
+def _dashboard_client(tmp_path, monkeypatch, token_key=None):
+    import dashboard
+
+    if token_key is not None:
+        monkeypatch.setenv("GATEWAY_TOKEN_KEY", token_key)
+    else:
+        monkeypatch.delenv("GATEWAY_TOKEN_KEY", raising=False)
+    monkeypatch.setattr(gateway, "STATE_FILE", tmp_path / "state.json", raising=False)
+    gateway.save_state("grp_1", "key_1", "now")
+    return dashboard, dashboard.app.test_client()
+
+
+def test_dashboard_index_serves_html(tmp_path, monkeypatch):
+    _dashboard, client = _dashboard_client(tmp_path, monkeypatch)
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert b"Force failure" in resp.data
+
+
+def test_dashboard_state_unprovisioned(tmp_path, monkeypatch, capsys):
+    dashboard, client = _dashboard_client(tmp_path, monkeypatch)
+    (tmp_path / "state.json").unlink()
+    resp = client.get("/api/state")
+    body = resp.get_json()
+    assert resp.status_code == 200
+    assert body["status"] == "unprovisioned"
+    assert "provision.py" in body["instructions"]
+
+
+def _patch_dashboard_state(dashboard, monkeypatch):
+    client = types.SimpleNamespace(llm_token_gateway=types.SimpleNamespace(
+        token_groups=types.SimpleNamespace(
+            retrieve=lambda _id: types.SimpleNamespace(data=FakeDashboardGroup()))))
+    monkeypatch.setattr(dashboard.ledger, "mgmt_client", lambda: client)
+    monkeypatch.setattr(dashboard, "spend_date_range", lambda: ("2026-10-19", "2026-10-20"))
+    monkeypatch.setattr(dashboard.ledger, "fetch_events", lambda *a, **kw: [
+        types.SimpleNamespace(created_at="2026-10-19T00:00:00Z", requested_model="Kimi-K3",
+                              model="GLM-5.3-Flash", attempts=2, status="succeeded",
+                              cache_hit=False, cost=0.001),
+        types.SimpleNamespace(created_at="2026-10-19T00:01:00Z", requested_model="Kimi-K3",
+                              model="Kimi-K3", attempts=1, status="succeeded",
+                              cache_hit=True, cost=0.0),
+    ])
+    monkeypatch.setattr(dashboard.ledger, "usage_summary_safe",
+                        lambda *a, **kw: (None, "usage read permission missing"))
+
+
+def test_dashboard_state_ready_and_failover_flagged(tmp_path, monkeypatch):
+    dashboard, client = _dashboard_client(tmp_path, monkeypatch, token_key="sk-demo-SECRET")
+    _patch_dashboard_state(dashboard, monkeypatch)
+    resp = client.get("/api/state")
+    body = resp.get_json()
+    assert resp.status_code == 200
+    assert body["status"] == "ready"
+    assert body["token_key_present"] is True
+    assert body["events"][0]["cache_hit"] is True
+    assert body["events"][1]["is_failover"] is True
+    assert body["usage"]["warning"].startswith("usage read permission")
+
+
+def test_dashboard_state_never_leaks_token_key(tmp_path, monkeypatch):
+    dashboard, client = _dashboard_client(tmp_path, monkeypatch, token_key="sk-demo-SECRET")
+    _patch_dashboard_state(dashboard, monkeypatch)
+    resp = client.get("/api/state")
+    assert "sk-demo-SECRET".encode() not in resp.data
+
+
+def test_dashboard_actions_use_env_token_key_not_request_body(tmp_path, monkeypatch):
+    dashboard, client = _dashboard_client(tmp_path, monkeypatch, token_key="sk-env-KEY")
+    received = {}
+
+    def fake_forced(token_key):
+        received["token_key"] = token_key
+        return {"ok": True, "result": {}, "tries": 1}
+
+    monkeypatch.setattr(dashboard.inference, "run_forced_failure", fake_forced)
+    resp = client.post("/api/actions/force-failure", json={"token_key": "sk-ATTACKER-KEY"})
+    assert resp.status_code == 200
+    assert received["token_key"] == "sk-env-KEY"
+
+
+def test_dashboard_actions_require_token_key(tmp_path, monkeypatch):
+    dashboard, client = _dashboard_client(tmp_path, monkeypatch, token_key=None)
+    for path in ("/api/actions/normal-call", "/api/actions/force-failure"):
+        resp = client.post(path)
+        assert resp.status_code == 400
+        assert resp.get_json()["error"].startswith("GATEWAY_TOKEN_KEY")
+
+
+def test_dashboard_errors_are_generic(tmp_path, monkeypatch):
+    dashboard, client = _dashboard_client(tmp_path, monkeypatch, token_key="sk-env-KEY")
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("boom with sensitive detail")
+
+    monkeypatch.setattr(dashboard, "chat_completion", boom)
+    resp = client.post("/api/actions/normal-call")
+    assert resp.status_code == 502
+    assert "boom" not in resp.get_data(as_text=True)
+    assert "check server logs" in resp.get_json()["error"]
+
+
+def test_dashboard_unknown_route_returns_json_404(tmp_path, monkeypatch):
+    _dashboard, client = _dashboard_client(tmp_path, monkeypatch)
+    resp = client.get("/api/nope")
+    assert resp.status_code == 404
+    assert resp.get_json() == {"error": "not found"}

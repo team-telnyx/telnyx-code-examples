@@ -73,6 +73,25 @@ def print_rows(events: list[Any]) -> list[Any]:
     return fallback_rows
 
 
+def usage_summary_safe(client: Any, token_group_id: str, start_date: str, end_date: str):
+    """Return (summary, warning). A 403 (missing llm_token_gateway.usage.read
+    permission) is a documented, non-fatal warning; anything else propagates."""
+    try:
+        summary = client.llm_token_gateway.usage.retrieve_summary(
+            start_date=start_date,
+            end_date=end_date,
+            token_group_id=token_group_id,
+        )
+        return summary, None
+    except Exception as exc:  # noqa: BLE001 - 403 is expected on narrower accounts
+        if getattr(exc, "status_code", None) == 403:
+            return None, (
+                "GET /usage/summary needs the dedicated llm_token_gateway.usage.read "
+                "permission — the spend-events table remains the canonical demo output."
+            )
+        raise
+
+
 def main() -> int:
     state = load_state()
     client = mgmt_client()
@@ -95,12 +114,8 @@ def main() -> int:
 
     print()
     print("Usage summary (GET /usage/summary):")
-    try:
-        summary = client.llm_token_gateway.usage.retrieve_summary(
-            start_date=start_date,
-            end_date=end_date,
-            token_group_id=state["group_id"],
-        )
+    summary, warning = usage_summary_safe(client, state["group_id"], start_date, end_date)
+    if summary is not None:
         totals = summary.data.totals
         print(f"  totals: requests={totals.requests} input_tokens={totals.input_tokens} "
               f"output_tokens={totals.output_tokens} cache_hits={totals.cache_hits} "
@@ -108,14 +123,8 @@ def main() -> int:
         for by_model in summary.data.by_model[:5]:
             print(f"  by_model: {by_model.model} requests={by_model.requests} "
                   f"cache_hits={by_model.cache_hits} failed={by_model.failed_requests}")
-    except Exception as exc:  # noqa: BLE001 - report, never crash the demo
-        status = getattr(exc, "status_code", None)
-        if status == 403:
-            print("  WARNING (non-fatal): GET /usage/summary needs the dedicated "
-                  "llm_token_gateway.usage.read permission — skipping the dashboard. "
-                  "The spend-events table above remains the canonical demo output.")
-        else:
-            raise
+    else:
+        print(f"  WARNING (non-fatal): {warning}")
     print()
     print("Next: python policy.py")
     return 0

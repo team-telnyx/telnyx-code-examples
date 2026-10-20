@@ -117,16 +117,27 @@ def save_state(group_id: str, key_id: str, created_at: str) -> None:
     )
 
 
-def load_state() -> dict[str, str]:
+def state_or_none() -> dict[str, str] | None:
+    """Non-throwing variant of load_state() for tools that degrade gracefully."""
     if not STATE_FILE.exists():
+        return None
+    try:
+        state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    for field in ("group_id", "key_id"):
+        if not state.get(field):
+            return None
+    return state
+
+
+def load_state() -> dict[str, str]:
+    state = state_or_none()
+    if state is None:
         raise SystemExit(
             "No provisioned group found — run `python provision.py` first "
             f"(expected state file: {STATE_FILE})"
         )
-    state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
-    for field in ("group_id", "key_id"):
-        if not state.get(field):
-            raise SystemExit(f"state file {STATE_FILE} is missing {field} — rerun provision.py")
     return state
 
 
