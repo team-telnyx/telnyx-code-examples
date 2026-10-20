@@ -756,7 +756,7 @@ function renderRestaurants(list) {
         ${linksHtml}
         <div class="restaurant-actions">
           <a class="btn-book"
-             href="https://wa.me/${WA_NUMBER}?text=${encodeURIComponent('Book a table at ' + r.name)}"
+             href="https://web.whatsapp.com/send?phone=${WA_NUMBER}&text=${encodeURIComponent('Book a table at ' + r.name)}"
              target="_blank" rel="noopener">
             Book via WhatsApp
           </a>
