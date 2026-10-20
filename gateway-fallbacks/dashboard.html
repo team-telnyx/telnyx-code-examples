@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gateway Fallbacks — Resilience Desk</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #2d333b; --text: #e6edf3;
+    --muted: #8b949e; --accent: #4c8dff; --amber: #f0b429; --green: #3fb950;
+    --red: #f85149; --chip: #1f2630;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 600; }
+  h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .sub { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { background: var(--chip); border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px; font-size: 12px; }
+  .chip.primary { border-color: var(--accent); color: var(--accent); }
+  .chip.fallback { border-color: var(--amber); color: var(--amber); }
+  .arrow { color: var(--muted); }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .col { flex: 1; min-width: 280px; }
+  button { background: var(--chip); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  #btn-failover { border-color: var(--amber); color: var(--amber); }
+  .gauge { margin-top: 8px; }
+  .gauge-track { height: 8px; background: var(--chip); border-radius: 999px; overflow: hidden; }
+  .gauge-fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .4s; }
+  .gauge-fill.warn { background: var(--amber); }
+  .gauge-fill.critical { background: var(--red); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  tr.failover td { background: rgba(240, 180, 41, .08); }
+  .badge { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 11px; border: 1px solid var(--border); }
+  .badge.failover { border-color: var(--amber); color: var(--amber); }
+  .badge.cache { border-color: var(--green); color: var(--green); }
+  .badge.failed { border-color: var(--red); color: var(--red); }
+  .muted { color: var(--muted); }
+  .hidden { display: none; }
+  .banner { background: rgba(248, 81, 73, .12); border: 1px solid var(--red); color: var(--text); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; }
+  .banner.info { background: rgba(76, 141, 255, .1); border-color: var(--accent); }
+  .banner.warn { background: rgba(240, 180, 41, .1); border-color: var(--amber); }
+  .last-action { border-color: var(--accent); }
+  .last-action .headline { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .kv { display: inline-block; margin-right: 18px; }
+  .kv b { font-weight: 600; }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  footer { color: var(--muted); font-size: 12px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<h1>Gateway Fallbacks <span class="sub">— AI Gateway Resilience Desk</span></h1>
+
+<div id="banner" class="banner hidden"></div>
+
+<section class="panel">
+  <h2>Token group policy</h2>
+  <div id="policy">Loading…</div>
+</section>
+
+<section class="panel">
+  <h2>Demo actions</h2>
+  <div class="row" style="align-items:center">
+    <button id="btn-normal">Normal call (primary)</button>
+    <button id="btn-failover">Force failure (streaming, 1s timeout)</button>
+    <span class="muted" id="token-warning"></span>
+  </div>
+  <div class="panel last-action hidden" id="last-action" style="margin-top:12px"></div>
+</section>
+
+<section class="panel">
+  <h2>Budget & reservation</h2>
+  <div id="budget">—</div>
+</section>
+
+<section class="panel">
+  <h2>Call log — <span class="sub">GET /spend/events · requested vs served · attempts</span></h2>
+  <div id="calls">—</div>
+</section>
+
+<section class="panel">
+  <h2>Usage summary</h2>
+  <div id="usage">—</div>
+</section>
+
+<footer>gateway-fallbacks · optional dashboard for the five-script demo · polls /api/state every 3s · binds 127.0.0.1 only</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let polling = null;
+
+function banner(text, cls) {
+  const el = $("banner");
+  if (!text) { el.classList.add("hidden"); return; }
+  el.className = "banner " + (cls || "");
+  el.textContent = text;
+}
+
+function chip(label, cls) {
+  return `<span class="chip ${cls || ""}">${label}</span>`;
+}
+
+function renderPolicy(g) {
+  const primary = (g.allowed_models || [])[0] || "primary";
+  const fallbacks = Object.values(g.fallbacks || {})[0] || [];
+  $("policy").innerHTML =
+    `<div class="muted">group <b>${g.id}</b> · budget ${fmtUsd(g.max_budget)} / ${g.budget_duration || "?"} · cache_ttl ${g.cache_ttl ?? "off"}</div>` +
+    `<div class="chips">${chip(primary, "primary")} <span class="arrow">── uncertain failure ──▶</span> ` +
+    fallbacks.map(f => chip(f, "fallback")).join(' <span class="arrow">▶</span> ') +
+    ` <span class="arrow">·</span> <span class="chip">max_attempts: ${g.retries?.max_attempts ?? "?"}</span>` +
+    ` <span class="chip">${g.retries?.backoff || "no backoff"}</span></div>`;
+}
+
+function renderBudget(g) {
+  const pct = g.max_budget ? Math.min(100, (g.spend / g.max_budget) * 100) : 0;
+  const cls = pct > 80 ? "critical" : pct > 50 ? "warn" : "";
+  $("budget").innerHTML =
+    `<div class="gauge"><div class="gauge-track"><div class="gauge-fill ${cls}" style="width:${pct}%"></div></div></div>` +
+    `<div class="chips"><span class="chip">spend: ${fmtUsd(g.spend)}</span>` +
+    `<span class="chip">reserved: ${fmtUsd(g.reserved_spend)}</span>` +
+    `<span class="chip">max_budget: ${fmtUsd(g.max_budget)}</span></div>`;
+}
+
+function fmtUsd(v) {
+  return v === null || v === undefined ? "—" : "$" + Number(v).toFixed(6).replace(/0+$/, "").replace(/\.$/, ".0");
+}
+
+function renderEvents(events) {
+  if (!events.length) {
+    $("calls").innerHTML = `<div class="muted">No spend events in the window yet — run an action above, or <code>python inference.py</code>.</div>`;
+    return;
+  }
+  const rows = events.map(e => {
+    const servedCls = e.is_failover ? "fallback" : "primary";
+    const badges = [];
+    if (e.is_failover) badges.push(`<span class="badge failover">failover ${e.attempts}× </span>`);
+    if (e.cache_hit) badges.push(`<span class="badge cache">cache</span>`);
+    if (e.status !== "succeeded") badges.push(`<span class="badge failed">${e.status}</span>`);
+    return `<tr class="${e.is_failover ? "failover" : ""}">` +
+      `<td class="muted">${(e.created_at || "").replace("T", " ").slice(0, 19)}</td>` +
+      `<td>${e.requested_model}</td><td><span class="chip ${servedCls}">${e.model}</span></td>` +
+      `<td>${e.attempts}</td><td>${badges.join(" ") || "—"}</td><td>${fmtUsd(e.cost)}</td></tr>`;
+  }).join("");
+  $("calls").innerHTML =
+    `<table><thead><tr><th>time (UTC)</th><th>requested</th><th>served</th><th>attempts</th><th>flags</th><th>cost</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderUsage(usage) {
+  if (!usage) { $("usage").innerHTML = "—"; return; }
+  if (usage.warning) { $("usage").innerHTML = `<span class="muted">⚠ ${usage.warning}</span>`; return; }
+  const t = usage.totals || {};
+  const parts = Object.entries(t).filter(([k]) => k !== "spend")
+    .map(([k, v]) => `<span class="kv"><span class="muted">${k}:</span> <b>${v}</b></span>`);
+  $("usage").innerHTML = parts.join("") +
+    (usage.by_model || []).map(m => `<div class="muted" style="margin-top:6px">${m.model}: ${m.requests} requests · ${m.cache_hits} cache hits</div>`).join("");
+}
+
+function renderLastAction(kind, data) {
+  const el = $("last-action");
+  el.classList.remove("hidden");
+  if (kind === "failover") {
+    const o = data.outcome || {};
+    if (o.ok) {
+      const r = o.result || {};
+      el.innerHTML = `<div class="headline" style="color:var(--amber)">FAILOVER PROVEN after ${o.tries} try(ies)</div>` +
+        `<span class="kv"><span class="muted">requested:</span> <b>primary</b></span>` +
+        `<span class="kv"><span class="muted">served (x-ltg-served-model):</span> <b>${r["x-ltg-served-model"]}</b></span>` +
+        `<span class="kv"><span class="muted">attempts (x-ltg-attempts):</span> <b>${r["x-ltg-attempts"]}</b></span>` +
+        `<div class="muted" style="margin-top:6px">The ledger row for this request will show requested_model ≠ model.</div>`;
+    } else {
+      el.innerHTML = `<div class="headline" style="color:var(--accent)">Primary answered inside the 1s deadline — no failover this run</div>` +
+        `<div class="muted">The report is honest when the primary is healthy. Try again — the heavier prompt widens the time-to-first-event window.</div>`;
+    }
+  } else {
+    const r = data.result || {};
+    el.innerHTML = `<div class="headline" style="color:var(--accent)">Normal call served by ${r.model}</div>` +
+      `<span class="kv"><span class="muted">x-ltg-served-model:</span> <b>${r["x-ltg-served-model"]}</b></span>` +
+      `<span class="kv"><span class="muted">x-ltg-attempts:</span> <b>${r["x-ltg-attempts"]}</b></span>`;
+  }
+  refresh();
+}
+
+async function action(kind) {
+  const btn = $(kind === "failover" ? "btn-failover" : "btn-normal");
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spin"></span>running…`;
+  banner(null);
+  try {
+    const res = await fetch(`/api/actions/${kind === "failover" ? "force-failure" : "normal-call"}`, { method: "POST" });
+    const body = await res.json();
+    if (!res.ok) { banner(body.error || "action failed", "warn"); renderLastAction(kind, {}); }
+    else { renderLastAction(kind, body); }
+  } catch (err) {
+    banner("action failed — is the dashboard server still running?", "warn");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+async function refresh() {
+  let body;
+  try {
+    const res = await fetch("/api/state");
+    body = await res.json();
+  } catch (err) {
+    banner("cannot reach /api/state — is `python dashboard.py` running?", "warn");
+    return;
+  }
+  if (body.status === "unprovisioned") {
+    banner("No provisioned group found. Run `python provision.py`, then export GATEWAY_TOKEN_KEY.", "info");
+    $("policy").innerHTML = $("budget").innerHTML = $("calls").innerHTML = $("usage").innerHTML = "—";
+    setButtons(false);
+    return;
+  }
+  if (body.status === "error") { banner(body.message, "warn"); return; }
+  banner(null);
+  setButtons(body.token_key_present);
+  $("token-warning").textContent = body.token_key_present ? "" : "GATEWAY_TOKEN_KEY not set — actions disabled";
+  renderPolicy(body.group);
+  renderBudget(body.group);
+  renderEvents(body.events);
+  renderUsage(body.usage);
+}
+
+function setButtons(enabled) {
+  $("btn-normal").disabled = !enabled;
+  $("btn-failover").disabled = !enabled;
+}
+
+$("btn-normal").addEventListener("click", () => action("normal"));
+$("btn-failover").addEventListener("click", () => action("failover"));
+
+refresh();
+polling = setInterval(refresh, 3000);
+</script>
+</body>
+</html>

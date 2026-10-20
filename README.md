@@ -381,18 +381,19 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>Email</h2> <em>(1 examples)</em></summary>
+<summary><h2>Email</h2> <em>(2 examples)</em></summary>
 
 Send, track, and automate email workflows with the [Telnyx Email API](https://telnyx.com/products/email-api) - transactional messages, templates, tracking, and event-driven dashboards.
 
 | Example | Language | Description |
 |---------|----------|-------------|
+| [email-whatsapp-support-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/README.md) | Python | --- |
 | [setup-email-api-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md) | Node.js | Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events. |
 
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(167 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(171 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -506,6 +507,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [extract-structured-json-with-ai-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/extract-structured-json-with-ai-python/README.md) | Python | Extract structured JSON from support tickets, emails, leads, or incident reports with Telnyx AI Inference. |
 | [fax-to-ai-document-processor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/fax-to-ai-document-processor-python/README.md) | Python | Fax to AI Document Processor - receive fax, AI extracts data, forwards structured summary. |
 | [full-stack-ai-contact-center-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/full-stack-ai-contact-center-python/README.md) | Python | Full-Stack AI Contact Center - complete contact center: IVR + queue + AI agent assist + recording + live analytics. |
+| [gateway-fallbacks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/gateway-fallbacks/README.md) | Python | Provision an AI Gateway token group with fallbacks and retries, prove failover via x-ltg-served-model / x-ltg-attempts headers, and confirm the same story in the spend ledger. |
 | [get-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/get-ai-assistant-python/README.md) | Python | --- |
 | [global-ip-failover-monitor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/global-ip-failover-monitor-python/README.md) | Python | Global IP Failover Monitor - monitor Global IP endpoints across regions, auto-failover between healthy endpoints. |
 | [insurance-claims-intake-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/insurance-claims-intake-python/README.md) | Python | Policyholder calls, AI collects incident details, accepts photos via MMS, creates claim, assigns adjuster, texts status updates. Adjuster reviews AI-prepared claim. |

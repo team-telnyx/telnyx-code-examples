@@ -3,10 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-15T22:55:14Z",
-  "example_count": 573,
-  "generated_at": "2026-10-14T23:05:25Z",
-  "example_count": 575,
+  "generated_at": "2026-10-20T00:43:41Z",
+  "example_count": 578,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5164,6 +5162,8 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-coexistence-sync-monitor"
+    },
+    {
       "folder": "show-wrap-desk",
       "title": "Show Wrap Desk — AI Podcast Production Studio",
       "description": "A durable AI agent that transcribes, chapterizes, writes show notes, and cuts a trailer for podcast episodes — surviving crashes between every stage.",
@@ -5189,6 +5189,24 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/policy-recall-line"
+    },
+    {
+      "folder": "gateway-fallbacks",
+      "title": "AI Gateway Fallback & Resilience Desk — Policy-Driven Model Failover with Observable Headers",
+      "description": "Provision an AI Gateway token group with fallbacks and retries, prove failover via x-ltg-served-model / x-ltg-attempts headers, and confirm the same story in the spend ledger.",
+      "product": "ai",
+      "language": "python",
+      "framework": "",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/gateway-fallbacks"
+    },
+    {
+      "folder": "email-whatsapp-support-python",
+      "title": "Email Whatsapp Support Python",
+      "description": "",
+      "product": "email",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/email-whatsapp-support-python"
     }
   ]
 }

@@ -346,6 +346,7 @@
 
 ## Email
 
+- [Customer Support Across Email & WhatsApp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/README.md)
 - [Set Up the Telnyx Email API](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md): Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events.
 
 ## AI Assistants
@@ -458,6 +459,7 @@
 - [Extract Structured JSON with AI](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/extract-structured-json-with-ai-python/README.md): Extract structured JSON from support tickets, emails, leads, or incident reports with Telnyx AI Inference.
 - [Fax to AI Document Processor](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/fax-to-ai-document-processor-python/README.md): Fax to AI Document Processor - receive fax, AI extracts data, forwards structured summary.
 - [Full-Stack AI Contact Center](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/full-stack-ai-contact-center-python/README.md): Full-Stack AI Contact Center - complete contact center: IVR + queue + AI agent assist + recording + live analytics.
+- [AI Gateway Fallback & Resilience Desk — Policy-Driven Model Failover with Observable Headers](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/gateway-fallbacks/README.md): Provision an AI Gateway token group with fallbacks and retries, prove failover via x-ltg-served-model / x-ltg-attempts headers, and confirm the same story in the spend ledger.
 - [Get AI Assistant with Python and Flask](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/get-ai-assistant-python/README.md)
 - [Global IP Failover Monitor](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/global-ip-failover-monitor-python/README.md): Global IP Failover Monitor - monitor Global IP endpoints across regions, auto-failover between healthy endpoints.
 - [Insurance Claims Intake](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/insurance-claims-intake-python/README.md): Policyholder calls, AI collects incident details, accepts photos via MMS, creates claim, assigns adjuster, texts status updates. Adjuster reviews AI-prepared claim.
