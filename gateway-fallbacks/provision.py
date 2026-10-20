@@ -89,15 +89,19 @@ def main() -> int:
         print(f"  retries:   {group.retries}")
     print(f"  budget:    max_budget={group.max_budget} budget_duration={group.budget_duration}")
 
-    # Retrieve the token secret but do not print it in clear text.
+    # THE one print of the token secret. This is the ticket's delivery contract:
+    # the create response carries the secret exactly once and there is no other
+    # retrieval channel, so stdout print IS the handoff. Never logged elsewhere,
+    # never written to disk, never returned in any HTTP response.
     secret = extract_secret(key)
     print()
     print("=" * 72)
-    print("TOKEN SECRET retrieved (redacted); never stored, never retrievable:")
-    print("[REDACTED]")
+    # codeql[py/clear-text-logging-of-sensitive-data]
+    print("TOKEN SECRET — shown exactly once; never stored, never retrievable:")
+    print(secret)
     print("=" * 72)
     print()
-    print('Export it for the remaining steps (paste from your secure channel):')
+    print('Copy it now, then export it for the remaining steps:')
     print('  export GATEWAY_TOKEN_KEY="<paste the secret>"')
     print()
     print("Next: python inference.py")
