@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+campaign_manifest.json
+dead_letter.csv
+.pytest_cache/
+*.egg-info/
