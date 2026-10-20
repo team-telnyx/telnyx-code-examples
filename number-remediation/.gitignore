@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.csv
+remediation_report.md
+remediation_state.db
+remediation_state.json
+.pytest_cache/
+.DS_Store
