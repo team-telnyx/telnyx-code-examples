@@ -381,12 +381,13 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>Email</h2> <em>(1 examples)</em></summary>
+<summary><h2>Email</h2> <em>(2 examples)</em></summary>
 
 Send, track, and automate email workflows with the [Telnyx Email API](https://telnyx.com/products/email-api) - transactional messages, templates, tracking, and event-driven dashboards.
 
 | Example | Language | Description |
 |---------|----------|-------------|
+| [email-whatsapp-support-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/README.md) | Python | --- |
 | [setup-email-api-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md) | Node.js | Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events. |
 
 </details>

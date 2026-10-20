@@ -3544,3 +3544,9 @@ examples:
     language: python
     framework: ""
     folder: gateway-fallbacks
+
+  - product: email
+    use_case: unified-email-whatsapp-support
+    language: python
+    framework: flask
+    folder: email-whatsapp-support-python
