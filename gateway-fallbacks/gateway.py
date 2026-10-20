@@ -33,7 +33,10 @@ PRIMARY_MODEL = os.getenv("PRIMARY_MODEL", "Kimi-K3")
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "GLM-5.3-Flash")
 
 # Step 1 writes IDs here (never the token secret); later steps read them.
-STATE_FILE = Path(os.getenv("GATEWAY_STATE_FILE", ".gateway_state.json"))
+# Anchored to this module's folder so the flow works from any CWD.
+STATE_FILE = Path(
+    os.getenv("GATEWAY_STATE_FILE", Path(__file__).resolve().parent / ".gateway_state.json")
+)
 
 # Policy constraints, asserted in code before any API call (acceptance criteria):
 # fallback chain depth <= 3, max_attempts in 1..5, and
