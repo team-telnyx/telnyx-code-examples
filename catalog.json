@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-20T00:43:41Z",
-  "example_count": 578,
+  "generated_at": "2026-10-20T02:10:31Z",
+  "example_count": 579,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5207,6 +5207,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/email-whatsapp-support-python"
+    },
+    {
+      "folder": "missions-audit",
+      "title": "Missions Audit Desk — Plan, Run, and Forensically Trace an Agent Mission",
+      "description": "Drive one Telnyx AI mission end-to-end and render a timestamped audit trail of what was planned, what ran, and what failed.",
+      "product": "ai",
+      "language": "python",
+      "framework": "vanilla",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/missions-audit"
     }
   ]
 }
