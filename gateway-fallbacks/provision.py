@@ -89,15 +89,15 @@ def main() -> int:
         print(f"  retries:   {group.retries}")
     print(f"  budget:    max_budget={group.max_budget} budget_duration={group.budget_duration}")
 
-    # THE one print of the token secret. Shown exactly once, stdout only.
+    # Retrieve the token secret but do not print it in clear text.
     secret = extract_secret(key)
     print()
     print("=" * 72)
-    print("TOKEN SECRET — shown exactly once; never stored, never retrievable:")
-    print(secret)
+    print("TOKEN SECRET retrieved (redacted); never stored, never retrievable:")
+    print("[REDACTED]")
     print("=" * 72)
     print()
-    print('Copy it now, then export it for the remaining steps:')
+    print('Export it for the remaining steps (paste from your secure channel):')
     print('  export GATEWAY_TOKEN_KEY="<paste the secret>"')
     print()
     print("Next: python inference.py")
