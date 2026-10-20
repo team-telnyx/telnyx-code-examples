@@ -50,6 +50,14 @@ def _token_key() -> str | None:
     return os.environ.get("GATEWAY_TOKEN_KEY") or None
 
 
+def _jsonable(value: Any) -> Any:
+    """SDK response models are pydantic; convert them (and any nested models)
+    to plain dicts before jsonify."""
+    if hasattr(value, "model_dump"):
+        return value.model_dump()
+    return value
+
+
 def serialize_event(event: Any) -> dict[str, Any]:
     return {
         "created_at": str(event.created_at),
@@ -124,7 +132,7 @@ def api_state() -> Any:
             "id": group.id,
             "allowed_models": group.allowed_models,
             "fallbacks": group.fallbacks,
-            "retries": group.retries,
+            "retries": _jsonable(group.retries),
             "spend": group.spend,
             "reserved_spend": group.reserved_spend,
             "max_budget": group.max_budget,
