@@ -62,7 +62,7 @@ Copy `.env.example` to `.env` and fill in:
 | `RCS_AGENT_ID` | `string` | `your_rcs_agent_id` | **yes** | RCS Business Messaging agent ID | [Portal](https://portal.telnyx.com/messaging/rcs) |
 | `MESSAGING_PROFILE_ID` | `string` | `40017b7e-b3c0-4ac3-8740-9c3c5a0a0e0c` | **yes** | Messaging profile ID | [Portal](https://portal.telnyx.com/messaging/profiles) · [CLI: `telnyx messaging-profiles`](https://developers.telnyx.com/development/cli) |
 | `BOT_NUMBER` | `string` | `+15551234567` | **yes** | Your Telnyx phone number | [Portal](https://portal.telnyx.com/numbers/my-numbers) |
-| `AI_MODEL` | `string` | `meta-llama/Llama-3.3-70B-Instruct` | no | Telnyx AI Inference model | [Portal](https://developers.telnyx.com/docs/inference/models) |
+| `AI_MODEL` | `string` | `THUDM/GLM3-flash` | no | Telnyx AI Inference model | [Portal](https://developers.telnyx.com/docs/inference/models) |
 | `PORT` | `integer` | `5050` | no | HTTP server port | - |
 
 ## Setup

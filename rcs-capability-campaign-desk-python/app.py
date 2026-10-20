@@ -30,7 +30,7 @@ TELNYX_API_KEY = os.getenv("TELNYX_API_KEY", "")
 RCS_AGENT_ID = os.getenv("RCS_AGENT_ID", "")
 MESSAGING_PROFILE_ID = os.getenv("MESSAGING_PROFILE_ID", "")
 BOT_NUMBER = os.getenv("BOT_NUMBER", "")
-AI_MODEL = os.getenv("AI_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
+AI_MODEL = os.getenv("AI_MODEL", "THUDM/GLM3-flash")
 PORT = int(os.getenv("PORT", "5050"))
 
 BASE_URL = "https://api.telnyx.com"

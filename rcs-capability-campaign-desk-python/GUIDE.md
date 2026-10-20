@@ -95,7 +95,7 @@ The AI call:
 ```
 POST /v2/ai/chat/completions
 {
-  "model": "meta-llama/Llama-3.3-70B-Instruct",
+  "model": "THUDM/GLM3-flash",
   "messages": [
     {"role": "system", "content": "You are an RCS marketing content generator..."},
     {"role": "user", "content": "Flash sale: 30% off all plans this weekend"}
