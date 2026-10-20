@@ -95,7 +95,7 @@ For full API discovery, point your agent at [`llms-full.txt`](https://developers
 
 ## API Reference
 
-See [API.md](API.md) for the full endpoint reference.
+See [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/rcs-capability-campaign-desk-python/API.md) for the full endpoint reference.
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -140,7 +140,7 @@ python smoke_test.py
 | RCS capability check returns empty | Agent not registered or phone not RCS-enabled | Verify `RCS_AGENT_ID` in the [Portal](https://portal.telnyx.com/messaging/rcs) |
 | AI generation returns 502 | Inference timeout or model unavailable | Try a different `AI_MODEL` from the [models list](https://developers.telnyx.com/docs/inference/models) |
 | QR code not rendering | CDN blocked or JS disabled | Check browser console; qrcode.js loads from `cdn.jsdelivr.net` |
-| `422 Unprocessable Entity` | Missing or malformed request fields | Check the request body against the [API Reference](API.md) |
+| `422 Unprocessable Entity` | Missing or malformed request fields | Check the request body against the [API Reference](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/rcs-capability-campaign-desk-python/API.md) |
 
 > **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
 >
