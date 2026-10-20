@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.campaign_state/
+*.log
+.pytest_cache/
+.DS_Store
+contacts.csv
+ledger.json
+dead_letter.csv
+created_events.json
