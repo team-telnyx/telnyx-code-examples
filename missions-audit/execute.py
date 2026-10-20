@@ -81,6 +81,36 @@ def _die_on_error(resp: requests.Response) -> None:
         )
 
 
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+RETRY_ATTEMPTS = 5
+
+
+def _request(method: str, url: str, **kwargs) -> requests.Response:
+    """requests.request with exponential backoff on transient failures.
+
+    Transient = HTTP 429/5xx or network-level errors. Each failed attempt
+    backs off 2s, 4s, 8s, 16s; a final failure raises through to the
+    caller, which records it in the ledger (honesty contract).
+    """
+    for attempt in range(RETRY_ATTEMPTS):
+        try:
+            resp = requests.request(method, url, **kwargs)
+        except requests.RequestException:
+            if attempt == RETRY_ATTEMPTS - 1:
+                raise
+        else:
+            if resp.status_code not in RETRYABLE_STATUS or attempt == RETRY_ATTEMPTS - 1:
+                return resp
+        wait = 2 ** (attempt + 1)
+        print(
+            f"  transient error ({method} {url.split('?')[0]}); "
+            f"retrying in {wait}s (attempt {attempt + 1}/{RETRY_ATTEMPTS})",
+            file=sys.stderr,
+        )
+        time.sleep(wait)
+    raise TelnyxAPIError(f"retries exhausted: {method} {url}")
+
+
 def _mask(number: str | None) -> str:
     if not number or len(number) < 5:
         return "***"
@@ -94,7 +124,7 @@ def _mask(number: str | None) -> str:
 
 def update_step(mission_id: str, run_id: str, step_id: str, status: str) -> dict:
     """PATCH .../plan/steps/{step_id} - advance a step status."""
-    resp = requests.patch(
+    resp = _request("PATCH", 
         f"{API_BASE}/ai/missions/{mission_id}/runs/{run_id}/plan/steps/{step_id}",
         headers=_headers(),
         json={"status": status},
@@ -118,7 +148,7 @@ def log_event(
         body["step_id"] = step_id
     if payload:
         body["payload"] = payload
-    resp = requests.post(
+    resp = _request("POST", 
         f"{API_BASE}/ai/missions/{mission_id}/runs/{run_id}/events",
         headers=_headers(),
         json=body,
@@ -143,7 +173,7 @@ def update_run(
         body["result_summary"] = summary
     if payload is not None:
         body["result_payload"] = payload
-    resp = requests.patch(
+    resp = _request("PATCH", 
         f"{API_BASE}/ai/missions/{mission_id}/runs/{run_id}",
         headers=_headers(),
         json=body,
@@ -155,7 +185,7 @@ def update_run(
 
 def get_plan(mission_id: str, run_id: str) -> list[dict]:
     """GET .../plan - fetch the planned steps."""
-    resp = requests.get(
+    resp = _request("GET", 
         f"{API_BASE}/ai/missions/{mission_id}/runs/{run_id}/plan",
         headers=_headers(),
         timeout=30,
@@ -166,7 +196,7 @@ def get_plan(mission_id: str, run_id: str) -> list[dict]:
 
 def link_agent(mission_id: str, run_id: str, assistant_id: str) -> dict:
     """POST .../runs/{run_id}/telnyx-agents - link the assistant to the run."""
-    resp = requests.post(
+    resp = _request("POST", 
         f"{API_BASE}/ai/missions/{mission_id}/runs/{run_id}/telnyx-agents",
         headers=_headers(),
         json={"telnyx_agent_id": assistant_id},
@@ -178,7 +208,7 @@ def link_agent(mission_id: str, run_id: str, assistant_id: str) -> dict:
 
 def list_linked_agents(mission_id: str, run_id: str) -> list[dict]:
     """GET .../runs/{run_id}/telnyx-agents - linkage rows."""
-    resp = requests.get(
+    resp = _request("GET", 
         f"{API_BASE}/ai/missions/{mission_id}/runs/{run_id}/telnyx-agents",
         headers=_headers(),
         timeout=30,
@@ -194,7 +224,7 @@ def list_linked_agents(mission_id: str, run_id: str) -> list[dict]:
 
 def create_assistant() -> str:
     """POST /ai/assistants - create the demo assistant (200, bare response)."""
-    resp = requests.post(
+    resp = _request("POST", 
         f"{API_BASE}/ai/assistants",
         headers=_headers(),
         json={"name": "Clinic Outreach Agent", "instructions": INSTRUCTIONS},
@@ -218,7 +248,7 @@ def create_scheduled_event(assistant_id: str, agent_target: str, end_user_target
         "telnyx_end_user_target": end_user_target,
         "scheduled_at_fixed_datetime": scheduled_at,
     }
-    resp = requests.post(
+    resp = _request("POST", 
         f"{API_BASE}/ai/assistants/{assistant_id}/scheduled_events",
         headers=_headers(),
         json=body,
@@ -230,7 +260,7 @@ def create_scheduled_event(assistant_id: str, agent_target: str, end_user_target
 
 def get_scheduled_event(assistant_id: str, event_id: str) -> dict:
     """GET .../scheduled_events/{event_id} - poll one scheduled event."""
-    resp = requests.get(
+    resp = _request("GET", 
         f"{API_BASE}/ai/assistants/{assistant_id}/scheduled_events/{event_id}",
         headers=_headers(),
         timeout=30,
@@ -528,6 +558,25 @@ def _live_flow(mission_id: str, run_id: str, steps: list[dict], destination: str
     return 0 if ok else 1
 
 
+def _crash_close_out(mission_id: str, run_id: str, exc: Exception) -> None:
+    """Best-effort close-out when the worker dies unexpectedly: record the
+    crash in the ledger and mark the run failed. If the close-out itself
+    fails, say so - never leave a run silently 'running'."""
+    print(f"WORKER ERROR: {exc}", file=sys.stderr)
+    try:
+        log_event(
+            mission_id,
+            run_id,
+            "error",
+            f"Worker crashed before completion: {str(exc)[:120]}",
+            payload={"reason": "worker_crashed", "error": str(exc)[:200]},
+        )
+        update_run(mission_id, run_id, status="failed", summary=f"Worker crashed before completion: {str(exc)[:120]}")
+        print("Run marked failed in the ledger (honesty contract).", file=sys.stderr)
+    except Exception as close_exc:  # noqa: BLE001 - nothing more can be done
+        print(f"WARNING: could not mark the run failed: {close_exc}", file=sys.stderr)
+
+
 def _main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Execute the mission campaign.")
     parser.add_argument("--mission-id", default=os.getenv("MISSION_ID"))
@@ -559,10 +608,14 @@ def _main(argv: list[str] | None = None) -> int:
             )
             return 1
 
-    if DEMO_MODE:
-        print("[DEMO] DEMO_MODE=true - walking the missions ledger with no side effects.")
-        return _demo_flow(args.mission_id, args.run_id, steps)
-    return _live_flow(args.mission_id, args.run_id, steps, destination)
+    try:
+        if DEMO_MODE:
+            print("[DEMO] DEMO_MODE=true - walking the missions ledger with no side effects.")
+            return _demo_flow(args.mission_id, args.run_id, steps)
+        return _live_flow(args.mission_id, args.run_id, steps, destination)
+    except Exception as exc:  # noqa: BLE001 - close the ledger out honestly before dying
+        _crash_close_out(args.mission_id, args.run_id, exc)
+        raise
 
 
 if __name__ == "__main__":
