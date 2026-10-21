@@ -117,6 +117,20 @@ The sample reads exactly five variables:
 
 Two more variables are read but have safe defaults: `TELNYX_API_BASE` (defaults to `https://api.telnyx.com/v2`) and `TELNYX_PUBLIC_KEY` (required by `webhook_receiver.py` for Ed25519 signature verification — the receiver refuses to start without it). `DEMO_MODE` (default `true`) gates real call placement. `scheduled_at_fixed_datetime` is computed at runtime, not an env var.
 
+> **Agent / CLI access:** provision the pieces this example needs from the CLI:
+>
+> ```bash
+> # Confirm or pick the assistant id for ASSISTANT_ID
+> telnyx assistant list
+>
+> # Create the assistant when ASSISTANT_ID is unset (prints the id)
+> telnyx assistant create
+>
+> # Provision the demo numbers (Telnyx CLI — human or agent)
+> telnyx available-phone-numbers list --country US --features voice
+> telnyx number-orders create --phone-numbers "+1555XXXXXXX"
+> ```
+
 ## Setup
 
 ```bash
@@ -131,6 +145,28 @@ cp .env.example .env
 # edit .env — set TELNYX_API_KEY, ASSISTANT_PHONE_NUMBER, DESTINATION_NUMBER,
 # and (optionally) ASSISTANT_ID and PUBLIC_WEBHOOK_BASE_URL
 ```
+
+<details><summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+
+# List assistants (confirm or pick the id for ASSISTANT_ID)
+telnyx assistant list
+
+# Create the assistant when ASSISTANT_ID is unset (prints the id)
+telnyx assistant create
+
+# Provision the two numbers the demo dials from / to
+telnyx available-phone-numbers list --country US --features voice
+telnyx number-orders create --phone-numbers "+1555XXXXXXX"
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
 
 ### Run the workflow, in order
 
@@ -188,6 +224,19 @@ The distinction between "not ready yet" (`pending` / `in_progress`) and
 timing issue, the second is a contract violation. The sample treats them
 differently.
 
+## API Reference
+
+The typed endpoint reference lives in [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/insights-pipeline/API.md); the step-by-step walkthrough in [GUIDE.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/insights-pipeline/GUIDE.md). Summary of the request surface:
+
+- `POST /ai/conversations/insights` — `InsightTemplateCreateReq` (`name`, `instructions`, `json_schema` as string or object, optional `webhook`)
+- `POST /ai/conversations/insight-groups` — `InsightTemplateGroupCreateReq` (`name`, `description`, `webhook`)
+- `POST /ai/conversations/insight-groups/{group_id}/insights/{insight_id}/assign` — group membership
+- `POST /ai/assistants` / `POST /ai/assistants/{assistant_id}` — create the assistant; attach `insight_settings` (the group)
+- `GET /ai/assistants/{assistant_id}` — verify `insight_settings.insight_group_id` is attached
+- `POST /ai/assistants/{assistant_id}/scheduled_events` — place the demo call (channel `phone_call`); the response carries `conversation_id`
+- `GET /ai/conversations/{conversation_id}/conversations-insights` — per-conversation insight records; statuses `pending` / `in_progress` / `completed` / `failed`
+- Webhook `call.conversation.insights_generated` — fires when the conversation's insight set completes
+
 ## Troubleshooting
 
 **`TELNYX_API_KEY is required`** — you did not create `.env` or the key is
@@ -214,7 +263,26 @@ set and matches the key Telnyx uses for your account. The receiver has no
 unverified fallback: a missing key exits at startup, and a bad signature
 returns `400`.
 
-## Next steps
+## Agent Discovery
+
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **Agent signup**: [telnyx.com/agent-signup.md](https://telnyx.com/agent-signup.md) — automated account provisioning via agent mail; get an API key with no human intervention
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **Telnyx AI repo**: [github.com/team-telnyx/ai](https://github.com/team-telnyx/ai)
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI (human)**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
+
+## Related Examples
+
+- [create-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-python/README.md) — provision the assistant this sample wires `insight_settings` onto
+- [update-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/update-ai-assistant-python/README.md) — update assistant configuration programmatically
+- [chat-with-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/chat-with-ai-assistant-python/README.md) — text chat with a Telnyx AI Assistant (no telephony)
+- [post-call-qa-scoring](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/post-call-qa-scoring/README.md) — the QA scorecard pattern for post-call review
+
+## Resources
 
 - [Structured data insights](https://developers.telnyx.com/docs/inference/ai-insights/structured-insights) — the concept behind the `json_schema` templates.
 - [Insight groups](https://developers.telnyx.com/docs/inference/ai-insights/insight-groups) — how to bundle templates and attach them to assistants.
