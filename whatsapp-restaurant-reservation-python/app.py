@@ -1477,7 +1477,7 @@ def api_update_reservation(res_id):
 def dashboard():
     return render_template(
         "index.html",
-        whatsapp_number=WHATSAPP_NUMBER.lstrip("+"),
+        whatsapp_number=WHATSAPP_NUMBER,
         city=DEFAULT_CITY,
         cuisines=CUISINES,
     )
