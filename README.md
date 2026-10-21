@@ -393,7 +393,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(172 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(173 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -510,6 +510,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [gateway-fallbacks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/gateway-fallbacks/README.md) | Python | Provision an AI Gateway token group with fallbacks and retries, prove failover via x-ltg-served-model / x-ltg-attempts headers, and confirm the same story in the spend ledger. |
 | [get-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/get-ai-assistant-python/README.md) | Python | --- |
 | [global-ip-failover-monitor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/global-ip-failover-monitor-python/README.md) | Python | Global IP Failover Monitor - monitor Global IP endpoints across regions, auto-failover between healthy endpoints. |
+| [insights-pipeline](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/insights-pipeline/README.md) | Python | Build a schema-first structured-insights pipeline over AI conversations: typed insight templates, insight groups, assistant wiring, webhook + poll, and a QA scorecard. |
 | [insurance-claims-intake-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/insurance-claims-intake-python/README.md) | Python | Policyholder calls, AI collects incident details, accepts photos via MMS, creates claim, assigns adjuster, texts status updates. Adjuster reviews AI-prepared claim. |
 | [insurance-verification-caller](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/insurance-verification-caller/README.md) | Typescript | A durable Telnyx Edge actor that dials a carrier IVR, drives the menu via send_dtmf, captures the spoken eligibility result via STT, scores it with Jev Decision Models, and sends a one-line SMS verdict to the front desk — surviving voicemail, drops, and pod restarts. |
 | [langchain-streaming-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/langchain-streaming-agent/README.md) | Node.js | A LangChain tool-calling agent on Telnyx Edge Compute that streams every token, tool call, and result over WebSocket — powered by the zero-credential Telnyx Inference binding. |
@@ -525,7 +526,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [live-support-coach-room](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/live-support-coach-room/README.md) | Typescript | A Telnyx Edge Agent that streams live AI support calls to a supervisor dashboard, injects coaching nudges mid-call, and escalates to a human via WebRTC. |
 | [maintenance-request-dispatch-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/maintenance-request-dispatch-python/README.md) | Python | Tenant texts issue, AI categorizes and estimates cost, auto-dispatches vendor for routine work, manager approves orders over $500 via SMS reply. |
 | [missions-ai-task-runner-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/missions-ai-task-runner-python/README.md) | Python | Missions AI Task Runner - AI-driven task execution within the Telnyx Missions framework. AI decides next steps based on task results. |
-| [missions-audit](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/missions-audit/README.md) | Python | Missions Audit Desk — drive one Telnyx AI mission end-to-end and render a timestamped audit trail of what was planned, what ran, and what failed. |
+| [missions-audit](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/missions-audit/README.md) | Python | Drive one Telnyx AI mission end-to-end and render a timestamped audit trail of what was planned, what ran, and what failed. |
 | [moderation-classifier-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/moderation-classifier-python/README.md) | Python | AI Moderation Classifier — classify user-generated content as safe/spam/abuse/hate/harassment/self-harm using embeddings pre-filter + LLM judgment via Telnyx AI Inference. |
 | [multi-agent-debate](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-agent-debate/README.md) | Typescript | Two AI agents debate a topic with turn-based arguments, live WebSocket broadcasting, and audience voting tallied in SQL. |
 | [multi-channel-ai-helpdesk-with-ticketing-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-channel-ai-helpdesk-with-ticketing-python/README.md) | Python | Multi-Channel AI Helpdesk with Ticketing - voice + SMS + WhatsApp support with auto-ticket creation. |

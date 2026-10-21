@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-20T02:10:31Z",
-  "example_count": 579,
+  "generated_at": "2026-10-21T18:16:05Z",
+  "example_count": 580,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5216,6 +5216,15 @@
       "language": "python",
       "framework": "vanilla",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/missions-audit"
+    },
+    {
+      "folder": "insights-pipeline",
+      "title": "Structured-Insights Pipeline Desk — Schema-First Conversation Mining",
+      "description": "Build a schema-first structured-insights pipeline over AI conversations: typed insight templates, insight groups, assistant wiring, webhook + poll, and a QA scorecard.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insights-pipeline"
     }
   ]
 }
