@@ -27,6 +27,7 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone, timedelta
+from urllib.parse import urlparse
 
 import requests
 from dotenv import load_dotenv
@@ -1196,11 +1197,20 @@ def process_inbound_whatsapp(from_number, text):
 # ---------------------------------------------------------------------------
 # Audio transcription — voice notes
 # ---------------------------------------------------------------------------
+ALLOWED_AUDIO_HOSTS = {"api.telnyx.com", "media.telnyx.com"}
+
+
 def transcribe_audio(audio_url):
     """Download and transcribe a WhatsApp voice note using Telnyx AI."""
     try:
+        # Validate URL domain to prevent SSRF
+        parsed = urlparse(audio_url)
+        if parsed.hostname not in ALLOWED_AUDIO_HOSTS:
+            app.logger.warning("Blocked audio download from untrusted host: %s", parsed.hostname)
+            return "[Voice note from untrusted source — skipped]"
+
         # Download the audio file — WhatsApp media URLs require auth
-        app.logger.info("Downloading voice note from: %s", audio_url)
+        app.logger.info("Downloading voice note from Telnyx media")
         audio_resp = requests.get(
             audio_url,
             headers={"Authorization": f"Bearer {TELNYX_WHATSAPP_API_KEY}"},
@@ -1287,7 +1297,7 @@ def handle_whatsapp():
     # Deduplicate by message ID and cooldown
     msg_id = p.get("id") or data.get("id", "")
     if _is_duplicate(msg_id, from_number):
-        app.logger.debug("Skipping duplicate/cooldown: msg_id=%s phone=%s", msg_id, from_number)
+        app.logger.debug("Skipping duplicate/cooldown: msg_id=%s phone=***%s", msg_id, from_number[-4:])
         return jsonify({"status": "duplicate"}), 200
 
     body = p.get("body", {})
