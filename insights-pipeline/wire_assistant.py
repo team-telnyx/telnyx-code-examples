@@ -52,7 +52,7 @@ def _find_group_id(headers: dict[str, str]) -> str:
 
 
 def _create_assistant(headers: dict[str, str]) -> str:
-    payload: dict[str, Any] = {"name": "insights-pipeline-demo", "system_prompt": DEMO_SYSTEM_PROMPT}
+    payload: dict[str, Any] = {"name": "insights-pipeline-demo", "instructions": DEMO_SYSTEM_PROMPT}
     resp = requests.post(f"{API_BASE}/ai/assistants", headers=headers, json=payload, timeout=30)
     resp.raise_for_status()
     body = resp.json()

@@ -2,8 +2,10 @@
 
 Reads conversation IDs from conversations.json (filtered by --date or
 overridden by --conversation-id), fetches
-GET /ai/conversations/{conversation_id}/conversations-insights, validates
-every record against the declared json_schemas, and aggregates into the
+GET /ai/conversations/{conversation_id}/conversations-insights, flattens
+the nested conversation_insights entries (per-template results arrive as
+JSON strings keyed by insight_id — the template uuid), validates every
+entry against the declared json_schemas, and aggregates into the
 scorecard. --strict injects a synthetic invalid record (missing
 positivity_score) under conversation id 'demo-synthetic-invalid', flags
 it, excludes it from aggregates, and prints its conversation id. If the
@@ -83,6 +85,15 @@ def _load_store(date_filter: str | None) -> list[str]:
     return ids
 
 
+def _template_name_map(headers: dict[str, str]) -> dict[str, str]:
+    """Map template id -> template name so insight records can be schema-matched."""
+    resp = requests.get(f"{API_BASE}/ai/conversations/insights", headers=headers, timeout=30)
+    resp.raise_for_status()
+    body = resp.json()
+    records = body.get("data", body) if isinstance(body, dict) else body
+    return {r["id"]: r.get("name") for r in records if r.get("id")}
+
+
 def _fetch(headers: dict[str, str], conversation_id: str) -> list[dict[str, Any]]:
     url = f"{API_BASE}/ai/conversations/{conversation_id}/conversations-insights"
     resp = requests.get(url, headers=headers, timeout=30)
@@ -91,12 +102,10 @@ def _fetch(headers: dict[str, str], conversation_id: str) -> list[dict[str, Any]
     return body.get("data", body) if isinstance(body, dict) else body
 
 
-def _validate(record: dict[str, Any]) -> list[str]:
-    name = record.get("name") or record.get("insight_name")
-    schema = SCHEMAS.get(name)
+def _validate(name: str | None, result: dict[str, Any]) -> list[str]:
+    schema = SCHEMAS.get(name) if name else None
     if not schema:
         return []
-    result = record.get("result") or record.get("insight_result") or {}
     errors: list[str] = []
     for field in schema["required"]:
         if field not in result:
@@ -153,30 +162,41 @@ def _main() -> int:
 
     headers = _headers()
     conversation_ids = [args.conversation_id] if args.conversation_id else _load_store(args.date)
+    names_by_id = _template_name_map(headers)
 
     valid: list[dict[str, Any]] = []
     invalid: list[tuple[str, list[str]]] = []
     pending = 0
 
     for cid in conversation_ids:
-        for record in _fetch(headers, cid):
-            status = record.get("status")
+        for group_record in _fetch(headers, cid):
+            status = group_record.get("status")
             if status in ("pending", "in_progress"):
                 pending += 1
                 continue
-            errors = _validate(record)
-            if errors:
-                invalid.append((cid, errors))
-            else:
-                valid.append(record)
+            for entry in group_record.get("conversation_insights") or []:
+                name = names_by_id.get(entry.get("insight_id"))
+                raw = entry.get("result")
+                try:
+                    result = json.loads(raw) if isinstance(raw, str) else (raw or {})
+                except json.JSONDecodeError as exc:
+                    label = name or entry.get("insight_id") or "unknown-template"
+                    invalid.append((cid, [f"unparseable result for {label}: {exc}"]))
+                    continue
+                if not isinstance(result, dict):
+                    result = {}
+                errors = _validate(name, result)
+                if errors:
+                    invalid.append((cid, errors))
+                else:
+                    valid.append({"name": name, "result": result})
 
     if args.strict:
         synthetic = {
             "name": "sentiment-v1",
-            "status": "completed",
             "result": {"frustration_level": 3, "overall_sentiment": "negative", "key_emotions": ["frustrated"]},
         }
-        errors = _validate(synthetic)
+        errors = _validate(synthetic["name"], synthetic["result"])
         if not errors:
             print(
                 f"\u2717 [--strict] validator failed to flag the synthetic invalid record under {SYNTHETIC_ID}",

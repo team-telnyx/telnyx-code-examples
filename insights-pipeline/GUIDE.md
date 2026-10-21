@@ -268,9 +268,12 @@ with body:
 }
 ```
 
-The response carries `scheduled_event_id` and `conversation_id`. The script
-writes `{"conversation_id", "received_at"}` to `conversations.json` — the
-local JSON-lines store that `scorecard.py` reads.
+The response carries `scheduled_event_id`. The conversation is created when
+the event dispatches (~60s later), not at scheduling — so the script then
+**polls** `GET /ai/assistants/{assistant_id}/scheduled_events/{scheduled_event_id}`
+until the event record carries a `conversation_id`, and writes
+`{"conversation_id", "received_at"}` to `conversations.json` — the local
+JSON-lines store that `scorecard.py` reads.
 
 Then it **polls** `GET /ai/conversations/{conversation_id}/conversations-insights`
 every ~10 seconds with a bounded ~3-minute timeout until all insight records
