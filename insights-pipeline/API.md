@@ -672,7 +672,9 @@ actionable message:
 | Group response missing `id` | `create_group.py` | Exits non-zero. |
 | Assignment verification fails | `create_group.py` | Exits non-zero listing the missing template names. |
 | `insight_settings.insight_group_id` mismatch | `wire_assistant.py` | Exits non-zero. |
-| Scheduled-event response missing `conversation_id` | `place_call.py` | Exits non-zero. |
+| Scheduled-event response missing `scheduled_event_id` | `place_call.py` | Exits non-zero. |
+| Scheduled event `failed` before dispatching | `place_call.py` | Exits non-zero with the event id. |
+| No `conversation_id` on the event after ~5 min | `place_call.py` | Exits non-zero (check the assistant's scheduled events in the portal). |
 | Any insight record `failed` | `place_call.py` | Prints the record id to stderr and exits non-zero. |
 | Poll timeout (~3 min) | `place_call.py` | Prints a timeout message to stderr and exits non-zero. |
 | Schema-invalid record | `scorecard.py` | Flagged by conversation id, excluded from aggregates, printed in the report. |

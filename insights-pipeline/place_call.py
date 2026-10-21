@@ -1,8 +1,10 @@
 """Step 4 \u2014 place the demo call and poll insights until completed.
 
 Places the call through the assistant scheduled-event surface (channel
-phone_call), writes the returned conversation_id to conversations.json,
-then polls GET /ai/conversations/{conversation_id}/conversations-insights
+phone_call), waits for the event to dispatch (the conversation is created
+at dispatch, not at scheduling), writes the conversation_id to
+conversations.json, then polls
+GET /ai/conversations/{conversation_id}/conversations-insights
 every ~10s (bounded ~3 min) until all records are completed. pending /
 in_progress \u2192 keep waiting; failed \u2192 print the record id and exit non-zero.
 
@@ -32,6 +34,7 @@ API_BASE = os.getenv("TELNYX_API_BASE", "https://api.telnyx.com/v2")
 STORE = Path(__file__).parent / "conversations.json"
 POLL_INTERVAL = 10
 POLL_TIMEOUT = 180
+EVENT_TIMEOUT = 300
 
 
 def _headers() -> dict[str, str]:
@@ -97,10 +100,39 @@ def _place_call(headers: dict[str, str], assistant_id: str, demo: bool) -> str |
     resp.raise_for_status()
     body = resp.json()
     record = body.get("data", body)
+    scheduled_event_id = record.get("scheduled_event_id")
+    if not scheduled_event_id:
+        sys.exit("Scheduled-event response missing 'scheduled_event_id'.")
+    print(f"\u2713 scheduled_event_id={scheduled_event_id} (dispatch at {record.get('scheduled_at_fixed_datetime')})")
+
     conversation_id = record.get("conversation_id")
     if not conversation_id:
-        sys.exit("Scheduled-event response missing 'conversation_id'.")
-    print(f"\u2713 scheduled_event_id={record.get('scheduled_event_id')} conversation_id={conversation_id}")
+        # The conversation is created on dispatch, not on scheduling: poll the
+        # scheduled event until it carries a conversation_id (bounded).
+        print("Polling the scheduled event until the call dispatches...")
+        deadline = time.monotonic() + EVENT_TIMEOUT
+        while time.monotonic() < deadline:
+            time.sleep(POLL_INTERVAL)
+            resp = requests.get(
+                f"{API_BASE}/ai/assistants/{assistant_id}/scheduled_events/{scheduled_event_id}",
+                headers=headers,
+                timeout=30,
+            )
+            resp.raise_for_status()
+            event = resp.json().get("data", resp.json())
+            status = event.get("status")
+            conversation_id = event.get("conversation_id")
+            print(f"  event: status={status} call_status={event.get('call_status')} conversation_id={conversation_id}")
+            if conversation_id:
+                break
+            if status == "failed":
+                sys.exit(f"Scheduled event {scheduled_event_id} failed before dispatching a call.")
+        if not conversation_id:
+            sys.exit(
+                "Timed out waiting for the scheduled event to dispatch a conversation. "
+                "Check the assistant's scheduled events in the Telnyx portal."
+            )
+    print(f"\u2713 conversation_id={conversation_id}")
     return conversation_id
 
 
