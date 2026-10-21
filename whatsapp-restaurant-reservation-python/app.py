@@ -18,6 +18,7 @@ Run:
 
 import json
 import logging
+import logging.handlers
 import os
 import queue
 import re
@@ -35,7 +36,24 @@ load_dotenv()
 
 app = Flask(__name__)
 app.logger.setLevel(logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG)
+
+# Persistent file logging + console
+LOG_PATH = os.getenv("LOG_PATH", "app.log")
+_log_formatter = logging.Formatter(
+    "%(asctime)s %(levelname)s [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+_file_handler = logging.handlers.RotatingFileHandler(
+    LOG_PATH, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8",
+)
+_file_handler.setLevel(logging.DEBUG)
+_file_handler.setFormatter(_log_formatter)
+
+_console_handler = logging.StreamHandler()
+_console_handler.setLevel(logging.DEBUG)
+_console_handler.setFormatter(_log_formatter)
+
+logging.basicConfig(level=logging.DEBUG, handlers=[_file_handler, _console_handler])
 
 # ---------------------------------------------------------------------------
 # SSE — real-time event streaming to browser clients
@@ -473,11 +491,28 @@ def seed_restaurants():
 
 
 def _cache_restaurants(restaurants, city=""):
-    """Insert a list of restaurant dicts into the DB."""
+    """Insert a list of restaurant dicts into the DB.
+
+    Only tags a restaurant with the requested city if its address actually
+    contains the city name.  This prevents Google Places results from
+    neighbouring cities being mis-filed.
+    """
     now = datetime.now(timezone.utc).isoformat()
     city_lower = city.lower().strip() if city else ""
     conn = get_db()
     for r in restaurants:
+        # Determine the correct city tag: only use the requested city
+        # if the restaurant's address actually mentions it.
+        addr = (r.get("address") or "").lower()
+        if city_lower and city_lower in addr:
+            tag = city_lower
+        else:
+            tag = ""
+            if city_lower:
+                app.logger.debug(
+                    "Skipping city tag '%s' for '%s' (address: %s)",
+                    city_lower, r["name"], r.get("address", ""),
+                )
         conn.execute(
             "INSERT OR IGNORE INTO restaurants "
             "(id, name, cuisine, address, phone, lat, lon, photo_url, "
@@ -493,7 +528,7 @@ def _cache_restaurants(restaurants, city=""):
              r.get("open_now"), r.get("hours", ""),
              r.get("reservable", 0), r.get("vegetarian", 0),
              r.get("outdoor_seating", 0), r.get("dine_in", 0),
-             r.get("delivery", 0), r.get("takeout", 0), now, city_lower),
+             r.get("delivery", 0), r.get("takeout", 0), now, tag),
         )
     conn.commit()
     conn.close()
@@ -973,7 +1008,10 @@ def call_inference(messages):
 def execute_tool(tool_name, tool_input, customer_phone):
     """Route an AI tool call to the appropriate function."""
     if tool_name == "search_restaurants":
-        results = search_restaurants(tool_input.get("query", ""), city=tool_input.get("city"))
+        city = tool_input.get("city")
+        results = search_restaurants(tool_input.get("query", ""), city=city)
+        if city:
+            sse_publish("restaurant.search", {"city": city, "query": tool_input.get("query", "")})
         return json.dumps({"restaurants": results}, default=str)
 
     if tool_name == "check_availability":
@@ -994,6 +1032,7 @@ def execute_tool(tool_name, tool_input, customer_phone):
             time_str=tool_input["time"],
             notes=tool_input.get("notes", ""),
         )
+        sse_publish("restaurant.selected", {"restaurant_id": tool_input["restaurant_id"]})
         return json.dumps({"reservation": reservation}, default=str)
 
     if tool_name == "cancel_reservation":
