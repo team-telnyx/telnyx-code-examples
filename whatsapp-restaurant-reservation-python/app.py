@@ -115,9 +115,15 @@ def init_db():
             dine_in         INTEGER DEFAULT 0,
             delivery        INTEGER DEFAULT 0,
             takeout         INTEGER DEFAULT 0,
-            cached_at       TEXT NOT NULL
+            cached_at       TEXT NOT NULL,
+            city            TEXT DEFAULT ''
         )
     """)
+    # Add city column to existing DBs that don't have it yet
+    try:
+        cur.execute("ALTER TABLE restaurants ADD COLUMN city TEXT DEFAULT ''")
+    except Exception:
+        pass
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS reservations (
@@ -442,14 +448,15 @@ def seed_restaurants():
         restaurants = get_fallback_restaurants(city=DEFAULT_CITY)
 
     now = datetime.now(timezone.utc).isoformat()
+    city_lower = DEFAULT_CITY.lower().strip()
     for r in restaurants:
         cur.execute(
             "INSERT OR IGNORE INTO restaurants "
             "(id, name, cuisine, address, phone, lat, lon, photo_url, "
             "rating, rating_count, price_level, price_range, website, maps_url, "
             "open_now, hours, reservable, vegetarian, outdoor_seating, "
-            "dine_in, delivery, takeout, cached_at) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "dine_in, delivery, takeout, cached_at, city) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (r["id"], r["name"], r.get("cuisine", ""), r.get("address", ""),
              r.get("phone", ""), r.get("lat"), r.get("lon"),
              r.get("photo_url", ""), r.get("rating"), r.get("rating_count", 0),
@@ -458,16 +465,17 @@ def seed_restaurants():
              r.get("open_now"), r.get("hours", ""),
              r.get("reservable", 0), r.get("vegetarian", 0),
              r.get("outdoor_seating", 0), r.get("dine_in", 0),
-             r.get("delivery", 0), r.get("takeout", 0), now),
+             r.get("delivery", 0), r.get("takeout", 0), now, city_lower),
         )
     conn.commit()
     conn.close()
     app.logger.info("Seeded %d restaurants", len(restaurants))
 
 
-def _cache_restaurants(restaurants):
-    """Insert a list of restaurant dicts into the DB (full 23-column INSERT)."""
+def _cache_restaurants(restaurants, city=""):
+    """Insert a list of restaurant dicts into the DB."""
     now = datetime.now(timezone.utc).isoformat()
+    city_lower = city.lower().strip() if city else ""
     conn = get_db()
     for r in restaurants:
         conn.execute(
@@ -475,8 +483,8 @@ def _cache_restaurants(restaurants):
             "(id, name, cuisine, address, phone, lat, lon, photo_url, "
             "rating, rating_count, price_level, price_range, website, maps_url, "
             "open_now, hours, reservable, vegetarian, outdoor_seating, "
-            "dine_in, delivery, takeout, cached_at) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "dine_in, delivery, takeout, cached_at, city) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (r["id"], r["name"], r.get("cuisine", ""), r.get("address", ""),
              r.get("phone", ""), r.get("lat"), r.get("lon"),
              r.get("photo_url", ""), r.get("rating"), r.get("rating_count", 0),
@@ -485,7 +493,7 @@ def _cache_restaurants(restaurants):
              r.get("open_now"), r.get("hours", ""),
              r.get("reservable", 0), r.get("vegetarian", 0),
              r.get("outdoor_seating", 0), r.get("dine_in", 0),
-             r.get("delivery", 0), r.get("takeout", 0), now),
+             r.get("delivery", 0), r.get("takeout", 0), now, city_lower),
         )
     conn.commit()
     conn.close()
@@ -642,19 +650,25 @@ def search_restaurants(query_str, city=None):
     results exist, fetch fresh data from Google Places first."""
     conn = get_db()
     if city:
+        city_lower = city.lower().strip()
+        # Match on the city column OR fall back to address LIKE for legacy rows
         rows = conn.execute(
-            "SELECT * FROM restaurants WHERE (name LIKE ? OR cuisine LIKE ?) AND address LIKE ? LIMIT 10",
-            (f"%{query_str}%", f"%{query_str}%", f"%{city}%"),
+            "SELECT * FROM restaurants WHERE (name LIKE ? OR cuisine LIKE ?) "
+            "AND (city LIKE ? OR address LIKE ?) LIMIT 10",
+            (f"%{query_str}%", f"%{query_str}%", f"%{city_lower}%", f"%{city}%"),
         ).fetchall()
         if not rows:
             # Fetch from Google Places for this city + query
             conn.close()
             search_term = f"{query_str} restaurants in {city}" if query_str else city
-            fetch_google_restaurants(search_term)
+            fresh = fetch_google_restaurants(search_term)
+            if fresh:
+                _cache_restaurants(fresh, city=city)
             conn = get_db()
             rows = conn.execute(
-                "SELECT * FROM restaurants WHERE (name LIKE ? OR cuisine LIKE ?) AND address LIKE ? LIMIT 10",
-                (f"%{query_str}%", f"%{query_str}%", f"%{city}%"),
+                "SELECT * FROM restaurants WHERE (name LIKE ? OR cuisine LIKE ?) "
+                "AND (city LIKE ? OR address LIKE ?) LIMIT 10",
+                (f"%{query_str}%", f"%{query_str}%", f"%{city_lower}%", f"%{city}%"),
             ).fetchall()
     else:
         rows = conn.execute(
@@ -664,7 +678,9 @@ def search_restaurants(query_str, city=None):
         if not rows and query_str:
             # Try fetching from Google Places
             conn.close()
-            fetch_google_restaurants(query_str)
+            fresh = fetch_google_restaurants(query_str)
+            if fresh:
+                _cache_restaurants(fresh, city=query_str)
             conn = get_db()
             rows = conn.execute(
                 "SELECT * FROM restaurants WHERE name LIKE ? OR cuisine LIKE ? LIMIT 10",
@@ -1322,10 +1338,11 @@ def api_restaurants():
     per_page = min(50, max(1, request.args.get("per_page", 12, type=int)))
 
     # Check if we have cached data for this city
+    city_lower = city.lower().strip()
     conn = get_db()
     rows = conn.execute(
-        "SELECT * FROM restaurants WHERE address LIKE ? ORDER BY name",
-        (f"%{city}%",),
+        "SELECT * FROM restaurants WHERE city LIKE ? OR address LIKE ? ORDER BY name",
+        (f"%{city_lower}%", f"%{city}%"),
     ).fetchall()
     conn.close()
 
@@ -1334,7 +1351,7 @@ def api_restaurants():
         restaurants = fetch_google_restaurants(city=city, cuisine_filter=None)
         if len(restaurants) < 3:
             restaurants = get_fallback_restaurants(city=city)
-        _cache_restaurants(restaurants)
+        _cache_restaurants(restaurants, city=city)
         result = restaurants
     else:
         result = [dict(r) for r in rows]
@@ -1347,7 +1364,7 @@ def api_restaurants():
         if not filtered and GOOGLE_PLACES_API_KEY:
             filtered = fetch_google_restaurants(city=city, cuisine_filter=cuisine)
             if filtered:
-                _cache_restaurants(filtered)
+                _cache_restaurants(filtered, city=city)
         result = filtered
 
     # Apply text search filter

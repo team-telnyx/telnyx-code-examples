@@ -25,29 +25,21 @@ a:hover{text-decoration:underline}
 /* ── Hero Section ─────────────────────────────────────────────── */
 .hero{
   position:relative;
-  padding:36px 48px 32px;
-  background:linear-gradient(135deg, #00805e 0%, #00b386 50%, #00d9a3 100%);
+  padding:48px 48px 44px;
+  background:url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=80&fit=crop') center/cover no-repeat;
   overflow:hidden;
 }
 .hero::before{
-  content:'';position:absolute;top:-120px;right:-80px;
-  width:600px;height:600px;
-  background:radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 60%);
-  pointer-events:none;
-}
-.hero::after{
-  content:'';position:absolute;bottom:-100px;left:-50px;
-  width:400px;height:400px;
-  background:radial-gradient(circle, rgba(255,255,255,.08) 0%, transparent 60%);
+  content:'';position:absolute;inset:0;
+  background:rgba(0,0,0,.55);
   pointer-events:none;
 }
 .hero-content{
   position:relative;z-index:1;
-  display:flex;align-items:center;justify-content:space-between;
-  max-width:1400px;margin:0 auto;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  max-width:1400px;margin:0 auto;gap:14px;
 }
-.hero-left{display:flex;flex-direction:column;gap:14px;max-width:600px}
-.hero-top-row{display:flex;align-items:center;gap:14px}
+.hero-left{display:flex;flex-direction:column;align-items:center;gap:14px}
 .hero-logo{
   width:60px;height:60px;border-radius:16px;
   background:rgba(255,255,255,.2);backdrop-filter:blur(8px);
@@ -65,8 +57,8 @@ a:hover{text-decoration:underline}
 .hero-chip{
   display:flex;align-items:center;gap:5px;
   padding:5px 12px;border-radius:20px;
-  background:rgba(255,255,255,.18);backdrop-filter:blur(4px);
-  border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.15);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.22);
   font-size:11px;color:#fff;font-weight:500;
 }
 .hero-chip svg{width:13px;height:13px;fill:#fff}
@@ -228,10 +220,10 @@ a:hover{text-decoration:underline}
 /* ── WhatsApp Phone Mockup ────────────────────────────────────── */
 .phone-panel{
   display:flex;align-items:stretch;justify-content:center;
-  background:transparent;
+  background:transparent;overflow:hidden;min-height:0;
 }
 .phone-frame{
-  width:100%;flex:1;min-height:0;
+  width:100%;flex:1;min-height:0;max-height:100%;
   border-radius:36px;
   border:3px solid #c4c7cc;
   background:#e8e8ed;
@@ -430,35 +422,12 @@ a:hover{text-decoration:underline}
 <div class="hero">
   <div class="hero-content">
     <div class="hero-left">
-      <div class="hero-top-row">
-        <div class="hero-logo">D</div>
-        <div class="hero-brand">DineNyx</div>
-      </div>
+      <div class="hero-brand">DineNyx</div>
       <div class="hero-tagline">AI-powered restaurant reservations via <strong>WhatsApp</strong>. Browse, book, and manage tables with a single conversation.</div>
-      <div class="hero-features">
-        <div class="hero-chip">
-          <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
-          WhatsApp Business
-        </div>
-        <div class="hero-chip">
-          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-          AI Inference
-        </div>
-        <div class="hero-chip">
-          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
-          Voice Notes
-        </div>
-        <div class="hero-chip">
-          <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
-          Real-time
-        </div>
-      </div>
     </div>
-    <div class="hero-right">
-      <div class="hero-powered">
-        <span class="status-dot" id="statusDot"></span>
-        Powered by <span>Telnyx</span>
-      </div>
+    <div class="hero-powered">
+      <span class="status-dot" id="statusDot"></span>
+      Powered by <span>Telnyx</span>
     </div>
   </div>
 </div>
@@ -664,6 +633,22 @@ function handleSSE(data) {
 }
 
 /* ── Chat Bubbles ─────────────────────────────────────────────── */
+function formatWhatsApp(text) {
+  // Escape HTML first, then apply WhatsApp-style formatting
+  let s = escapeHtml(text);
+  // Bold: *text*
+  s = s.replace(/\*([^*\n]+)\*/g, '<b>$1</b>');
+  // Italic: _text_
+  s = s.replace(/\b_([^_\n]+)_\b/g, '<i>$1</i>');
+  // Strikethrough: ~text~
+  s = s.replace(/~([^~\n]+)~/g, '<s>$1</s>');
+  // Monospace: ```text```
+  s = s.replace(/```([^`]+)```/g, '<code>$1</code>');
+  // Newlines
+  s = s.replace(/\n/g, '<br>');
+  return s;
+}
+
 function addChatBubble(data) {
   const chatArea = document.getElementById('chatArea');
   const empty = document.getElementById('chatEmpty');
@@ -678,7 +663,7 @@ function addChatBubble(data) {
 
   const ticks = isInbound ? '' : '<span class="read-ticks">&#10003;&#10003;</span>';
   bubble.innerHTML = `
-    <div>${escapeHtml(text)}</div>
+    <div>${formatWhatsApp(text)}</div>
     <div class="chat-time">${time} ${ticks}</div>
   `;
 
