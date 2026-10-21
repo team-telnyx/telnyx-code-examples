@@ -1197,16 +1197,17 @@ def process_inbound_whatsapp(from_number, text):
 # ---------------------------------------------------------------------------
 # Audio transcription — voice notes
 # ---------------------------------------------------------------------------
-ALLOWED_AUDIO_HOSTS = {"api.telnyx.com", "media.telnyx.com"}
+ALLOWED_AUDIO_DOMAIN = ".telnyx.com"
 
 
 def transcribe_audio(audio_url):
     """Download and transcribe a WhatsApp voice note using Telnyx AI."""
     try:
-        # Validate URL domain to prevent SSRF
+        # Validate URL domain to prevent SSRF — only allow Telnyx-hosted media
         parsed = urlparse(audio_url)
-        if parsed.hostname not in ALLOWED_AUDIO_HOSTS:
-            app.logger.warning("Blocked audio download from untrusted host: %s", parsed.hostname)
+        host = (parsed.hostname or "").lower()
+        if not (host == "telnyx.com" or host.endswith(ALLOWED_AUDIO_DOMAIN)):
+            app.logger.warning("Blocked audio download from untrusted host: %s", host)
             return "[Voice note from untrusted source — skipped]"
 
         # Download the audio file — WhatsApp media URLs require auth
