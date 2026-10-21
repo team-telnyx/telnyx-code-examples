@@ -524,41 +524,43 @@ curl "https://api.telnyx.com/v2/ai/conversations/c9d0e1f2-3456-4abc-9def-0123456
 
 ### Response — `200 OK`
 
+One record per analysis run, with the per-template results nested inside
+`conversation_insights` (each `result` is a JSON **string** keyed by the
+template uuid in `insight_id`):
+
 ```json
 {
   "data": [
     {
       "id": "f1a2b3c4-5678-4abc-9def-0123456789ab",
-      "name": "sentiment-v1",
       "status": "completed",
-      "result": {
-        "positivity_score": 2,
-        "frustration_level": 4,
-        "overall_sentiment": "negative",
-        "key_emotions": ["frustrated", "confused"]
-      }
-    },
-    {
-      "id": "a2b3c4d5-6789-4abc-9def-0123456789ab",
-      "name": "compliance-v1",
-      "status": "completed",
-      "result": {
-        "verified_identity": true,
-        "compliance_flags": ["identity_verification_passed", "disclosure_missing"]
-      }
-    },
-    {
-      "id": "b3c4d5e6-7890-4abc-9def-0123456789ab",
-      "name": "escalation-v1",
-      "status": "completed",
-      "result": {
-        "escalation_reason": "caller_request",
-        "agent_performed_well": true
-      }
+      "created_at": "2026-10-21T18:57:04.159654Z",
+      "insight_group_id": "ac31adb7-9991-4693-87e4-68d252f629b0",
+      "conversation_insights": [
+        {
+          "insight_id": "a85befa2-1c89-412c-82d1-fd10bdeb32ca",
+          "result": "{\"positivity_score\":1,\"frustration_level\":5,\"overall_sentiment\":\"negative\",\"key_emotions\":[\"frustrated\",\"upset\",\"impatient\"]}"
+        },
+        {
+          "insight_id": "297848fd-b13e-4094-b2c1-3b859676d680",
+          "result": "{\"verified_identity\":true,\"compliance_flags\":[\"identity_verification_passed\",\"escalation_requested\"]}"
+        },
+        {
+          "insight_id": "cf6eee56-9ee4-4109-98e7-9cd8c26f4d83",
+          "result": "{\"escalation_reason\":\"caller_request\",\"agent_performed_well\":true}"
+        }
+      ],
+      "webhook": "",
+      "insight_id": null,
+      "json_schema": null
     }
   ]
 }
 ```
+
+`scorecard.py` resolves each `insight_id` to its template name (via
+`GET /ai/conversations/insights`), `json.loads` the `result` string, and
+validates it against that template's schema.
 
 ### Insight statuses
 
