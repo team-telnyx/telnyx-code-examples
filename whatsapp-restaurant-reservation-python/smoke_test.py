@@ -43,7 +43,7 @@ class TestHealth(unittest.TestCase):
     def test_dashboard(self):
         resp = self.client.get("/")
         self.assertEqual(resp.status_code, 200)
-        self.assertIn(b"Ristorante AI", resp.data)
+        self.assertIn(b"DineNyx", resp.data)
 
 
 class TestRestaurants(unittest.TestCase):

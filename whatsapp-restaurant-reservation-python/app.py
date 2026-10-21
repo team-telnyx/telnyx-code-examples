@@ -1144,19 +1144,29 @@ def process_inbound_whatsapp(from_number, text):
 def transcribe_audio(audio_url):
     """Download and transcribe a WhatsApp voice note using Telnyx AI."""
     try:
-        # Download the audio file
-        audio_resp = requests.get(audio_url, timeout=15)
+        # Download the audio file — WhatsApp media URLs require auth
+        app.logger.info("Downloading voice note from: %s", audio_url)
+        audio_resp = requests.get(
+            audio_url,
+            headers={"Authorization": f"Bearer {TELNYX_WHATSAPP_API_KEY}"},
+            timeout=15,
+        )
         audio_resp.raise_for_status()
+        app.logger.info("Downloaded audio: %d bytes, content-type: %s",
+                        len(audio_resp.content), audio_resp.headers.get("content-type", "unknown"))
 
         # Use Telnyx AI for speech-to-text
-        files = {"file": ("voice.ogg", audio_resp.content, "audio/ogg")}
+        content_type = audio_resp.headers.get("content-type", "audio/ogg")
+        ext = "ogg" if "ogg" in content_type else "mp4" if "mp4" in content_type else "ogg"
+        files = {"file": (f"voice.{ext}", audio_resp.content, content_type)}
         resp = requests.post(
             "https://api.telnyx.com/v2/ai/audio/transcriptions",
             headers={"Authorization": f"Bearer {TELNYX_API_KEY}"},
             files=files,
-            data={"model": "distil-whisper/distil-large-v3"},
+            data={"model": "openai/whisper-large-v3-turbo"},
             timeout=30,
         )
+        app.logger.info("Transcription response: %s %s", resp.status_code, resp.text[:500])
         resp.raise_for_status()
         return resp.json().get("text", "")
     except Exception as exc:
