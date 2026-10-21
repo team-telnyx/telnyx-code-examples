@@ -721,9 +721,11 @@ function addChatBubble(data) {
   chatArea.appendChild(bubble);
   chatArea.scrollTop = chatArea.scrollHeight;
 
-  // Update phone status
+  // Update phone status (mask phone number for privacy)
   if (isInbound && data.from) {
-    document.getElementById('phoneStatus').textContent = 'Chat with ' + data.from;
+    const ph = data.from;
+    const masked = ph.length > 4 ? '***' + ph.slice(-4) : ph;
+    document.getElementById('phoneStatus').textContent = 'Chat with ' + masked;
   }
 
   showTyping(false);
