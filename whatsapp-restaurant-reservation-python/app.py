@@ -1033,7 +1033,18 @@ def execute_tool(tool_name, tool_input, customer_phone):
             time_str=tool_input["time"],
             notes=tool_input.get("notes", ""),
         )
-        sse_publish("restaurant.selected", {"restaurant_id": tool_input["restaurant_id"]})
+        # Look up the restaurant's city so the UI can switch to it
+        rid = tool_input["restaurant_id"]
+        rest_city = ""
+        try:
+            conn = get_db()
+            row = conn.execute("SELECT city, address FROM restaurants WHERE id = ?", (rid,)).fetchone()
+            conn.close()
+            if row:
+                rest_city = row["city"] or ""
+        except Exception:
+            pass
+        sse_publish("restaurant.selected", {"restaurant_id": rid, "city": rest_city})
         return json.dumps({"reservation": reservation}, default=str)
 
     if tool_name == "cancel_reservation":

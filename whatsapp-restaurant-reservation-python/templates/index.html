@@ -664,17 +664,38 @@ function handleSSE(data) {
       document.getElementById('searchInput').value = data.query || '';
       document.getElementById('cuisineSelect').value = 'All';
       currentPage = 1;
-      loadRestaurants(1);
+      _pendingLoad = loadRestaurants(1);
     }
   }
   else if (type === 'restaurant.selected') {
-    // Agent booked a restaurant — highlight the card
+    // Agent booked a restaurant — switch city if needed, then highlight the card
     if (data.restaurant_id) {
-      const card = document.querySelector(`.restaurant-card[data-id="${CSS.escape(data.restaurant_id)}"]`);
-      if (card) {
-        card.scrollIntoView({behavior: 'smooth', block: 'center'});
-        card.classList.add('highlighted');
-        setTimeout(() => card.classList.remove('highlighted'), 2000);
+      const highlightCard = () => {
+        const card = document.querySelector(`.restaurant-card[data-id="${CSS.escape(data.restaurant_id)}"]`);
+        if (card) {
+          card.scrollIntoView({behavior: 'smooth', block: 'center'});
+          card.classList.add('highlighted');
+          setTimeout(() => card.classList.remove('highlighted'), 2000);
+        }
+      };
+      // If a load is already in flight (from restaurant.search), wait for it
+      if (_pendingLoad) {
+        _pendingLoad.then(highlightCard);
+        _pendingLoad = null;
+      }
+      // If the card is already visible, highlight immediately
+      else if (document.querySelector(`.restaurant-card[data-id="${CSS.escape(data.restaurant_id)}"]`)) {
+        highlightCard();
+      }
+      // Card not on screen and no pending load — switch to the restaurant's city
+      else if (data.city) {
+        document.getElementById('cityInput').value = data.city;
+        _lastCity = data.city;
+        document.getElementById('searchInput').value = '';
+        document.getElementById('cuisineSelect').value = 'All';
+        currentPage = 1;
+        const p = loadRestaurants(1);
+        if (p && p.then) p.then(highlightCard);
       }
     }
   }
@@ -746,6 +767,7 @@ function updateActivity(text) {
 
 /* ── Restaurant List ──────────────────────────────────────────── */
 let _lastCity = '{{ city }}';
+let _pendingLoad = null;  // track in-flight loadRestaurants promise
 let _cityDebounce = null;
 
 function getCity() {
@@ -766,7 +788,7 @@ function loadRestaurants(page) {
   document.getElementById('restaurantList').innerHTML =
     '<div class="loading-spinner">Loading restaurants...</div>';
 
-  fetch('/api/restaurants?' + params)
+  return fetch('/api/restaurants?' + params)
     .then(r => r.json())
     .then(data => {
       allRestaurants = data.restaurants;
