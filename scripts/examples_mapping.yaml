@@ -1619,6 +1619,12 @@ examples:
     folder: rcs-rich-card-product-catalog-python
 
   - product: sms
+    use_case: rcs-capability-campaign-desk
+    language: python
+    framework: flask
+    folder: rcs-capability-campaign-desk-python
+
+  - product: sms
     use_case: rent-collection-escalation
     language: python
     framework: flask
