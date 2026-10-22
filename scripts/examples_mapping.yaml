@@ -1733,6 +1733,12 @@ examples:
     folder: whatsapp-sms-bridge-python
 
   - product: sms
+    use_case: whatsapp-restaurant-reservation
+    language: python
+    framework: flask
+    folder: whatsapp-restaurant-reservation-python
+
+  - product: sms
     use_case: white-label-appointment-platform
     language: python
     framework: flask
