@@ -1197,7 +1197,7 @@ def process_inbound_whatsapp(from_number, text):
 # ---------------------------------------------------------------------------
 # Audio transcription — voice notes
 # ---------------------------------------------------------------------------
-ALLOWED_AUDIO_DOMAIN = ".telnyx.com"
+ALLOWED_AUDIO_DOMAINS = (".telnyx.com", ".telnyxcloudstorage.com")
 
 
 def transcribe_audio(audio_url):
@@ -1206,7 +1206,7 @@ def transcribe_audio(audio_url):
         # Validate URL domain to prevent SSRF — only allow Telnyx-hosted media
         parsed = urlparse(audio_url)
         host = (parsed.hostname or "").lower()
-        if not (host == "telnyx.com" or host.endswith(ALLOWED_AUDIO_DOMAIN)):
+        if not (host == "telnyx.com" or any(host.endswith(d) for d in ALLOWED_AUDIO_DOMAINS)):
             app.logger.warning("Blocked audio download from untrusted host: %s", host)
             return "[Voice note from untrusted source — skipped]"
 
