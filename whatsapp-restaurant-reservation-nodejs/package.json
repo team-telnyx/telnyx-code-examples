@@ -1,0 +1,29 @@
+{
+  "name": "whatsapp-restaurant-reservation-nodejs",
+  "version": "1.0.0",
+  "description": "AI-powered restaurant reservations via WhatsApp — Node.js/Express for Telnyx Edge Compute",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/smoke.test.js",
+    "edge:build": "node scripts/edge-build.js",
+    "edge:ship": "npm run edge:build && telnyx-edge ship --from-dir=edge --timeout 25m",
+    "edge": "bash scripts/edge.sh"
+  },
+  "engines": {
+    "node": ">=22.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "keywords": [
+    "telnyx",
+    "whatsapp",
+    "restaurant",
+    "reservations",
+    "ai",
+    "edge-compute"
+  ],
+  "license": "MIT"
+}
