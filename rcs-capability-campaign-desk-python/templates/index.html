@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RCS Campaign Desk — Telnyx</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+/* ── Design Tokens ─────────────────────────────────────────────── */
+:root {
+  --green: #00e3aa;
+  --green-dark: #00b388;
+  --green-glow: rgba(0, 227, 170, 0.15);
+  --green-glow-strong: rgba(0, 227, 170, 0.25);
+  --purple: #a78bfa;
+  --purple-glow: rgba(167, 139, 250, 0.12);
+  --blue: #60a5fa;
+  --blue-glow: rgba(96, 165, 250, 0.12);
+  --amber: #fbbf24;
+  --amber-glow: rgba(251, 191, 36, 0.12);
+  --red: #f87171;
+  --red-glow: rgba(248, 113, 113, 0.12);
+
+  --bg: #09090b;
+  --bg-raised: #111114;
+  --surface: #18181b;
+  --surface-2: #1e1e22;
+  --surface-3: #27272a;
+  --ink: #fafafa;
+  --ink-2: #a1a1aa;
+  --ink-3: #52525b;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-2: rgba(255, 255, 255, 0.10);
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+  --radius-pill: 999px;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-green: 0 0 20px rgba(0, 227, 170, 0.15);
+}
+
+/* ── Reset ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--green); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Topbar ────────────────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+  height: 60px;
+  display: flex; align-items: center;
+  padding: 0 28px;
+}
+.topbar-brand {
+  display: flex; align-items: center; gap: 12px;
+}
+.topbar-logo {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-green);
+}
+.topbar-logo svg { color: var(--bg); }
+.topbar-text {
+  display: flex; flex-direction: column; line-height: 1.2;
+}
+.topbar-text .brand { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.topbar-text .sub { font-size: 11px; color: var(--ink-3); font-weight: 500; }
+.topbar-right {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 12px;
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.status-label { font-size: 12px; color: var(--ink-2); font-weight: 500; }
+.topbar-badge {
+  background: var(--green-glow);
+  color: var(--green);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid rgba(0, 227, 170, 0.2);
+}
+
+/* ── Hero Banner ───────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 28px 48px;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: -40%; left: -10%; right: -10%; bottom: -20%;
+  background:
+    radial-gradient(ellipse 500px 400px at 30% 60%, rgba(0, 227, 170, 0.10), transparent),
+    radial-gradient(ellipse 400px 350px at 70% 40%, rgba(167, 139, 250, 0.06), transparent);
+  pointer-events: none;
+}
+/* Subtle grid */
+.hero::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.3;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 10%, transparent 60%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 10%, transparent 60%);
+  pointer-events: none;
+}
+.hero-layout {
+  position: relative; z-index: 1;
+  max-width: 1080px; margin: 0 auto;
+  display: flex; align-items: center; gap: 48px;
+}
+.hero-content { flex: 1; min-width: 0; }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--green-glow);
+  border: 1px solid rgba(0, 227, 170, 0.2);
+  border-radius: var(--radius-pill);
+  padding: 6px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 20px;
+}
+.hero-eyebrow i { width: 14px; height: 14px; }
+.hero h1 {
+  font-size: 40px; font-weight: 800; letter-spacing: -0.035em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #ffffff 0%, var(--green) 60%, var(--green-dark) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 14px;
+}
+.hero p {
+  font-size: 15px; color: var(--ink-2); line-height: 1.6;
+  max-width: 420px;
+}
+
+/* ── Hero Illustration (phone + message bubbles) ───────────────── */
+.hero-illustration {
+  flex-shrink: 0;
+  width: 300px; height: 260px;
+  position: relative;
+}
+/* Phone outline */
+.hero-phone {
+  position: absolute;
+  top: 10px; left: 50%; transform: translateX(-50%);
+  width: 140px; height: 240px;
+  border: 2px solid var(--border-2);
+  border-radius: 24px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.hero-phone::before {
+  content: '';
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  width: 40px; height: 5px;
+  background: var(--surface-3);
+  border-radius: 4px;
+}
+.hero-phone-screen {
+  position: absolute; top: 22px; left: 8px; right: 8px; bottom: 8px;
+  background: var(--bg);
+  border-radius: 0 0 16px 16px;
+  padding: 12px 8px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+/* Chat bubbles inside phone */
+.bubble {
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 9px;
+  font-family: var(--font);
+  line-height: 1.4;
+  animation: bubbleIn 0.6s ease backwards;
+}
+.bubble-in {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  align-self: flex-start;
+  max-width: 85%;
+  border-bottom-left-radius: 4px;
+}
+.bubble-out {
+  background: var(--green);
+  color: var(--bg);
+  align-self: flex-end;
+  max-width: 85%;
+  border-bottom-right-radius: 4px;
+  font-weight: 600;
+}
+.bubble-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  align-self: flex-start;
+  max-width: 90%;
+  border-bottom-left-radius: 4px;
+  color: var(--ink-2);
+}
+.bubble-card-img {
+  width: 100%; height: 36px;
+  background: linear-gradient(135deg, rgba(0,227,170,0.15), rgba(167,139,250,0.1));
+  border-radius: 8px 8px 0 0;
+  margin: -8px -12px 6px;
+  width: calc(100% + 24px);
+}
+.bubble-card-title {
+  font-weight: 700; color: var(--ink); font-size: 9px; margin-bottom: 2px;
+}
+.bubble-card-btn {
+  display: inline-block;
+  margin-top: 4px;
+  background: var(--green-glow-strong);
+  color: var(--green);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 8px;
+  font-weight: 700;
+}
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.bubble:nth-child(1) { animation-delay: 0.2s; }
+.bubble:nth-child(2) { animation-delay: 0.5s; }
+.bubble:nth-child(3) { animation-delay: 0.8s; }
+
+/* Floating badges around phone */
+.float-badge {
+  position: absolute;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-2);
+  display: flex; align-items: center; gap: 5px;
+  box-shadow: var(--shadow-md);
+  animation: floatBadge 3s ease-in-out infinite alternate;
+  white-space: nowrap;
+}
+.float-badge .fb-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.float-badge.rcs {
+  top: 30px; left: 0;
+  animation-delay: 0s;
+}
+.float-badge.rcs .fb-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.float-badge.sms {
+  bottom: 40px; left: -10px;
+  animation-delay: 0.5s;
+}
+.float-badge.sms .fb-dot { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.float-badge.ai {
+  top: 50px; right: 0;
+  animation-delay: 1s;
+}
+.float-badge.ai .fb-dot { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+.float-badge.lookup {
+  bottom: 20px; right: -5px;
+  animation-delay: 1.5s;
+}
+.float-badge.lookup .fb-dot { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+
+@keyframes floatBadge {
+  from { transform: translateY(0); }
+  to { transform: translateY(-6px); }
+}
+
+/* Telnyx logo watermark */
+.hero-watermark {
+  position: absolute;
+  bottom: -20px; right: -30px;
+  width: 180px;
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .hero { padding: 36px 20px 32px; }
+  .hero-layout { flex-direction: column; text-align: center; }
+  .hero h1 { font-size: 30px; }
+  .hero p { max-width: 100%; }
+  .hero-illustration { width: 220px; height: 200px; }
+  .hero-phone { width: 110px; height: 190px; }
+  .float-badge { display: none; }
+}
+
+@media (max-width: 768px) {
+  .hero { padding: 40px 20px 36px; }
+  .hero h1 { font-size: 30px; }
+  .hero-stats { gap: 20px; }
+  .hero-stat-value { font-size: 20px; }
+}
+
+/* ── Layout ────────────────────────────────────────────────────── */
+.container {
+  max-width: 100%;
+  margin: 0;
+  padding: 28px 28px 64px;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────── */
+.tabs-strip {
+  padding: 20px 28px 0;
+}
+.tabs {
+  display: flex; gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+.tab-btn {
+  flex: 1;
+  background: none; border: none;
+  color: var(--ink-3);
+  padding: 10px 16px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.tab-btn:hover { color: var(--ink-2); background: var(--surface-2); }
+.tab-btn.active {
+  color: var(--ink);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+}
+.tab-btn.active .tab-icon { color: var(--green); }
+.tab-icon { width: 16px; height: 16px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeIn 0.35s ease; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Cards ─────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--border-2); }
+.card-glass {
+  background: rgba(24, 24, 27, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.card-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.card-header-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.card-header-icon.green { background: var(--green-glow); color: var(--green); }
+.card-header-icon.purple { background: var(--purple-glow); color: var(--purple); }
+.card-header-icon.blue { background: var(--blue-glow); color: var(--blue); }
+.card-header-icon.amber { background: var(--amber-glow); color: var(--amber); }
+.card-title {
+  font-size: 16px; font-weight: 700; color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.card-subtitle {
+  color: var(--ink-3); font-size: 13px; line-height: 1.5;
+  margin-bottom: 20px; margin-top: 4px;
+}
+
+/* ── Section Labels ────────────────────────────────────────────── */
+.section-label {
+  font-size: 11px; font-weight: 700; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.section-label i { width: 14px; height: 14px; }
+
+/* ── Form Elements ─────────────────────────────────────────────── */
+label {
+  display: block; font-size: 12px; color: var(--ink-3);
+  font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 6px;
+}
+input[type="text"], input[type="tel"], textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+}
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-glow), var(--shadow-green);
+}
+input::placeholder, textarea::placeholder { color: var(--ink-3); }
+textarea { resize: vertical; min-height: 72px; }
+
+/* ── Buttons ───────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px 24px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  color: var(--bg);
+  box-shadow: var(--shadow-green);
+}
+.btn-primary:hover {
+  box-shadow: 0 0 28px rgba(0, 227, 170, 0.3);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled {
+  background: var(--surface-3);
+  color: var(--ink-3);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--border-2);
+}
+.btn-secondary:hover { background: var(--surface-3); border-color: var(--green); }
+
+/* ── Tier Chips ────────────────────────────────────────────────── */
+.tier-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tier-full_rcs { background: var(--green-glow-strong); color: var(--green); border: 1px solid rgba(0, 227, 170, 0.25); }
+.tier-basic_rcs { background: var(--amber-glow); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.2); }
+.tier-no_rcs { background: var(--red-glow); color: var(--red); border: 1px solid rgba(248, 113, 113, 0.2); }
+
+/* ── Feature Chips ─────────────────────────────────────────────── */
+.feature-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--green-glow);
+  color: var(--green);
+  border: 1px solid rgba(0, 227, 170, 0.15);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* ── Result Panels ─────────────────────────────────────────────── */
+.result-panel { display: none; margin-top: 16px; }
+.result-panel.visible { display: block; animation: fadeIn 0.35s ease; }
+
+/* ── Key-Value Grid ────────────────────────────────────────────── */
+.kv-grid {
+  display: grid; grid-template-columns: 130px 1fr;
+  gap: 10px 16px; font-size: 14px;
+}
+.kv-grid .key {
+  color: var(--ink-3); font-weight: 500; font-size: 13px;
+  display: flex; align-items: center; gap: 6px;
+}
+.kv-grid .val { color: var(--ink); word-break: break-all; }
+
+/* ── Decision Trace ────────────────────────────────────────────── */
+.decision-trace {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  padding: 16px 20px;
+  margin-top: 12px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.decision-trace .step {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 0; font-size: 13px; color: var(--ink-2);
+}
+.decision-trace .step strong { color: var(--ink); }
+.dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.dot-green { background: var(--green); box-shadow: 0 0 6px rgba(0,227,170,0.4); }
+.dot-yellow { background: var(--amber); box-shadow: 0 0 6px rgba(251,191,36,0.4); }
+.dot-red { background: var(--red); box-shadow: 0 0 6px rgba(248,113,113,0.4); }
+.dot-blue { background: var(--blue); box-shadow: 0 0 6px rgba(96,165,250,0.4); }
+
+/* ── Preview Area ──────────────────────────────────────────────── */
+.preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.preview-label {
+  font-size: 11px; font-weight: 700; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.rich-card-preview {
+  background: linear-gradient(145deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.rich-card-preview::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--green), var(--purple));
+}
+.rich-card-preview .rc-title {
+  color: var(--ink); font-size: 16px; font-weight: 700;
+  margin-bottom: 8px; margin-top: 4px; letter-spacing: -0.01em;
+}
+.rich-card-preview .rc-desc {
+  color: var(--ink-2); font-size: 13px; line-height: 1.6; margin-bottom: 16px;
+}
+.rich-card-preview .rc-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--green-glow-strong);
+  color: var(--green);
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(0, 227, 170, 0.2);
+}
+
+.sms-preview {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) var(--radius) 4px;
+  padding: 16px 18px;
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.6;
+  position: relative;
+}
+.sms-label {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+/* ── QR Code ───────────────────────────────────────────────────── */
+.qr-wrapper {
+  background: linear-gradient(135deg, var(--green-glow), var(--purple-glow));
+  border-radius: var(--radius);
+  padding: 3px;
+  display: inline-block;
+}
+.qr-container {
+  background: #fff;
+  border-radius: 13px;
+  padding: 20px;
+  display: inline-block;
+}
+
+/* ── Deeplink URL ──────────────────────────────────────────────── */
+.deeplink-url {
+  background: var(--bg);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--blue);
+  word-break: break-all;
+  display: flex; align-items: center; gap: 12px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+.copy-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  color: var(--ink-2);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: var(--font);
+  transition: all 0.2s;
+}
+.copy-btn:hover {
+  background: var(--green-glow);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+/* ── Send Result ───────────────────────────────────────────────── */
+.send-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.send-row:last-child { border-bottom: none; }
+.send-row .channel-name {
+  color: var(--ink); font-weight: 600; min-width: 120px;
+}
+.status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+}
+.status-badge.ok { background: var(--green-glow); color: var(--green); }
+.status-badge.fail { background: var(--red-glow); color: var(--red); }
+.send-row .msg-id {
+  color: var(--ink-3); font-size: 11px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+.send-row .error-text { color: var(--red); font-size: 12px; }
+
+/* ── Toggle Switch ─────────────────────────────────────────────── */
+.toggle-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+}
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 40px; height: 22px;
+  flex-shrink: 0; margin-top: 1px;
+  cursor: pointer;
+}
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--surface-3);
+  border-radius: 11px;
+  transition: background 0.2s;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px;
+  background: var(--ink-2);
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+.toggle input:checked + .toggle-track {
+  background: var(--green);
+}
+.toggle input:checked + .toggle-track::after {
+  transform: translateX(18px);
+  background: var(--bg);
+}
+.toggle-info { display: flex; flex-direction: column; gap: 2px; }
+.toggle-label {
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  text-transform: none; letter-spacing: 0;
+}
+.toggle-desc {
+  font-size: 12px; color: var(--ink-3); line-height: 1.4;
+}
+
+/* ── Spinner ───────────────────────────────────────────────────── */
+.spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid var(--surface-3);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hero { padding: 24px 20px; }
+  .hero h1 { font-size: 22px; }
+  .hero-inner { flex-direction: column; align-items: flex-start; }
+  .topbar { padding: 0 16px; }
+  .container { padding: 20px 16px 48px; }
+  .tabs { flex-direction: column; }
+  .tab-btn { justify-content: flex-start; }
+  .kv-grid { grid-template-columns: 1fr; gap: 4px 0; }
+  .preview-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ Topbar ═══ -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">
+      <i data-lucide="radio" style="width:18px;height:18px;"></i>
+    </div>
+    <div class="topbar-text">
+      <span class="brand">Telnyx</span>
+      <span class="sub">RCS Campaign Desk</span>
+    </div>
+  </div>
+  <div class="topbar-right"></div>
+</div>
+
+<!-- ═══ Hero ═══ -->
+<div class="hero">
+  <div class="hero-layout">
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <i data-lucide="radio" style="width:14px;height:14px;"></i>
+        Telnyx AI Communications
+      </div>
+      <h1>Intelligent RCS<br>Campaign Desk</h1>
+      <p>Detect device capabilities in real time, generate rich content with AI, and deliver the optimal message format automatically.</p>
+    </div>
+    <div class="hero-illustration">
+      <!-- Phone mockup with RCS conversation -->
+      <div class="hero-phone">
+        <div class="hero-phone-screen">
+          <div class="bubble bubble-in">Hey! Check out our weekend deals</div>
+          <div class="bubble bubble-card">
+            <div class="bubble-card-img"></div>
+            <div class="bubble-card-title">Weekend Flash Sale</div>
+            30% off all plans — limited time
+            <div><span class="bubble-card-btn">View Offer</span></div>
+          </div>
+          <div class="bubble bubble-out">Interested!</div>
+        </div>
+      </div>
+      <!-- Floating capability badges -->
+      <div class="float-badge rcs"><span class="fb-dot"></span> RCS Rich Card</div>
+      <div class="float-badge sms"><span class="fb-dot"></span> SMS Fallback</div>
+      <div class="float-badge ai"><span class="fb-dot"></span> AI Generated</div>
+      <div class="float-badge lookup"><span class="fb-dot"></span> Number Lookup</div>
+      <!-- Telnyx watermark -->
+      <svg class="hero-watermark" viewBox="0 0 297 316" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#fefdf5" d="M72.48,87h40.29L132,50.58a18.42,18.42,0,0,1,16.52-9.95h0a18.4,18.4,0,0,1,16.52,9.95L184.29,87h40.29l-28.06-53a54.29,54.29,0,0,0-96,0Z"/>
+        <path fill="#fefdf5" d="M110.42,129.45v94.43h18.31a17.57,17.57,0,0,0,17.06-14.53,17.25,17.25,0,0,0,.25-2.89V150.07a22.5,22.5,0,0,1,22.48-22.5h79.2V92H147.92A37.54,37.54,0,0,0,110.42,129.45Z"/>
+        <path fill="#fefdf5" d="M8.92,207.13A40.07,40.07,0,0,0,6.12,215a40.54,40.54,0,0,0,3.9,29,37.75,37.75,0,0,0,16.56,15.77c4.77,2.32,10.42,4.68,16.14,4.68H148.54a38.15,38.15,0,0,0,38.11-38.11V132.57H168.43A17.53,17.53,0,0,0,151,150v56.48a23.14,23.14,0,0,1-.35,3.84,22.57,22.57,0,0,1-22.15,18.53H60a13,13,0,0,1-11.24-6.45,13.84,13.84,0,0,1-.34-13.74l40.25-76.12H48.36L10.18,204.65C9.74,205.45,9.34,206.24,8.92,207.13Z"/>
+        <path fill="#fefdf5" d="M270.49,259.82a37.8,37.8,0,0,0,16.56-15.77,40.53,40.53,0,0,0,3.89-29,40.07,40.07,0,0,0-2.8-7.89c-.42-.89-.82-1.69-1.24-2.43l-38.19-72.12H208.44l40.25,76.12a13.84,13.84,0,0,1-.34,13.74,13,13,0,0,1-11.23,6.45H191.58a42.8,42.8,0,0,1-4.62,17h0a43.38,43.38,0,0,1-18.27,18.55h85.67C260.07,264.5,265.72,262.14,270.49,259.82Z"/>
+        <path fill="#fefdf5" d="M49.35,127.58h56.11A42.56,42.56,0,0,1,127.93,92H49.35Z"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Tabs (full-width) ═══ -->
+<div class="tabs-strip">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="capability">
+      <i data-lucide="search" class="tab-icon"></i>
+      Capability Check
+    </button>
+    <button class="tab-btn" data-tab="send">
+      <i data-lucide="send" class="tab-icon"></i>
+      Adaptive Send
+    </button>
+    <button class="tab-btn" data-tab="deeplink">
+      <i data-lucide="qr-code" class="tab-icon"></i>
+      Deeplink &amp; QR
+    </button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- Tab 1: Capability Check                                        -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="tab-capability" class="tab-panel active">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon green"><i data-lucide="search-check" style="width:18px;height:18px;"></i></div>
+        <span class="card-title">Check Device Capabilities</span>
+      </div>
+      <p class="card-subtitle">
+        Enter a phone number to check carrier info via Number Lookup and RCS feature support via the Capabilities API.
+      </p>
+      <label for="cap-phone">Phone Number</label>
+      <input type="tel" id="cap-phone" placeholder="+12125551234">
+      <button class="btn btn-primary" id="cap-btn" onclick="checkCapability()">
+        <i data-lucide="zap" style="width:16px;height:16px;"></i>
+        Check Capability
+      </button>
+    </div>
+
+    <div id="cap-result" class="result-panel">
+      <div class="card" style="margin-bottom:12px;">
+        <div class="section-label"><i data-lucide="phone" style="width:14px;height:14px;color:var(--blue);"></i> Number Lookup</div>
+        <div id="cap-lookup" class="kv-grid"></div>
+      </div>
+      <div class="card" style="margin-bottom:12px;">
+        <div class="section-label"><i data-lucide="message-circle" style="width:14px;height:14px;color:var(--purple);"></i> RCS Capabilities</div>
+        <div id="cap-rcs"></div>
+      </div>
+      <div class="card">
+        <div class="section-label"><i data-lucide="route" style="width:14px;height:14px;color:var(--green);"></i> Recommendation</div>
+        <div id="cap-decision"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- Tab 2: Adaptive Send                                           -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="tab-send" class="tab-panel">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon purple"><i data-lucide="sparkles" style="width:18px;height:18px;"></i></div>
+        <span class="card-title">Generate Campaign Content</span>
+      </div>
+      <p class="card-subtitle">
+        Describe your campaign and AI will generate an RCS rich card with SMS fallback text using Telnyx Inference.
+      </p>
+      <label for="send-prompt">Campaign Prompt</label>
+      <textarea id="send-prompt" placeholder="e.g., Flash sale: 30% off all plans this weekend only"></textarea>
+      <button class="btn btn-primary" id="gen-btn" onclick="generateContent()">
+        <i data-lucide="sparkles" style="width:16px;height:16px;"></i>
+        Generate Content
+      </button>
+    </div>
+
+    <div id="send-preview" class="result-panel">
+      <div class="card">
+        <div class="preview-grid">
+          <div>
+            <div class="preview-label">
+              <i data-lucide="layout" style="width:14px;height:14px;color:var(--green);"></i>
+              RCS Rich Card
+            </div>
+            <div class="rich-card-preview">
+              <div class="rc-title" id="preview-title"></div>
+              <div class="rc-desc" id="preview-desc"></div>
+              <span class="rc-btn" id="preview-btn"></span>
+            </div>
+          </div>
+          <div>
+            <div class="preview-label">
+              <i data-lucide="message-square" style="width:14px;height:14px;color:var(--amber);"></i>
+              SMS Fallback
+            </div>
+            <div>
+              <div class="sms-label">
+                <i data-lucide="smartphone" style="width:10px;height:10px;"></i> SMS
+              </div>
+              <div class="sms-preview" id="preview-sms"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border);">
+          <label for="send-phone">Recipient Phone Number</label>
+          <input type="tel" id="send-phone" placeholder="+12125551234">
+          <div class="toggle-row">
+            <label class="toggle" for="force-rcs">
+              <input type="checkbox" id="force-rcs">
+              <span class="toggle-track"></span>
+            </label>
+            <div class="toggle-info">
+              <span class="toggle-label">Force RCS</span>
+              <span class="toggle-desc">Bypass capability check — use for registered test devices during agent provisioning</span>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="send-btn" onclick="sendMessage()">
+            <i data-lucide="send" style="width:16px;height:16px;"></i>
+            Send Adaptive Message
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="send-result" class="result-panel">
+      <div class="card">
+        <div class="section-label"><i data-lucide="activity" style="width:14px;height:14px;color:var(--green);"></i> Send Result</div>
+        <div id="send-decision"></div>
+        <div id="send-channels" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- Tab 3: Deeplink & QR                                           -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="tab-deeplink" class="tab-panel">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-header-icon blue"><i data-lucide="link" style="width:18px;height:18px;"></i></div>
+        <span class="card-title">Generate RCS Deeplink</span>
+      </div>
+      <p class="card-subtitle">
+        Create a deeplink URL that opens an RCS conversation pre-filled with your message. Scan the QR code on mobile.
+      </p>
+      <label for="dl-body">Message Body</label>
+      <textarea id="dl-body" placeholder="e.g., Hi! I'd like to learn about your weekend flash sale."></textarea>
+      <button class="btn btn-primary" id="dl-btn" onclick="generateDeeplink()">
+        <i data-lucide="link" style="width:16px;height:16px;"></i>
+        Generate Deeplink
+      </button>
+    </div>
+
+    <div id="dl-result" class="result-panel">
+      <div class="card" style="margin-bottom:12px;">
+        <div class="section-label"><i data-lucide="link-2" style="width:14px;height:14px;color:var(--blue);"></i> Deeplink URL</div>
+        <div class="deeplink-url">
+          <span id="dl-url" style="flex:1;"></span>
+          <button class="copy-btn" onclick="copyDeeplink()">
+            <i data-lucide="copy" style="width:12px;height:12px;vertical-align:-2px;"></i> Copy
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-label"><i data-lucide="qr-code" style="width:14px;height:14px;color:var(--purple);"></i> QR Code</div>
+        <p style="color:var(--ink-3);font-size:13px;margin-bottom:14px;">Scan with a mobile device to open the RCS conversation.</p>
+        <div class="qr-wrapper">
+          <div class="qr-container" id="dl-qr"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- QR code library -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+<script>
+/* ── Init Lucide Icons ─────────────────────────────────────────── */
+lucide.createIcons();
+
+/* ── Tab Switching ─────────────────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ── Helpers ────────────────────────────────────────────────────── */
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (loading) {
+    btn.disabled = true;
+    btn._origHTML = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span> Working\u2026';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = btn._origHTML || 'Submit';
+  }
+}
+
+async function api(url, body) {
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+  return resp.json();
+}
+
+/* ── Tab 1: Capability Check ───────────────────────────────────── */
+async function checkCapability() {
+  const phone = document.getElementById('cap-phone').value.trim();
+  if (!phone) return alert('Enter a phone number');
+  setLoading('cap-btn', true);
+
+  try {
+    const data = await api('/api/check-capability', {phone});
+    const panel = document.getElementById('cap-result');
+    panel.classList.add('visible');
+
+    // Number Lookup
+    const nl = data.number_lookup || {};
+    if (nl.error) {
+      document.getElementById('cap-lookup').innerHTML =
+        `<span class="val" style="color:var(--red);">Error: ${nl.error}</span>`;
+    } else {
+      const validBadge = nl.valid_number
+        ? '<span style="color:var(--green);font-weight:600;">Valid</span>'
+        : '<span style="color:var(--red);font-weight:600;">Invalid</span>';
+      document.getElementById('cap-lookup').innerHTML =
+        `<span class="key">Phone</span><span class="val">${nl.national_format || data.phone}</span>
+         <span class="key">Valid</span><span class="val">${validBadge}</span>
+         <span class="key">Country</span><span class="val">${nl.country_code || 'N/A'}</span>
+         <span class="key">Carrier</span><span class="val">${nl.carrier === 'unknown' ? '<span style="color:var(--ink-3);">Not available</span>' : nl.carrier}</span>
+         <span class="key">Line Type</span><span class="val">${nl.line_type === 'unknown' ? '<span style="color:var(--ink-3);">Not available</span>' : nl.line_type}</span>`;
+    }
+
+    // RCS Capabilities
+    const rcs = data.rcs_capabilities || {};
+    const capEl = document.getElementById('cap-rcs');
+    const notProvisioned = (rcs.status || '').toLowerCase().includes('not provisioned') || (rcs.status || '').toLowerCase().includes('disabled');
+    if (rcs.error || notProvisioned) {
+      capEl.innerHTML = `<div style="display:flex;align-items:center;gap:10px;">
+        <span class="dot dot-yellow"></span>
+        <span style="color:var(--amber);font-weight:600;">Agent provisioning in progress</span>
+      </div>
+      <p style="color:var(--ink-3);font-size:13px;margin-top:8px;margin-left:18px;">The RCS agent is being verified with Google. Capability checks will work once the agent is fully launched.${rcs.status ? ' <span style="color:var(--ink-3);font-style:italic;">(' + rcs.status + ')</span>' : ''}</p>`;
+    } else if (rcs.features && rcs.features.length > 0) {
+      capEl.innerHTML = `<div style="margin-bottom:12px;">
+        <span class="tier-chip tier-${data.decision?.tier || 'no_rcs'}">${data.decision?.tier?.replace('_', ' ') || 'Unknown'}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${rcs.features.map(f => `<span class="feature-chip">${f}</span>`).join('')}
+      </div>`;
+    } else {
+      capEl.innerHTML = `<span class="tier-chip tier-no_rcs">No RCS</span>
+      <p style="color:var(--ink-3);font-size:13px;margin-top:10px;">This device does not support RCS messaging.</p>`;
+    }
+
+    // Decision
+    const d = data.decision || {};
+    document.getElementById('cap-decision').innerHTML = `
+      <div class="decision-trace">
+        <div class="step"><span class="dot dot-blue"></span> Number Lookup: ${nl.line_type || 'unknown'}</div>
+        <div class="step"><span class="dot ${d.tier === 'full_rcs' ? 'dot-green' : d.tier === 'basic_rcs' ? 'dot-yellow' : 'dot-red'}"></span> ${d.reason || 'No recommendation'}</div>
+        <div class="step"><span class="dot dot-green"></span> Recommended format: <strong>${d.format?.replace(/_/g, ' ') || 'N/A'}</strong></div>
+      </div>`;
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    setLoading('cap-btn', false);
+  }
+}
+
+/* ── Tab 2: Generate Content ───────────────────────────────────── */
+let generatedContent = null;
+
+async function generateContent() {
+  const prompt = document.getElementById('send-prompt').value.trim();
+  if (!prompt) return alert('Enter a campaign prompt');
+  setLoading('gen-btn', true);
+
+  try {
+    const data = await api('/api/generate-content', {prompt});
+    if (data.error) { alert(data.error); return; }
+    generatedContent = data.content;
+
+    document.getElementById('preview-title').textContent = generatedContent.title || '';
+    document.getElementById('preview-desc').textContent = generatedContent.description || '';
+    document.getElementById('preview-btn').textContent = generatedContent.button_text || 'Learn More';
+    document.getElementById('preview-sms').textContent = generatedContent.sms_fallback_text || '';
+
+    document.getElementById('send-preview').classList.add('visible');
+    document.getElementById('send-result').classList.remove('visible');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    setLoading('gen-btn', false);
+  }
+}
+
+/* ── Tab 2: Send Adaptive Message ──────────────────────────────── */
+async function sendMessage() {
+  const phone = document.getElementById('send-phone').value.trim();
+  if (!phone) return alert('Enter a recipient phone number');
+  if (!generatedContent) return alert('Generate content first');
+  setLoading('send-btn', true);
+
+  try {
+    const forceRcs = document.getElementById('force-rcs').checked;
+    const data = await api('/api/send', {
+      phone,
+      title: generatedContent.title,
+      description: generatedContent.description,
+      button_text: generatedContent.button_text,
+      button_url: generatedContent.button_url,
+      sms_fallback_text: generatedContent.sms_fallback_text,
+      force_rcs: forceRcs,
+    });
+
+    const panel = document.getElementById('send-result');
+    panel.classList.add('visible');
+
+    const d = data.decision || {};
+    document.getElementById('send-decision').innerHTML = `
+      <div class="decision-trace">
+        <div class="step"><span class="dot dot-blue"></span> Capability check completed</div>
+        <div class="step"><span class="dot ${d.tier === 'full_rcs' ? 'dot-green' : d.tier === 'basic_rcs' ? 'dot-yellow' : 'dot-red'}"></span> ${d.reason || ''}</div>
+        <div class="step"><span class="dot dot-green"></span> Format chosen: <strong>${d.format?.replace(/_/g, ' ') || 'N/A'}</strong></div>
+      </div>`;
+
+    const results = data.results || [];
+    document.getElementById('send-channels').innerHTML = results.map(r => `
+      <div class="send-row">
+        <span class="dot ${r.status === 'sent' ? 'dot-green' : 'dot-red'}"></span>
+        <span class="channel-name">${r.channel.replace(/_/g, ' ')}</span>
+        <span class="status-badge ${r.status === 'sent' ? 'ok' : 'fail'}">${r.status}</span>
+        ${r.message_id ? `<span class="msg-id">${r.message_id}</span>` : ''}
+        ${r.error ? `<span class="error-text">${r.error}</span>` : ''}
+      </div>`).join('');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    setLoading('send-btn', false);
+  }
+}
+
+/* ── Tab 3: Deeplink & QR ──────────────────────────────────────── */
+let currentDeeplink = '';
+
+async function generateDeeplink() {
+  const body = document.getElementById('dl-body').value.trim();
+  if (!body) return alert('Enter a message body');
+  setLoading('dl-btn', true);
+
+  try {
+    const data = await api('/api/generate-deeplink', {body});
+    if (data.error) { alert(data.error); return; }
+
+    currentDeeplink = data.deeplink || '';
+    document.getElementById('dl-url').textContent = currentDeeplink;
+
+    // Generate QR code
+    const qrEl = document.getElementById('dl-qr');
+    qrEl.innerHTML = '';
+    if (currentDeeplink && typeof qrcode !== 'undefined') {
+      const qr = qrcode(0, 'M');
+      qr.addData(currentDeeplink);
+      qr.make();
+      qrEl.innerHTML = qr.createImgTag(6, 0);
+    }
+
+    document.getElementById('dl-result').classList.add('visible');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    setLoading('dl-btn', false);
+  }
+}
+
+function copyDeeplink() {
+  navigator.clipboard.writeText(currentDeeplink).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="check" style="width:12px;height:12px;vertical-align:-2px;"></i> Copied!';
+    btn.style.color = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    lucide.createIcons();
+    setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; btn.style.borderColor = ''; lucide.createIcons(); }, 1500);
+  });
+}
+</script>
+</body>
+</html>
