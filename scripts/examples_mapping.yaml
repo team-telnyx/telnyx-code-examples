@@ -3568,3 +3568,9 @@ examples:
     language: python
     framework: flask
     folder: insights-pipeline
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: provision-and-route-email-dedicated-ips

@@ -196,7 +196,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 </details>
 
 <details open>
-<summary><h2>SMS & MMS</h2> <em>(175 examples)</em></summary>
+<summary><h2>SMS & MMS</h2> <em>(176 examples)</em></summary>
 
 Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/products/sms-api) - build autoresponders, implement 2FA, and manage bulk messaging campaigns.
 
@@ -373,6 +373,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [verify-multi-channel-auth-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/verify-multi-channel-auth-python/README.md) | Python | Verify Multi-Channel Auth - multi-channel verification: SMS first, fallback to voice call, then WhatsApp. Cascading 2FA. |
 | [verify-phone-number-otp-flow-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/verify-phone-number-otp-flow-python/README.md) | Python | Verify Phone Number OTP Flow - Telnyx Verify API with SMS primary and voice call fallback. |
 | [whatsapp-order-tracking-notifications-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-order-tracking-notifications-python/README.md) | Python | WhatsApp Order Tracking Notifications - proactive shipping updates and AI-powered order inquiries. |
+| [whatsapp-restaurant-reservation-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-restaurant-reservation-python/README.md) | Python | Build a WhatsApp-powered restaurant reservation system with AI agent, interactive messages, and real-time dashboard using Telnyx WhatsApp Business API and AI Inference |
 | [whatsapp-sms-bridge-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-sms-bridge-python/README.md) | Python | WhatsApp-SMS Bridge - receive messages on WhatsApp and forward them via SMS, and vice versa. Bidirectional bridge between two messaging channels. |
 | [whatsapp-verify-otp-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-verify-otp-python/README.md) | Python | Send and verify one-time passwords via WhatsApp using the Telnyx Verify API. |
 | [white-label-appointment-platform-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/white-label-appointment-platform-python/README.md) | Python | Multi-tenant SaaS that gives any service business their own AI phone line with booking, reminders, and calendar sync. Each tenant has own number, greeting, and config. |
@@ -393,7 +394,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(173 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(174 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -546,6 +547,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [policy-recall-line](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/policy-recall-line/README.md) | Typescript | A durable, self-refreshing company librarian that answers policy questions from an embedded handbook and keeps a permanent Q&A ledger. |
 | [policy-renewal-campaign-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/policy-renewal-campaign-python/README.md) | Python | Automated multi-channel renewal reminders. 60 days: SMS. 30 days: AI voice call reviewing coverage changes. 7 days: urgent SMS. Agent reviews lapsed policies for win-back. |
 | [post-call-qa-scoring](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/post-call-qa-scoring/README.md) | Typescript | Durable per-agent quality profiles that grade support call transcripts, track rolling trends, flag coaching needs, and text daily digests. |
+| [provision-and-route-email-dedicated-ips](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-and-route-email-dedicated-ips/README.md) | Python | Provision a dedicated sending IP, start its warm-up, create a default IP pool, route the IP through the pool, and verify delivery with a test email. |
 | [quiz-generator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/quiz-generator-python/README.md) | Python | AI Quiz Generator — turn any article or text into a multiple-choice quiz with answer key and explanations via Telnyx AI Inference. |
 | [rag-corpus-shared-across-agents](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/rag-corpus-shared-across-agents/README.md) | Node.js | Multiple AI agent personalities answering over ONE shared RAG corpus on Telnyx Edge Compute — a CorpusAgent embeds documents into per-actor SQL, and PersonaAgent actors retrieve, cite, and answer with their own voice through the zero-credential Telnyx Inference binding. |
 | [restaurant-reservation-waitlist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/restaurant-reservation-waitlist-python/README.md) | Python | AI answers calls, checks table availability, books or adds to waitlist, texts when table is ready. Host reviews large party requests. |
