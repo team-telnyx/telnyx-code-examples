@@ -103,6 +103,21 @@ curl -X POST http://localhost:5000/run
 
 `DEMO_MODE=true` (the default) simulates the entire flow — no billed IP purchase and no real email. Set `DEMO_MODE=false` to run against the live API. See GUIDE.md for the full demo-vs-live walkthrough.
 
+## Teardown
+
+Dedicated IPs are billed ($14/month/IP as an MRC from purchase). When you no
+longer need the IP, release it:
+
+```bash
+curl -X DELETE "https://api.telnyx.com/v2/email/dedicated_ips/{ip_id}" \
+  -H "Authorization: Bearer $TELNYX_API_KEY"
+```
+
+A released IP stops carrying mail and enters a 30-day quarantine. Removing a
+pool's last IP (or deleting a pool that still has IPs) returns `409` unless
+you pass `force=true` and `drain=true` — see the
+[Dedicated IPs guide](https://developers.telnyx.com/docs/messaging/email/dedicated-ips).
+
 ## API Reference
 
 See [API.md](./API.md) for the typed endpoint reference: routes, request/response shapes, and status codes.

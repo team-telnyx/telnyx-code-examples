@@ -149,14 +149,22 @@ def wait_for_send_ready(ip_id: str) -> dict[str, Any]:
 
 
 def send_test_email() -> dict[str, Any]:
-    """POST /email_messages via the SDK."""
+    """POST /email_messages via the SDK (answer #3: 202 + status queued + message id)."""
     client = telnyx.Client(api_key=TELNYX_API_KEY)
-    return client.email_messages.create(
+    message = client.email_messages.create(
         from_=EMAIL_FROM,
-        to=EMAIL_TO,
+        to=[EMAIL_TO],
         subject="Dedicated IP routing verification",
-        text="This message verifies routing through the dedicated IP pool.",
+        text_body="This message verifies routing through the dedicated IP pool.",
     )
+    payload = message.model_dump(exclude_none=True)
+    status = payload.get("status")
+    message_id = payload.get("id")
+    if status != "queued" or not message_id:
+        raise RuntimeError(
+            f"Routing check failed: expected status 'queued' with a message id, got {payload}"
+        )
+    return payload
 
 
 def run_provisioning_flow() -> dict[str, Any]:
