@@ -13,6 +13,7 @@ key and confirms the gateway rejects it with HTTP 401.
 from __future__ import annotations
 
 import os
+import time
 import uuid
 from typing import Any
 
@@ -50,18 +51,34 @@ def revoke(client: Any, state: dict) -> None:
     )
 
 
-def verify_revocation(token_key: str) -> bool:
-    """Confirm the next inference call with the revoked key is rejected (401)."""
-    try:
-        chat_completion(token_key, PRIMARY_MODEL, "ping")
-    except Exception as exc:  # noqa: BLE001 - any transport/auth error means rejection
-        status = getattr(exc, "status_code", None)
-        if status == 401:
-            print("  REVOCATION VERIFIED: the gateway rejected the revoked key with 401.")
-            return True
-        print(f"  gateway rejected the revoked key (status={status}, {type(exc).__name__}).")
-        return False
-    return False
+def verify_revocation(token_key: str, window_s: int = 90, interval_s: int = 10) -> bool:
+    """Confirm the next inference call with the revoked key is rejected (401).
+
+    Revocation propagates across gateway replicas on a grace window, so poll
+    until the rejection appears; report honestly if it never does.
+    """
+    deadline = time.monotonic() + window_s
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            chat_completion(token_key, PRIMARY_MODEL, "ping")
+        except Exception as exc:  # noqa: BLE001 - any transport/auth error means rejection
+            status = getattr(exc, "status_code", None)
+            if status == 401:
+                print(f"  REVOCATION VERIFIED after {attempt} check(s): "
+                      "the gateway rejected the revoked key with 401.")
+                return True
+            print(f"  gateway rejected the revoked key (status={status}, {type(exc).__name__}).")
+            return False
+        if time.monotonic() >= deadline:
+            print(f"  REVOCATION NOT VERIFIED after {attempt} check(s): the gateway "
+                  "still accepted the revoked key. Management-plane deletion was "
+                  "acknowledged (404 on GET); inference-plane admission may lag.")
+            return False
+        print(f"  check {attempt}: gateway still serving the revoked key — waiting "
+              f"{interval_s}s for revocation to propagate...")
+        time.sleep(interval_s)
 
 
 def main() -> int:
