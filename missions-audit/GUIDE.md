@@ -247,6 +247,8 @@ If step 1 or step 2 raises, the run is marked `failed` with a summary naming tha
 
 A poll timeout is **not** treated as a call failure: the worker logs an `error` event (`reason: poll_timeout`), fails the verify step with the worker-side reason, and marks the run `failed` — the ledger distinguishes "the call failed" from "we could not observe the call".
 
+Transient API failures (HTTP 429/5xx, network blips) are retried with exponential backoff (2s, 4s, 8s, 16s — five attempts total). If the worker still dies unexpectedly, it records a `worker_crashed` `error` event and marks the run `failed` before exiting, so the ledger is never left silently `running`.
+
 ---
 
 ## 8. Demo mode versus live mode
