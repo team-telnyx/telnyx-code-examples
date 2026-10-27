@@ -251,7 +251,7 @@ def send_test_email() -> dict[str, Any]:
         subject="Dedicated IP routing verification",
         text_body="This message verifies routing through the dedicated IP pool.",
     )
-    payload = message.model_dump(exclude_none=True)
+    payload = message.model_dump(mode="json", exclude_none=True)
     # The SDK response dumps as a Telnyx envelope: {"data": {message fields}}.
     data = payload["data"] if isinstance(payload.get("data"), dict) else payload
     status = data.get("status")
@@ -375,7 +375,7 @@ if __name__ == "__main__":
         try:
             import json
 
-            print(json.dumps(run_provisioning_flow(), indent=2))
+            print(json.dumps(run_provisioning_flow(), indent=2, default=str))
         except Exception as exc:  # noqa: BLE001 - CLI surface
             print(f"Flow failed: {exc}", file=sys.stderr)
             sys.exit(1)
