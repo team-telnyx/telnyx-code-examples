@@ -382,19 +382,20 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>Email</h2> <em>(2 examples)</em></summary>
+<summary><h2>Email</h2> <em>(3 examples)</em></summary>
 
 Send, track, and automate email workflows with the [Telnyx Email API](https://telnyx.com/products/email-api) - transactional messages, templates, tracking, and event-driven dashboards.
 
 | Example | Language | Description |
 |---------|----------|-------------|
 | [email-whatsapp-support-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/README.md) | Python | --- |
+| [provision-and-route-email-dedicated-ips](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-and-route-email-dedicated-ips/README.md) | Python | Provision a dedicated sending IP, start its warm-up, create a default IP pool, route the IP through the pool, and verify delivery with a test email. |
 | [setup-email-api-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md) | Node.js | Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events. |
 
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(174 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(173 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -547,7 +548,6 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [policy-recall-line](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/policy-recall-line/README.md) | Typescript | A durable, self-refreshing company librarian that answers policy questions from an embedded handbook and keeps a permanent Q&A ledger. |
 | [policy-renewal-campaign-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/policy-renewal-campaign-python/README.md) | Python | Automated multi-channel renewal reminders. 60 days: SMS. 30 days: AI voice call reviewing coverage changes. 7 days: urgent SMS. Agent reviews lapsed policies for win-back. |
 | [post-call-qa-scoring](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/post-call-qa-scoring/README.md) | Typescript | Durable per-agent quality profiles that grade support call transcripts, track rolling trends, flag coaching needs, and text daily digests. |
-| [provision-and-route-email-dedicated-ips](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-and-route-email-dedicated-ips/README.md) | Python | Provision a dedicated sending IP, start its warm-up, create a default IP pool, route the IP through the pool, and verify delivery with a test email. |
 | [quiz-generator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/quiz-generator-python/README.md) | Python | AI Quiz Generator — turn any article or text into a multiple-choice quiz with answer key and explanations via Telnyx AI Inference. |
 | [rag-corpus-shared-across-agents](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/rag-corpus-shared-across-agents/README.md) | Node.js | Multiple AI agent personalities answering over ONE shared RAG corpus on Telnyx Edge Compute — a CorpusAgent embeds documents into per-actor SQL, and PersonaAgent actors retrieve, cite, and answer with their own voice through the zero-credential Telnyx Inference binding. |
 | [restaurant-reservation-waitlist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/restaurant-reservation-waitlist-python/README.md) | Python | AI answers calls, checks table availability, books or adds to waitlist, texts when table is ready. Host reviews large party requests. |

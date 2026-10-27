@@ -55,10 +55,6 @@ EMAIL_TO = os.getenv("TELNYX_EMAIL_TO", "")
 WARMUP_TIMEOUT = int(os.getenv("WARMUP_TIMEOUT_SECONDS", "300"))
 POLL_INTERVAL = int(os.getenv("WARMUP_POLL_INTERVAL_SECONDS", "10"))
 
-if TELNYX_API_KEY:
-    telnyx.api_key = TELNYX_API_KEY
-
-
 class TelnyxApiError(RuntimeError):
     """Raised when the Telnyx REST API returns a non-success status."""
 

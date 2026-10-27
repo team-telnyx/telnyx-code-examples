@@ -348,6 +348,7 @@
 ## Email
 
 - [Customer Support Across Email & WhatsApp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/README.md)
+- [Provision and Route Email Dedicated IPs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-and-route-email-dedicated-ips/README.md): Provision a dedicated sending IP, start its warm-up, create a default IP pool, route the IP through the pool, and verify delivery with a test email.
 - [Set Up the Telnyx Email API](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md): Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events.
 
 ## AI Assistants
@@ -499,7 +500,6 @@
 - [Policy Recall Line — The Handbook Librarian](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/policy-recall-line/README.md): A durable, self-refreshing company librarian that answers policy questions from an embedded handbook and keeps a permanent Q&A ledger.
 - [Policy Renewal Campaign](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/policy-renewal-campaign-python/README.md): Automated multi-channel renewal reminders. 60 days: SMS. 30 days: AI voice call reviewing coverage changes. 7 days: urgent SMS. Agent reviews lapsed policies for win-back.
 - [Post-Call QA Scoring with Telnyx Decision Models](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/post-call-qa-scoring/README.md): Durable per-agent quality profiles that grade support call transcripts, track rolling trends, flag coaching needs, and text daily digests.
-- [Provision and Route Email Dedicated IPs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-and-route-email-dedicated-ips/README.md): Provision a dedicated sending IP, start its warm-up, create a default IP pool, route the IP through the pool, and verify delivery with a test email.
 - [AI Quiz Generator](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/quiz-generator-python/README.md): AI Quiz Generator — turn any article or text into a multiple-choice quiz with answer key and explanations via Telnyx AI Inference.
 - [RAG Corpus Shared Across Agents](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/rag-corpus-shared-across-agents/README.md): Multiple AI agent personalities answering over ONE shared RAG corpus on Telnyx Edge Compute — a CorpusAgent embeds documents into per-actor SQL, and PersonaAgent actors retrieve, cite, and answer with their own voice through the zero-credential Telnyx Inference binding.
 - [Restaurant Reservation & Waitlist](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/restaurant-reservation-waitlist-python/README.md): AI answers calls, checks table availability, books or adds to waitlist, texts when table is ready. Host reviews large party requests.

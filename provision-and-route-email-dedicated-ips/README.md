@@ -73,6 +73,14 @@ Client (curl / CLI)
 
 `TELNYX_EMAIL_FROM` must be on a verified Telnyx email domain. `TELNYX_EMAIL_TO` should be a mailbox you control.
 
+> **Agent / CLI access** — the Telnyx CLI does not yet cover email dedicated IPs or IP pools; provision these resources via the REST calls in this sample. Authentication works the same either way:
+>
+> ```bash
+> telnyx auth login
+> ```
+>
+> Full API discovery: [llms-full.txt](https://developers.telnyx.com/llms-full.txt) · [CLI docs](https://developers.telnyx.com/development/cli)
+
 ## Setup
 
 ```bash
@@ -87,6 +95,29 @@ pip install -r requirements.txt
 cp .env.example .env
 # edit .env with your credentials
 ```
+
+<details>
+<summary>Programmatic / CLI setup</summary>
+
+```bash
+# Install CLI — https://developers.telnyx.com/development/cli
+go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest
+telnyx auth login
+```
+
+The Telnyx CLI has no verbs for email dedicated IPs, IP pools, or `POST /email_messages` — use the REST calls in this sample (or point your agent at `llms-full.txt` for full API discovery):
+
+```bash
+curl -X POST https://api.telnyx.com/v2/email/dedicated_ips \
+  -H "Authorization: Bearer $TELNYX_API_KEY" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -H "Content-Type: application/json" \
+  -d '{"region": "ewr-nj1", "ip_version": "ipv4"}'
+```
+
+For full API discovery, point your agent at [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt).
+
+</details>
 
 Run the flow as a one-shot CLI:
 
@@ -143,9 +174,9 @@ See [API.md](./API.md) for the typed endpoint reference: routes, request/respons
 
 ## Related Examples
 
-- Send an Email Message
-- Manage Email IP Pools
-- Email Deliverability and Warm-up
+- [Setup Email API (Node.js)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md)
+- [AI Email Agent (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-email-agent-python/README.md)
+- [Email WhatsApp Support (Python)](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/README.md)
 
 ## Resources
 
