@@ -224,7 +224,7 @@ def preflight_email_setup() -> list[str]:
             "purchase would be billed and the email send would fail. Register and verify "
             "your domain first (POST /email_domains, publish the DNS records, then "
             "POST /email_domains/{id}/verify), or use a shared domain with zero setup: "
-            "TELNYX_EMAIL_FROM=onboarding@msgtelnyx.com (recipients must be the account "
+            "TELNYX_EMAIL_FROM=onboarding@mail.telnyx.com (recipients must be the account "
             "owner's verified email address)."
         )
     elif match.get("type") == "shared":

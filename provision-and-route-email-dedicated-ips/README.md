@@ -66,7 +66,7 @@ Client (curl / CLI)
 | `DEMO_MODE` | `string` | `true` | no | When `true` (default), simulate the flow with no billed purchase or email | — |
 | `PORT` | `string` | `5000` | no | Flask server port | — |
 | `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
-| `TELNYX_EMAIL_FROM` | `string` | `no-reply@your-domain.com` | **yes** | From address on a verified Telnyx sending domain (shared-domain zero-setup option: `onboarding@msgtelnyx.com`) | [Portal → Email → Domains](https://portal.telnyx.com/email/domains) |
+| `TELNYX_EMAIL_FROM` | `string` | `no-reply@your-domain.com` | **yes** | From address on a verified Telnyx sending domain (shared-domain zero-setup option: `onboarding@mail.telnyx.com`) | [Portal → Email → Domains](https://portal.telnyx.com/email/domains) |
 | `TELNYX_EMAIL_TO` | `string` | `you@your-mailbox.com` | **yes** | Mailbox you control; must match the account owner's verified email when sending from a shared domain | — |
 | `REUSE_DEDICATED_IP_ID` | `string` | `12345678-1234-1234-1234-123456789012` | no | Resume a previous run's IP instead of purchasing a new one (avoids double billing on re-runs) | Printed in the warm-up timeout message |
 | `WARMUP_POLL_INTERVAL_SECONDS` | `string` | `10` | no | Seconds between warm-up status polls | — |
@@ -142,7 +142,7 @@ What you need, and what you pay for:
 | Step | Cost | Notes |
 |------|------|-------|
 | Telnyx API key | Free | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
-| Sending domain | Free | **Shared domains are sandboxed**: `onboarding@msgtelnyx.com` is verified out of the box, but sends are restricted to the account's verified email address only. For external recipients and real reputation control, register your own domain (`POST /email_domains`), publish the DNS records Telnyx generates, and verify it |
+| Sending domain | Free | **Shared domains are sandboxed**: `onboarding@mail.telnyx.com` is verified out of the box and delivered in live testing, but sends are restricted to the account's verified email address only. For external recipients and real reputation control, register your own domain (`POST /email_domains`), publish the DNS records Telnyx generates, and verify it |
 | Dedicated IP | **$14/month from purchase** | Requires a verified, enterprise, or legacy account (`403` otherwise). The MRC runs while the IP is `provisioning`/`warming_up`/`active`/`suspended` and stops only after release |
 | Email sends | Pay per message | Pennies at demo volume |
 
@@ -185,7 +185,7 @@ See [API.md](./API.md) for the typed endpoint reference: routes, request/respons
 | Warm-up poll timed out (CLI) | DNS not confirmed within `WARMUP_TIMEOUT_SECONDS` | Do **not** re-run bare (`python app.py run` buys another billed IP). Re-run with `REUSE_DEDICATED_IP_ID=<ip-id>` and a larger timeout; the IP id is printed in the error |
 | Preflight abort: "not a verified sending domain" | `TELNYX_EMAIL_FROM` domain not registered/verified on the account | Fix the address or verify the domain first (see "Before you run live mode") — the check runs before the billed purchase on purpose |
 | Send rejected with `400` code `10015` "Shared domain sends are restricted" | Sending from a shared domain to any address other than the account's verified email | Shared domains are sandboxed to the account's verified email (shown in the preflight warning). For external recipients, register and verify a custom domain |
-| Message `failed` with `mta_platform_refusal_retry_exhausted` | The recipient MTA refused delivery repeatedly (e.g. sending from a Telnyx shared domain to a Telnyx internal address loops on the platform) | Send to an external mailbox via a verified custom domain; the routing test itself (202/`queued`) is independent of final delivery |
+| Message `failed` with `mta_platform_refusal_retry_exhausted` | The recipient MTA refused delivery repeatedly — observed live when sending from `onboarding@msgtelnyx.com` to the account's verified email; the same recipient delivered (`SMTP 250`) from `onboarding@mail.telnyx.com` | Use `onboarding@mail.telnyx.com` for shared-domain sends; the routing test itself (202/`queued`) is independent of final delivery |
 | `504` from `/run` | Warm-up poll timed out | Increase `WARMUP_TIMEOUT_SECONDS`; the IP may still be provisioning |
 | `502` from `/run` | Telnyx API returned an error | Check the server log for the upstream status and body |
 

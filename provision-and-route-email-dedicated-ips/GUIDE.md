@@ -68,7 +68,7 @@ This is the most important switch in the sample.
 
 **Live mode (`DEMO_MODE=false`)** — the full flow executes against the real API:
 
-1. **Preflight (no cost):** the script validates that `TELNYX_EMAIL_FROM` is on a verified sending domain for your account — `GET /email_domains` (a `msgtelnyx.com` shared domain counts, but shared-domain sends are limited to the account owner's verified email). A blocker aborts *before* any billing; if the domains API is unreachable the flow warns and continues.
+1. **Preflight (no cost):** the script validates that `TELNYX_EMAIL_FROM` is on a verified sending domain for your account — `GET /email_domains` (the `mail.telnyx.com` shared domain counts, but shared-domain sends are limited to the account owner's verified email). A blocker aborts *before* any billing; if the domains API is unreachable the flow warns and continues.
 2. A dedicated IP is purchased (this starts a **$14/mo MRC billing side-effect** at purchase time) — unless `REUSE_DEDICATED_IP_ID` is set, in which case that IP is fetched instead, avoiding a second purchase on a re-run.
 3. Warm-up is started (skipped if the reused IP is already past `provisioning`).
 4. The script polls until the IP is send-ready.
