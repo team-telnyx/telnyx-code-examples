@@ -142,7 +142,7 @@ What you need, and what you pay for:
 | Step | Cost | Notes |
 |------|------|-------|
 | Telnyx API key | Free | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
-| Sending domain | Free | **Shared domains need zero setup**: `onboarding@msgtelnyx.com` is verified out of the box, but recipients must be the account owner's verified email and reputation is not isolated to your account. For real reputation control, register your own domain (`POST /email_domains`), publish the DNS records Telnyx generates, and verify it |
+| Sending domain | Free | **Shared domains are sandboxed**: `onboarding@msgtelnyx.com` is verified out of the box, but sends are restricted to the account's verified email address only. For external recipients and real reputation control, register your own domain (`POST /email_domains`), publish the DNS records Telnyx generates, and verify it |
 | Dedicated IP | **$14/month from purchase** | Requires a verified, enterprise, or legacy account (`403` otherwise). The MRC runs while the IP is `provisioning`/`warming_up`/`active`/`suspended` and stops only after release |
 | Email sends | Pay per message | Pennies at demo volume |
 
@@ -184,7 +184,8 @@ See [API.md](./API.md) for the typed endpoint reference: routes, request/respons
 | Existing-default error on pool create | Account already has a default pool | The live flow now reuses the existing default pool automatically; when calling the API manually, reuse it instead of creating another |
 | Warm-up poll timed out (CLI) | DNS not confirmed within `WARMUP_TIMEOUT_SECONDS` | Do **not** re-run bare (`python app.py run` buys another billed IP). Re-run with `REUSE_DEDICATED_IP_ID=<ip-id>` and a larger timeout; the IP id is printed in the error |
 | Preflight abort: "not a verified sending domain" | `TELNYX_EMAIL_FROM` domain not registered/verified on the account | Fix the address or verify the domain first (see "Before you run live mode") — the check runs before the billed purchase on purpose |
-| Send rejected with `403` code `10007` | Sending from a shared domain to a non-owner recipient | Shared-domain sends must go to the account owner's verified email; verify a custom domain for arbitrary recipients |
+| Send rejected with `400` code `10015` "Shared domain sends are restricted" | Sending from a shared domain to any address other than the account's verified email | Shared domains are sandboxed to the account's verified email (shown in the preflight warning). For external recipients, register and verify a custom domain |
+| Message `failed` with `mta_platform_refusal_retry_exhausted` | The recipient MTA refused delivery repeatedly (e.g. sending from a Telnyx shared domain to a Telnyx internal address loops on the platform) | Send to an external mailbox via a verified custom domain; the routing test itself (202/`queued`) is independent of final delivery |
 | `504` from `/run` | Warm-up poll timed out | Increase `WARMUP_TIMEOUT_SECONDS`; the IP may still be provisioning |
 | `502` from `/run` | Telnyx API returned an error | Check the server log for the upstream status and body |
 

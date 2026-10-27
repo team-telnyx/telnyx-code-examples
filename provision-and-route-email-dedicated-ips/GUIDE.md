@@ -257,6 +257,8 @@ If you see `"IP not send-ready; mail may be held by the pool"`, the poll timed o
 | `403` on purchase | Account not verified/enterprise/legacy | Contact Telnyx to upgrade eligibility |
 | `422` on first `start_warmup` | IP not in `provisioning` | Check `GET /email/dedicated_ips/{id}` status |
 | `409` code `40901` on `start_warmup` | IP is `suspended` | Resolve the suspension before warming up |
+| `400` code `10015` on send: "Shared domain sends are restricted" | Sending from a shared domain to an address other than the account's verified email | Shared domains are sandboxed to the account's verified email (the preflight warns with the address). Verify a custom domain for external recipients |
+| Message `failed` with `mta_platform_refusal_retry_exhausted` | Recipient MTA refused repeatedly — observed when sending from a Telnyx shared domain to a Telnyx internal address (platform loop) | Use a verified custom domain and an external mailbox; the routing proof (202/`queued`) is independent of final delivery |
 | Default-pool error on create | Account already has a default pool | Reuse or remove the existing default |
 | `504` from `/run` | Warm-up poll timed out | Raise `WARMUP_TIMEOUT_SECONDS`; verify DNS |
 

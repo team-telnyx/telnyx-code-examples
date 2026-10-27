@@ -192,6 +192,14 @@ def list_email_domains() -> list[dict[str, Any]]:
         return []
 
 
+def whoami_email() -> str:
+    """Best-effort account owner email via GET /whoami (read-only)."""
+    try:
+        return (_get("/whoami").get("data") or {}).get("user_email", "")
+    except TelnyxApiError:
+        return ""
+
+
 def preflight_email_setup() -> list[str]:
     """Validate the email setup BEFORE the billed IP purchase.
 
@@ -221,10 +229,16 @@ def preflight_email_setup() -> list[str]:
         )
     elif match.get("type") == "shared":
         warnings.append(
-            "Shared sending domain detected: recipients must match the account owner's "
-            "verified email address, and reputation is not isolated to this account. "
+            "Shared sending domain detected: reputation is not isolated to this account. "
             "Verify a custom domain for production sending."
         )
+        owner_email = whoami_email()
+        if owner_email and EMAIL_TO.strip().lower() != owner_email.lower():
+            warnings.append(
+                f"Shared-domain sends are sandboxed to the account's verified email "
+                f"({owner_email}); the send step will be rejected with 400 code 10015 "
+                "unless TELNYX_EMAIL_TO matches it or a custom domain is verified."
+            )
     return warnings
 
 

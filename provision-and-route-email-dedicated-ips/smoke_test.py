@@ -31,6 +31,7 @@ def test_flow_functions_exist() -> None:
         "pool_has_ip",
         "wait_for_send_ready",
         "list_email_domains",
+        "whoami_email",
         "preflight_email_setup",
         "send_test_email",
         "run_provisioning_flow",
