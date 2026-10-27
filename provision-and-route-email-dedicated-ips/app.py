@@ -231,13 +231,15 @@ def send_test_email() -> dict[str, Any]:
         text_body="This message verifies routing through the dedicated IP pool.",
     )
     payload = message.model_dump(exclude_none=True)
-    status = payload.get("status")
-    message_id = payload.get("id")
+    # The SDK response dumps as a Telnyx envelope: {"data": {message fields}}.
+    data = payload["data"] if isinstance(payload.get("data"), dict) else payload
+    status = data.get("status")
+    message_id = data.get("id")
     if status != "queued" or not message_id:
         raise RuntimeError(
-            f"Routing check failed: expected status 'queued' with a message id, got {payload}"
+            f"Routing check failed: expected status 'queued' with a message id, got {data}"
         )
-    return payload
+    return data
 
 
 def run_provisioning_flow() -> dict[str, Any]:
