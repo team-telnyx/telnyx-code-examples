@@ -46,10 +46,12 @@ CRITICAL RULES:
 
 Conversation flow:
 1. Customer says hi → Greet them and ask what they're looking for. Call send_whatsapp with your greeting.
-2. Customer mentions a restaurant → Use search_restaurants to find it, then call send_whatsapp with the match and ask for date and party size.
+2. Customer mentions a restaurant or cuisine → ALWAYS call search_restaurants first (even if you discussed it before), then call send_whatsapp with the match and ask for date and party size.
 3. Customer provides details → Use check_availability, then call send_whatsapp with available times.
 4. Customer picks a time → Use make_reservation to book it, then call send_whatsapp with confirmation.
 5. If the customer wants to cancel → Use get_customer_reservations, then cancel_reservation, then call send_whatsapp to confirm cancellation.
+
+IMPORTANT: ALWAYS call search_restaurants whenever the customer asks about a specific restaurant, even if you already discussed it earlier in the conversation. This keeps the dashboard in sync.
 
 Other guidelines:
 - NEVER invent or guess the customer's name. You only know their phone number. If you need their name, ask them. Until they tell you, do not use any name.
@@ -275,13 +277,31 @@ async function cancelReservation(db, ssePublish, reservationId) {
 }
 
 // ---------------------------------------------------------------------------
+// Persist a UI event to the database so dashboard instances on other Edge
+// pods can pick it up via polling (SSE is per-instance).
+async function persistUiEvent(db, type, payload) {
+  try {
+    await db.prepare(
+      "INSERT INTO ui_events (id, type, payload, created_at) VALUES (?,?,?,?)"
+    ).bind(crypto.randomUUID(), type, JSON.stringify(payload), new Date().toISOString()).run();
+  } catch (err) { console.warn("persistUiEvent failed:", err.message); }
+}
+
 // Tool executor
 // ---------------------------------------------------------------------------
 async function executeTool(db, ssePublish, toolName, toolInput, customerPhone) {
   if (toolName === "search_restaurants") {
     const city = toolInput.city;
     const results = await searchRestaurants(db, toolInput.query || "", city);
-    if (city) ssePublish("restaurant.search", { city, query: toolInput.query || "" });
+    const evt = { city: city || "", query: toolInput.query || "" };
+    ssePublish("restaurant.search", evt);
+    await persistUiEvent(db, "restaurant.search", evt);
+    // Also fire restaurant.selected for the top result so the dashboard highlights it
+    if (results.length && results[0].id) {
+      const selEvt = { restaurant_id: results[0].id, city: city || "" };
+      ssePublish("restaurant.selected", selEvt);
+      await persistUiEvent(db, "restaurant.selected", selEvt);
+    }
     return JSON.stringify({ restaurants: results });
   }
 
@@ -306,7 +326,9 @@ async function executeTool(db, ssePublish, toolName, toolInput, customerPhone) {
       const row = await db.prepare("SELECT city, address FROM restaurants WHERE id = ?").bind(toolInput.restaurant_id).first();
       if (row) restCity = row.city || "";
     } catch { /* ignore */ }
-    ssePublish("restaurant.selected", { restaurant_id: toolInput.restaurant_id, city: restCity });
+    const selEvt = { restaurant_id: toolInput.restaurant_id, city: restCity };
+    ssePublish("restaurant.selected", selEvt);
+    await persistUiEvent(db, "restaurant.selected", selEvt);
     return JSON.stringify({ reservation });
   }
 

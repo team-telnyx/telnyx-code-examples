@@ -299,36 +299,54 @@ export async function seedRestaurants(db) {
 // ---------------------------------------------------------------------------
 // Search
 // ---------------------------------------------------------------------------
-export async function searchRestaurants(db, queryStr, city) {
-  if (city) {
-    const cityLower = city.toLowerCase().trim();
-    let { results: rows } = await db.prepare(
-      `SELECT * FROM restaurants WHERE (name LIKE ? OR cuisine LIKE ?)
-       AND (city LIKE ? OR address LIKE ?) LIMIT 10`
-    ).bind(`%${queryStr}%`, `%${queryStr}%`, `%${cityLower}%`, `%${city}%`).all();
+const FILLER_WORDS = new Set([
+  "place", "places", "restaurant", "restaurants", "food", "foods",
+  "cuisine", "spot", "spots", "joint", "joints", "eatery", "eateries",
+  "dining", "the", "a", "an", "in", "at", "near", "around", "some", "good", "best",
+]);
 
-    if (!rows.length) {
-      const searchTerm = queryStr ? `${queryStr} restaurants in ${city}` : city;
-      const fresh = await fetchGoogleRestaurants(searchTerm);
-      if (fresh.length) await cacheRestaurants(db, fresh, city);
-      ({ results: rows } = await db.prepare(
-        `SELECT * FROM restaurants WHERE (name LIKE ? OR cuisine LIKE ?)
-         AND (city LIKE ? OR address LIKE ?) LIMIT 10`
-      ).bind(`%${queryStr}%`, `%${queryStr}%`, `%${cityLower}%`, `%${city}%`).all());
-    }
-    return rows;
+// Extract meaningful search keywords from a query string.
+function searchKeywords(raw) {
+  return raw.toLowerCase().split(/\s+/).filter((w) => w && !FILLER_WORDS.has(w));
+}
+
+// Build a WHERE clause that matches ANY keyword against name or cuisine.
+// Returns { where, params } for use in a prepared statement.
+function keywordFilter(keywords, cityLower) {
+  if (!keywords.length) {
+    if (cityLower) return { where: "(city LIKE ? OR address LIKE ?)", params: [`%${cityLower}%`, `%${cityLower}%`] };
+    return { where: "1=1", params: [] };
   }
+  const parts = keywords.map(() => "(name LIKE ? OR cuisine LIKE ?)");
+  const params = keywords.flatMap((k) => [`%${k}%`, `%${k}%`]);
+  let where = `(${parts.join(" OR ")})`;
+  if (cityLower) {
+    where += " AND (city LIKE ? OR address LIKE ?)";
+    params.push(`%${cityLower}%`, `%${cityLower}%`);
+  }
+  return { where, params };
+}
+
+export async function searchRestaurants(db, queryStr, city) {
+  const keywords = searchKeywords(queryStr || "");
+  const cityLower = (city || "").toLowerCase().trim();
+  const { where, params } = keywordFilter(keywords, cityLower || undefined);
 
   let { results: rows } = await db.prepare(
-    "SELECT * FROM restaurants WHERE name LIKE ? OR cuisine LIKE ? LIMIT 10"
-  ).bind(`%${queryStr}%`, `%${queryStr}%`).all();
+    `SELECT * FROM restaurants WHERE ${where} LIMIT 10`
+  ).bind(...params).all();
 
-  if (!rows.length && queryStr) {
-    const fresh = await fetchGoogleRestaurants(queryStr);
-    if (fresh.length) await cacheRestaurants(db, fresh, queryStr);
-    ({ results: rows } = await db.prepare(
-      "SELECT * FROM restaurants WHERE name LIKE ? OR cuisine LIKE ? LIMIT 10"
-    ).bind(`%${queryStr}%`, `%${queryStr}%`).all());
+  if (!rows.length) {
+    const searchTerm = queryStr
+      ? city ? `${queryStr} restaurants in ${city}` : queryStr
+      : city || "";
+    if (searchTerm) {
+      const fresh = await fetchGoogleRestaurants(searchTerm);
+      if (fresh.length) await cacheRestaurants(db, fresh, city || "");
+      ({ results: rows } = await db.prepare(
+        `SELECT * FROM restaurants WHERE ${where} LIMIT 10`
+      ).bind(...params).all());
+    }
   }
   return rows;
 }

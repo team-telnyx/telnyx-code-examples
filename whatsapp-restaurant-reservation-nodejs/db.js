@@ -55,7 +55,13 @@ CREATE TABLE IF NOT EXISTS conversations (
   content         TEXT NOT NULL,
   timestamp       TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_conv_phone ON conversations (customer_phone);`;
+CREATE INDEX IF NOT EXISTS idx_conv_phone ON conversations (customer_phone);
+CREATE TABLE IF NOT EXISTS ui_events (
+  id              TEXT PRIMARY KEY,
+  type            TEXT NOT NULL,
+  payload         TEXT NOT NULL,
+  created_at      TEXT NOT NULL
+)`;
 
 const statements = (sql) => sql.split(";").map((s) => s.trim()).filter(Boolean);
 

@@ -10,4 +10,7 @@ key=$(grep -E '^TELNYX_API_KEY=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr 
 mkdir -p .edge-home/.telnyx-edge
 umask 077
 printf 'api_endpoint = "https://api.telnyx.com"\napi_key = "%s"\n' "$key" > .edge-home/.telnyx-edge/config.toml
-HOME="$PWD/.edge-home" exec telnyx-edge "$@"
+REAL_HOME="$HOME"
+EDGE_BIN="${TELNYX_EDGE_BIN:-$(command -v telnyx-edge 2>/dev/null || echo "$REAL_HOME/bin/telnyx-edge")}"
+[ -x "$EDGE_BIN" ] || { echo "telnyx-edge not found (set TELNYX_EDGE_BIN or add to PATH)" >&2; exit 1; }
+HOME="$PWD/.edge-home" exec "$EDGE_BIN" "$@"

@@ -64,11 +64,27 @@ function connectSSE() {
   };
 }
 
+// Dedup restaurant UI events — prevent SSE + polling from firing the same action twice.
+// Uses only stable fields (not ts which differs between SSE and polling).
+let _lastRestEvtKey = "";
+
 function handleSSE(data) {
   const type = data.type;
 
+  if (type === "restaurant.search" || type === "restaurant.selected") {
+    const key = type + "|" + (data.city || "") + "|" + (data.query || "") + "|" + (data.restaurant_id || "");
+    if (key === _lastRestEvtKey) return;
+    _lastRestEvtKey = key;
+  }
+
   if (type === "channel.whatsapp") {
     showTyping(false);
+    // Dedup key uses phone + role + content (NOT timestamp — SSE ts differs from DB timestamp)
+    const phone = data.from || data.to || "";
+    const role = data.direction === "inbound" ? "user" : "assistant";
+    const key = phone + "|" + role + "|" + (data.text || "").slice(0, 80);
+    if (_seenMsgKeys.has(key)) return;
+    _seenMsgKeys.add(key);
     addChatBubble(data);
     updateActivity(data.direction === "inbound" ? "Message received" : "Message sent");
   }
@@ -97,11 +113,11 @@ function handleSSE(data) {
     if (data.city) {
       document.getElementById("cityInput").value = data.city;
       _lastCity = data.city;
-      document.getElementById("searchInput").value = data.query || "";
-      document.getElementById("cuisineSelect").value = "All";
-      currentPage = 1;
-      _pendingLoad = loadRestaurants(1);
     }
+    document.getElementById("searchInput").value = data.query || "";
+    document.getElementById("cuisineSelect").value = "All";
+    currentPage = 1;
+    _pendingLoad = loadRestaurants(1);
   }
   else if (type === "restaurant.selected") {
     if (data.restaurant_id) {
@@ -490,15 +506,77 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+/* ── Conversation Polling ─────────────────────────────────────── */
+// On Edge, the webhook and SSE may land on different instances, so SSE events
+// for chat messages can be missed. Poll /api/conversations as a fallback.
+let _lastMsgTs = "";
+let _seenMsgKeys = new Set();
+
+function pollConversations() {
+  const url = _lastMsgTs
+    ? `/api/conversations?since=${encodeURIComponent(_lastMsgTs)}&limit=20`
+    : "/api/conversations?limit=30";
+  fetch(url).then((r) => r.json()).then((data) => {
+    const msgs = data.messages || [];
+    for (const m of msgs) {
+      // Always advance the cursor so we don't re-fetch the same rows
+      if (m.timestamp > _lastMsgTs) _lastMsgTs = m.timestamp;
+      const key = (m.customer_phone || "") + "|" + m.role + "|" + m.content.slice(0, 80);
+      if (_seenMsgKeys.has(key)) continue;
+      _seenMsgKeys.add(key);
+      addChatBubble({
+        direction: m.role === "user" ? "inbound" : "outbound",
+        from: m.customer_phone,
+        text: m.content,
+      });
+    }
+    // Cap the set size
+    if (_seenMsgKeys.size > 500) _seenMsgKeys = new Set([..._seenMsgKeys].slice(-200));
+  }).catch(() => {});
+}
+
+/* ── UI Event Polling ─────────────────────────────────────────── */
+// On Edge, restaurant.search and restaurant.selected SSE events can be missed
+// because the webhook instance differs from the SSE instance. Poll the DB.
+let _lastUiEventTs = "";
+let _seenUiEventIds = new Set();
+
+function pollUiEvents() {
+  const url = _lastUiEventTs
+    ? `/api/ui-events?since=${encodeURIComponent(_lastUiEventTs)}`
+    : "/api/ui-events";
+  fetch(url).then((r) => r.json()).then((data) => {
+    const events = data.events || [];
+    for (const evt of events) {
+      if (_seenUiEventIds.has(evt.id)) continue;
+      _seenUiEventIds.add(evt.id);
+      _lastUiEventTs = evt.created_at;
+      try {
+        const payload = typeof evt.payload === "string" ? JSON.parse(evt.payload) : evt.payload;
+        handleSSE({ type: evt.type, ...payload });
+      } catch { /* ignore parse errors */ }
+    }
+    if (_seenUiEventIds.size > 200) _seenUiEventIds = new Set([..._seenUiEventIds].slice(-100));
+  }).catch(() => {});
+}
+
 /* ── Init ─────────────────────────────────────────────────────── */
 loadConfig().then(() => {
   loadRestaurants();
   loadReservations();
   connectSSE();
+  pollConversations();
+  pollUiEvents();
 });
 
 // Auto-refresh reservations every 30s
 setInterval(loadReservations, 30000);
+
+// Poll conversations every 3s to catch messages missed by SSE
+setInterval(pollConversations, 3000);
+
+// Poll UI events every 3s to catch restaurant.search / restaurant.selected missed by SSE
+setInterval(pollUiEvents, 3000);
 
 // Keep phone clock updated
 function updatePhoneClock() {

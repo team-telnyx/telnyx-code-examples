@@ -16,7 +16,9 @@ import { processInbound, storeMessage, getReservationsForPhone, TABLES, TIME_SLO
 try { process.loadEnvFile(); } catch { /* no .env or older Node — fine */ }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PORT = Number(setting("PORT") || 3000);
+// PORT comes from the platform on Edge (not a DINENYX_ secret), so read it
+// directly from process.env rather than through setting().
+const PORT = Number(process.env.PORT || 3000);
 
 const app = express();
 app.use(express.json());
@@ -75,9 +77,12 @@ function isDuplicate(msgId, fromNumber) {
 }
 
 // ---------------------------------------------------------------------------
-// Database — initialized at startup, shared by all handlers
+// Database — initialized asynchronously after listen(), shared by all handlers.
+// Routes that need the DB await dbPromise first.
 // ---------------------------------------------------------------------------
 let db;
+let dbReady;
+const dbPromise = new Promise((resolve) => { dbReady = resolve; });
 
 // ---------------------------------------------------------------------------
 // Webhook — inbound WhatsApp messages
@@ -160,13 +165,20 @@ app.post("/webhooks/whatsapp", (req, res) => {
 // ---------------------------------------------------------------------------
 // API endpoints
 // ---------------------------------------------------------------------------
-app.get("/health", (_req, res) => {
+app.get(["/health", "/health/{*path}"], (_req, res) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
     whatsapp_number: setting("WHATSAPP_NUMBER") || "",
     city: setting("DEFAULT_CITY") || "Amsterdam",
   });
+});
+
+// All routes below need the database — wait for it to be ready.
+app.use(async (_req, _res, next) => {
+  await dbPromise;
+  if (!db) return _res.status(503).json({ error: "Database unavailable" });
+  next();
 });
 
 app.get("/api/config", (_req, res) => {
@@ -229,10 +241,17 @@ app.get("/api/restaurants", async (req, res) => {
     result = filtered;
   }
 
-  // Apply text search
+  // Apply text search — match any keyword (ignoring filler words like "places")
   if (q) {
-    const ql = q.toLowerCase();
-    result = result.filter((r) => (r.name || "").toLowerCase().includes(ql) || (r.cuisine || "").toLowerCase().includes(ql));
+    const FILLER = new Set(["place","places","restaurant","restaurants","food","foods","cuisine","spot","spots","the","a","an","in","at","near","around","some","good","best"]);
+    const words = q.toLowerCase().split(/\s+/).filter((w) => w && !FILLER.has(w));
+    if (words.length) {
+      result = result.filter((r) => {
+        const name = (r.name || "").toLowerCase();
+        const cuisine = (r.cuisine || "").toLowerCase();
+        return words.some((w) => name.includes(w) || cuisine.includes(w));
+      });
+    }
   }
 
   const total = result.length;
@@ -299,20 +318,57 @@ app.patch("/api/reservations/:id", async (req, res) => {
   res.json(row);
 });
 
+app.get("/api/ui-events", async (req, res) => {
+  const since = req.query.since || "";
+  let rows;
+  if (since) {
+    ({ results: rows } = await db.prepare(
+      "SELECT id, type, payload, created_at FROM ui_events WHERE created_at > ? ORDER BY created_at ASC LIMIT 50"
+    ).bind(since).all());
+  } else {
+    ({ results: rows } = await db.prepare(
+      "SELECT id, type, payload, created_at FROM ui_events ORDER BY created_at DESC LIMIT 10"
+    ).all());
+    rows = rows.reverse();
+  }
+  res.json({ events: rows });
+});
+
+app.get("/api/conversations", async (req, res) => {
+  const since = req.query.since || "";
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+  let rows;
+  if (since) {
+    ({ results: rows } = await db.prepare(
+      "SELECT customer_phone, role, content, timestamp FROM conversations WHERE timestamp > ? ORDER BY timestamp ASC LIMIT ?"
+    ).bind(since, limit).all());
+  } else {
+    ({ results: rows } = await db.prepare(
+      "SELECT customer_phone, role, content, timestamp FROM conversations ORDER BY timestamp DESC LIMIT ?"
+    ).bind(limit).all());
+    rows = rows.reverse();
+  }
+  res.json({ messages: rows });
+});
+
 // Serve index.html for root
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // ---------------------------------------------------------------------------
-// Startup
+// Startup — listen FIRST so the platform readiness probe passes, then open the
+// database and seed restaurants in the background.
 // ---------------------------------------------------------------------------
-const { db: database, engine } = await openDb(path.join(__dirname, "data"));
-db = database;
-console.log(`Database engine: ${engine}`);
-
-await seedRestaurants(db);
-
 app.listen(PORT, () => {
   console.log(`DineNyx running on http://localhost:${PORT}`);
+  openDb(path.join(__dirname, "data")).then(({ db: database, engine }) => {
+    db = database;
+    console.log(`Database engine: ${engine}`);
+    dbReady();
+    seedRestaurants(db).catch((err) => console.error("Seed failed:", err.message));
+  }).catch((err) => {
+    console.error("DB init failed:", err.message);
+    dbReady(); // unblock waiters even on failure — routes will get errors
+  });
 });
