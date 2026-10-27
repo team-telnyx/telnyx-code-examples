@@ -560,6 +560,24 @@ function pollUiEvents() {
   }).catch(() => {});
 }
 
+/* ── New Chat ─────────────────────────────────────────────────── */
+function newChat() {
+  fetch("/api/conversations", { method: "DELETE" })
+    .then((r) => r.json())
+    .then(() => {
+      document.getElementById("chatArea").innerHTML =
+        '<div class="chat-empty" id="chatEmpty">Send a WhatsApp message to<br>start a conversation</div>';
+      document.getElementById("phoneStatus").textContent = "online";
+      _lastMsgTs = "";
+      _seenMsgKeys = new Set();
+      _lastUiEventTs = "";
+      _seenUiEventIds = new Set();
+      _lastRestEvtKey = "";
+      showTyping(false);
+      updateActivity("Message");
+    });
+}
+
 /* ── Init ─────────────────────────────────────────────────────── */
 loadConfig().then(() => {
   loadRestaurants();

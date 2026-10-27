@@ -265,7 +265,8 @@ a:hover{text-decoration:underline}
 .wa-contact-name{font-size:14px;font-weight:600;color:#fff}
 .wa-contact-status{font-size:11px;color:rgba(255,255,255,.6)}
 .wa-header-icons{display:flex;gap:14px;color:rgba(255,255,255,.8)}
-.wa-header-icons svg{width:18px;height:18px;fill:currentColor}
+.wa-header-icons svg{width:18px;height:18px;fill:currentColor;transition:opacity .15s}
+.wa-header-icons svg:hover{opacity:.7}
 
 .chat-area{
   flex:1;overflow-y:auto;padding:8px 10px;

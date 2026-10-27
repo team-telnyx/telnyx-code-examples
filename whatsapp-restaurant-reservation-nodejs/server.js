@@ -351,6 +351,12 @@ app.get("/api/conversations", async (req, res) => {
   res.json({ messages: rows });
 });
 
+app.delete("/api/conversations", async (_req, res) => {
+  await db.prepare("DELETE FROM conversations").run();
+  await db.prepare("DELETE FROM ui_events").run();
+  res.json({ status: "cleared" });
+});
+
 // Serve index.html for root
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
