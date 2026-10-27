@@ -156,6 +156,13 @@ def add_ip_to_pool(pool_id: str, ip_id: str) -> dict[str, Any]:
     return _post(f"/email/ip_pools/{pool_id}/ips", {"dedicated_ip_id": ip_id})
 
 
+def pool_has_ip(pool_id: str, ip_id: str) -> bool:
+    """Check pool membership without adding (GET /email/ip_pools/{id})."""
+    pool = _get(f"/email/ip_pools/{pool_id}")
+    ips = pool.get("data", {}).get("ips", []) or []
+    return any(m.get("id") == ip_id for m in ips)
+
+
 def get_dedicated_ip(ip_id: str) -> dict[str, Any]:
     """GET /email/dedicated_ips/{id}."""
     return _get(f"/email/dedicated_ips/{ip_id}")["data"]
@@ -303,8 +310,16 @@ def run_provisioning_flow() -> dict[str, Any]:
 
     pool = resolve_default_pool(f"dip-pool-{uuid.uuid4().hex[:8]}")
     result["pool"] = pool
-    add_ip_to_pool(pool["id"], ip_id)
-    result["pool_membership"] = {"dedicated_ip_id": ip_id, "pool_id": pool["id"], "added": True}
+    if pool_has_ip(pool["id"], ip_id):
+        result["pool_membership"] = {
+            "dedicated_ip_id": ip_id,
+            "pool_id": pool["id"],
+            "added": True,
+            "already_member": True,
+        }
+    else:
+        add_ip_to_pool(pool["id"], ip_id)
+        result["pool_membership"] = {"dedicated_ip_id": ip_id, "pool_id": pool["id"], "added": True}
 
     # Demonstrate the 422 case: second start_warmup on a warming_up IP.
     try:

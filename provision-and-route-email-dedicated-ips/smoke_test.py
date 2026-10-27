@@ -28,6 +28,7 @@ def test_flow_functions_exist() -> None:
         "find_default_pool",
         "resolve_default_pool",
         "add_ip_to_pool",
+        "pool_has_ip",
         "wait_for_send_ready",
         "list_email_domains",
         "preflight_email_setup",
