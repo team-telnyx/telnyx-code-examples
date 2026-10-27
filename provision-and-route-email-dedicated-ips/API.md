@@ -49,7 +49,9 @@ curl -s http://localhost:5000/health
 
 ### `POST /run`
 
-Executes the full provisioning flow: purchase dedicated IP → start warm-up → poll for send-readiness → create default IP pool → add IP to pool → demonstrate the `422` warm-up case → send the verification email.
+Executes the full provisioning flow: preflight the email setup → purchase (or reuse) the dedicated IP → start warm-up → poll for send-readiness → reuse-or-create the default IP pool → add IP to pool → demonstrate the `422` warm-up case → send the verification email.
+
+In **live mode** the flow validates that `TELNYX_EMAIL_FROM` is on a verified sending domain **before** the billed purchase (the purchase starts a $14/month MRC and cannot be undone). If `REUSE_DEDICATED_IP_ID` is set, that IP is resumed instead of purchasing a new one, and the account's existing default pool is reused when present.
 
 In **demo mode** (`DEMO_MODE=true`, the default) no Telnyx API calls are made and no email is sent; the response is a simulated summary of the same shape.
 
@@ -66,7 +68,9 @@ curl -s -X POST http://localhost:5000/run
 | Field | Type | Description |
 | --- | --- | --- |
 | `demo_mode` | boolean | Whether the run was simulated. |
-| `dedicated_ip` | object | The purchased IP record (`id`, `ip_address`, `status`, `region`, `ip_version`). |
+| `preflight` | array | Live mode only: non-fatal setup warnings (absent in demo mode). |
+| `dedicated_ip` | object | The purchased (or reused) IP record (`id`, `ip_address`, `status`, `region`, `ip_version`). |
+| `reused_ip` | boolean | Live mode only: `true` when `REUSE_DEDICATED_IP_ID` resumed an existing IP. |
 | `warmup` | object | `status` (`"warming_up"`) and `dns_status` (`"dns_confirmed"`) observed after polling. |
 | `pool` | object | The created pool (`id`, `name`, `is_default`). |
 | `pool_membership` | object | `dedicated_ip_id`, `pool_id`, `added`. |
@@ -105,6 +109,7 @@ curl -s -X POST http://localhost:5000/run
 ```json
 {
   "demo_mode": false,
+  "preflight": [],
   "dedicated_ip": {
     "id": "3f1c9a2e-...-b7d4",
     "ip_address": "198.51.100.24",
@@ -128,9 +133,10 @@ curl -s -X POST http://localhost:5000/run
 | Status | Meaning |
 | --- | --- |
 | `200` | Flow completed; email queued (live) or simulated (demo). |
-| `500` | Unexpected internal error. Body: `{"error": "Internal server error"}`. |
+| `400` | Live-mode preflight blocker: `TELNYX_EMAIL_FROM` is not a verified sending domain for the account. The check runs before the billed purchase; the response body carries the setup instructions. |
+| `500` | Unexpected internal error, or a missing required env var. Body: `{"error": "Internal server error"}`. |
 | `502` | A Telnyx REST call returned a non-success status. Body: `{"error": "Telnyx API request failed", "status": <upstream_status>}`. |
-| `504` | Warm-up polling timed out before the IP became send-ready. Body: `{"error": "IP not send-ready; mail may be held by the pool"}`. |
+| `504` | Warm-up polling timed out before the IP became send-ready. Body: `{"error": "IP not send-ready; mail may be held by the pool"}`. Re-run with `REUSE_DEDICATED_IP_ID` to resume the same IP without a second purchase. |
 
 ---
 

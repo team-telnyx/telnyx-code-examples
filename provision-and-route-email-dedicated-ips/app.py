@@ -54,6 +54,9 @@ EMAIL_FROM = os.getenv("TELNYX_EMAIL_FROM", "")
 EMAIL_TO = os.getenv("TELNYX_EMAIL_TO", "")
 WARMUP_TIMEOUT = int(os.getenv("WARMUP_TIMEOUT_SECONDS", "300"))
 POLL_INTERVAL = int(os.getenv("WARMUP_POLL_INTERVAL_SECONDS", "10"))
+# Optional: resume a previous live run's IP instead of purchasing a new one.
+# Every purchase starts a $14/month MRC, so a plain re-run buys a second IP.
+REUSE_DEDICATED_IP_ID = os.getenv("REUSE_DEDICATED_IP_ID", "")
 
 class TelnyxApiError(RuntimeError):
     """Raised when the Telnyx REST API returns a non-success status."""
@@ -62,6 +65,14 @@ class TelnyxApiError(RuntimeError):
         self.status = status
         self.body = body
         super().__init__(f"Telnyx API error {status}: {body}")
+
+
+class PreflightError(RuntimeError):
+    """Raised when the pre-purchase email-setup check finds a known blocker.
+
+    The message is user-facing instructional text (no secrets), so the HTTP
+    route returns it in the response body.
+    """
 
 
 def _headers(idempotency_key: str | None = None) -> dict[str, str]:
@@ -122,6 +133,24 @@ def create_default_pool(name: str) -> dict[str, Any]:
     return body["data"]
 
 
+def find_default_pool() -> dict[str, Any] | None:
+    """Return the account's existing default pool, if any (GET /email/ip_pools)."""
+    pools = _get("/email/ip_pools").get("data", [])
+    return next((p for p in pools if p.get("is_default")), None)
+
+
+def resolve_default_pool(name: str) -> dict[str, Any]:
+    """Reuse the account's existing default pool, or create one.
+
+    An account has at most one default pool; accounts that already send email
+    usually have one, and creating a second returns an error.
+    """
+    existing = find_default_pool()
+    if existing:
+        return existing
+    return create_default_pool(name)
+
+
 def add_ip_to_pool(pool_id: str, ip_id: str) -> dict[str, Any]:
     """POST /email/ip_pools/{id}/ips."""
     return _post(f"/email/ip_pools/{pool_id}/ips", {"dedicated_ip_id": ip_id})
@@ -141,7 +170,55 @@ def wait_for_send_ready(ip_id: str) -> dict[str, Any]:
         if data.get("status") == "warming_up" and provisioning.get("dns_status") == "dns_confirmed":
             return data
         time.sleep(POLL_INTERVAL)
-    raise TimeoutError("IP not send-ready; mail may be held by the pool")
+    raise TimeoutError(
+        f"IP not send-ready; mail may be held by the pool. "
+        f"Re-run with REUSE_DEDICATED_IP_ID={ip_id} to resume this IP's warm-up "
+        f"instead of purchasing a new one."
+    )
+
+
+def list_email_domains() -> list[dict[str, Any]]:
+    """GET /email_domains — best effort; returns [] when the API is unavailable."""
+    try:
+        return _get("/email_domains").get("data", [])
+    except TelnyxApiError:
+        return []
+
+
+def preflight_email_setup() -> list[str]:
+    """Validate the email setup BEFORE the billed IP purchase.
+
+    Raises RuntimeError on a known blocker (FROM domain not verified); returns
+    non-fatal warnings otherwise. The purchase starts a $14/month MRC, so it
+    must never run with a from-address that cannot send.
+    """
+    warnings: list[str] = []
+    domains = list_email_domains()
+    from_domain = EMAIL_FROM.rsplit("@", 1)[-1].lower() if EMAIL_FROM else ""
+    verified = [d for d in domains if d.get("usable_for_sending") or d.get("status") == "verified"]
+    match = next((d for d in verified if d.get("domain", "").lower() == from_domain), None)
+
+    if not domains:
+        warnings.append(
+            "Could not list sending domains; skipping domain preflight. "
+            "The final send may fail if TELNYX_EMAIL_FROM is not a verified domain."
+        )
+    elif not match:
+        raise PreflightError(
+            f"'{from_domain}' is not a verified sending domain on this account, so the "
+            "purchase would be billed and the email send would fail. Register and verify "
+            "your domain first (POST /email_domains, publish the DNS records, then "
+            "POST /email_domains/{id}/verify), or use a shared domain with zero setup: "
+            "TELNYX_EMAIL_FROM=onboarding@msgtelnyx.com (recipients must be the account "
+            "owner's verified email address)."
+        )
+    elif match.get("type") == "shared":
+        warnings.append(
+            "Shared sending domain detected: recipients must match the account owner's "
+            "verified email address, and reputation is not isolated to this account. "
+            "Verify a custom domain for production sending."
+        )
+    return warnings
 
 
 def send_test_email() -> dict[str, Any]:
@@ -194,18 +271,35 @@ def run_provisioning_flow() -> dict[str, Any]:
     if not EMAIL_FROM or not EMAIL_TO:
         raise RuntimeError("TELNYX_EMAIL_FROM and TELNYX_EMAIL_TO are required in live mode")
 
-    ip = purchase_dedicated_ip()
-    result["dedicated_ip"] = ip
-    ip_id = ip["id"]
+    # Validate the email setup before spending anything: the purchase starts a
+    # $14/month MRC and cannot be "un-sent" if the from-address can't deliver.
+    result["preflight"] = preflight_email_setup()
 
-    start_warmup(ip_id)
+    if REUSE_DEDICATED_IP_ID:
+        ip = get_dedicated_ip(REUSE_DEDICATED_IP_ID)
+        result["dedicated_ip"] = ip
+        result["reused_ip"] = True
+        ip_id = ip["id"]
+        if ip.get("status") == "provisioning":
+            start_warmup(ip_id)
+    else:
+        ip = purchase_dedicated_ip()
+        if ip.get("status") != "provisioning" or not ip.get("ip_address"):
+            raise RuntimeError(
+                f"Unexpected purchase response: expected status 'provisioning' with an "
+                f"ip_address, got {ip}"
+            )
+        result["dedicated_ip"] = ip
+        ip_id = ip["id"]
+        start_warmup(ip_id)
+
     ready = wait_for_send_ready(ip_id)
     result["warmup"] = {
         "status": ready.get("status"),
         "dns_status": (ready.get("provisioning") or {}).get("dns_status"),
     }
 
-    pool = create_default_pool(f"dip-pool-{uuid.uuid4().hex[:8]}")
+    pool = resolve_default_pool(f"dip-pool-{uuid.uuid4().hex[:8]}")
     result["pool"] = pool
     add_ip_to_pool(pool["id"], ip_id)
     result["pool_membership"] = {"dedicated_ip_id": ip_id, "pool_id": pool["id"], "added": True}
@@ -234,6 +328,9 @@ def run() -> tuple[dict[str, Any], int]:
     except TimeoutError as exc:
         app.logger.warning("Warm-up timeout: %s", exc)
         return {"error": "IP not send-ready; mail may be held by the pool"}, 504
+    except PreflightError as exc:
+        app.logger.warning("Preflight blocked: %s", exc)
+        return {"error": str(exc)}, 400
     except TelnyxApiError as exc:
         app.logger.exception("Telnyx API error")
         return {"error": "Telnyx API request failed", "status": exc.status}, 502

@@ -25,8 +25,12 @@ def test_flow_functions_exist() -> None:
         "purchase_dedicated_ip",
         "start_warmup",
         "create_default_pool",
+        "find_default_pool",
+        "resolve_default_pool",
         "add_ip_to_pool",
         "wait_for_send_ready",
+        "list_email_domains",
+        "preflight_email_setup",
         "send_test_email",
         "run_provisioning_flow",
     ):

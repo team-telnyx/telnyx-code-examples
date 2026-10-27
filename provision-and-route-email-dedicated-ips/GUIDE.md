@@ -68,11 +68,13 @@ This is the most important switch in the sample.
 
 **Live mode (`DEMO_MODE=false`)** — the full flow executes against the real API:
 
-1. A dedicated IP is purchased (this starts a **$14/mo MRC billing side-effect** at purchase time).
-2. Warm-up is started.
-3. The script polls until the IP is send-ready.
-4. A default pool is created and the IP is added.
-5. A test email is sent and its UUID is printed.
+1. **Preflight (no cost):** the script validates that `TELNYX_EMAIL_FROM` is on a verified sending domain for your account — `GET /email_domains` (a `msgtelnyx.com` shared domain counts, but shared-domain sends are limited to the account owner's verified email). A blocker aborts *before* any billing; if the domains API is unreachable the flow warns and continues.
+2. A dedicated IP is purchased (this starts a **$14/mo MRC billing side-effect** at purchase time) — unless `REUSE_DEDICATED_IP_ID` is set, in which case that IP is fetched instead, avoiding a second purchase on a re-run.
+3. Warm-up is started (skipped if the reused IP is already past `provisioning`).
+4. The script polls until the IP is send-ready.
+5. The account's existing default pool is reused if it has one, otherwise a new one is created; the IP is added.
+6. A second `start_warmup` call deliberately demonstrates the `422`.
+7. A test email is sent and its UUID is printed.
 
 To switch:
 
@@ -82,6 +84,9 @@ python app.py run
 
 # live
 DEMO_MODE=false python app.py run
+
+# live, resuming an IP from a timed-out earlier run (no new purchase)
+DEMO_MODE=false REUSE_DEDICATED_IP_ID=<ip-id> python app.py run
 ```
 
 Because live mode allocates a real, billable resource, the sample documents how to release it when you're done:
@@ -97,7 +102,7 @@ curl -X DELETE https://api.telnyx.com/v2/email/dedicated_ips/<ip_id> \
 
 ### 5.1 Configuration and the raw-REST decision
 
-Near the top of `app.py`, after `load_dotenv()`, the module reads its config and sets `telnyx.api_key` if present.
+Near the top of `app.py`, after `load_dotenv()`, the module reads its config, including the optional `REUSE_DEDICATED_IP_ID` resume flag.
 
 A key architectural note: the installed `telnyx` PyPI SDK (verified 4.189.0) has **no `dedicated_ips` and no `ip_pools` resources**. So those calls are made with `requests` against `https://api.telnyx.com/v2`. The email send uses the SDK (`client.email_messages.create`), which the spec allows. This is the "SDK-surface honesty" rule in action — a raw call that works beats a typed chain that raises `AttributeError`.
 

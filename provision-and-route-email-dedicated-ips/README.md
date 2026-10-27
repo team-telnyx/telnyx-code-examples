@@ -63,13 +63,14 @@ Client (curl / CLI)
 
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
-| `DEMO_MODE` | `string` | `your_demo_mode_here` | **yes** | DEMO_MODE | — |
-| `PORT` | `string` | `your_port_here` | **yes** | PORT | — |
-| `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
-| `TELNYX_EMAIL_FROM` | `string` | `your_telnyx_email_from_here` | **yes** | TELNYX_EMAIL_FROM | — |
-| `TELNYX_EMAIL_TO` | `string` | `your_telnyx_email_to_here` | **yes** | TELNYX_EMAIL_TO | — |
-| `WARMUP_POLL_INTERVAL_SECONDS` | `string` | `your_warmup_poll_interval_seconds_here` | **yes** | WARMUP_POLL_INTERVAL_SECONDS | — |
-| `WARMUP_TIMEOUT_SECONDS` | `string` | `your_warmup_timeout_seconds_here` | **yes** | WARMUP_TIMEOUT_SECONDS | — |
+| `DEMO_MODE` | `string` | `true` | no | When `true` (default), simulate the flow with no billed purchase or email | — |
+| `PORT` | `string` | `5000` | no | Flask server port | — |
+| `TELNYX_API_KEY` | `string` | `KEY0123456789ABCDEF` | **yes** | Telnyx API v2 key | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
+| `TELNYX_EMAIL_FROM` | `string` | `no-reply@your-domain.com` | **yes** | From address on a verified Telnyx sending domain (shared-domain zero-setup option: `onboarding@msgtelnyx.com`) | [Portal → Email → Domains](https://portal.telnyx.com/email/domains) |
+| `TELNYX_EMAIL_TO` | `string` | `you@your-mailbox.com` | **yes** | Mailbox you control; must match the account owner's verified email when sending from a shared domain | — |
+| `REUSE_DEDICATED_IP_ID` | `string` | `12345678-1234-1234-1234-123456789012` | no | Resume a previous run's IP instead of purchasing a new one (avoids double billing on re-runs) | Printed in the warm-up timeout message |
+| `WARMUP_POLL_INTERVAL_SECONDS` | `string` | `10` | no | Seconds between warm-up status polls | — |
+| `WARMUP_TIMEOUT_SECONDS` | `string` | `300` | no | How long to wait for the IP to become send-ready | — |
 
 `TELNYX_EMAIL_FROM` must be on a verified Telnyx email domain. `TELNYX_EMAIL_TO` should be a mailbox you control.
 
@@ -132,7 +133,25 @@ python app.py
 curl -X POST http://localhost:5000/run
 ```
 
-`DEMO_MODE=true` (the default) simulates the entire flow — no billed IP purchase and no real email. Set `DEMO_MODE=false` to run against the live API. See GUIDE.md for the full demo-vs-live walkthrough.
+`DEMO_MODE=true` (the default) simulates the entire flow — no billed IP purchase and no real email. Set `DEMO_MODE=false` to run against the live API.
+
+### Before you run live mode
+
+What you need, and what you pay for:
+
+| Step | Cost | Notes |
+|------|------|-------|
+| Telnyx API key | Free | [Portal → API Keys](https://portal.telnyx.com/api-keys) |
+| Sending domain | Free | **Shared domains need zero setup**: `onboarding@msgtelnyx.com` is verified out of the box, but recipients must be the account owner's verified email and reputation is not isolated to your account. For real reputation control, register your own domain (`POST /email_domains`), publish the DNS records Telnyx generates, and verify it |
+| Dedicated IP | **$14/month from purchase** | Requires a verified, enterprise, or legacy account (`403` otherwise). The MRC runs while the IP is `provisioning`/`warming_up`/`active`/`suspended` and stops only after release |
+| Email sends | Pay per message | Pennies at demo volume |
+
+Two things the sample protects you from:
+
+1. **Wasted purchases.** Before buying the IP, the live flow validates that `TELNYX_EMAIL_FROM` is on a verified sending domain for your account and aborts with instructions if not — the purchase cannot be undone, so it should never run against a from-address that can't deliver.
+2. **Double billing on re-runs.** Every live purchase starts a new $14/month IP. If the warm-up poll times out, re-run with `REUSE_DEDICATED_IP_ID=<ip-id>` (the timeout message prints it) to resume the same IP instead of buying another. The live flow also reuses your account's existing default IP pool rather than failing on "default already exists".
+
+Full domain setup: [Domains guide](https://developers.telnyx.com/docs/messaging/email/domains.md).
 
 ## Teardown
 
@@ -162,7 +181,10 @@ See [API.md](./API.md) for the typed endpoint reference: routes, request/respons
 | `403` on IP purchase | Account not verified / enterprise / legacy | Contact Telnyx to enable dedicated IPs on the account |
 | `422` on `start_warmup` | IP is not in `provisioning` status | Expected for `warming_up`/`active`/`released` IPs — the sample demonstrates this case |
 | `409` code `40901` on `start_warmup` | IP is `suspended` | Resolve the suspension before warming up |
-| Existing-default error on pool create | Account already has a default pool | Delete or reuse the existing default pool |
+| Existing-default error on pool create | Account already has a default pool | The live flow now reuses the existing default pool automatically; when calling the API manually, reuse it instead of creating another |
+| Warm-up poll timed out (CLI) | DNS not confirmed within `WARMUP_TIMEOUT_SECONDS` | Do **not** re-run bare (`python app.py run` buys another billed IP). Re-run with `REUSE_DEDICATED_IP_ID=<ip-id>` and a larger timeout; the IP id is printed in the error |
+| Preflight abort: "not a verified sending domain" | `TELNYX_EMAIL_FROM` domain not registered/verified on the account | Fix the address or verify the domain first (see "Before you run live mode") — the check runs before the billed purchase on purpose |
+| Send rejected with `403` code `10007` | Sending from a shared domain to a non-owner recipient | Shared-domain sends must go to the account owner's verified email; verify a custom domain for arbitrary recipients |
 | `504` from `/run` | Warm-up poll timed out | Increase `WARMUP_TIMEOUT_SECONDS`; the IP may still be provisioning |
 | `502` from `/run` | Telnyx API returned an error | Check the server log for the upstream status and body |
 
