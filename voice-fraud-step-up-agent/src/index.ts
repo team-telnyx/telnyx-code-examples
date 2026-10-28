@@ -497,8 +497,9 @@ export default {
       return Response.json({ ok: true, ignored: eventType });
     }
     if (url.pathname === "/demo") {
+      const accountId = url.searchParams.get("account") || "acct_demo";
       const action: SensitiveAction = {
-        accountId: "acct_demo",
+        accountId,
         caller: process.env.TARGET_PHONE ?? "+15558675309",
         action: "wire_transfer",
         amountCents: 250000,

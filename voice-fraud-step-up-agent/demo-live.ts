@@ -35,6 +35,7 @@ interface StatusResponse {
 }
 
 const sleep = (ms: number): Promise<void> => new Promise<void>((resolve) => setTimeout(resolve, ms));
+const demoAccount = process.env.DEMO_ACCOUNT_ID ?? `acct_demo_${Date.now()}`;
 
 function printRow(row: LedgerRow): void {
   const color =
@@ -64,7 +65,7 @@ section("2", "personal key");
 note("credentials remain in the deployed Edge function and are never read or printed by this local monitor", DIM);
 
 section("3", "triggering the gate on Edge");
-const demoRes = await fetch(`${base}/demo`);
+const demoRes = await fetch(`${base}/demo?account=${encodeURIComponent(demoAccount)}`);
 if (!demoRes.ok) {
   note(`/demo failed: HTTP ${demoRes.status}`, RED);
   process.exit(1);
