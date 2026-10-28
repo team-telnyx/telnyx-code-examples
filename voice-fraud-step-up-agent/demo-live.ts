@@ -113,7 +113,7 @@ while (Date.now() - startedAt < MAX_MS) {
     printRow(row);
     if (row.outcome === "proceed" && !verdictPrinted) {
       verdictPrinted = true;
-      note("verdict: REAL VOICE — the action is approved. The assistant is delivering it on your call.", GREEN);
+      note("verdict: HUMAN-SOUNDING VOICE — the demo policy allows this request; identity still requires independent verification.", GREEN);
     } else if (row.outcome === "step_up_flashcall" && !verdictPrinted) {
       verdictPrinted = true;
       note("verdict: SYNTHETIC VOICE — flashcall step-up. The assistant is explaining it on your call.", YELLOW);

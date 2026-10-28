@@ -4,7 +4,7 @@
 
 `VoiceFraudGate` is the policy owner. Deepfake Detection produces the risk event on a bare call leg. The Telnyx AI Assistant joins only after the gate's verdict and speaks the outcome. Verify flashcall or human review handles risky outcomes.
 
-The sample is intentionally fail-closed. A missing, errored, or inconclusive detection result does not complete the sensitive action.
+The sample is intentionally fail-closed for missing, errored, or inconclusive detection results. A `real` result only means the audio appears human; it does not prove account ownership. Production code must add an independent factor before completing the sensitive action.
 
 ## Why the primitives are sequenced
 
@@ -19,7 +19,7 @@ assistant is the mouthpiece for the decision, never the decider.
 
 1. Show a support action such as a wire transfer or password reset.
 2. Show the assistant payload and the Call Control dial request with `deepfake_detection` enabled.
-3. Send a `real` result and show the action proceeds.
+3. Send a `real` result and explain that the voice-authenticity screen passes, while independent identity verification is still required.
 4. Send a `fake` result and show flashcall step-up.
 5. Rehydrate a ledger with a prior risky row, then show that a later `real` result still steps up.
 

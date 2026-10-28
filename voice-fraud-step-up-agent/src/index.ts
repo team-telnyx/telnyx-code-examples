@@ -39,7 +39,7 @@ export const ASSISTANT_VOICE = "Telnyx.Ultra.a7a59115-2425-4192-844c-1e98ec7d687
 
 export function verdictGreeting(outcome: string): string {
   if (outcome === "proceed") {
-    return "Thank you — your identity is verified. Your wire transfer request has been approved.";
+    return "The voice passed the synthetic-voice screen. This demo policy would allow the request, but that does not prove your identity. Complete the independent verification step before a real transfer.";
   }
   if (outcome === "step_up_flashcall") {
     return "For your security, we could not fully verify your voice on this call. Additional verification is required before this transfer can be completed.";
@@ -178,6 +178,7 @@ export class VoiceFraudGateModel {
         "you are a support verification agent for a high-risk account action.",
         "keep the caller on the line while telnyx deepfake detection evaluates the remote-party audio.",
         "when you have heard the caller's response, call the confirm_sensitive_action webhook tool and relay its response exactly.",
+        "never describe a real voice result as identity verification; deepfake detection checks voice authenticity, not account ownership.",
         "if the tool response is blocked, explain that extra verification is required before the action can be completed.",
         "do not complete the sensitive action until the actor confirms the policy outcome.",
       ].join("\n"),
@@ -268,7 +269,7 @@ export class VoiceFraudGateModel {
     this.state.status = "approved";
     return {
       outcome: "proceed",
-      reason: "real voice result and no recent flags were found",
+      reason: "human-sounding voice result and no recent flags were found; independent identity verification is outside this demo",
     };
   }
 

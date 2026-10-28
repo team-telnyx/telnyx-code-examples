@@ -27,7 +27,7 @@ Show the opening section of `README.md`. Keep the terminal visible but idle.
 
 ### Say
 
-“This sample is a fraud gate for high-risk account actions like wire transfers, password resets, and payout changes. The key design principle is that the AI assistant can hold the conversation, but it can never make the risk decision. The decision lives in code, backed by an append-only ledger, so it survives restarts and stays auditable. I’ll show the policy, the runtime wiring, and then run the complete live demo.”
+“This sample demonstrates a voice-authenticity gate for high-risk account actions like wire transfers, password resets, and payout changes. The key design principle is that the AI assistant can hold the conversation, but it can never make the risk decision. Deepfake Detection tells us whether the audio appears human; it does not prove who owns the account. A production flow still needs an independent verification factor. The decision lives in code, backed by an append-only ledger, so it survives restarts and stays auditable.”
 
 ## 1. Edge wiring — telnyx.toml (30 seconds)
 
@@ -71,11 +71,11 @@ Find `VoiceFraudGateModel`. Keep the method name visible while you scroll throug
 
 “`buildDialPayload` turns on voice fraud detection and places the account ID into `client_state`. When the webhook comes back, that state tells us exactly which account owns the call. There are no lookup tables.”
 
-“The webhook result is recorded, and `decideFromLedger` derives the verdict. A real voice with a clean recent ledger can proceed. A fake voice, or any recent risky event on the account, requires step-up. A timeout goes to manual review.”
+“The webhook result is recorded, and `decideFromLedger` derives the verdict. A real result means human-sounding audio, not verified identity. A fake voice, or any recent risky event on the account, requires step-up. A timeout goes to manual review. For a real transaction, an independent factor still has to be checked.”
 
 “The important detail is `hasRecentFlag`: one recent fake-voice event keeps the account hot. A clean voice later that day does not erase the risk.”
 
-“Finally, `confirmSensitiveAction` only succeeds when the latest ledger outcome is `proceed`. The assistant cannot overrule the ledger. `rehydrateFromLedger` proves that the same verdict comes back after a restart.”
+“Finally, `confirmSensitiveAction` only succeeds when the latest ledger outcome is `proceed`. The assistant cannot overrule the ledger. In this sample, that proceed outcome represents the voice-authenticity screen, not complete identity proof; production code should add the independent verification state here. `rehydrateFromLedger` proves that the same verdict comes back after a restart.”
 
 ## 4. Runtime actor — src/index.ts (90 seconds)
 
@@ -117,7 +117,7 @@ Open `smoke_test.ts`. Show the test names or assertions. Do not linger on unrela
 
 ### Say
 
-“These tests are the acceptance criteria in miniature: a real voice on a clean ledger proceeds; a fake voice requires step-up and cannot confirm; a rehydrated ledger with a recent risk flag still steps up; and a detection error fails closed to manual review.”
+“These tests are the acceptance criteria in miniature: human-sounding audio on a clean ledger passes the demo policy; a fake voice requires step-up and cannot confirm; a rehydrated ledger with a recent risk flag still steps up; and a detection error fails closed to manual review. The production acceptance criteria must add a separate identity-verification success before the transfer can complete.”
 
 ## 7. Run the live demo — demo-live.ts and terminal (60–90 seconds)
 
@@ -135,7 +135,7 @@ While it runs, leave the terminal full-size or zoomed enough that the numbered s
 
 “This is the live Edge demo. The terminal is only a monitor: the deployed actor places the call, receives the signed detection webhook, and polls the actor’s audit ledger.”
 
-“The gate opens a wire-transfer request, places a bare call with deepfake detection enabled, and waits for the signed result. The actor then derives the verdict from the ledger, starts the assistant only after that verdict, and exposes the final audit trail.”
+“The gate opens a wire-transfer request, places a bare call with deepfake detection enabled, and waits for the signed result. The actor then derives a voice-authenticity verdict from the ledger, starts the assistant only after that verdict, and exposes the final audit trail. A real result here is not proof that the caller is the account owner.”
 
 When the final line appears, say:
 
@@ -171,7 +171,7 @@ Return to the final terminal ledger or the README architecture summary.
 
 ### Say
 
-“Detection is one dial parameter plus a signed webhook. The actor owns the policy and the audit trail. The assistant speaks, but the ledger decides — deterministically, restart-proof, and fail-closed. The pattern is simple: sequence your primitives, keep policy in code, and make every decision a row you can defend.”
+“Detection is one dial parameter plus a signed webhook. The actor owns the policy and the audit trail. The assistant speaks, but the ledger decides — deterministically, restart-proof, and fail-closed. The important boundary is that voice authenticity is not identity: add an independent factor before approving a real transaction. Sequence your primitives, keep policy in code, and make every decision a row you can defend.”
 
 ## If you make a mistake
 
