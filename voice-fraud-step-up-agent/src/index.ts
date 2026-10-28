@@ -32,7 +32,7 @@ export interface DialPayload {
 }
 
 export const VERIFICATION_PROMPT =
-  "Thank you for calling fraud verification. Please state your full name, and confirm that you requested the two thousand five hundred dollar wire transfer on this account.";
+  "This call includes a voice-authenticity screen, not identity verification. Please state your name and confirm whether you requested the two thousand five hundred dollar wire transfer on this account.";
 
 export const VERIFICATION_VOICE = "AWS.Polly.Joanna-Neural";
 export const ASSISTANT_VOICE = "Telnyx.Ultra.a7a59115-2425-4192-844c-1e98ec7d6877";
@@ -276,7 +276,7 @@ export class VoiceFraudGateModel {
   decideFromLedger(result: DeepfakeResult, now = new Date().toISOString()): GateDecision {
     const hasRecentFlag = this.hasRecentFlag(now);
     if (result === "real" && !hasRecentFlag) {
-      return { outcome: "proceed", reason: "real voice result and clean recent ledger" };
+      return { outcome: "proceed", reason: "human-sounding voice result and clean recent ledger; this is not identity proof" };
     }
     if (result === "fake" || hasRecentFlag) {
       return {

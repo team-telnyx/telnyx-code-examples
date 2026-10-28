@@ -60,7 +60,7 @@ telnyx-edge types   # generates binding types from telnyx.toml
 telnyx-edge ship    # bundles, uploads, and deploys to the edge
 ```
 
-After the first `ship`, set the `WEBHOOK_URL` env var to `<deployed-function-url>/webhooks` (and `OUTBOUND_CONNECTION_ID` / `OUTBOUND_CALLER_ID` to real values) so the actor's dial overrides the per-call webhook destination — no existing Call Control config is modified. Inbound `call.deepfake_detection.result` and `.error` events arrive at `POST /webhooks`, are Ed25519 signature-verified, and are routed to the account's actor via the dial's `client_state`. The actor mirrors every ledger row into its embedded per-actor SQL database. The flashcall step-up fires for real when `FLASHCALL_VERIFY_PROFILE_ID` is set.
+After the first `ship`, set the `WEBHOOK_URL` env var to `<deployed-function-url>/webhooks` (and `OUTBOUND_CONNECTION_ID` / `OUTBOUND_CALLER_ID` to real values) so the actor's dial overrides the per-call webhook destination — no existing Call Control config is modified. Inbound `call.deepfake_detection.result` and `.error` events arrive at `POST /webhooks`, are Ed25519 signature-verified, and are routed to the account's actor via the dial's `client_state`. The actor mirrors every ledger row into its embedded per-actor SQL database. The flashcall step-up fires for risky outcomes when `FLASHCALL_VERIFY_PROFILE_ID` is set; a clean `real` result still requires an independent identity factor in a production flow.
 
 ## Troubleshooting
 

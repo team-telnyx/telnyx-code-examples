@@ -14,7 +14,7 @@ Accepts `call.deepfake_detection.error`, appends the event, and routes to manual
 
 ## `confirmSensitiveAction()`
 
-Allows the sensitive action only when the latest ledger outcome is `proceed`.
+Allows the demo policy to continue only when the latest ledger outcome is `proceed`. In this sample, `proceed` means the voice-authenticity policy passed; it does not establish caller identity or replace an independent verification factor.
 
 ## `rehydrateFromLedger(rows)`
 
@@ -33,6 +33,10 @@ Triggers the demo flow. When `TELNYX_API_KEY` is configured it opens the gate an
 ### `GET /demo/status`
 
 Returns the demo account's ledger and decision view.
+
+## Security boundary
+
+Deepfake Detection classifies call audio as human-sounding, synthetic, or inconclusive. It does not prove that the caller owns the account. A production workflow must add an independent factor—such as an OTP, app approval, or verified flashcall challenge—before completing a real sensitive action.
 
 ### `GET /healthz`
 

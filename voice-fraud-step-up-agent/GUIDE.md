@@ -2,7 +2,7 @@
 
 ## Architecture
 
-`VoiceFraudGate` is the policy owner. Deepfake Detection produces the risk event on a bare call leg. The Telnyx AI Assistant joins only after the gate's verdict and speaks the outcome. Verify flashcall or human review handles risky outcomes.
+`VoiceFraudGate` is the policy owner. Deepfake Detection produces the voice-authenticity event on a bare call leg. The Telnyx AI Assistant joins only after the gate's verdict and speaks the outcome. Verify flashcall or human review handles risky outcomes, while a clean voice still needs an independent identity factor in production.
 
 The sample is intentionally fail-closed for missing, errored, or inconclusive detection results. A `real` result only means the audio appears human; it does not prove account ownership. Production code must add an independent factor before completing the sensitive action.
 
@@ -27,5 +27,5 @@ assistant is the mouthpiece for the decision, never the decider.
 
 - Persist `ledger` and `escalations`: the actor already mirrors every ledger row into its embedded SQL database (`this.ctx.storage.sql`).
 - Inbound webhooks: `POST /webhooks` verifies the Ed25519 signature and routes events to the account's actor via the dial's `client_state`.
-- Flashcall step-up fires for real when `FLASHCALL_VERIFY_PROFILE_ID` is configured (`POST /v2/verifications/flashcall`).
+- Flashcall step-up fires for risky outcomes when `FLASHCALL_VERIFY_PROFILE_ID` is configured (`POST /v2/verifications/flashcall`); a clean voice is not identity proof.
 - Deploy with `telnyx-edge types && telnyx-edge ship`; set secrets and `WEBHOOK_URL` afterwards (see the README's Deploy section).
