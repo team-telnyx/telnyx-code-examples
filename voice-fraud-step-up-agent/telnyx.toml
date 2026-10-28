@@ -2,25 +2,45 @@ name = "voice-fraud-step-up-agent"
 main = "src/index.ts"
 compatibility_date = "2026-10-08"
 
+[edge_compute]
+func_id = "dde0f199-b7b0-4fa4-9bfd-74c6701e1870"
+func_name = "voice-fraud-step-up-agent"
+
 [[actors]]
-binding = "FRAUD_GATES"
-type = "VoiceFraudGate"
+binding = "FRAUD_GATES_V2"
+type = "VoiceFraudGateAgent"
 
 [telnyx]
 binding = "TELNYX"
-
-[storage.sql.FRAUD_DB]
-id = "replace-with-sql-database-id"
 
 [[secrets]]
 binding = "TELNYX_API_KEY"
 name = "TELNYX_API_KEY"
 
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "TARGET_PHONE"
+name = "TARGET_PHONE"
+
+[[secrets]]
+binding = "OUTBOUND_CONNECTION_ID"
+name = "OUTBOUND_CONNECTION_ID"
+
+[[secrets]]
+binding = "OUTBOUND_CALLER_ID"
+name = "OUTBOUND_CALLER_ID"
+
+[[secrets]]
+binding = "WEBHOOK_URL"
+name = "WEBHOOK_URL"
+
+[[secrets]]
+binding = "FLASHCALL_VERIFY_PROFILE_ID"
+name = "FLASHCALL_VERIFY_PROFILE_ID"
+
 [env_vars]
-OUTBOUND_TEXML_APP_ID = "00000000-0000-0000-0000-000000000000"
-OUTBOUND_CALLER_ID = "+15551234567"
-FLASHCALL_VERIFY_PROFILE_ID = "00000000-0000-0000-0000-000000000000"
-HUMAN_REVIEW_NUMBER = "+15557654321"
-DASHBOARD_ORIGIN = "http://localhost:8787"
 RECENT_FLAG_WINDOW_MINUTES = "1440"
 MAX_CALL_MINUTES = "10"

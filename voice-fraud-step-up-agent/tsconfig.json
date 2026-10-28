@@ -8,5 +8,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "smoke_test.ts"]
+  "include": ["src/**/*.ts", "smoke_test.ts", "demo-live.ts", "demo-utils.ts"]
 }

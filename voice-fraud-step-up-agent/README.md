@@ -18,20 +18,21 @@ cp .env.example .env
 npm install
 npm run typecheck
 npm run smoke
+npm run demo:live     # real call: deployed Edge function + one deepfake-detected call to TARGET_PHONE
 telnyx-edge ship
 ```
 
-Set `TELNYX_API_KEY`, `OUTBOUND_TEXML_APP_ID`, `OUTBOUND_CALLER_ID`, and `FLASHCALL_VERIFY_PROFILE_ID` before running a real call. The smoke test runs locally and does not call or text anyone.
+Set `TELNYX_API_KEY`, `OUTBOUND_CONNECTION_ID`, `OUTBOUND_CALLER_ID`, and `FLASHCALL_VERIFY_PROFILE_ID` before running a real call. The smoke test runs locally and does not call or text anyone. `npm run demo:live` places exactly one outbound call from `OUTBOUND_CALLER_ID` to `TARGET_PHONE` with `deepfake_detection` enabled — set `TARGET_PHONE` to your own mobile. It loads `TELNYX_API_KEY` from the telnyx-edge CLI config or the environment at runtime and prints only its prefix and length, never the full key.
 
 ## How It Works
 
 1. A support request calls `requestSensitiveAction(accountId, caller, action)`.
 2. The app routes to `env.FRAUD_GATES.idFromName(accountId)`, so one account has one durable risk gate.
-3. The actor creates a Telnyx AI Assistant with `telephony_settings.deepfake_detection = true`.
-4. Telnyx streams remote-party audio and sends `call.deepfake_detection.result` or `call.deepfake_detection.error`.
-5. `human` plus a clean recent ledger proceeds.
-6. `ai_generated` or a recent risky ledger event triggers flashcall step-up.
-7. `inconclusive` or provider errors route to manual review.
+3. The actor creates a Telnyx AI Assistant and dials the caller with Call Control, passing `deepfake_detection: { enabled: true }` on the call.
+4. Telnyx streams remote-party audio and sends `call.deepfake_detection.result` (`real`, `fake`, or `silence_timeout`) or `call.deepfake_detection.error`.
+5. `real` plus a clean recent ledger proceeds.
+6. `fake` or a recent risky ledger event triggers flashcall step-up.
+7. `silence_timeout` or provider errors route to manual review.
 8. Every request, webhook, policy outcome, and escalation is appended to the ledger.
 
 ## Why Telnyx
@@ -50,9 +51,20 @@ Telnyx is AI Communications Infrastructure: the same platform handles voice, AI 
 
 This is the stronger high-quality fraud demo: show a support action, show Deepfake Detection as the event source, then show the actor deciding between proceed, flashcall step-up, and manual review. The human value prop is easy to say: voice AI can help the customer, but policy and audit live in code.
 
+## Deploy to Edge Compute
+
+```bash
+telnyx-edge secrets add TELNYX_API_KEY <your-api-key>
+telnyx-edge secrets add TELNYX_PUBLIC_KEY <base64-from-GET-/v2/public_key>
+telnyx-edge types   # generates binding types from telnyx.toml
+telnyx-edge ship    # bundles, uploads, and deploys to the edge
+```
+
+After the first `ship`, set the `WEBHOOK_URL` env var to `<deployed-function-url>/webhooks` (and `OUTBOUND_CONNECTION_ID` / `OUTBOUND_CALLER_ID` to real values) so the actor's dial overrides the per-call webhook destination — no existing Call Control config is modified. Inbound `call.deepfake_detection.result` and `.error` events arrive at `POST /webhooks`, are Ed25519 signature-verified, and are routed to the account's actor via the dial's `client_state`. The actor mirrors every ledger row into its embedded per-actor SQL database. The flashcall step-up fires for real when `FLASHCALL_VERIFY_PROFILE_ID` is set.
+
 ## Troubleshooting
 
-- No deepfake result arrives: confirm the assistant was created with `telephony_settings.deepfake_detection = true`.
+- No deepfake result arrives: confirm the dial included `deepfake_detection: { enabled: true }`.
 - Clean callers still step up: check for recent `ai_generated` or `manual_review` rows in the ledger.
 - Step-up does not start: verify `FLASHCALL_VERIFY_PROFILE_ID` is configured.
 - Restart behavior differs between calls: make sure ledger rows are persisted and loaded before evaluating the new result.
