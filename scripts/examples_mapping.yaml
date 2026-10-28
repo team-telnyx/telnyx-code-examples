@@ -3574,3 +3574,9 @@ examples:
     language: python
     framework: flask
     folder: provision-and-route-email-dedicated-ips
+
+  - product: ai
+    use_case: voice-fraud-step-up-agent
+    language: typescript
+    framework: edge
+    folder: voice-fraud-step-up-agent

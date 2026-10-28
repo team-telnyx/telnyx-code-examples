@@ -395,7 +395,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(173 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(174 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -566,6 +566,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [venue-sales-concierge](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/venue-sales-concierge/README.md) | Node.js | Telnyx-branded venue microsite + AI sales concierge on Edge Compute — per-planner Stateful Actors carry conversations across SMS and voice, live SQLDB availability, lead qualification, in-browser WebRTC voice, email brochures, and automated one-week follow-up calls. |
 | [video-room-ai-meeting-moderator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/video-room-ai-meeting-moderator-python/README.md) | Python | Video Room AI Meeting Moderator - create video rooms with AI-powered agenda tracking and time management. |
 | [video-room-ai-moderator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/video-room-ai-moderator-python/README.md) | Python | Video Room AI Moderator - create video rooms with AI-powered content moderation on chat and participant management. |
+| [voice-fraud-step-up-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-fraud-step-up-agent/README.md) | Typescript | Event-driven voice fraud gate with Telnyx AI Assistants, deepfake detection, durable risk ledger, flashcall step-up, and human-review routing. |
 | [voice-ivr-with-agent-backend](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-ivr-with-agent-backend/README.md) | Python | A natural language IVR system where the Telnyx Agent handles backend logic and an LLM powers dynamic menu options. |
 | [voice-journal-daily-log-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voice-journal-daily-log-python/README.md) | Python | Voice Journal Daily Log - call a number, speak your daily journal entry, AI transcribes and organizes it with mood, topics, and gratitude extraction. |
 | [voicemail-smart-router-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/voicemail-smart-router-python/README.md) | Python | AI Voicemail Smart Router — transcribe voicemails, classify intent (urgent, billing, support, sales, spam, routine), and route to the right channel via Telnyx STT + AI Inference. |
