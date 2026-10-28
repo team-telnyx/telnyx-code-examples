@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-08T18:51:28Z",
-  "example_count": 565,
+  "generated_at": "2026-10-28T19:54:27Z",
+  "example_count": 583,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -1636,6 +1636,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omnichannel-ai-agent-python"
     },
     {
+      "folder": "omnichannel-context-carrying-python",
+      "title": "Omnichannel Context-Carrying Agent",
+      "description": "AI agent that carries customer context across email, voice, and SMS so customers never repeat themselves. Demonstrates cross-channel identity resolution with Telnyx Inference, Email, Messaging, and Call Control APIs.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/omnichannel-context-carrying-python"
+    },
+    {
       "folder": "policy-renewal-campaign-python",
       "title": "Policy Renewal Campaign",
       "description": "Automated multi-channel renewal reminders. 60 days: SMS. 30 days: AI voice call reviewing coverage changes. 7 days: urgent SMS. Agent reviews lapsed policies for win-back.",
@@ -1670,6 +1679,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/run-llm-inference-python"
+    },
+    {
+      "folder": "ai-assembly-tutor-c",
+      "title": "AI Assembly Tutor",
+      "description": "Interactive LC-3 assembly tutor with a WebAssembly VM and Telnyx Inference-powered AI explanations.",
+      "product": "ai",
+      "language": "c",
+      "framework": "emscripten",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-assembly-tutor-c"
     },
     {
       "folder": "storage-voicemail-archive-python",
@@ -2534,6 +2552,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-sms-bridge-python"
+    },
+    {
+      "folder": "whatsapp-restaurant-reservation-python",
+      "title": "Restaurant Reservations via WhatsApp with AI Agent",
+      "description": "Build a WhatsApp-powered restaurant reservation system with AI agent, interactive messages, and real-time dashboard using Telnyx WhatsApp Business API and AI Inference",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-restaurant-reservation-python"
     },
     {
       "folder": "white-label-appointment-platform-python",
@@ -5081,6 +5108,141 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/chargeback-adjudication"
+    },
+    {
+      "folder": "per-caller-intake",
+      "title": "Per-Caller Intake Concierge",
+      "description": "A durable per-caller Agent-SDK dossier that greets returning patients with personalized dynamic variables, hands off an encrypted one-time portal credential, and files post-conversation visit summaries — so every call remembers the last one.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/per-caller-intake"
+    },
+    {
+      "folder": "live-support-coach-room",
+      "title": "Live Support Coach Room",
+      "description": "A Telnyx Edge Agent that streams live AI support calls to a supervisor dashboard, injects coaching nudges mid-call, and escalates to a human via WebRTC.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/live-support-coach-room"
+    },
+    {
+      "folder": "ai-gateway-tenant-meter",
+      "title": "Multi-Tenant AI Spend Ledger with Telnyx AI Gateway",
+      "description": "A durable per-tenant billing ledger that meters AI usage, enforces budgets, and blocks secret leakage via Telnyx AI Gateway guardrails.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-gateway-tenant-meter"
+    },
+    {
+      "folder": "persistent-ai-agent-memory",
+      "title": "Persistent AI Agent Memory Demo",
+      "description": "A Python CLI tool that ingests a support transcript into Telnyx Agent Memory, polls the async operation, and recalls extracted facts to demonstrate long-term AI agent memory.",
+      "product": "ai",
+      "language": "python",
+      "framework": "cli",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/persistent-ai-agent-memory"
+    },
+    {
+      "folder": "clinic-triage-handoff",
+      "title": "Clinic Triage Handoff",
+      "description": "",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/clinic-triage-handoff"
+    },
+    {
+      "folder": "insurance-verification-caller",
+      "title": "Insurance Verification Caller — Durable Voice Actor with Jev Decision Models",
+      "description": "A durable Telnyx Edge actor that dials a carrier IVR, drives the menu via send_dtmf, captures the spoken eligibility result via STT, scores it with Jev Decision Models, and sends a one-line SMS verdict to the front desk — surviving voicemail, drops, and pod restarts.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insurance-verification-caller"
+    },
+    {
+      "folder": "whatsapp-coexistence-sync-monitor",
+      "title": "WhatsApp Coexistence Sync Monitor",
+      "description": "Monitor a coexistence-enabled WhatsApp number by verifying lifecycle state via the Telnyx API and logging message.echo webhooks from the WhatsApp Business app.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-coexistence-sync-monitor"
+    },
+    {
+      "folder": "show-wrap-desk",
+      "title": "Show Wrap Desk — AI Podcast Production Studio",
+      "description": "A durable AI agent that transcribes, chapterizes, writes show notes, and cuts a trailer for podcast episodes — surviving crashes between every stage.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/show-wrap-desk"
+    },
+    {
+      "folder": "candidate-screening-call-agent",
+      "title": "Candidate Screening Call Agent",
+      "description": "Event-driven recruiting phone screen with Telnyx AI Assistants, outbound TeXML AI calls, durable candidate state, Decision Models scoring, and a live recruiter dashboard.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/candidate-screening-call-agent"
+    },
+    {
+      "folder": "policy-recall-line",
+      "title": "Policy Recall Line — The Handbook Librarian",
+      "description": "A durable, self-refreshing company librarian that answers policy questions from an embedded handbook and keeps a permanent Q&A ledger.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/policy-recall-line"
+    },
+    {
+      "folder": "gateway-fallbacks",
+      "title": "AI Gateway Fallback & Resilience Desk — Policy-Driven Model Failover with Observable Headers",
+      "description": "Provision an AI Gateway token group with fallbacks and retries, prove failover via x-ltg-served-model / x-ltg-attempts headers, and confirm the same story in the spend ledger.",
+      "product": "ai",
+      "language": "python",
+      "framework": "",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/gateway-fallbacks"
+    },
+    {
+      "folder": "email-whatsapp-support-python",
+      "title": "Email Whatsapp Support Python",
+      "description": "",
+      "product": "email",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/email-whatsapp-support-python"
+    },
+    {
+      "folder": "missions-audit",
+      "title": "Missions Audit Desk — Plan, Run, and Forensically Trace an Agent Mission",
+      "description": "Drive one Telnyx AI mission end-to-end and render a timestamped audit trail of what was planned, what ran, and what failed.",
+      "product": "ai",
+      "language": "python",
+      "framework": "vanilla",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/missions-audit"
+    },
+    {
+      "folder": "insights-pipeline",
+      "title": "Structured-Insights Pipeline Desk — Schema-First Conversation Mining",
+      "description": "Build a schema-first structured-insights pipeline over AI conversations: typed insight templates, insight groups, assistant wiring, webhook + poll, and a QA scorecard.",
+      "product": "ai",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insights-pipeline"
+    },
+    {
+      "folder": "provision-and-route-email-dedicated-ips",
+      "title": "Provision and Route Email Dedicated IPs",
+      "description": "Provision a dedicated sending IP, start its warm-up, create a default IP pool, route the IP through the pool, and verify delivery with a test email.",
+      "product": "email",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/provision-and-route-email-dedicated-ips"
     },
     {
       "folder": "voice-fraud-step-up-agent",

@@ -1121,6 +1121,12 @@ examples:
     folder: omnichannel-ai-agent-python
 
   - product: ai
+    use_case: omnichannel-context-carrying
+    language: python
+    framework: flask
+    folder: omnichannel-context-carrying-python
+
+  - product: ai
     use_case: policy-renewal-campaign
     language: python
     framework: flask
@@ -1143,6 +1149,12 @@ examples:
     language: python
     framework: flask
     folder: run-llm-inference-python
+
+  - product: ai
+    use_case: ai-assembly-tutor
+    language: c
+    framework: emscripten
+    folder: ai-assembly-tutor-c
 
   - product: ai
     use_case: storage-voicemail-archive
@@ -1719,6 +1731,12 @@ examples:
     language: python
     framework: flask
     folder: whatsapp-sms-bridge-python
+
+  - product: sms
+    use_case: whatsapp-restaurant-reservation
+    language: python
+    framework: flask
+    folder: whatsapp-restaurant-reservation-python
 
   - product: sms
     use_case: white-label-appointment-platform
@@ -3466,6 +3484,96 @@ examples:
     language: typescript
     framework: edge
     folder: chargeback-adjudication
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: per-caller-intake
+
+  - product: ai
+    use_case: live-support-coach-room
+    language: typescript
+    framework: edge
+    folder: live-support-coach-room
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: ai-gateway-tenant-meter
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: cli
+    folder: persistent-ai-agent-memory
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: clinic-triage-handoff
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: insurance-verification-caller
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: whatsapp-coexistence-sync-monitor
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: show-wrap-desk
+
+  - product: ai
+    use_case: candidate-screening-call-agent
+    language: typescript
+    framework: edge
+    folder: candidate-screening-call-agent
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: policy-recall-line
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: ""
+    folder: gateway-fallbacks
+
+  - product: email
+    use_case: unified-email-whatsapp-support
+    language: python
+    framework: flask
+    folder: email-whatsapp-support-python
+
+  - product: ai
+    use_case: agent-mission-audit-trail
+    language: python
+    framework: vanilla
+    folder: missions-audit
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: insights-pipeline
+
+  - product: email
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: provision-and-route-email-dedicated-ips
 
   - product: ai
     use_case: voice-fraud-step-up-agent
