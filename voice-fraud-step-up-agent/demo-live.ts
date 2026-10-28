@@ -8,7 +8,6 @@ import {
   RED,
   RESET,
   YELLOW,
-  loadApiKey,
   maskPhone,
   note,
   parseEnvFile,
@@ -49,8 +48,6 @@ function printRow(row: LedgerRow): void {
   console.log(`${DIM}${shortTs(row.ts)}${RESET}  ${BOLD}${color}${row.outcome}${RESET} — ${truncate(row.note, 64)}`);
 }
 
-const key = loadApiKey();
-
 console.log(`\n${BOLD}VOICE FRAUD STEP-UP AGENT — LIVE ON EDGE${RESET}`);
 note(`function: ${base}`);
 note("no tunnels, no local server — the Edge function receives every webhook directly");
@@ -64,11 +61,7 @@ if (!health.ok) {
 note("deployed function is live", GREEN);
 
 section("2", "personal key");
-if (key) {
-  note(`${key.source}: ${key.key.slice(0, 6)}… (${key.key.length} chars, never printed in full)`);
-} else {
-  note("no local key found — not required: the Edge function holds its own secret", DIM);
-}
+note("credentials remain in the deployed Edge function and are never read or printed by this local monitor", DIM);
 
 section("3", "triggering the gate on Edge");
 const demoRes = await fetch(`${base}/demo`);

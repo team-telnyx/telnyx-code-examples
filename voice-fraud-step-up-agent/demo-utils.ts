@@ -1,6 +1,4 @@
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 
 const BOLD = "\x1b[1m";
 export { BOLD };
@@ -40,7 +38,8 @@ export function truncate(text: string, max: number): string {
 }
 
 export function maskPhone(phone: string): string {
-  return `•••${phone.slice(-4)}`;
+  void phone;
+  return "[configured target phone]";
 }
 
 export function ledgerTable(rows: ReadonlyArray<{
@@ -66,22 +65,6 @@ export function ledgerTable(rows: ReadonlyArray<{
   const line = (parts: string[]): string => parts.map((p, i) => p.padEnd(widths[i])).join(" ");
   console.log(`${DIM}${line(header)}${RESET}`);
   for (const cell of cells) console.log(line(cell));
-}
-
-export interface ApiKeySource {
-  key: string;
-  source: "telnyx-edge CLI config" | "TELNYX_API_KEY env";
-}
-
-// security-relevant: the personal key is read at runtime only — never printed in full, never persisted
-export function loadApiKey(): ApiKeySource | null {
-  const configPath = join(homedir(), ".telnyx-edge", "config.toml");
-  if (existsSync(configPath)) {
-    const match = /api_key\s*=\s*"([^"]+)"/.exec(readFileSync(configPath, "utf8"));
-    if (match?.[1]) return { key: match[1], source: "telnyx-edge CLI config" };
-  }
-  const fromEnv = process.env.TELNYX_API_KEY?.trim();
-  return fromEnv ? { key: fromEnv, source: "TELNYX_API_KEY env" } : null;
 }
 
 export async function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {

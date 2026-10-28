@@ -22,7 +22,7 @@ npm run demo:live     # real call: deployed Edge function + one deepfake-detecte
 telnyx-edge ship
 ```
 
-Set `TELNYX_API_KEY`, `OUTBOUND_CONNECTION_ID`, `OUTBOUND_CALLER_ID`, and `FLASHCALL_VERIFY_PROFILE_ID` before running a real call. The smoke test runs locally and does not call or text anyone. `npm run demo:live` places exactly one outbound call from `OUTBOUND_CALLER_ID` to `TARGET_PHONE` with `deepfake_detection` enabled — set `TARGET_PHONE` to your own mobile. It loads `TELNYX_API_KEY` from the telnyx-edge CLI config or the environment at runtime and prints only its prefix and length, never the full key.
+Set `TELNYX_API_KEY`, `OUTBOUND_CONNECTION_ID`, `OUTBOUND_CALLER_ID`, and `FLASHCALL_VERIFY_PROFILE_ID` as Edge secrets before running a real call. The smoke test runs locally and does not call or text anyone. `npm run demo:live` places exactly one outbound call from `OUTBOUND_CALLER_ID` to `TARGET_PHONE` with `deepfake_detection` enabled — set `TARGET_PHONE` to your own mobile. The local monitor does not read or print any API key; credentials stay in the deployed Edge function.
 
 ## How It Works
 
