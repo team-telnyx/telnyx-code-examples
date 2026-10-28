@@ -84,6 +84,29 @@ export interface GateState extends Record<string, unknown> {
   mirroredRows: number;
 }
 
+function safeText(value: unknown, fallback = ""): string {
+  if (typeof value === "string") return value;
+  if (value === null || value === undefined) return fallback;
+  try {
+    return String(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function jsonSafeLedgerRow(row: LedgerRow): LedgerRow {
+  return {
+    accountId: safeText(row.accountId),
+    ts: safeText(row.ts),
+    callSid: safeText(row.callSid, "unknown-call"),
+    deepfakeResult: safeText(row.deepfakeResult, "error") as LedgerRow["deepfakeResult"],
+    action: safeText(row.action, "wire_transfer") as LedgerRow["action"],
+    outcome: safeText(row.outcome, "manual_review") as GateOutcome,
+    source: safeText(row.source, "deepfake_webhook") as LedgerRow["source"],
+    note: safeText(row.note),
+  };
+}
+
 export interface EnvLike {
   TELNYX_API_KEY?: string;
   TELNYX_PUBLIC_KEY?: string;
@@ -307,8 +330,8 @@ export class VoiceFraudGateModel {
       pendingAction: this.state.pendingAction,
       callSid: this.state.callSid,
       latestDecision: this.lastDecision(),
-      ledger: [...this.state.ledger],
-      escalations: [...this.state.escalations],
+      ledger: this.state.ledger.map(jsonSafeLedgerRow),
+      escalations: this.state.escalations.map(jsonSafeLedgerRow),
     };
   }
 
@@ -722,6 +745,8 @@ export class VoiceFraudGateAgent extends Agent<Env, GateState> {
 
   private async persistModel(model: VoiceFraudGateModel): Promise<void> {
     const state = model.state;
+    state.ledger = state.ledger.map(jsonSafeLedgerRow);
+    state.escalations = state.escalations.map(jsonSafeLedgerRow);
     await this.setState(state);
     const fresh = state.ledger.slice(state.mirroredRows);
     if (fresh.length === 0) return;
