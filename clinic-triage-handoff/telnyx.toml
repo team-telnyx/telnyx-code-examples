@@ -1,0 +1,23 @@
+name = "clinic-triage-handoff"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "TRIAGE_ROUTER_V3"
+type = "TriageRouterV3"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[telnyx]
+binding = "TELNYX"
+
+[edge_compute]
+# func_id is assigned on first deploy — run: telnyx-edge new-func -l ts -n clinic-triage-handoff
+func_id = "<assigned-on-first-deploy>"
+func_name = "clinic-triage-handoff"
+
+# Deploy-time values (ONCALL_NUMBER, SMS_FROM_NUMBER, CONNECTION_ID, WEBHOOK_URL,
+# ASSISTANT_ROUTES_JSON) do not propagate via [env_vars] on Edge deploys.
+# Push them with: telnyx-edge secrets add <NAME> <value>

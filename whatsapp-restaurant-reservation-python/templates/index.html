@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DineNyx — Restaurant Reservations via WhatsApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f5f7;--surface:#ffffff;--surface2:#f9fafb;--surface3:#f0f1f3;
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.12);
+  --text:#1a1a1a;--text2:#555;--text3:#888;
+  --green:#00b386;--green2:#009973;--green-glow:rgba(0,179,134,.1);
+  --green-dark:#00805e;
+  --red:#e53e3e;--yellow:#d69e2e;--blue:#3182ce;--purple:#805ad5;
+  --wa-green:#075E54;--wa-dark:#0b141a;--wa-chat:#e4ddd6;--wa-out:#d9fdd3;
+  --radius:12px;--radius-sm:8px;
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+body{background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+a{color:var(--green-dark);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── Hero Section ─────────────────────────────────────────────── */
+.hero{
+  position:relative;
+  padding:48px 48px 44px;
+  background:url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=80&fit=crop') center/cover no-repeat;
+  overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(0,0,0,.55);
+  pointer-events:none;
+}
+.hero-content{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  max-width:1400px;margin:0 auto;gap:14px;
+}
+.hero-left{display:flex;flex-direction:column;align-items:center;gap:14px}
+.hero-logo{
+  width:60px;height:60px;border-radius:16px;
+  background:rgba(255,255,255,.2);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:800;color:#fff;
+  border:2px solid rgba(255,255,255,.3);
+  flex-shrink:0;
+}
+.hero-brand{font-family:'DM Sans',sans-serif;font-size:40px;font-weight:700;color:#f0ece2;letter-spacing:.5px;line-height:1}
+.hero-tagline{
+  font-family:'DM Sans',sans-serif;font-size:15px;color:rgba(240,236,226,.75);line-height:1.6;font-weight:400;
+}
+.hero-tagline strong{color:#fff;font-weight:600}
+.hero-features{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.hero-chip{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:20px;
+  background:rgba(255,255,255,.15);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.22);
+  font-size:11px;color:#fff;font-weight:500;
+}
+.hero-chip svg{width:13px;height:13px;fill:#fff}
+.hero-cta{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 22px;border-radius:24px;
+  background:#25D366;color:#fff;
+  font-size:14px;font-weight:600;
+  text-decoration:none;
+  transition:opacity .15s;
+  margin-top:4px;
+}
+.hero-cta:hover{opacity:.9;text-decoration:none}
+.hero-cta svg{width:18px;height:18px;fill:#fff}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#6fff6f;animation:pulse 2s infinite;box-shadow:0 0 6px rgba(111,255,111,.5)}
+
+/* ── Navbar ──────────────────────────────────────────────────── */
+.navbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 24px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  font-size:12px;color:var(--text2);
+}
+.navbar-left{display:flex;align-items:center;gap:6px}
+.navbar-right{display:flex;align-items:center;gap:8px}
+.nav-badge{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 12px;border-radius:14px;
+  background:var(--green-glow);color:var(--green-dark);
+  font-size:11px;font-weight:500;
+}
+.nav-badge svg{width:14px;height:14px;fill:var(--green)}
+
+.btn{
+  padding:7px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text);
+  cursor:pointer;transition:all .15s;
+}
+.btn:hover{border-color:var(--green);background:var(--green-glow)}
+.btn-sm{padding:5px 10px;font-size:12px}
+
+/* ── Layout ───────────────────────────────────────────────────── */
+.layout{
+  display:grid;
+  grid-template-columns:1.2fr 380px 0.8fr;
+  gap:12px;height:calc(100vh - 240px);
+  padding:12px;
+}
+.panel{
+  display:flex;flex-direction:column;
+  border:1px solid var(--border);
+  border-radius:20px;
+  overflow:hidden;
+  background:var(--surface);
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
+}
+.panel-header{
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.panel-header h2{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text2)}
+.panel-body{flex:1;overflow-y:auto;padding:12px}
+.panel-body::-webkit-scrollbar{width:5px}
+.panel-body::-webkit-scrollbar-track{background:transparent}
+.panel-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:4px}
+
+/* ── Restaurant Cards ─────────────────────────────────────────── */
+.filter-row{
+  display:flex;gap:8px;padding:0 0 8px;
+}
+.filter-input{
+  flex:1.2;padding:7px 10px;border-radius:var(--radius-sm);
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-size:12px;outline:none;
+}
+.filter-input:focus{border-color:var(--green);box-shadow:0 0 0 2px var(--green-glow)}
+.filter-input::placeholder{color:var(--text3)}
+.filter-select{
+  flex:1;padding:7px 10px;border-radius:var(--radius-sm);
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-size:12px;outline:none;cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2371717a'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  padding-right:26px;
+}
+.filter-select:focus{border-color:var(--green);box-shadow:0 0 0 2px var(--green-glow)}
+.filter-select option{background:var(--surface);color:var(--text)}
+.search-box{
+  display:flex;gap:8px;padding:0 0 12px;
+}
+.search-input{
+  flex:1;padding:8px 12px;border-radius:var(--radius-sm);
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text);font-size:13px;outline:none;
+}
+.search-input:focus{border-color:var(--green);box-shadow:0 0 0 2px var(--green-glow)}
+.search-input::placeholder{color:var(--text3)}
+.loading-spinner{
+  text-align:center;padding:30px;color:var(--text3);font-size:13px;
+}
+
+.restaurant-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;margin-bottom:10px;transition:border-color .15s;
+}
+.restaurant-card:hover{border-color:var(--border2)}
+.restaurant-card.highlighted{
+  border-color:var(--green);
+  box-shadow:0 0 0 2px var(--green-glow);
+  transition:border-color .3s, box-shadow .3s;
+}
+.restaurant-photo{
+  width:100%;height:120px;object-fit:cover;
+  background:var(--surface2);
+}
+.restaurant-info{padding:10px 12px}
+.restaurant-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.restaurant-meta-row{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;
+}
+.restaurant-rating{
+  font-size:12px;font-weight:600;color:var(--yellow);
+}
+.restaurant-rating-count{font-size:11px;color:var(--text3)}
+.restaurant-price{font-size:12px;color:var(--green2);font-weight:600}
+.restaurant-price-range{font-size:11px;color:var(--text3)}
+.restaurant-cuisine{
+  display:inline-block;padding:2px 8px;border-radius:10px;
+  background:var(--green-glow);color:var(--green);font-size:11px;font-weight:500;
+}
+.restaurant-open{
+  display:inline-block;padding:2px 8px;border-radius:10px;
+  font-size:10px;font-weight:600;
+}
+.open-yes{background:rgba(0,227,170,.12);color:var(--green)}
+.open-no{background:rgba(239,68,68,.12);color:var(--red)}
+.restaurant-address{font-size:12px;color:var(--text3);margin:4px 0}
+.restaurant-tags{display:flex;gap:4px;flex-wrap:wrap;margin:5px 0}
+.restaurant-tag{
+  font-size:10px;padding:2px 6px;border-radius:6px;
+  background:var(--surface3);color:var(--text2);
+}
+.restaurant-links{display:flex;gap:8px;margin-bottom:6px}
+.restaurant-links a{font-size:11px;color:var(--text2)}
+.restaurant-links a:hover{color:var(--green)}
+.restaurant-hours-toggle{
+  font-size:11px;color:var(--text3);cursor:pointer;margin-bottom:4px;
+  user-select:none;
+}
+.restaurant-hours-toggle:hover{color:var(--text2)}
+.restaurant-hours{
+  display:none;font-size:11px;color:var(--text3);
+  padding:4px 0 6px;line-height:1.6;
+}
+.restaurant-hours.show{display:block}
+.restaurant-actions{display:flex;gap:6px}
+.btn-book{
+  flex:1;padding:7px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;
+  background:var(--green);color:#fff;border:none;cursor:pointer;
+  text-align:center;transition:opacity .15s;
+}
+.btn-book:hover{opacity:.85}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px}
+
+/* ── WhatsApp Phone Mockup ────────────────────────────────────── */
+.phone-panel{
+  display:flex;align-items:stretch;justify-content:center;
+  background:transparent;overflow:hidden;min-height:0;
+}
+.phone-frame{
+  width:100%;flex:1;min-height:0;max-height:100%;
+  border-radius:36px;
+  border:3px solid #c4c7cc;
+  background:#e8e8ed;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 4px 24px rgba(0,0,0,.1), 0 1px 4px rgba(0,0,0,.06);
+  position:relative;
+}
+/* Dynamic island */
+.phone-notch{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:90px;height:24px;background:#000;border-radius:14px;
+  z-index:10;
+}
+/* Status bar */
+.phone-statusbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 24px 0;height:44px;
+  background:#075E54;color:#fff;font-size:11px;font-weight:600;
+  position:relative;z-index:5;
+}
+.phone-statusbar-left{flex:1}
+.phone-statusbar-right{flex:1;text-align:right;display:flex;justify-content:flex-end;gap:4px;align-items:center}
+.phone-statusbar-right svg{width:14px;height:14px;fill:#fff}
+/* WA header */
+.wa-header{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 12px 10px;
+  background:#075E54;
+}
+.wa-back{color:rgba(255,255,255,.85);font-size:18px;cursor:default}
+.wa-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#00e3aa,#00a67e);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700;color:#fff;
+}
+.wa-contact{flex:1}
+.wa-contact-name{font-size:14px;font-weight:600;color:#fff}
+.wa-contact-status{font-size:11px;color:rgba(255,255,255,.6)}
+.wa-header-icons{display:flex;gap:14px;color:rgba(255,255,255,.8)}
+.wa-header-icons svg{width:18px;height:18px;fill:currentColor}
+
+/* Chat area */
+.chat-area{
+  flex:1;overflow-y:auto;padding:8px 10px;
+  display:flex;flex-direction:column;gap:5px;
+  background:#e4ddd6 url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='p' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='20' cy='20' r='.6' fill='%23000000' opacity='.04'/%3E%3C/pattern%3E%3C/defs%3E%3Crect fill='%23e4ddd6' width='400' height='400'/%3E%3Crect fill='url(%23p)' width='400' height='400'/%3E%3C/svg%3E");
+}
+.chat-area::-webkit-scrollbar{width:3px}
+.chat-area::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px}
+
+.chat-bubble{
+  max-width:82%;padding:6px 8px;border-radius:8px;
+  font-size:12.5px;line-height:1.4;position:relative;
+  animation:bubbleIn .3s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
+}
+.chat-bubble.inbound{
+  align-self:flex-start;background:#fff;color:#1a1a1a;
+  border-top-left-radius:0;
+}
+.chat-bubble.outbound{
+  align-self:flex-end;background:#d9fdd3;color:#1a1a1a;
+  border-top-right-radius:0;
+}
+.chat-time{font-size:9px;color:rgba(0,0,0,.4);margin-top:2px;text-align:right;display:flex;justify-content:flex-end;align-items:center;gap:3px}
+.chat-time .read-ticks{color:#53bdeb;font-size:11px}
+.chat-typing{
+  align-self:flex-start;background:#fff;
+  padding:8px 12px;border-radius:8px;border-top-left-radius:0;
+  display:none;box-shadow:0 1px 2px rgba(0,0,0,.08);
+}
+.typing-dots{display:flex;gap:3px}
+.typing-dots span{
+  width:5px;height:5px;border-radius:50%;background:#999;
+  animation:typingBounce .8s infinite;
+}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+
+.chat-empty{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  color:rgba(0,0,0,.3);font-size:12px;text-align:center;padding:20px;
+}
+
+/* Input bar */
+.wa-input-bar{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 8px;background:#f0f2f5;
+}
+.wa-input-field{
+  flex:1;display:flex;align-items:center;gap:6px;
+  background:#fff;border-radius:20px;padding:7px 12px;
+}
+.wa-input-field svg{width:18px;height:18px;fill:#8696a0;flex-shrink:0}
+.wa-input-placeholder{font-size:13px;color:#8696a0;flex:1}
+.wa-mic{
+  width:36px;height:36px;border-radius:50%;
+  background:#00a884;display:flex;align-items:center;justify-content:center;
+}
+.wa-mic svg{width:18px;height:18px;fill:#fff}
+
+
+/* ── Reservation Board ────────────────────────────────────────── */
+.res-summary{
+  display:flex;gap:8px;padding:0 0 12px;
+}
+.res-stat{
+  flex:1;padding:10px;border-radius:var(--radius-sm);
+  background:var(--surface2);border:1px solid var(--border);text-align:center;
+}
+.res-stat .num{font-size:22px;font-weight:700;color:var(--green)}
+.res-stat .label{font-size:11px;color:var(--text3);margin-top:2px}
+
+.table-grid{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:6px;
+  padding:0 0 14px;
+}
+.table-cell{
+  padding:8px 4px;border-radius:var(--radius-sm);text-align:center;
+  border:1px solid var(--border);background:var(--surface2);font-size:11px;
+  transition:all .2s;
+}
+.table-cell .table-id{font-weight:700;font-size:12px}
+.table-cell .table-seats{color:var(--text3);font-size:10px}
+.table-cell.available{border-color:rgba(0,227,170,.3)}
+.table-cell.available .table-id{color:var(--green)}
+.table-cell.booked{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.08)}
+.table-cell.booked .table-id{color:var(--red)}
+.table-cell.pending{border-color:rgba(234,179,8,.3);background:rgba(234,179,8,.08)}
+.table-cell.pending .table-id{color:var(--yellow)}
+
+.res-list{display:flex;flex-direction:column;gap:8px}
+.res-card{
+  padding:10px 12px;border-radius:var(--radius-sm);
+  background:var(--surface);border:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+  animation:slideIn .3s ease;
+}
+.res-time{
+  font-size:16px;font-weight:700;color:var(--green);
+  min-width:50px;
+}
+.res-details{flex:1}
+.res-restaurant{font-size:13px;font-weight:600}
+.res-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.res-badge{
+  padding:3px 8px;border-radius:10px;font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.3px;
+}
+.badge-confirmed{background:rgba(0,227,170,.15);color:var(--green)}
+.badge-pending{background:rgba(234,179,8,.15);color:var(--yellow)}
+.badge-cancelled{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-completed{background:rgba(59,130,246,.15);color:var(--blue)}
+.badge-no_show{background:rgba(168,85,247,.15);color:var(--purple)}
+
+.res-actions{display:flex;gap:4px;margin-top:6px}
+
+.section-label{
+  font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--text3);margin:10px 0 6px;
+}
+
+/* ── Pagination ──────────────────────────────────────────────── */
+.pagination{
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  padding:12px 0 4px;flex-wrap:wrap;
+}
+.page-btn{
+  padding:6px 10px;border-radius:6px;font-size:12px;font-weight:500;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text2);
+  cursor:pointer;transition:all .15s;min-width:32px;
+}
+.page-btn:hover:not(:disabled):not(.active){border-color:var(--green);color:var(--text)}
+.page-btn.active{background:var(--green);color:#fff;border-color:var(--green);font-weight:700}
+.page-btn:disabled{opacity:.3;cursor:default}
+.page-dots{color:var(--text3);font-size:12px;padding:0 2px}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.site-footer{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px;
+  font-size:12px;color:var(--text3);
+  border-top:1px solid var(--border);
+  background:var(--surface);
+}
+.site-footer a{color:var(--green-dark);font-weight:600}
+
+/* ── Animations ───────────────────────────────────────────────── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes bubbleIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes typingBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+/* ── Responsive ───────────────────────────────────────────────── */
+@media(max-width:1024px){
+  .layout{grid-template-columns:1fr;height:auto}
+  .panel{border-right:none;border-bottom:1px solid var(--border);min-height:400px}
+}
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-content">
+    <div class="hero-left">
+      <div class="hero-brand">DineNyx</div>
+      <div class="hero-tagline">AI-powered restaurant reservations via <strong>WhatsApp</strong>. Browse, book, and manage tables with a single conversation.</div>
+      <a class="hero-cta" href="https://web.whatsapp.com/send?phone={{ whatsapp_number | replace('+', '') }}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+        Message {{ whatsapp_number }} to try it
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Navbar -->
+<div class="navbar">
+  <div class="navbar-left">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--green)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    Search any city &middot; Browse restaurants &middot; Book via WhatsApp
+  </div>
+  <div class="navbar-right">
+    <div class="nav-badge">
+      <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+      WhatsApp Connected
+    </div>
+    <div class="nav-badge">
+      <svg viewBox="0 0 24 24" fill="var(--green)"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+      AI Inference
+    </div>
+  </div>
+</div>
+
+<!-- 3-Panel Layout -->
+<div class="layout">
+
+  <!-- Left: Restaurant Browser -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Restaurants</h2>
+      <span style="font-size:12px;color:var(--text3)" id="restaurantCount">0 results</span>
+    </div>
+    <div class="panel-body">
+      <div class="filter-row">
+        <input type="text" class="filter-input" id="cityInput"
+               value="{{ city }}" placeholder="Type a city..."
+               onkeydown="if(event.key==='Enter')onCityChange()"
+               onblur="onCityChange()">
+        <select class="filter-select" id="cuisineSelect" onchange="onCuisineChange()">
+          {% for c in cuisines %}
+          <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="search-box">
+        <input type="text" class="search-input" id="searchInput"
+               placeholder="Filter by name..." oninput="filterRestaurants()">
+      </div>
+      <div id="restaurantList"></div>
+    </div>
+  </div>
+
+  <!-- Center: WhatsApp Phone Mockup -->
+  <div class="phone-panel">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <!-- Status bar -->
+        <div class="phone-statusbar">
+          <div class="phone-statusbar-left" id="phoneTime">9:41</div>
+          <div class="phone-statusbar-right">
+            <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 00-6 0zm-4-4l2 2a7.07 7.07 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4zM13 18h-2v-2h2v2zm0-4h-2V9h2v5z"/></svg>
+          </div>
+        </div>
+        <!-- WA Header -->
+        <div class="wa-header">
+          <span class="wa-back">&#8249;</span>
+          <div class="wa-avatar">D</div>
+          <div class="wa-contact">
+            <div class="wa-contact-name">DineNyx</div>
+            <div class="wa-contact-status" id="phoneStatus">online</div>
+          </div>
+          <div class="wa-header-icons">
+            <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+          </div>
+        </div>
+        <!-- Chat -->
+        <div class="chat-area" id="chatArea">
+          <div class="chat-empty" id="chatEmpty">
+            Send a WhatsApp message to<br>start a conversation
+          </div>
+        </div>
+        <div class="chat-typing" id="chatTyping">
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+        </div>
+        <!-- Input bar -->
+        <div class="wa-input-bar">
+          <div class="wa-input-field">
+            <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+            <span class="wa-input-placeholder" id="activityBar">Message</span>
+            <svg viewBox="0 0 24 24"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 015 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5a2.5 2.5 0 005 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+          </div>
+          <div class="wa-mic">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <!-- Right: Reservation Board -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Reservations</h2>
+      <span style="font-size:12px;color:var(--text3)" id="resDate">Today</span>
+    </div>
+    <div class="panel-body">
+      <div class="res-summary">
+        <div class="res-stat">
+          <div class="num" id="totalBookings">0</div>
+          <div class="label">Total</div>
+        </div>
+        <div class="res-stat">
+          <div class="num" id="confirmedCount">0</div>
+          <div class="label">Confirmed</div>
+        </div>
+        <div class="res-stat">
+          <div class="num" id="pendingCount">0</div>
+          <div class="label">Pending</div>
+        </div>
+      </div>
+
+      <div class="section-label">Table Status</div>
+      <div class="table-grid" id="tableGrid">
+        <div class="table-cell available"><div class="table-id">T1</div><div class="table-seats">2 seats</div></div>
+        <div class="table-cell available"><div class="table-id">T2</div><div class="table-seats">2 seats</div></div>
+        <div class="table-cell available"><div class="table-id">T3</div><div class="table-seats">4 seats</div></div>
+        <div class="table-cell available"><div class="table-id">T4</div><div class="table-seats">4 seats</div></div>
+        <div class="table-cell available"><div class="table-id">T5</div><div class="table-seats">6 seats</div></div>
+        <div class="table-cell available"><div class="table-id">T6</div><div class="table-seats">8 seats</div></div>
+      </div>
+
+      <div class="section-label">Bookings</div>
+      <div class="res-list" id="resList">
+        <div class="empty-state">No reservations yet today</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <span class="status-dot" id="statusDot"></span>
+  Powered by <a href="https://telnyx.com" target="_blank" rel="noopener">Telnyx</a>
+</footer>
+
+<script>
+/* ── State ────────────────────────────────────────────────────── */
+let allRestaurants = [];
+let eventSource = null;
+let currentPage = 1;
+let totalPages = 1;
+let totalResults = 0;
+const PER_PAGE = 12;
+const WA_NUMBER = '{{ whatsapp_number }}'.replace('+', '');
+
+/* ── SSE Connection ───────────────────────────────────────────── */
+function connectSSE() {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource('/stream');
+
+  eventSource.onopen = () => {
+    document.getElementById('statusDot').style.background = 'var(--green)';
+  };
+
+  eventSource.onerror = () => {
+    document.getElementById('statusDot').style.background = 'var(--red)';
+  };
+
+  eventSource.onmessage = (e) => {
+    let data;
+    try { data = JSON.parse(e.data); } catch { return; }
+    handleSSE(data);
+  };
+}
+
+function handleSSE(data) {
+  const type = data.type;
+
+  if (type === 'channel.whatsapp') {
+    showTyping(false);
+    addChatBubble(data);
+    updateActivity(data.direction === 'inbound' ? 'Message received' : 'Message sent');
+  }
+  else if (type === 'agent.thinking') {
+    showTyping(true);
+    updateActivity('Thinking...');
+  }
+  else if (type === 'agent.done') {
+    showTyping(false);
+    updateActivity('Ready');
+  }
+  else if (type === 'agent.tool_call') {
+    showTyping(true);
+    updateActivity('Using tool: ' + (data.tool || ''));
+  }
+  else if (type === 'agent.tool_result') {
+    // Refresh reservations if a booking was made
+    if (data.tool === 'make_reservation' || data.tool === 'cancel_reservation') {
+      loadReservations();
+    }
+  }
+  else if (type === 'agent.error') {
+    showTyping(false);
+    updateActivity('Error: ' + (data.error || 'Unknown'));
+  }
+  else if (type === 'restaurant.search') {
+    // Agent searched for restaurants in a city — sync the UI
+    if (data.city) {
+      document.getElementById('cityInput').value = data.city;
+      _lastCity = data.city;
+      document.getElementById('searchInput').value = data.query || '';
+      document.getElementById('cuisineSelect').value = 'All';
+      currentPage = 1;
+      _pendingLoad = loadRestaurants(1);
+    }
+  }
+  else if (type === 'restaurant.selected') {
+    // Agent booked a restaurant — switch city if needed, then highlight the card
+    if (data.restaurant_id) {
+      const highlightCard = () => {
+        const card = document.querySelector(`.restaurant-card[data-id="${CSS.escape(data.restaurant_id)}"]`);
+        if (card) {
+          card.scrollIntoView({behavior: 'smooth', block: 'center'});
+          card.classList.add('highlighted');
+          setTimeout(() => card.classList.remove('highlighted'), 2000);
+        }
+      };
+      // If a load is already in flight (from restaurant.search), wait for it
+      if (_pendingLoad) {
+        _pendingLoad.then(highlightCard);
+        _pendingLoad = null;
+      }
+      // If the card is already visible, highlight immediately
+      else if (document.querySelector(`.restaurant-card[data-id="${CSS.escape(data.restaurant_id)}"]`)) {
+        highlightCard();
+      }
+      // Card not on screen and no pending load — switch to the restaurant's city
+      else if (data.city) {
+        document.getElementById('cityInput').value = data.city;
+        _lastCity = data.city;
+        document.getElementById('searchInput').value = '';
+        document.getElementById('cuisineSelect').value = 'All';
+        currentPage = 1;
+        const p = loadRestaurants(1);
+        if (p && p.then) p.then(highlightCard);
+      }
+    }
+  }
+  else if (type === 'reservation.new' || type === 'reservation.update') {
+    loadReservations();
+  }
+}
+
+/* ── Chat Bubbles ─────────────────────────────────────────────── */
+function formatWhatsApp(text) {
+  // Escape HTML first, then apply WhatsApp-style formatting
+  let s = escapeHtml(text);
+  // Bold: *text*
+  s = s.replace(/\*([^*\n]+)\*/g, '<b>$1</b>');
+  // Italic: _text_
+  s = s.replace(/\b_([^_\n]+)_\b/g, '<i>$1</i>');
+  // Strikethrough: ~text~
+  s = s.replace(/~([^~\n]+)~/g, '<s>$1</s>');
+  // Monospace: ```text```
+  s = s.replace(/```([^`]+)```/g, '<code>$1</code>');
+  // Newlines
+  s = s.replace(/\n/g, '<br>');
+  return s;
+}
+
+function addChatBubble(data) {
+  const chatArea = document.getElementById('chatArea');
+  const empty = document.getElementById('chatEmpty');
+  if (empty) empty.remove();
+
+  const bubble = document.createElement('div');
+  const isInbound = data.direction === 'inbound';
+  bubble.className = 'chat-bubble ' + (isInbound ? 'inbound' : 'outbound');
+
+  const text = data.text || '';
+  const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+  const ticks = isInbound ? '' : '<span class="read-ticks">&#10003;&#10003;</span>';
+  bubble.innerHTML = `
+    <div>${formatWhatsApp(text)}</div>
+    <div class="chat-time">${time} ${ticks}</div>
+  `;
+
+  chatArea.appendChild(bubble);
+  chatArea.scrollTop = chatArea.scrollHeight;
+
+  // Update phone status (mask phone number for privacy)
+  if (isInbound && data.from) {
+    const ph = data.from;
+    const masked = ph.length > 4 ? '***' + ph.slice(-4) : ph;
+    document.getElementById('phoneStatus').textContent = 'Chat with ' + masked;
+  }
+
+  showTyping(false);
+}
+
+function showTyping(show) {
+  document.getElementById('chatTyping').style.display = show ? 'block' : 'none';
+  if (show) {
+    const chatArea = document.getElementById('chatArea');
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+}
+
+function updateActivity(text) {
+  const bar = document.getElementById('activityBar');
+  bar.textContent = text.length > 80 ? text.substring(0, 80) + '...' : text;
+}
+
+/* ── Restaurant List ──────────────────────────────────────────── */
+let _lastCity = '{{ city }}';
+let _pendingLoad = null;  // track in-flight loadRestaurants promise
+let _cityDebounce = null;
+
+function getCity() {
+  return (document.getElementById('cityInput').value || '').trim() || '{{ city }}';
+}
+function getCuisine() {
+  return document.getElementById('cuisineSelect').value;
+}
+
+function loadRestaurants(page) {
+  page = page || currentPage;
+  const city = getCity();
+  const cuisine = getCuisine();
+  const q = document.getElementById('searchInput').value.trim();
+  const params = new URLSearchParams({city, cuisine, page, per_page: PER_PAGE});
+  if (q) params.set('q', q);
+
+  document.getElementById('restaurantList').innerHTML =
+    '<div class="loading-spinner">Loading restaurants...</div>';
+
+  return fetch('/api/restaurants?' + params)
+    .then(r => r.json())
+    .then(data => {
+      allRestaurants = data.restaurants;
+      currentPage = data.page;
+      totalPages = data.total_pages;
+      totalResults = data.total;
+      renderRestaurants(allRestaurants);
+      renderPagination();
+    })
+    .catch(() => {
+      document.getElementById('restaurantList').innerHTML =
+        '<div class="empty-state">Failed to load restaurants</div>';
+    });
+}
+
+function goToPage(page) {
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  loadRestaurants(page);
+  // Scroll restaurant panel to top
+  const panel = document.getElementById('restaurantList').closest('.panel-body');
+  if (panel) panel.scrollTop = 0;
+}
+
+function onCityChange() {
+  const city = getCity();
+  if (city === _lastCity) return;
+  _lastCity = city;
+  document.getElementById('searchInput').value = '';
+  currentPage = 1;
+  loadRestaurants(1);
+}
+
+function onCuisineChange() {
+  document.getElementById('searchInput').value = '';
+  currentPage = 1;
+  loadRestaurants(1);
+}
+
+let _searchDebounce = null;
+function filterRestaurants() {
+  clearTimeout(_searchDebounce);
+  _searchDebounce = setTimeout(() => {
+    currentPage = 1;
+    loadRestaurants(1);
+  }, 300);
+}
+
+function starRating(rating) {
+  if (!rating) return '';
+  const full = Math.floor(rating);
+  const half = rating - full >= 0.3;
+  let s = '<span style="letter-spacing:-1px">';
+  for (let i = 0; i < full; i++) s += '\u2605';
+  if (half) s += '\u00bd';
+  s += '</span>';
+  return s;
+}
+
+function renderRestaurants(list) {
+  const container = document.getElementById('restaurantList');
+  document.getElementById('restaurantCount').textContent = totalResults + ' results';
+
+  if (!list.length) {
+    container.innerHTML = '<div class="empty-state">No restaurants found</div>';
+    return;
+  }
+
+  container.innerHTML = list.map((r, idx) => {
+    // Rating line
+    let metaHtml = '';
+    if (r.rating) {
+      metaHtml += `<span class="restaurant-rating">${starRating(r.rating)} ${r.rating}</span>`;
+      if (r.rating_count) metaHtml += `<span class="restaurant-rating-count">(${r.rating_count.toLocaleString()})</span>`;
+    }
+    if (r.price_level) metaHtml += `<span class="restaurant-price">${escapeHtml(r.price_level)}</span>`;
+    if (r.price_range) metaHtml += `<span class="restaurant-price-range">${escapeHtml(r.price_range)}</span>`;
+
+    // Open/closed badge
+    let openHtml = '';
+    if (r.open_now === 1) openHtml = '<span class="restaurant-open open-yes">Open</span>';
+    else if (r.open_now === 0) openHtml = '<span class="restaurant-open open-no">Closed</span>';
+
+    // Feature tags
+    let tags = [];
+    if (r.reservable) tags.push('Reservable');
+    if (r.vegetarian) tags.push('Vegetarian');
+    if (r.outdoor_seating) tags.push('Outdoor');
+    if (r.dine_in) tags.push('Dine-in');
+    if (r.delivery) tags.push('Delivery');
+    if (r.takeout) tags.push('Takeout');
+    let tagsHtml = tags.length ? '<div class="restaurant-tags">' + tags.map(t => `<span class="restaurant-tag">${t}</span>`).join('') + '</div>' : '';
+
+    // Links
+    let linksHtml = '';
+    let links = [];
+    if (r.website) links.push(`<a href="${escapeHtml(r.website)}" target="_blank" rel="noopener">\uD83C\uDF10 Website</a>`);
+    if (r.maps_url) links.push(`<a href="${escapeHtml(r.maps_url)}" target="_blank" rel="noopener">\uD83D\uDCCD Maps</a>`);
+    if (links.length) linksHtml = '<div class="restaurant-links">' + links.join('') + '</div>';
+
+    // Hours
+    let hoursHtml = '';
+    if (r.hours) {
+      try {
+        const h = typeof r.hours === 'string' ? JSON.parse(r.hours) : r.hours;
+        if (h && h.length) {
+          hoursHtml = `<div class="restaurant-hours-toggle" onclick="this.nextElementSibling.classList.toggle('show')">\u23F0 Hours \u25BE</div>`;
+          hoursHtml += `<div class="restaurant-hours">${h.join('<br>')}</div>`;
+        }
+      } catch(e) {}
+    }
+
+    return `
+    <div class="restaurant-card" data-id="${escapeHtml(r.id)}">
+      <img class="restaurant-photo" src="${escapeHtml(r.photo_url || '')}"
+           alt="${escapeHtml(r.name)}" loading="lazy"
+           onerror="this.style.display='none'">
+      <div class="restaurant-info">
+        <div class="restaurant-name">${escapeHtml(r.name)}</div>
+        <div class="restaurant-meta-row">
+          ${r.cuisine ? `<span class="restaurant-cuisine">${escapeHtml(formatCuisine(r.cuisine))}</span>` : ''}
+          ${openHtml}
+        </div>
+        ${metaHtml ? `<div class="restaurant-meta-row">${metaHtml}</div>` : ''}
+        <div class="restaurant-address">${escapeHtml(r.address || '')}</div>
+        ${tagsHtml}
+        ${hoursHtml}
+        ${linksHtml}
+        <div class="restaurant-actions">
+          <a class="btn-book"
+             href="https://web.whatsapp.com/send?phone=${WA_NUMBER}&text=${encodeURIComponent('Book a table at ' + r.name)}"
+             target="_blank" rel="noopener">
+            Book via WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  `}).join('');
+}
+
+function renderPagination() {
+  const existing = document.getElementById('pagination');
+  if (existing) existing.remove();
+  if (totalPages <= 1) return;
+
+  const container = document.getElementById('restaurantList');
+  const nav = document.createElement('div');
+  nav.id = 'pagination';
+  nav.className = 'pagination';
+
+  // Build page buttons
+  let html = '';
+  html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>&laquo; Prev</button>`;
+
+  // Smart page range: show first, last, and pages around current
+  const pages = [];
+  pages.push(1);
+  for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+    pages.push(i);
+  }
+  if (totalPages > 1) pages.push(totalPages);
+  // Deduplicate and sort
+  const unique = [...new Set(pages)].sort((a, b) => a - b);
+
+  let last = 0;
+  for (const p of unique) {
+    if (p - last > 1) html += '<span class="page-dots">&hellip;</span>';
+    html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+    last = p;
+  }
+
+  html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>Next &raquo;</button>`;
+  nav.innerHTML = html;
+  container.after(nav);
+}
+
+function formatCuisine(c) {
+  if (!c) return '';
+  return c.split(';')[0].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+function refreshRestaurants() {
+  const city = getCity();
+  fetch('/api/restaurants/refresh', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({city})
+  })
+    .then(r => r.json())
+    .then(() => loadRestaurants())
+    .catch(() => {});
+}
+
+/* ── Reservations ─────────────────────────────────────────────── */
+function loadReservations() {
+  fetch('/api/reservations')
+    .then(r => r.json())
+    .then(data => renderReservations(data))
+    .catch(() => {});
+}
+
+function renderReservations(data) {
+  const list = data.reservations || [];
+  const dateStr = data.date || 'Today';
+
+  document.getElementById('resDate').textContent = 'Upcoming';
+
+  // Stats
+  const active = list.filter(r => r.status !== 'cancelled');
+  const confirmed = list.filter(r => r.status === 'confirmed');
+  const pending = list.filter(r => r.status === 'pending');
+  document.getElementById('totalBookings').textContent = active.length;
+  document.getElementById('confirmedCount').textContent = confirmed.length;
+  document.getElementById('pendingCount').textContent = pending.length;
+
+  // Table grid — simulate table assignment
+  updateTableGrid(active);
+
+  // Reservation list
+  const container = document.getElementById('resList');
+  if (!active.length) {
+    container.innerHTML = '<div class="empty-state">No upcoming reservations</div>';
+    return;
+  }
+
+  container.innerHTML = active.map(r => `
+    <div class="res-card">
+      <div class="res-time">${escapeHtml(r.time)}</div>
+      <div class="res-details">
+        <div class="res-restaurant">${escapeHtml(r.restaurant_name || r.restaurant_id)}</div>
+        <div class="res-meta">
+          ${escapeHtml(r.date)} &middot; Party of ${r.party_size}${r.customer_name ? ' &middot; ' + escapeHtml(r.customer_name) : ''}
+        </div>
+        <div class="res-actions">
+          ${r.status === 'pending' ? `<button class="btn btn-sm" onclick="updateRes(${r.id},'confirmed')">Confirm</button>` : ''}
+          ${r.status !== 'cancelled' && r.status !== 'completed' ? `<button class="btn btn-sm" onclick="updateRes(${r.id},'cancelled')">Cancel</button>` : ''}
+          ${r.status === 'confirmed' ? `<button class="btn btn-sm" onclick="updateRes(${r.id},'completed')">Complete</button>` : ''}
+        </div>
+      </div>
+      <span class="res-badge badge-${r.status}">${r.status}</span>
+    </div>
+  `).join('');
+}
+
+function updateTableGrid(reservations) {
+  const tables = [
+    {id:'T1',seats:2}, {id:'T2',seats:2}, {id:'T3',seats:4},
+    {id:'T4',seats:4}, {id:'T5',seats:6}, {id:'T6',seats:8}
+  ];
+
+  // Simple assignment: assign reservations to smallest suitable table
+  const assigned = new Set();
+  const pendingTables = new Set();
+  const sortedRes = [...reservations].sort((a,b) => a.party_size - b.party_size);
+
+  for (const r of sortedRes) {
+    for (let i = 0; i < tables.length; i++) {
+      if (!assigned.has(i) && !pendingTables.has(i) && tables[i].seats >= r.party_size) {
+        if (r.status === 'confirmed') assigned.add(i);
+        else if (r.status === 'pending') pendingTables.add(i);
+        break;
+      }
+    }
+  }
+
+  const grid = document.getElementById('tableGrid');
+  grid.innerHTML = tables.map((t, i) => {
+    let cls = 'available';
+    if (assigned.has(i)) cls = 'booked';
+    else if (pendingTables.has(i)) cls = 'pending';
+    return `<div class="table-cell ${cls}"><div class="table-id">${t.id}</div><div class="table-seats">${t.seats} seats</div></div>`;
+  }).join('');
+}
+
+function updateRes(id, status) {
+  fetch(`/api/reservations/${id}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({status})
+  })
+  .then(r => r.json())
+  .then(() => loadReservations())
+  .catch(() => {});
+}
+
+/* ── Utilities ────────────────────────────────────────────────── */
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Init ─────────────────────────────────────────────────────── */
+loadRestaurants();
+loadReservations();
+connectSSE();
+
+// Auto-refresh reservations every 30s
+setInterval(loadReservations, 30000);
+
+// Keep phone clock updated
+function updatePhoneClock() {
+  const el = document.getElementById('phoneTime');
+  if (el) el.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+updatePhoneClock();
+setInterval(updatePhoneClock, 30000);
+</script>
+</body>
+</html>
