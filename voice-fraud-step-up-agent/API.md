@@ -2,7 +2,7 @@
 
 ## `requestSensitiveAction(action)`
 
-Starts a per-account risk gate and returns the assistant payload plus outbound dial payload. The decision remains `blocked_pending` until Telnyx sends a Deepfake Detection result.
+Starts a per-account risk gate and returns the assistant-compatible prompt payload plus outbound dial payload. The live path uses Call Control speech rather than starting an autonomous assistant on the call. The decision remains `blocked_pending` until Telnyx sends a Deepfake Detection result.
 
 ## `recordDeepfakeResult(callSid, result)`
 

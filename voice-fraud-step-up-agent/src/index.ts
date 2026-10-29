@@ -574,8 +574,6 @@ export class VoiceFraudGateAgent extends Agent<Env, GateState> {
           "WEBHOOK_URL secret is required before real dials — set it to <this-function-url>/webhooks so deepfake webhooks route back to this actor",
         );
       }
-      const assistantId = await this.ensureAssistant(model.buildAssistantPayload(action));
-      model.state.assistantId = assistantId;
       const dialPayload = model.buildDialPayload(action);
       decision.dialPayload = dialPayload;
       const dialRes = await this.telnyxFetch("/v2/calls", {
@@ -644,7 +642,7 @@ export class VoiceFraudGateAgent extends Agent<Env, GateState> {
     await this.persistModel(model);
     if (eventId) this.markEventProcessed(eventId);
     if (callControlId) {
-      await this.deliverVerdictOnCall(callControlId, decision.outcome, model.state.assistantId);
+      await this.deliverVerdictOnCall(callControlId, decision.outcome);
     }
     return decision;
   }
@@ -665,7 +663,7 @@ export class VoiceFraudGateAgent extends Agent<Env, GateState> {
     await this.persistModel(model);
     if (eventId) this.markEventProcessed(eventId);
     if (callControlId) {
-      await this.deliverVerdictOnCall(callControlId, decision.outcome, model.state.assistantId);
+      await this.deliverVerdictOnCall(callControlId, decision.outcome);
     }
     return decision;
   }
@@ -694,44 +692,23 @@ export class VoiceFraudGateAgent extends Agent<Env, GateState> {
     });
   }
 
-  private async ensureAssistant(payload: AssistantPayload): Promise<string> {
-    const listRes = await this.telnyxFetch("/v2/ai/assistants", {});
-    if (!listRes.ok) {
-      throw new Error(`assistant list failed with HTTP ${listRes.status}`);
-    }
-    const list = (await listRes.json()) as { data?: Array<{ id: string; name?: string }> };
-    const existing = (list.data ?? []).find((a) => a.name === payload.name);
-    if (existing) {
-      const updateRes = await this.telnyxFetch(`/v2/ai/assistants/${existing.id}`, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-      if (!updateRes.ok) {
-        throw new Error(`assistant update failed with HTTP ${updateRes.status}`);
-      }
-      return existing.id;
-    }
-    const createRes = await this.telnyxFetch("/v2/ai/assistants", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    if (!createRes.ok) {
-      throw new Error(`assistant create failed with HTTP ${createRes.status}`);
-    }
-    const created = (await createRes.json()) as { data?: { id?: string }; id?: string };
-    return created.data?.id ?? created.id ?? "unknown-id";
-  }
-
-  private async deliverVerdictOnCall(callControlId: string, outcome: string, assistantId: string | null): Promise<void> {
+  private async deliverVerdictOnCall(callControlId: string, outcome: string): Promise<void> {
     const apiKey = await this.secret("TELNYX_API_KEY");
-    if (!apiKey || !assistantId) return;
+    if (!apiKey) return;
     try {
-      await this.telnyxFetch(`/v2/calls/${encodeURIComponent(callControlId)}/actions/ai_assistant_start`, {
+      const speakRes = await this.telnyxFetch(`/v2/calls/${encodeURIComponent(callControlId)}/actions/speak`, {
         method: "POST",
-        body: JSON.stringify({ assistant: { id: assistantId }, greeting: verdictGreeting(outcome) }),
+        body: JSON.stringify({
+          payload: verdictGreeting(outcome),
+          voice: VERIFICATION_VOICE,
+          language: "en-US",
+        }),
       });
+      if (!speakRes.ok) {
+        console.error(`verdict delivery failed with HTTP ${speakRes.status}: ${(await speakRes.text()).slice(0, 200)}`);
+      }
     } catch (err) {
-      console.error("assistant verdict delivery failed:", err instanceof Error ? err.message : err);
+      console.error("verdict delivery failed:", err instanceof Error ? err.message : err);
     }
   }
 

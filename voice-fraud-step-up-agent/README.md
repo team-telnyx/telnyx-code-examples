@@ -1,15 +1,15 @@
 ---
 title: Voice Fraud Step-Up Agent
-description: Event-driven voice fraud gate with Telnyx AI Assistants, deepfake detection, durable risk ledger, flashcall step-up, and human-review routing.
+description: Event-driven voice fraud gate with Telnyx Deepfake Detection, deterministic Call Control speech, durable risk ledger, flashcall step-up, and human-review routing.
 product: ai
 language: typescript
 ---
 
 # Voice Fraud Step-Up Agent
 
-This sample demonstrates a voice-authenticity gate for high-risk support actions during a voice call. A `VoiceFraudGate` actor is created per account, starts a Telnyx AI Assistant call with Deepfake Detection enabled, records every result in an append-only ledger, and decides whether the request can continue to the configured verification policy or should be routed to human review.
+This sample demonstrates a voice-authenticity gate for high-risk support actions during a voice call. A `VoiceFraudGate` actor is created per account, starts a Call Control dial with Deepfake Detection enabled, records every result in an append-only ledger, and decides whether the request can continue to the configured verification policy or should be routed to human review.
 
-The important pattern is that the actor, not the prompt, owns the risk decision. The assistant keeps the caller engaged, but the ledger determines the outcome and makes the workflow deterministic after restarts. Deepfake Detection is not identity proof: a `real` result means the audio appears human, not that the caller owns the account. A production transfer must add an independent factor such as an OTP, app approval, or verified flashcall challenge.
+The important pattern is that the actor, not a voice prompt, owns the risk decision. Call Control speech delivers the verification prompt and the final verdict deterministically, while the ledger determines the outcome and makes the workflow deterministic after restarts. Deepfake Detection is not identity proof: a `real` result means the audio appears human, not that the caller owns the account. A production transfer must add an independent factor such as an OTP, app approval, or verified flashcall challenge.
 
 ## Quick Start
 
@@ -28,7 +28,7 @@ Set `TELNYX_API_KEY`, `OUTBOUND_CONNECTION_ID`, `OUTBOUND_CALLER_ID`, and `FLASH
 
 1. A support request calls `requestSensitiveAction(accountId, caller, action)`.
 2. The app routes to `env.FRAUD_GATES.idFromName(accountId)`, so one account has one durable risk gate.
-3. The actor creates a Telnyx AI Assistant and dials the caller with Call Control, passing `deepfake_detection: { enabled: true }` on the call.
+3. The actor dials the caller with Call Control, passing `deepfake_detection: { enabled: true }` on the call, and uses Call Control speech for the verification prompt.
 4. Telnyx streams remote-party audio and sends `call.deepfake_detection.result` (`real`, `fake`, or `silence_timeout`) or `call.deepfake_detection.error`.
 5. `real` plus a clean recent ledger passes this demo's voice-authenticity policy; independent identity verification is still required for a real transaction.
 6. `fake` or a recent risky ledger event triggers flashcall step-up.
@@ -37,7 +37,7 @@ Set `TELNYX_API_KEY`, `OUTBOUND_CONNECTION_ID`, `OUTBOUND_CALLER_ID`, and `FLASH
 
 ## Why Telnyx
 
-Telnyx is AI Communications Infrastructure: the same platform handles voice, AI Assistants, Deepfake Detection, Verify flashcall, webhooks, and Edge Compute state. That makes the fraud gate explainable. The AI can speak to the caller, but the actor can prove why it allowed, stepped up, or held the action.
+Telnyx is AI Communications Infrastructure: the same platform handles voice, deterministic Call Control speech, Deepfake Detection, Verify flashcall, webhooks, and Edge Compute state. That makes the fraud gate explainable. The caller hears the exact policy verdict, and the actor can prove why it allowed, stepped up, or held the action.
 
 ## API Shape
 

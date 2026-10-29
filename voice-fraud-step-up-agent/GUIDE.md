@@ -2,7 +2,7 @@
 
 ## Architecture
 
-`VoiceFraudGate` is the policy owner. Deepfake Detection produces the voice-authenticity event on a bare call leg. The Telnyx AI Assistant joins only after the gate's verdict and speaks the outcome. Verify flashcall or human review handles risky outcomes, while a clean voice still needs an independent identity factor in production.
+`VoiceFraudGate` is the policy owner. Deepfake Detection produces the voice-authenticity event on a bare call leg. Call Control speech delivers the verification prompt and the final policy outcome deterministically. Verify flashcall or human review handles risky outcomes, while a clean voice still needs an independent identity factor in production.
 
 The sample is intentionally fail-closed for missing, errored, or inconclusive detection results. A `real` result only means the audio appears human; it does not prove account ownership. Production code must add an independent factor before completing the sensitive action.
 
@@ -11,9 +11,9 @@ The sample is intentionally fail-closed for missing, errored, or inconclusive de
 An AI Assistant attached to the same call leg consumes the call audio before
 the deepfake detection tap can see it — the two features do not compose today.
 The sample therefore sequences them: dial with `deepfake_detection` and no
-assistant, collect the detection verdict via webhook, then start the assistant
-with `ai_assistant_start` and a greeting that delivers the verdict. The
-assistant is the mouthpiece for the decision, never the decider.
+assistant, collect the detection verdict via webhook, then use Call Control
+`speak` to deliver the exact verdict. The TTS message is the mouthpiece for the
+decision, never the decider.
 
 ## Video Flow
 

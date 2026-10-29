@@ -110,7 +110,7 @@ while (Date.now() - startedAt < MAX_MS) {
       note("verdict: HUMAN-SOUNDING VOICE — the demo policy allows this request; identity still requires independent verification.", GREEN);
     } else if (row.outcome === "step_up_flashcall" && !verdictPrinted) {
       verdictPrinted = true;
-      note("verdict: SYNTHETIC VOICE — flashcall step-up. The assistant is explaining it on your call.", YELLOW);
+      note("verdict: SYNTHETIC VOICE — flashcall step-up. Call Control is speaking the step-up message on your call.", YELLOW);
     } else if (row.outcome === "manual_review" && !verdictPrinted) {
       verdictPrinted = true;
       note("verdict: UNVERIFIABLE — fail closed to human review.", RED);
