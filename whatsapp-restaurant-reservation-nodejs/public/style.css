@@ -34,6 +34,7 @@ a:hover{text-decoration:underline}
   padding:0 24px;
   background:var(--slate);color:#fff;
   font:400 14px/1.4 var(--sans);
+  flex-wrap:nowrap;overflow:hidden;
 }
 .brand{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
 .logo-word{
@@ -44,6 +45,7 @@ a:hover{text-decoration:underline}
 .topbar-nav{flex:1}
 .topbar-label{
   font-size:0.78rem;opacity:0.7;letter-spacing:0.02em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .topbar-right{
   display:flex;align-items:center;gap:12px;
@@ -120,9 +122,11 @@ a:hover{text-decoration:underline}
 /* ── Layout ───────────────────────────────────────────────────── */
 .layout{
   display:grid;
-  grid-template-columns:1.2fr 380px 0.8fr;
+  grid-template-columns:1.2fr minmax(280px,380px) 0.8fr;
   gap:16px;height:calc(100vh - 200px);
   padding:16px;
+  max-width:1600px;
+  margin:0 auto;
 }
 .panel{
   display:flex;flex-direction:column;
@@ -267,7 +271,7 @@ a:hover{text-decoration:underline}
 /* ── WhatsApp Phone Mockup ────────────────────────────────────── */
 .phone-panel{
   display:flex;align-items:stretch;justify-content:center;
-  background:transparent;overflow:hidden;min-height:0;
+  background:transparent;overflow:hidden;min-height:0;min-width:0;
 }
 .phone-frame{
   width:100%;flex:1;min-height:0;max-height:100%;
@@ -465,13 +469,40 @@ a:hover{text-decoration:underline}
 @keyframes flash{from{background:var(--sage-soft)}to{background:transparent}}
 
 /* ── Responsive ───────────────────────────────────────────────── */
+@media(max-width:1200px){
+  .layout{grid-template-columns:1fr minmax(260px,340px) 1fr;gap:12px;padding:12px}
+}
 @media(max-width:1024px){
-  .layout{grid-template-columns:1fr;height:auto}
-  .panel{border-bottom:1px solid var(--line);min-height:400px}
+  .layout{grid-template-columns:1fr 1fr;height:auto}
+  .phone-panel{grid-column:1/-1;width:100%;max-width:400px;justify-self:center;min-height:500px;order:-1}
+  .panel{min-height:350px}
   .topbar-label{display:none}
 }
-@media(max-width:640px){
-  .demo-badge{display:none}
-  .topbar{padding:0 16px;gap:12px}
-  .logo-word{font-size:1.2rem}
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr;padding:8px;gap:10px}
+  .phone-panel{max-width:100%;min-height:450px;order:-1}
+  .panel{min-height:300px}
+  .hero{padding:28px 16px 24px}
+  .hero-brand{font-size:2rem}
+  .hero-tagline{font-size:13px}
+  .hero-cta{padding:10px 18px;font-size:0.72rem}
+  .table-grid{grid-template-columns:repeat(3,1fr)}
+  .res-card{flex-wrap:wrap}
+  .filter-row{flex-direction:column}
+}
+@media(max-width:480px){
+  .topbar{padding:0 12px;gap:8px;min-height:44px}
+  .logo-word{font-size:1.1rem}
+  .demo-badge,.nav-badge{display:none}
+  .hero{padding:20px 12px 18px}
+  .hero-brand{font-size:1.6rem}
+  .hero-tagline{font-size:12px}
+  .hero-cta{padding:9px 14px;font-size:0.68rem;gap:6px}
+  .hero-cta svg{width:14px;height:14px}
+  .panel-header{padding:12px 14px}
+  .panel-body{padding:10px}
+  .res-summary{flex-direction:column}
+  .table-grid{grid-template-columns:repeat(3,1fr)}
+  .phone-panel{min-height:400px}
+  .site-footer{padding:12px 16px;font-size:0.7rem}
 }
