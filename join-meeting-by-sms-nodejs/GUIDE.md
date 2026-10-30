@@ -40,8 +40,9 @@ await client.meetingSessions.create({
 
 Two details matter here:
 
-- **Idempotency key.** Telnyx retries webhooks that do not get a fast `2xx`. Keying the session on the inbound message ID means a retry replays the same session instead of adding a second bot.
+- **Idempotency key.** Telnyx expects a `2xx` within 2 seconds and retries a failed delivery up to 2 times. Keying the session on the inbound message ID means a retry replays the same session instead of adding a second bot.
 - **Active-session check.** If you text the same link twice, the server finds the running session and tells you the bot is already there.
+- **Webex.** Webex has no native meeting chat, and the API rejects `chat_on_enter` there with `422 unsupported_capability`, so the server leaves the field out for Webex URLs.
 
 ## 4. Keep you posted
 
@@ -50,6 +51,8 @@ Two details matter here:
 ## 5. Text the TL;DR
 
 With `summarize_on_end: true`, Telnyx generates a `summary` artifact from the transcript when the meeting ends. The server waits for it to complete (up to 90 seconds) and texts it to you. If it fails, you get a fallback message rather than silence.
+
+One catch: `ended` does not prove the bot attended. A session that timed out in the waiting room also ends as `ended`, with `joined_at: null`. The server checks `joined_at` first and texts you that the bot was never admitted instead of waiting for a summary that will never come.
 
 ## Optional: let the bot talk
 
@@ -68,5 +71,6 @@ Point your Messaging Profile's webhook at `https://<your-tunnel>/webhooks/sms`, 
 ## Before you ship this
 
 - **Persist state.** Watched sessions live in memory; a restart stops the status texts. Store session IDs in a database and resume on boot.
-- **Disclose the bot.** Keep a clear `chat_on_enter` message. People in the meeting should know a bot is recording.
+- **Disclose the bot.** Keep a clear `chat_on_enter` message. People in the meeting should know a bot is recording. Webex has no meeting chat, so tell the host yourself there.
+- **Know the cost and status.** [Telnyx Meeting is in beta](https://developers.telnyx.com/docs/meeting). Bot presence and transcription are billed per minute from the moment the bot starts joining, including waiting-room time, and `summarize_on_end` is a separate billed request. Sessions are recorded automatically and kept free for 7 days. See [Meeting pricing](https://developers.telnyx.com/docs/meeting/pricing).
 - **Register your sender.** US SMS needs 10DLC or toll-free verification before replies are reliably delivered.

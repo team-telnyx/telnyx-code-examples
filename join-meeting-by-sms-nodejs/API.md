@@ -57,7 +57,9 @@ Signature missing, malformed, stale (older than 5 minutes), or does not match.
 }
 ```
 
-`assistant` and `camera_image` are sent only when `ASSISTANT_ID` / `CAMERA_IMAGE_URL` are set. Session `status` moves through `joining` → `waiting_for_admission` → `active` → `ended`, or ends in `failed` / `admission_denied`.
+`assistant` and `camera_image` are sent only when `ASSISTANT_ID` / `CAMERA_IMAGE_URL` are set. `chat_on_enter` is omitted for Webex URLs, because Webex has no meeting chat and the API rejects the field there with `422 unsupported_capability`.
+
+Session `status` moves through `joining` → `waiting_for_admission` → `active` → `ended`, or ends in `failed` / `admission_denied`. A session that times out or is cancelled without being admitted also ends as `ended`, with `joined_at: null`, so the server checks `joined_at` before treating `ended` as attendance.
 
 ### Read the TL;DR
 
