@@ -202,7 +202,7 @@ export async function fetchGoogleRestaurants(city, cuisineFilter) {
   let pageToken = null;
 
   try {
-    for (let page = 0; page < 3; page++) {
+    for (let page = 0; page < 1; page++) {
       const body = { textQuery: query, maxResultCount: 20 };
       if (pageToken) body.pageToken = pageToken;
 
@@ -255,16 +255,21 @@ export function getFallbackRestaurants(city, cuisineFilter) {
 export async function cacheRestaurants(db, restaurants, city = "") {
   const now = new Date().toISOString();
   const cityLower = city.toLowerCase().trim();
-  for (const r of restaurants) {
+  const cityWords = cityLower.split(/[\s,]+/).filter(w => w.length > 2);
+  const stmts = restaurants.map(r => {
     const addr = (r.address || "").toLowerCase();
-    const tag = cityLower && addr.includes(cityLower) ? cityLower : "";
-    await db.prepare(
-      `INSERT OR IGNORE INTO restaurants
+    const tag = cityWords.length > 0 && cityWords.some(w => addr.includes(w))
+      ? cityLower : "";
+    return db.prepare(
+      `INSERT INTO restaurants
        (id, name, cuisine, address, phone, lat, lon, photo_url,
         rating, rating_count, price_level, price_range, website, maps_url,
         open_now, hours, reservable, vegetarian, outdoor_seating,
         dine_in, delivery, takeout, cached_at, city)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+       ON CONFLICT(id) DO UPDATE SET
+        cached_at=excluded.cached_at,
+        city=CASE WHEN excluded.city != '' THEN excluded.city ELSE restaurants.city END`
     ).bind(
       r.id, r.name, r.cuisine || "", r.address || "",
       r.phone || "", r.lat ?? null, r.lon ?? null,
@@ -275,8 +280,9 @@ export async function cacheRestaurants(db, restaurants, city = "") {
       r.reservable || 0, r.vegetarian || 0,
       r.outdoor_seating || 0, r.dine_in || 0,
       r.delivery || 0, r.takeout || 0, now, tag,
-    ).run();
-  }
+    );
+  });
+  if (stmts.length) await db.batch(stmts);
 }
 
 export async function seedRestaurants(db) {
@@ -312,17 +318,26 @@ function searchKeywords(raw) {
 
 // Build a WHERE clause that matches ANY keyword against name or cuisine.
 // Returns { where, params } for use in a prepared statement.
+export function cityWhere(cityLower) {
+  const words = cityLower.split(/[\s,]+/).filter(w => w.length > 2);
+  if (!words.length) return { sql: "(city LIKE ? OR address LIKE ?)", params: [`%${cityLower}%`, `%${cityLower}%`] };
+  const parts = words.map(() => "(city LIKE ? OR address LIKE ?)");
+  const params = words.flatMap(w => [`%${w}%`, `%${w}%`]);
+  return { sql: `(${parts.join(" OR ")})`, params };
+}
+
 function keywordFilter(keywords, cityLower) {
   if (!keywords.length) {
-    if (cityLower) return { where: "(city LIKE ? OR address LIKE ?)", params: [`%${cityLower}%`, `%${cityLower}%`] };
+    if (cityLower) { const c = cityWhere(cityLower); return { where: c.sql, params: c.params }; }
     return { where: "1=1", params: [] };
   }
   const parts = keywords.map(() => "(name LIKE ? OR cuisine LIKE ?)");
   const params = keywords.flatMap((k) => [`%${k}%`, `%${k}%`]);
   let where = `(${parts.join(" OR ")})`;
   if (cityLower) {
-    where += " AND (city LIKE ? OR address LIKE ?)";
-    params.push(`%${cityLower}%`, `%${cityLower}%`);
+    const c = cityWhere(cityLower);
+    where += ` AND ${c.sql}`;
+    params.push(...c.params);
   }
   return { where, params };
 }
@@ -336,7 +351,7 @@ export async function searchRestaurants(db, queryStr, city) {
     `SELECT * FROM restaurants WHERE ${where} LIMIT 10`
   ).bind(...params).all();
 
-  if (!rows.length) {
+  if (rows.length < 3) {
     const searchTerm = queryStr
       ? city ? `${queryStr} restaurants in ${city}` : queryStr
       : city || "";
