@@ -8,7 +8,7 @@ import express from "express";
 
 import { setting } from "./settings.js";
 import { openDb } from "./db.js";
-import { CUISINES, fetchGoogleRestaurants, getFallbackRestaurants, cacheRestaurants, seedRestaurants } from "./restaurants.js";
+import { CUISINES, fetchGoogleRestaurants, getFallbackRestaurants, cacheRestaurants, seedRestaurants, cityWhere } from "./restaurants.js";
 import { transcribeAudio } from "./whatsapp.js";
 import { processInbound, storeMessage, getReservationsForPhone, TABLES, TIME_SLOTS } from "./ai.js";
 
@@ -202,9 +202,10 @@ app.get("/api/restaurants", async (req, res) => {
   const perPage = Math.min(50, Math.max(1, Number(req.query.per_page) || 12));
 
   const cityLower = city.toLowerCase().trim();
+  const cw = cityWhere(cityLower);
   let { results: rows } = await db.prepare(
-    "SELECT * FROM restaurants WHERE city LIKE ? OR address LIKE ? ORDER BY name"
-  ).bind(`%${cityLower}%`, `%${city}%`).all();
+    `SELECT * FROM restaurants WHERE ${cw.sql} ORDER BY name`
+  ).bind(...cw.params).all();
 
   if (!rows.length) {
     let restaurants = await fetchGoogleRestaurants(city);
@@ -249,7 +250,7 @@ app.get("/api/restaurants", async (req, res) => {
       result = result.filter((r) => {
         const name = (r.name || "").toLowerCase();
         const cuisine = (r.cuisine || "").toLowerCase();
-        return words.some((w) => name.includes(w) || cuisine.includes(w));
+        return words.every((w) => name.includes(w) || cuisine.includes(w));
       });
     }
   }
@@ -275,14 +276,30 @@ app.post("/api/restaurants/refresh", async (req, res) => {
 
 app.get("/api/reservations", async (req, res) => {
   const dateStr = req.query.date || "";
+  const phone = req.query.phone || "";
   let rows, label;
-  if (dateStr) {
+  if (dateStr && phone) {
+    ({ results: rows } = await db.prepare(
+      `SELECT r.*, rest.name as restaurant_name FROM reservations r
+       LEFT JOIN restaurants rest ON r.restaurant_id = rest.id
+       WHERE r.date = ? AND r.customer_phone = ? ORDER BY r.time`
+    ).bind(dateStr, phone).all());
+    label = dateStr;
+  } else if (dateStr) {
     ({ results: rows } = await db.prepare(
       `SELECT r.*, rest.name as restaurant_name FROM reservations r
        LEFT JOIN restaurants rest ON r.restaurant_id = rest.id
        WHERE r.date = ? ORDER BY r.time`
     ).bind(dateStr).all());
     label = dateStr;
+  } else if (phone) {
+    const today = new Date().toISOString().slice(0, 10);
+    ({ results: rows } = await db.prepare(
+      `SELECT r.*, rest.name as restaurant_name FROM reservations r
+       LEFT JOIN restaurants rest ON r.restaurant_id = rest.id
+       WHERE r.date >= ? AND r.customer_phone = ? ORDER BY r.date, r.time`
+    ).bind(today, phone).all());
+    label = today;
   } else {
     const today = new Date().toISOString().slice(0, 10);
     ({ results: rows } = await db.prepare(
@@ -334,14 +351,40 @@ app.get("/api/ui-events", async (req, res) => {
   res.json({ events: rows });
 });
 
+app.post("/api/customers", async (req, res) => {
+  const { phone, name, city } = req.body || {};
+  if (!phone || !name || !city) return res.status(400).json({ error: "phone, name, and city are required" });
+  const now = new Date().toISOString();
+  await db.prepare(
+    "INSERT OR REPLACE INTO customers (phone, name, city, created_at) VALUES (?,?,?,?)"
+  ).bind(phone, name.trim(), city.trim(), now).run();
+  res.json({ customer: { phone, name: name.trim(), city: city.trim() } });
+});
+
+app.get("/api/customers/:phone", async (req, res) => {
+  const row = await db.prepare("SELECT phone, name, city FROM customers WHERE phone = ?").bind(req.params.phone).first();
+  if (!row) return res.status(404).json({ error: "Customer not found" });
+  res.json({ customer: row });
+});
+
 app.get("/api/conversations", async (req, res) => {
   const since = req.query.since || "";
+  const phone = req.query.phone || "";
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
   let rows;
-  if (since) {
+  if (since && phone) {
+    ({ results: rows } = await db.prepare(
+      "SELECT customer_phone, role, content, timestamp FROM conversations WHERE timestamp > ? AND customer_phone = ? ORDER BY timestamp ASC LIMIT ?"
+    ).bind(since, phone, limit).all());
+  } else if (since) {
     ({ results: rows } = await db.prepare(
       "SELECT customer_phone, role, content, timestamp FROM conversations WHERE timestamp > ? ORDER BY timestamp ASC LIMIT ?"
     ).bind(since, limit).all());
+  } else if (phone) {
+    ({ results: rows } = await db.prepare(
+      "SELECT customer_phone, role, content, timestamp FROM conversations WHERE customer_phone = ? ORDER BY timestamp DESC LIMIT ?"
+    ).bind(phone, limit).all());
+    rows = rows.reverse();
   } else {
     ({ results: rows } = await db.prepare(
       "SELECT customer_phone, role, content, timestamp FROM conversations ORDER BY timestamp DESC LIMIT ?"
@@ -351,9 +394,14 @@ app.get("/api/conversations", async (req, res) => {
   res.json({ messages: rows });
 });
 
-app.delete("/api/conversations", async (_req, res) => {
-  await db.prepare("DELETE FROM conversations").run();
-  await db.prepare("DELETE FROM ui_events").run();
+app.delete("/api/conversations", async (req, res) => {
+  const phone = req.query.phone || "";
+  if (phone) {
+    await db.prepare("DELETE FROM conversations WHERE customer_phone = ?").bind(phone).run();
+  } else {
+    await db.prepare("DELETE FROM conversations").run();
+    await db.prepare("DELETE FROM ui_events").run();
+  }
   res.json({ status: "cleared" });
 });
 

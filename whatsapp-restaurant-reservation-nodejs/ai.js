@@ -146,6 +146,22 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "register_customer",
+      description: "Register a new customer with their name and preferred city. Call this after the customer provides their name and city.",
+      parameters: {
+        type: "object",
+        properties: {
+          phone: { type: "string", description: "Customer phone in E.164 format" },
+          name: { type: "string", description: "Customer name" },
+          city: { type: "string", description: "City they want to dine in" },
+        },
+        required: ["phone", "name", "city"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "send_whatsapp",
       description: "Send a WhatsApp message to the customer. Supports text, interactive list, and interactive button messages.",
       parameters: {
@@ -293,12 +309,12 @@ async function executeTool(db, ssePublish, toolName, toolInput, customerPhone) {
   if (toolName === "search_restaurants") {
     const city = toolInput.city;
     const results = await searchRestaurants(db, toolInput.query || "", city);
-    const evt = { city: city || "", query: toolInput.query || "" };
+    const evt = { city: city || "", query: toolInput.query || "", customer_phone: customerPhone };
     ssePublish("restaurant.search", evt);
     await persistUiEvent(db, "restaurant.search", evt);
     // Also fire restaurant.selected for the top result so the dashboard highlights it
     if (results.length && results[0].id) {
-      const selEvt = { restaurant_id: results[0].id, city: city || "" };
+      const selEvt = { restaurant_id: results[0].id, city: city || "", customer_phone: customerPhone };
       ssePublish("restaurant.selected", selEvt);
       await persistUiEvent(db, "restaurant.selected", selEvt);
     }
@@ -326,7 +342,7 @@ async function executeTool(db, ssePublish, toolName, toolInput, customerPhone) {
       const row = await db.prepare("SELECT city, address FROM restaurants WHERE id = ?").bind(toolInput.restaurant_id).first();
       if (row) restCity = row.city || "";
     } catch { /* ignore */ }
-    const selEvt = { restaurant_id: toolInput.restaurant_id, city: restCity };
+    const selEvt = { restaurant_id: toolInput.restaurant_id, city: restCity, customer_phone: customerPhone };
     ssePublish("restaurant.selected", selEvt);
     await persistUiEvent(db, "restaurant.selected", selEvt);
     return JSON.stringify({ reservation });
@@ -340,6 +356,15 @@ async function executeTool(db, ssePublish, toolName, toolInput, customerPhone) {
   if (toolName === "get_customer_reservations") {
     const reservations = await getReservationsForPhone(db, toolInput.phone);
     return JSON.stringify({ reservations });
+  }
+
+  if (toolName === "register_customer") {
+    const now = new Date().toISOString();
+    await db.prepare(
+      "INSERT OR REPLACE INTO customers (phone, name, city, created_at) VALUES (?,?,?,?)"
+    ).bind(toolInput.phone, toolInput.name, toolInput.city, now).run();
+    ssePublish("customer.registered", { phone: toolInput.phone, name: toolInput.name, city: toolInput.city });
+    return JSON.stringify({ status: "registered", name: toolInput.name, city: toolInput.city });
   }
 
   if (toolName === "send_whatsapp") {
@@ -380,6 +405,15 @@ export async function processInbound(db, ssePublish, fromNumber, text) {
   const history = await getConversationHistory(db, fromNumber);
   const historyText = history.map((m) => `${m.role}: ${m.content}`).join("\n");
 
+  // Check customer registration status
+  const customer = await db.prepare("SELECT phone, name, city FROM customers WHERE phone = ?").bind(fromNumber).first();
+  let customerContext = "";
+  if (!customer) {
+    customerContext = "\n\nThis customer is NOT registered. Before helping with anything else, ask for their name and the city they'd like to dine in. Once they provide both, call the register_customer tool. Do NOT search restaurants or make reservations until the customer is registered.";
+  } else {
+    customerContext = `\n\nCustomer name: ${customer.name}, Preferred city: ${customer.city}. On their FIRST message, greet them by name and ask if they'd like to find a restaurant in ${customer.city} or another city. After the first message, just help them normally.`;
+  }
+
   const reservations = await getReservationsForPhone(db, fromNumber);
   let resText = "";
   if (reservations.length) {
@@ -389,7 +423,7 @@ export async function processInbound(db, ssePublish, fromNumber, text) {
   }
 
   const messages = [
-    { role: "system", content: buildSystemPrompt() },
+    { role: "system", content: buildSystemPrompt() + customerContext },
     {
       role: "user",
       content: `Customer phone: ${fromNumber}\nInbound WhatsApp message: ${text}\n\nConversation history:\n${historyText}\n${resText}\n\nHandle this message. Use your tools to search restaurants, check availability, and make reservations as needed. Always send a WhatsApp response.`,

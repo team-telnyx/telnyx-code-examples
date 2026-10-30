@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   updated_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_res_date ON reservations (date);
+CREATE INDEX IF NOT EXISTS idx_res_phone ON reservations (customer_phone);
 CREATE TABLE IF NOT EXISTS conversations (
   id              TEXT PRIMARY KEY,
   customer_phone  TEXT NOT NULL,
@@ -61,6 +62,12 @@ CREATE TABLE IF NOT EXISTS ui_events (
   type            TEXT NOT NULL,
   payload         TEXT NOT NULL,
   created_at      TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS customers (
+  phone       TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  city        TEXT NOT NULL,
+  created_at  TEXT NOT NULL
 )`;
 
 const statements = (sql) => sql.split(";").map((s) => s.trim()).filter(Boolean);

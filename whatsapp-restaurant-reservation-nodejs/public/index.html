@@ -85,6 +85,7 @@
             <div class="wa-contact-name">DineNyx</div>
             <div class="wa-contact-status" id="phoneStatus">online</div>
           </div>
+          <span id="customerName" class="wa-customer-name" style="display:none"></span>
           <div class="wa-header-icons">
             <svg viewBox="0 0 24 24" onclick="newChat()" title="New Chat" style="cursor:pointer">
               <path d="M20.71 4.04a1 1 0 00-1.42 0L14 9.34V12h2.66l5.29-5.29a1 1 0 000-1.42l-1.24-1.25zM7 14c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1H7zM3 6c0-1.1.9-2 2-2h8l-2 2H5v12h14v-6l2-2v8c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V6z"/>
@@ -156,6 +157,19 @@
 <footer class="site-footer">
   <span>Demo built with <a href="https://telnyx.com" target="_blank" rel="noopener">Telnyx</a> AI Communications Infrastructure</span>
 </footer>
+
+<div class="welcome-overlay" id="welcomeOverlay">
+  <div class="welcome-modal">
+    <div class="welcome-brand">Dine<b>Nyx</b></div>
+    <p class="welcome-tagline">Enter your details to start</p>
+    <form id="welcomeForm" onsubmit="return submitWelcome(event)">
+      <input id="welcomeName" type="text" placeholder="Your name" required>
+      <input id="welcomeCity" type="text" placeholder="City (e.g. Amsterdam)" required>
+      <input id="welcomePhone" type="tel" placeholder="Phone with country code (e.g. +31...)" required>
+      <button type="submit">Start</button>
+    </form>
+  </div>
+</div>
 
 <script src="/dashboard.js"></script>
 </body>

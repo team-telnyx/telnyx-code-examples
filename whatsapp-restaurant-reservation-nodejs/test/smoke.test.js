@@ -23,7 +23,7 @@ process.env.DB_PATH = path.join(tmpDir, "test.db");
 
 // Import modules
 const { openDb } = await import("../db.js");
-const { seedRestaurants } = await import("../restaurants.js");
+const { seedRestaurants, cacheRestaurants, searchRestaurants, cityWhere } = await import("../restaurants.js");
 
 // Open test DB
 const { db } = await openDb(tmpDir);
@@ -58,10 +58,11 @@ app.get("/api/restaurants", async (req, res) => {
   const city = req.query.city?.trim() || "Amsterdam";
   const q = req.query.q?.trim() || "";
   const cityLower = city.toLowerCase();
+  const cw = cityWhere(cityLower);
 
   let { results: rows } = await db.prepare(
-    "SELECT * FROM restaurants WHERE city LIKE ? OR address LIKE ? ORDER BY name"
-  ).bind(`%${cityLower}%`, `%${city}%`).all();
+    `SELECT * FROM restaurants WHERE ${cw.sql} ORDER BY name`
+  ).bind(...cw.params).all();
 
   if (q) {
     const ql = q.toLowerCase();
@@ -110,6 +111,12 @@ app.post("/webhooks/whatsapp", (req, res) => {
   if (!fromNumber) return res.json({ status: "ignored" });
   // For testing, don't actually process — just acknowledge
   res.json({ status: "processing" });
+});
+
+app.delete("/api/conversations", async (_req, res) => {
+  await db.prepare("DELETE FROM conversations").run();
+  await db.prepare("DELETE FROM ui_events").run();
+  res.json({ status: "cleared" });
 });
 
 app.get("/stream", (req, res) => {
@@ -306,5 +313,59 @@ describe("SSE", () => {
     assert.ok(resp.headers.get("content-type").startsWith("text/event-stream"));
     // Consume the body to avoid hanging
     try { await resp.text(); } catch { /* expected close */ }
+  });
+});
+
+describe("City matching", () => {
+  it("caches and finds restaurants by multi-word city", async () => {
+    const restaurants = [
+      { id: "test-bham-1", name: "Asha's", cuisine: "indian", address: "12-22 Newhall St, Birmingham B3 3AS, UK" },
+      { id: "test-bham-2", name: "Dishoom", cuisine: "indian", address: "1 Chamberlain Sq, Birmingham B3 3AX, UK" },
+    ];
+    await cacheRestaurants(db, restaurants, "Birmingham UK");
+
+    const resp = await fetch(`${baseUrl}/api/restaurants?city=Birmingham+UK`);
+    assert.equal(resp.status, 200);
+    const data = await resp.json();
+    assert.ok(data.restaurants.length >= 2, `Expected >=2 restaurants, got ${data.restaurants.length}`);
+    assert.ok(data.restaurants.some((r) => r.name === "Asha's"));
+  });
+
+  it("still finds single-word city restaurants", async () => {
+    const resp = await fetch(`${baseUrl}/api/restaurants?city=Amsterdam`);
+    assert.equal(resp.status, 200);
+    const data = await resp.json();
+    assert.ok(data.restaurants.length > 0, "Amsterdam should return results");
+  });
+});
+
+describe("DELETE /api/conversations", () => {
+  it("clears chat and events", async () => {
+    const now = new Date().toISOString();
+    await db.prepare(
+      "INSERT INTO conversations (customer_phone, role, content, timestamp) VALUES (?,?,?,?)"
+    ).bind("+31600000000", "user", "test msg", now).run();
+    await db.prepare(
+      "INSERT INTO ui_events (type, payload, created_at) VALUES (?,?,?)"
+    ).bind("test.event", "{}", now).run();
+
+    const resp = await fetch(`${baseUrl}/api/conversations`, { method: "DELETE" });
+    assert.equal(resp.status, 200);
+    const data = await resp.json();
+    assert.equal(data.status, "cleared");
+
+    const { results: convos } = await db.prepare("SELECT * FROM conversations").all();
+    assert.equal(convos.length, 0);
+    const { results: events } = await db.prepare("SELECT * FROM ui_events").all();
+    assert.equal(events.length, 0);
+  });
+});
+
+describe("searchRestaurants", () => {
+  it("handles multi-word city", async () => {
+    // Data was inserted in "City matching" test above
+    const rows = await searchRestaurants(db, "indian", "Birmingham UK");
+    assert.ok(rows.length > 0, "Should find cached Birmingham restaurants");
+    assert.ok(rows.some((r) => r.name === "Asha's" || r.name === "Dishoom"));
   });
 });

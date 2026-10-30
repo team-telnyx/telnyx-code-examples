@@ -312,6 +312,10 @@ a:hover{text-decoration:underline}
 .wa-contact{flex:1}
 .wa-contact-name{font-size:14px;font-weight:600;color:#fff}
 .wa-contact-status{font-size:11px;color:rgba(255,255,255,.6)}
+.wa-customer-name{
+  font-size:11px;color:rgba(255,255,255,.85);font-weight:500;
+  max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .wa-header-icons{display:flex;gap:14px;color:rgba(255,255,255,.8)}
 .wa-header-icons svg{width:18px;height:18px;fill:currentColor;transition:opacity .15s}
 .wa-header-icons svg:hover{opacity:.7}
@@ -461,6 +465,70 @@ a:hover{text-decoration:underline}
 }
 .site-footer a{color:var(--sage);font-weight:500}
 .site-footer a:hover{color:#fff}
+
+/* ── Welcome Modal ────────────────────────────────────────────── */
+.welcome-overlay{
+  display:none;position:fixed;inset:0;z-index:100;
+  background:rgba(20,49,43,.75);
+  align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.welcome-modal{
+  background:#fff;padding:40px 36px;max-width:380px;width:90%;
+  text-align:center;
+}
+.welcome-brand{
+  font-family:var(--serif);font-size:2rem;font-weight:400;
+  color:var(--slate);margin-bottom:6px;
+}
+.welcome-brand b{font-weight:400;font-style:italic;color:var(--sage)}
+.welcome-tagline{
+  font-size:14px;color:var(--muted);margin-bottom:24px;
+  font-family:var(--sans);
+}
+.welcome-modal form{display:flex;flex-direction:column;gap:12px}
+.welcome-modal input{
+  padding:11px 14px;border-radius:0;
+  background:var(--sand);border:1px solid var(--line);
+  color:var(--ink);font-size:14px;font-family:var(--sans);outline:none;
+}
+.welcome-modal input:focus{border-color:var(--slate)}
+.welcome-modal input::placeholder{color:var(--muted)}
+.welcome-modal button{
+  padding:13px 26px;border-radius:0;border:none;
+  background:var(--sage);color:var(--slate);
+  font-size:0.82rem;font-weight:500;
+  letter-spacing:0.14em;text-transform:uppercase;
+  cursor:pointer;font-family:var(--sans);
+  transition:background .25s,color .25s;
+  margin-top:4px;
+}
+.welcome-modal button:hover{background:var(--slate);color:#fff}
+.welcome-instruction{
+  font-size:14px;color:var(--ink);line-height:1.6;margin-bottom:20px;
+  font-family:var(--sans);
+}
+.welcome-instruction strong{font-weight:600}
+.welcome-wa-link{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:13px 26px;border-radius:0;
+  background:#25D366;color:#fff;
+  font-size:0.82rem;font-weight:500;
+  letter-spacing:0.14em;text-transform:uppercase;
+  text-decoration:none;font-family:var(--sans);
+  transition:background .25s;margin-bottom:12px;
+}
+.welcome-wa-link:hover{background:#128C7E;text-decoration:none;color:#fff}
+.welcome-wa-link svg{fill:#fff}
+.welcome-continue{
+  display:block;width:100%;padding:12px;border-radius:0;border:1px solid var(--line);
+  background:var(--sand);color:var(--ink);
+  font-size:0.78rem;font-weight:500;
+  letter-spacing:0.1em;text-transform:uppercase;
+  cursor:pointer;font-family:var(--sans);
+  transition:all .2s;
+}
+.welcome-continue:hover{border-color:var(--slate);background:var(--sage-soft)}
 
 /* ── Animations ───────────────────────────────────────────────── */
 @keyframes bubbleIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}

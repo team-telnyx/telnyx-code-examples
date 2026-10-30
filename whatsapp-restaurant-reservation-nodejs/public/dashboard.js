@@ -5,6 +5,8 @@ let currentPage = 1;
 let totalPages = 1;
 let totalResults = 0;
 const PER_PAGE = 12;
+let selectedPhone = "";
+let currentCustomer = null; // { phone, name, city }
 
 // Config fetched from /api/config (replaces Jinja2 template vars)
 let WA_NUMBER = "";
@@ -18,10 +20,6 @@ async function loadConfig() {
     WA_NUMBER = (cfg.whatsapp_number || "").replace("+", "");
     DEFAULT_CITY = cfg.city || "Amsterdam";
 
-    // Populate city input
-    document.getElementById("cityInput").value = DEFAULT_CITY;
-    _lastCity = DEFAULT_CITY;
-
     // Populate cuisine dropdown
     const select = document.getElementById("cuisineSelect");
     select.innerHTML = "";
@@ -31,17 +29,114 @@ async function loadConfig() {
       opt.textContent = c;
       select.appendChild(opt);
     }
-
-    // Set hero CTA link
-    if (WA_NUMBER) {
-      document.getElementById("heroCta").href =
-        `https://web.whatsapp.com/send?phone=${WA_NUMBER}`;
-      document.getElementById("heroCtaText").textContent =
-        `Message +${WA_NUMBER} to try it`;
-    }
   } catch (err) {
     console.warn("Failed to load config:", err);
   }
+}
+
+/* ── Welcome Gate ────────────────────────────────────────────── */
+async function checkWelcome() {
+  const stored = localStorage.getItem("dinenyx_customer");
+  if (stored) {
+    try {
+      const cust = JSON.parse(stored);
+      // Validate against backend
+      const resp = await fetch("/api/customers/" + encodeURIComponent(cust.phone));
+      if (resp.ok) {
+        const data = await resp.json();
+        currentCustomer = data.customer;
+        selectedPhone = currentCustomer.phone;
+        activateDashboard();
+        return;
+      }
+    } catch { /* invalid stored data — show overlay */ }
+    localStorage.removeItem("dinenyx_customer");
+  }
+  // Show overlay
+  document.getElementById("welcomeOverlay").style.display = "flex";
+}
+
+function showReadyScreen() {
+  const waDisplay = WA_NUMBER ? `+${WA_NUMBER}` : "our WhatsApp number";
+  const waLink = WA_NUMBER
+    ? `https://web.whatsapp.com/send?phone=${WA_NUMBER}`
+    : "#";
+  const modal = document.querySelector(".welcome-modal");
+  modal.innerHTML = `
+    <div class="welcome-brand">Dine<b>Nyx</b></div>
+    <p class="welcome-tagline">You're all set, ${escapeHtml(currentCustomer.name)}!</p>
+    <p class="welcome-instruction">Send a WhatsApp message to <strong>${escapeHtml(waDisplay)}</strong> to start your conversation.</p>
+    <a class="welcome-wa-link" href="${waLink}" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" width="18" height="18"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="currentColor"/></svg>
+      Open WhatsApp
+    </a>
+    <button class="welcome-continue" onclick="activateDashboard()">Go to Dashboard</button>
+  `;
+}
+
+function activateDashboard() {
+  document.getElementById("welcomeOverlay").style.display = "none";
+
+  // Restore search state from localStorage, or default to customer's city
+  const saved = JSON.parse(localStorage.getItem("dinenyx_search") || "null");
+  document.getElementById("cityInput").value = saved?.city || currentCustomer.city || DEFAULT_CITY;
+  _lastCity = document.getElementById("cityInput").value;
+  document.getElementById("cuisineSelect").value = saved?.cuisine || "All";
+  document.getElementById("searchInput").value = saved?.query || "";
+  currentPage = 1;
+
+  // Set hero CTA link
+  if (WA_NUMBER) {
+    document.getElementById("heroCta").href =
+      `https://web.whatsapp.com/send?phone=${WA_NUMBER}`;
+    document.getElementById("heroCtaText").textContent =
+      `Message +${WA_NUMBER} to try it`;
+  }
+
+  // Show customer name in header
+  const nameEl = document.getElementById("customerName");
+  nameEl.textContent = currentCustomer.name;
+  nameEl.style.display = "inline";
+  document.getElementById("phoneStatus").textContent = "Chat with " + currentCustomer.name;
+
+  // Load dashboard data
+  loadRestaurants();
+  loadReservations();
+  connectSSE();
+  pollConversations();
+  // Set the UI event cursor to "now" so old events don't override the customer's city
+  _lastUiEventTs = new Date().toISOString();
+  pollUiEvents();
+}
+
+function submitWelcome(event) {
+  event.preventDefault();
+  const name = document.getElementById("welcomeName").value.trim();
+  const city = document.getElementById("welcomeCity").value.trim();
+  let phone = document.getElementById("welcomePhone").value.trim();
+  if (!name || !city || !phone) return false;
+
+  // Normalize phone
+  if (!phone.startsWith("+")) phone = "+" + phone;
+
+  fetch("/api/customers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, name, city }),
+  })
+    .then((r) => r.json())
+    .then((data) => {
+      if (data.error) { alert(data.error); return; }
+      currentCustomer = data.customer;
+      selectedPhone = phone;
+      localStorage.setItem("dinenyx_customer", JSON.stringify(currentCustomer));
+      showReadyScreen();
+    })
+    .catch((err) => {
+      console.error("Registration failed:", err);
+      alert("Registration failed. Please try again.");
+    });
+  return false;
 }
 
 /* ── SSE Connection ───────────────────────────────────────────── */
@@ -72,6 +167,8 @@ function handleSSE(data) {
   const type = data.type;
 
   if (type === "restaurant.search" || type === "restaurant.selected") {
+    // Filter restaurant panel events by phone — only show events from the logged-in customer
+    if (selectedPhone && data.customer_phone && data.customer_phone !== selectedPhone) return;
     const key = type + "|" + (data.city || "") + "|" + (data.query || "") + "|" + (data.restaurant_id || "");
     if (key === _lastRestEvtKey) return;
     _lastRestEvtKey = key;
@@ -79,14 +176,31 @@ function handleSSE(data) {
 
   if (type === "channel.whatsapp") {
     showTyping(false);
-    // Dedup key uses phone + role + content (NOT timestamp — SSE ts differs from DB timestamp)
     const phone = data.from || data.to || "";
+
+    // Filter: only show messages for the logged-in customer's phone
+    if (selectedPhone && phone && phone !== selectedPhone) return;
+
+    // Dedup: include minute-bucket so repeated identical messages still show,
+    // but SSE + poll for the SAME message (within the same minute) dedup.
     const role = data.direction === "inbound" ? "user" : "assistant";
-    const key = phone + "|" + role + "|" + (data.text || "").slice(0, 80);
+    const tsBucket = (data.ts || new Date().toISOString()).slice(0, 16); // YYYY-MM-DDTHH:MM
+    const key = phone + "|" + role + "|" + tsBucket + "|" + (data.text || "").slice(0, 80);
     if (_seenMsgKeys.has(key)) return;
     _seenMsgKeys.add(key);
     addChatBubble(data);
     updateActivity(data.direction === "inbound" ? "Message received" : "Message sent");
+  }
+  else if (type === "customer.registered") {
+    // WhatsApp-first registration — update name display if it's our phone
+    if (selectedPhone && data.phone === selectedPhone && data.name) {
+      currentCustomer = { phone: data.phone, name: data.name, city: data.city };
+      localStorage.setItem("dinenyx_customer", JSON.stringify(currentCustomer));
+      const nameEl = document.getElementById("customerName");
+      nameEl.textContent = data.name;
+      nameEl.style.display = "inline";
+      document.getElementById("phoneStatus").textContent = "Chat with " + data.name;
+    }
   }
   else if (type === "agent.thinking") {
     showTyping(true);
@@ -180,13 +294,6 @@ function addChatBubble(data) {
 
   chatArea.appendChild(bubble);
   chatArea.scrollTop = chatArea.scrollHeight;
-
-  if (isInbound && data.from) {
-    const ph = data.from;
-    const masked = ph.length > 4 ? "***" + ph.slice(-4) : ph;
-    document.getElementById("phoneStatus").textContent = "Chat with " + masked;
-  }
-
   showTyping(false);
 }
 
@@ -215,11 +322,20 @@ function getCuisine() {
   return document.getElementById("cuisineSelect").value;
 }
 
+function saveSearchState() {
+  localStorage.setItem("dinenyx_search", JSON.stringify({
+    city: getCity(),
+    cuisine: getCuisine(),
+    query: document.getElementById("searchInput").value.trim(),
+  }));
+}
+
 function loadRestaurants(page) {
   page = page || currentPage;
   const city = getCity();
   const cuisine = getCuisine();
   const q = document.getElementById("searchInput").value.trim();
+  saveSearchState();
   const params = new URLSearchParams({ city, cuisine, page, per_page: PER_PAGE });
   if (q) params.set("q", q);
 
@@ -415,7 +531,10 @@ function refreshRestaurants() {
 
 /* ── Reservations ─────────────────────────────────────────────── */
 function loadReservations() {
-  fetch("/api/reservations")
+  const params = new URLSearchParams();
+  if (selectedPhone) params.set("phone", selectedPhone);
+  const qs = params.toString();
+  fetch("/api/reservations" + (qs ? "?" + qs : ""))
     .then((r) => r.json())
     .then((data) => renderReservations(data))
     .catch(() => {});
@@ -513,15 +632,18 @@ let _lastMsgTs = "";
 let _seenMsgKeys = new Set();
 
 function pollConversations() {
-  const url = _lastMsgTs
-    ? `/api/conversations?since=${encodeURIComponent(_lastMsgTs)}&limit=20`
-    : "/api/conversations?limit=30";
+  const params = new URLSearchParams();
+  if (_lastMsgTs) { params.set("since", _lastMsgTs); params.set("limit", "20"); }
+  else { params.set("limit", "30"); }
+  if (selectedPhone) params.set("phone", selectedPhone);
+  const url = "/api/conversations?" + params;
   fetch(url).then((r) => r.json()).then((data) => {
     const msgs = data.messages || [];
     for (const m of msgs) {
       // Always advance the cursor so we don't re-fetch the same rows
       if (m.timestamp > _lastMsgTs) _lastMsgTs = m.timestamp;
-      const key = (m.customer_phone || "") + "|" + m.role + "|" + m.content.slice(0, 80);
+      const tsBucket = (m.timestamp || "").slice(0, 16); // YYYY-MM-DDTHH:MM
+      const key = (m.customer_phone || "") + "|" + m.role + "|" + tsBucket + "|" + m.content.slice(0, 80);
       if (_seenMsgKeys.has(key)) continue;
       _seenMsgKeys.add(key);
       addChatBubble({
@@ -562,12 +684,13 @@ function pollUiEvents() {
 
 /* ── New Chat ─────────────────────────────────────────────────── */
 function newChat() {
-  fetch("/api/conversations", { method: "DELETE" })
+  if (!selectedPhone) return;
+  const qs = "?phone=" + encodeURIComponent(selectedPhone);
+  fetch("/api/conversations" + qs, { method: "DELETE" })
     .then((r) => r.json())
     .then(() => {
       document.getElementById("chatArea").innerHTML =
         '<div class="chat-empty" id="chatEmpty">Send a WhatsApp message to<br>start a conversation</div>';
-      document.getElementById("phoneStatus").textContent = "online";
       _lastMsgTs = "";
       _seenMsgKeys = new Set();
       _lastUiEventTs = "";
@@ -575,26 +698,19 @@ function newChat() {
       _lastRestEvtKey = "";
       showTyping(false);
       updateActivity("Message");
+      loadReservations();
     });
 }
 
 /* ── Init ─────────────────────────────────────────────────────── */
 loadConfig().then(() => {
-  loadRestaurants();
-  loadReservations();
-  connectSSE();
-  pollConversations();
-  pollUiEvents();
+  checkWelcome();
 });
 
-// Auto-refresh reservations every 30s
-setInterval(loadReservations, 30000);
-
-// Poll conversations every 3s to catch messages missed by SSE
-setInterval(pollConversations, 3000);
-
-// Poll UI events every 3s to catch restaurant.search / restaurant.selected missed by SSE
-setInterval(pollUiEvents, 3000);
+// Auto-refresh — guarded so polling only runs after the customer has logged in
+setInterval(() => { if (currentCustomer) loadReservations(); }, 30000);
+setInterval(() => { if (currentCustomer) pollConversations(); }, 3000);
+setInterval(() => { if (currentCustomer) pollUiEvents(); }, 3000);
 
 // Keep phone clock updated
 function updatePhoneClock() {
