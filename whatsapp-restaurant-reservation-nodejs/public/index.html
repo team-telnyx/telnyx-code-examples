@@ -6,39 +6,37 @@
 <title>DineNyx — Restaurant Reservations via WhatsApp</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital@0;1&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+
+<!-- Topbar -->
+<header class="topbar">
+  <a class="brand" href="/">
+    <span class="logo-word">Dine<b>Nyx</b></span>
+  </a>
+  <nav class="topbar-nav">
+    <span class="topbar-label">AI-powered restaurant reservations via WhatsApp</span>
+  </nav>
+  <div class="topbar-right">
+    <span class="demo-badge">Telnyx demo</span>
+    <span class="nav-badge" id="topbarStatus">
+      <span class="status-dot" id="statusDot"></span> Connected
+    </span>
+  </div>
+</header>
 
 <!-- Hero -->
 <div class="hero">
   <div class="hero-content">
     <div class="hero-left">
-      <div class="hero-brand">DineNyx</div>
+      <div class="hero-brand">Dine<b>Nyx</b></div>
       <div class="hero-tagline">AI-powered restaurant reservations via <strong>WhatsApp</strong>. Browse, book, and manage tables with a single conversation.</div>
-      <a class="hero-cta" id="heroCta" href="#" target="_blank" rel="noopener">
+      <a class="hero-cta" id="heroCta" href="https://web.whatsapp.com/send?phone=12176180378" target="_blank" rel="noopener">
         <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
-        <span id="heroCtaText">Message to try it</span>
+        <span id="heroCtaText">Message +12176180378 to try it</span>
       </a>
-    </div>
-  </div>
-</div>
-
-<!-- Navbar -->
-<div class="navbar">
-  <div class="navbar-left">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--green)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-    Search any city &middot; Browse restaurants &middot; Book via WhatsApp
-  </div>
-  <div class="navbar-right">
-    <div class="nav-badge">
-      <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
-      WhatsApp Connected
-    </div>
-    <div class="nav-badge">
-      <svg viewBox="0 0 24 24" fill="var(--green)"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-      AI Inference
     </div>
   </div>
 </div>
@@ -50,7 +48,7 @@
   <div class="panel">
     <div class="panel-header">
       <h2>Restaurants</h2>
-      <span style="font-size:12px;color:var(--text3)" id="restaurantCount">0 results</span>
+      <span style="font-size:12px;color:var(--muted)" id="restaurantCount">0 results</span>
     </div>
     <div class="panel-body">
       <div class="filter-row">
@@ -118,7 +116,7 @@
   <div class="panel">
     <div class="panel-header">
       <h2>Reservations</h2>
-      <span style="font-size:12px;color:var(--text3)" id="resDate">Today</span>
+      <span style="font-size:12px;color:var(--muted)" id="resDate">Today</span>
     </div>
     <div class="panel-body">
       <div class="res-summary">
@@ -156,8 +154,7 @@
 
 <!-- Footer -->
 <footer class="site-footer">
-  <span class="status-dot" id="statusDot"></span>
-  Powered by <a href="https://telnyx.com" target="_blank" rel="noopener">Telnyx</a>
+  <span>Demo built with <a href="https://telnyx.com" target="_blank" rel="noopener">Telnyx</a> AI Communications Infrastructure</span>
 </footer>
 
 <script src="/dashboard.js"></script>
