@@ -69,6 +69,12 @@ npm start
 npm run demo
 ```
 
+To show four intentionally separate appointment messages instead of one carrier-chunked long message, run:
+
+```bash
+npm run demo -- --sequence
+```
+
 Use `npm run demo -- --dry-run` first to verify the message length without sending an SMS.
 
 ## Troubleshooting
