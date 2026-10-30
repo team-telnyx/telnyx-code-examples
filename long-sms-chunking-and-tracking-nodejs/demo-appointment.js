@@ -44,12 +44,10 @@ async function main() {
   const port = env.PORT || "5127";
   const message = buildAppointmentMessage();
   const sequence = [
-    "Appointment confirmed: Tuesday, November 17 at 10:30 AM Pacific.",
-    "Location: Northstar Clinic, 2400 Market Street, Building B, Suite 410. Check in at the front desk.",
-    "Please arrive 15 minutes early with your photo ID, insurance card, and current medication list.",
-    "Bring recent test results and any questions you want your care team to review during the visit.",
-    "Need to change the time? Reply RESCHEDULE or call the scheduling team at 415-555-0142.",
-    "Please give us 24 hours notice when possible. We look forward to seeing you.",
+    "Appointment confirmed: Tuesday, November 17 at 10:30 AM Pacific. Please save this message for your records. Your care team has reserved this time for your visit and will review your goals and next steps with you.",
+    "Your appointment is at Northstar Clinic, 2400 Market Street, Building B, Suite 410. Please check in at the front desk when you arrive. Parking is available in the garage beneath Building B, and the clinic entrance is step-free.",
+    "Please arrive 15 minutes early with a photo ID, your insurance card, and a current medication list. Bring any recent test results and questions you want your care team to review during the appointment.",
+    "Need to change the time? Reply RESCHEDULE or call the scheduling team at 415-555-0142. Please give us at least 24 hours notice when possible so another patient can use the appointment time.",
   ];
 
   if (!to) throw new Error("DEMO_TO is missing from .env");
