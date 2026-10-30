@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-28T19:54:27Z",
-  "example_count": 583,
+  "generated_at": "2026-10-30T18:27:52Z",
+  "example_count": 584,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -518,6 +518,15 @@
       "language": "nodejs",
       "framework": "express",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-sms-webhook-nodejs"
+    },
+    {
+      "folder": "join-meeting-by-sms-nodejs",
+      "title": "Join a Meeting by SMS",
+      "description": "Text a meeting link to a Telnyx number and a bot joins the call for you, then texts back a TL;DR when the meeting ends.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/join-meeting-by-sms-nodejs"
     },
     {
       "folder": "receive-sms-webhook-csharp",
