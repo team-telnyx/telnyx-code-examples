@@ -359,6 +359,12 @@ examples:
     folder: send-sms-nodejs
 
   - product: sms
+    use_case: long-sms-chunking-and-tracking
+    language: nodejs
+    framework: express
+    folder: long-sms-chunking-and-tracking-nodejs
+
+  - product: sms
     use_case: receive-sms-webhook
     language: nodejs
     framework: express
