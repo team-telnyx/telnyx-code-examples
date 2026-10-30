@@ -365,6 +365,12 @@ examples:
     folder: receive-sms-webhook-nodejs
 
   - product: sms
+    use_case: join-meeting-by-sms
+    language: nodejs
+    framework: express
+    folder: join-meeting-by-sms-nodejs
+
+  - product: sms
     use_case: receive-sms-webhook
     language: csharp
     framework: aspnet
