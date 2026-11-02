@@ -124,9 +124,12 @@ function submitWelcome(event) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phone, name, city }),
   })
-    .then((r) => r.json())
-    .then((data) => {
-      if (data.error) { alert(data.error); return; }
+    .then(async (r) => {
+      const data = await r.json();
+      if (!r.ok || data.error) {
+        alert(data.error || "Registration failed.");
+        return;
+      }
       currentCustomer = data.customer;
       selectedPhone = phone;
       localStorage.setItem("dinenyx_customer", JSON.stringify(currentCustomer));

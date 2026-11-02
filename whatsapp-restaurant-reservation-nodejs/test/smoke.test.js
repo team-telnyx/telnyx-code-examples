@@ -113,9 +113,53 @@ app.post("/webhooks/whatsapp", (req, res) => {
   res.json({ status: "processing" });
 });
 
-app.delete("/api/conversations", async (_req, res) => {
-  await db.prepare("DELETE FROM conversations").run();
-  await db.prepare("DELETE FROM ui_events").run();
+app.post("/api/customers", async (req, res) => {
+  const { phone, name, city } = req.body || {};
+  if (!phone || !name || !city) return res.status(400).json({ error: "phone, name, and city are required" });
+  const now = new Date().toISOString();
+  await db.prepare(
+    "INSERT OR REPLACE INTO customers (phone, name, city, created_at) VALUES (?,?,?,?)"
+  ).bind(phone, name.trim(), city.trim(), now).run();
+  res.json({ customer: { phone, name: name.trim(), city: city.trim() } });
+});
+
+app.get("/api/customers/:phone", async (req, res) => {
+  const row = await db.prepare("SELECT phone, name, city FROM customers WHERE phone = ?").bind(req.params.phone).first();
+  if (!row) return res.status(404).json({ error: "Customer not found" });
+  res.json({ customer: row });
+});
+
+app.get("/api/conversations", async (req, res) => {
+  const since = req.query.since || "";
+  const phone = req.query.phone || "";
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+  let rows;
+  if (since && phone) {
+    ({ results: rows } = await db.prepare(
+      "SELECT customer_phone, role, content, timestamp FROM conversations WHERE timestamp > ? AND customer_phone = ? ORDER BY timestamp ASC LIMIT ?"
+    ).bind(since, phone, limit).all());
+  } else if (phone) {
+    ({ results: rows } = await db.prepare(
+      "SELECT customer_phone, role, content, timestamp FROM conversations WHERE customer_phone = ? ORDER BY timestamp DESC LIMIT ?"
+    ).bind(phone, limit).all());
+    rows = rows.reverse();
+  } else {
+    ({ results: rows } = await db.prepare(
+      "SELECT customer_phone, role, content, timestamp FROM conversations ORDER BY timestamp DESC LIMIT ?"
+    ).bind(limit).all());
+    rows = rows.reverse();
+  }
+  res.json({ messages: rows });
+});
+
+app.delete("/api/conversations", async (req, res) => {
+  const phone = req.query.phone || "";
+  if (phone) {
+    await db.prepare("DELETE FROM conversations WHERE customer_phone = ?").bind(phone).run();
+  } else {
+    await db.prepare("DELETE FROM conversations").run();
+    await db.prepare("DELETE FROM ui_events").run();
+  }
   res.json({ status: "cleared" });
 });
 
@@ -367,5 +411,113 @@ describe("searchRestaurants", () => {
     const rows = await searchRestaurants(db, "indian", "Birmingham UK");
     assert.ok(rows.length > 0, "Should find cached Birmingham restaurants");
     assert.ok(rows.some((r) => r.name === "Asha's" || r.name === "Dishoom"));
+  });
+});
+
+describe("Customers", () => {
+  it("registers a new customer", async () => {
+    const resp = await fetch(`${baseUrl}/api/customers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: "+31612340000", name: "Test User", city: "Amsterdam" }),
+    });
+    assert.equal(resp.status, 200);
+    const data = await resp.json();
+    assert.equal(data.customer.phone, "+31612340000");
+    assert.equal(data.customer.name, "Test User");
+    assert.equal(data.customer.city, "Amsterdam");
+  });
+
+  it("looks up an existing customer", async () => {
+    const resp = await fetch(`${baseUrl}/api/customers/+31612340000`);
+    assert.equal(resp.status, 200);
+    const data = await resp.json();
+    assert.equal(data.customer.name, "Test User");
+    assert.equal(data.customer.city, "Amsterdam");
+  });
+
+  it("returns 404 for unknown customer", async () => {
+    const resp = await fetch(`${baseUrl}/api/customers/+00000000000`);
+    assert.equal(resp.status, 404);
+  });
+
+  it("updates an existing customer on re-register", async () => {
+    const resp = await fetch(`${baseUrl}/api/customers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: "+31612340000", name: "Test User", city: "Rotterdam" }),
+    });
+    assert.equal(resp.status, 200);
+    const data = await resp.json();
+    assert.equal(data.customer.city, "Rotterdam");
+
+    // Verify via lookup
+    const lookup = await fetch(`${baseUrl}/api/customers/+31612340000`);
+    const lookupData = await lookup.json();
+    assert.equal(lookupData.customer.city, "Rotterdam");
+  });
+
+  it("rejects registration with missing fields", async () => {
+    const resp = await fetch(`${baseUrl}/api/customers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: "+31612340000" }),
+    });
+    assert.equal(resp.status, 400);
+  });
+});
+
+describe("Phone-scoped conversations", () => {
+  it("filters conversations by phone", async () => {
+    const now = new Date().toISOString();
+    await db.prepare(
+      "INSERT INTO conversations (id, customer_phone, role, content, timestamp) VALUES (?,?,?,?,?)"
+    ).bind("conv-a1", "+31611111111", "user", "Hello from A", now).run();
+    await db.prepare(
+      "INSERT INTO conversations (id, customer_phone, role, content, timestamp) VALUES (?,?,?,?,?)"
+    ).bind("conv-b1", "+31622222222", "user", "Hello from B", now).run();
+
+    const respA = await fetch(`${baseUrl}/api/conversations?phone=${encodeURIComponent("+31611111111")}`);
+    const dataA = await respA.json();
+    assert.ok(dataA.messages.every((m) => m.customer_phone === "+31611111111"), "Should only contain phone A messages");
+    assert.ok(dataA.messages.some((m) => m.content === "Hello from A"));
+
+    const respB = await fetch(`${baseUrl}/api/conversations?phone=${encodeURIComponent("+31622222222")}`);
+    const dataB = await respB.json();
+    assert.ok(dataB.messages.every((m) => m.customer_phone === "+31622222222"), "Should only contain phone B messages");
+  });
+
+  it("deletes only one phone's conversations", async () => {
+    const resp = await fetch(`${baseUrl}/api/conversations?phone=${encodeURIComponent("+31611111111")}`, { method: "DELETE" });
+    assert.equal(resp.status, 200);
+
+    // Phone A should be empty
+    const { results: rowsA } = await db.prepare(
+      "SELECT * FROM conversations WHERE customer_phone = ?"
+    ).bind("+31611111111").all();
+    assert.equal(rowsA.length, 0);
+
+    // Phone B should still exist
+    const { results: rowsB } = await db.prepare(
+      "SELECT * FROM conversations WHERE customer_phone = ?"
+    ).bind("+31622222222").all();
+    assert.ok(rowsB.length > 0, "Phone B conversations should survive");
+  });
+});
+
+describe("Welcome modal", () => {
+  it("index.html contains welcome overlay", async () => {
+    const resp = await fetch(`${baseUrl}/`);
+    const text = await resp.text();
+    assert.ok(text.includes('id="welcomeOverlay"'), "Should have welcome overlay");
+    assert.ok(text.includes('id="welcomeForm"'), "Should have welcome form");
+    assert.ok(text.includes('id="customerName"'), "Should have customer name span");
+  });
+});
+
+describe("Customers table schema", () => {
+  it("customers table exists and accepts data", async () => {
+    const row = await db.prepare("SELECT COUNT(*) as cnt FROM customers").first();
+    assert.ok(row.cnt >= 0, "customers table should exist");
   });
 });

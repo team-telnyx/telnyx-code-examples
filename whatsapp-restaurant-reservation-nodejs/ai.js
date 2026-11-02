@@ -359,6 +359,23 @@ async function executeTool(db, ssePublish, toolName, toolInput, customerPhone) {
   }
 
   if (toolName === "register_customer") {
+    // Validate phone via Telnyx Number Lookup API
+    const apiKey = setting("TELNYX_API_KEY");
+    if (apiKey) {
+      try {
+        const nlResp = await fetch(
+          `https://api.telnyx.com/v2/number_lookup/${encodeURIComponent(toolInput.phone)}`,
+          { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } }
+        );
+        if (nlResp.ok) {
+          const nlData = await nlResp.json();
+          if (nlData.data && nlData.data.valid_number === false) {
+            return JSON.stringify({ error: "invalid_phone", message: "The phone number is not valid. Ask the customer to provide a valid phone number with country code." });
+          }
+        }
+      } catch { /* If lookup fails, proceed with registration */ }
+    }
+
     const now = new Date().toISOString();
     await db.prepare(
       "INSERT OR REPLACE INTO customers (phone, name, city, created_at) VALUES (?,?,?,?)"

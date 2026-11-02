@@ -354,6 +354,26 @@ app.get("/api/ui-events", async (req, res) => {
 app.post("/api/customers", async (req, res) => {
   const { phone, name, city } = req.body || {};
   if (!phone || !name || !city) return res.status(400).json({ error: "phone, name, and city are required" });
+
+  // Validate phone via Telnyx Number Lookup API
+  const apiKey = setting("TELNYX_API_KEY");
+  if (apiKey) {
+    try {
+      const nlResp = await fetch(
+        `https://api.telnyx.com/v2/number_lookup/${encodeURIComponent(phone)}`,
+        { headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" } }
+      );
+      if (nlResp.ok) {
+        const nlData = await nlResp.json();
+        if (nlData.data && nlData.data.valid_number === false) {
+          return res.status(422).json({ error: "This phone number is not valid. Please enter a real phone number with country code." });
+        }
+      }
+    } catch (err) {
+      console.error("Number Lookup failed (proceeding anyway):", err.message);
+    }
+  }
+
   const now = new Date().toISOString();
   await db.prepare(
     "INSERT OR REPLACE INTO customers (phone, name, city, created_at) VALUES (?,?,?,?)"
