@@ -1,6 +1,6 @@
 # DineNyx — WhatsApp Restaurant Reservations (Node.js)
 
-AI-powered restaurant reservations via WhatsApp, built with Node.js/Express for deployment on [Telnyx Edge Compute](https://telnyx.com/products/edge-compute).
+AI-powered restaurant reservations via WhatsApp, built with Node.js/Express on Telnyx AI Communications Infrastructure and deployed on [Telnyx Edge Compute](https://telnyx.com/products/edge-compute).
 
 Browse real restaurants worldwide, book a table through a WhatsApp conversation with an AI agent, and watch reservations update on a live dashboard in real time.
 
@@ -122,6 +122,43 @@ Runs smoke tests using Node.js built-in test runner. All HTTP calls are mocked �
 Locally, the app uses SQLite via `node:sqlite` (Node 22+). On Edge, it uses the Telnyx Edge SQL REST API — no storage binding needed, so the function deploys to every Edge site globally.
 
 Three tables: `restaurants`, `reservations`, `conversations`. Reservation IDs are UUIDs (portable across local and Edge SQL).
+
+## Why Telnyx
+
+- **Carrier-edge deployment** — Edge Compute runs your app on Telnyx's carrier-edge network, delivering lower latency than cloud-edge alternatives
+- **Unified stack** — AI Inference, WhatsApp Business API, Number Lookup, and Edge Compute under one API key — no Frankenstack of third-party services
+- **Number Lookup validation** — Validate phone numbers at registration using the Telnyx Number Lookup API before engaging customers
+
+## Troubleshooting
+
+| Issue | Fix |
+|---|---|
+| `TELNYX_API_KEY not set` | Copy `.env.example` to `.env` and fill in your keys |
+| No restaurants loading | Set `GOOGLE_PLACES_API_KEY` or rely on fallback seed data (20 Amsterdam restaurants) |
+| WhatsApp messages not arriving | Verify webhook URL points to `/webhooks/whatsapp` and the messaging profile ID matches |
+| Edge deploy fails | Ensure `func.toml` has the correct function ID and `telnyx-edge` CLI is authenticated |
+| AI not responding | Check that `TELNYX_API_KEY` has AI Inference access enabled |
+
+## Related Examples
+
+- [whatsapp-restaurant-reservation-python](https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-restaurant-reservation-python) — Python/Flask version of this demo
+- [whatsapp-order-tracking-notifications-python](https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-order-tracking-notifications-python) — WhatsApp order tracking with proactive notifications
+- [whatsapp-sms-bridge-python](https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-sms-bridge-python) — Bidirectional WhatsApp-SMS bridge
+- [ai-restaurant-reservation-voice-agent-python](https://github.com/team-telnyx/telnyx-code-examples/tree/main/ai-restaurant-reservation-voice-agent-python) — Voice-based restaurant reservations with AI
+- [edge-event-microsite](https://github.com/team-telnyx/telnyx-code-examples/tree/main/edge-event-microsite) — Event microsite with AI concierge on Edge Compute
+
+## Agent Discovery
+
+```json
+{
+  "name": "DineNyx WhatsApp Restaurant Reservations",
+  "description": "AI-powered restaurant reservations via WhatsApp with live dashboard, deployed on Telnyx Edge Compute",
+  "capabilities": ["whatsapp-messaging", "ai-inference", "number-lookup", "edge-compute", "voice-transcription"],
+  "products": ["WhatsApp Business API", "AI Inference", "Number Lookup", "Edge Compute"],
+  "entry_point": "server.js",
+  "webhook_path": "/webhooks/whatsapp"
+}
+```
 
 ## License
 
