@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nomad Gateway</title>
+<style>
+:root {
+  --bg: #0a0e14; --surface: #12171f; --surface2: #1a2030; --border: #2a3040;
+  --text: #e0e6f0; --text2: #8892a4; --green: #00e676; --red: #ff5252;
+  --yellow: #ffd740; --blue: #448aff; --purple: #b388ff; --cyan: #18ffff;
+  --font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* Topbar */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.6rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.brand { color: var(--green); font-weight: 700; font-size: 1.1rem; text-decoration: none; letter-spacing: 1px; }
+.brand b { color: var(--text); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
+.demo-badge {
+  font-size: 0.65rem; padding: 2px 8px; border-radius: 4px;
+  background: var(--surface2); color: var(--text2); text-transform: uppercase; letter-spacing: 1px;
+}
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+.status-dot.connected { background: var(--green); }
+.nav-badge { font-size: 0.75rem; color: var(--text2); display: flex; align-items: center; gap: 0.4rem; }
+
+/* Hero */
+.hero {
+  text-align: center; padding: 2rem 1rem; border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+}
+.hero-brand { font-size: 1.8rem; font-weight: 700; color: var(--green); }
+.hero-brand b { color: var(--text); }
+.hero-features { color: var(--text2); font-size: 0.8rem; margin: 0.5rem 0; letter-spacing: 1px; }
+.hero-mode {
+  display: inline-block; padding: 6px 20px; border-radius: 6px; font-size: 1rem;
+  font-weight: 700; margin-top: 0.5rem; letter-spacing: 2px;
+}
+.hero-mode.online { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid var(--green); }
+.hero-mode.offline { background: rgba(255,215,64,0.15); color: var(--yellow); border: 1px solid var(--yellow); }
+.hero-cta {
+  display: inline-block; margin-top: 0.8rem; padding: 8px 24px; border-radius: 6px;
+  background: var(--green); color: var(--bg); font-weight: 700; font-size: 0.85rem;
+  text-decoration: none; transition: opacity 0.2s;
+}
+.hero-cta:hover { opacity: 0.85; }
+
+/* Layout */
+.layout { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; min-height: calc(100vh - 140px); }
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+.panel { border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.panel:last-child { border-right: none; }
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface);
+}
+.panel-header h2 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.panel-header span { font-size: 0.7rem; color: var(--text2); }
+.panel-body { flex: 1; overflow-y: auto; padding: 0.8rem; }
+
+/* Query log */
+.query-item {
+  padding: 0.6rem 0.8rem; border-radius: 6px; margin-bottom: 0.5rem;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.query-meta { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; }
+.channel-badge {
+  font-size: 0.6rem; padding: 1px 6px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+}
+.channel-badge.sms { background: rgba(68,138,255,0.2); color: var(--blue); }
+.channel-badge.voice { background: rgba(179,136,255,0.2); color: var(--purple); }
+.source-badge {
+  font-size: 0.6rem; padding: 1px 6px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.source-badge.online { background: rgba(0,230,118,0.15); color: var(--green); }
+.source-badge.offline { background: rgba(255,215,64,0.15); color: var(--yellow); }
+.query-phone { font-size: 0.7rem; color: var(--text2); }
+.query-latency { font-size: 0.65rem; color: var(--text2); margin-left: auto; }
+.query-question { font-size: 0.8rem; margin-bottom: 0.2rem; color: var(--cyan); }
+.query-answer { font-size: 0.75rem; color: var(--text2); line-height: 1.4; }
+.empty-state { color: var(--text2); font-size: 0.8rem; text-align: center; padding: 2rem; }
+
+/* System status */
+.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem; }
+.status-card {
+  padding: 0.8rem; border-radius: 6px; background: var(--surface); border: 1px solid var(--border);
+  text-align: center;
+}
+.status-card .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 0.3rem; }
+.status-card .indicator {
+  width: 12px; height: 12px; border-radius: 50%; margin: 0 auto 0.3rem;
+}
+.status-card .indicator.up { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.status-card .indicator.down { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.status-card .value { font-size: 0.75rem; font-weight: 600; }
+.mode-display {
+  text-align: center; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;
+  border: 2px solid var(--border);
+}
+.mode-display.online { border-color: var(--green); background: rgba(0,230,118,0.05); }
+.mode-display.offline { border-color: var(--yellow); background: rgba(255,215,64,0.05); }
+.mode-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text2); margin-bottom: 0.3rem; }
+.mode-value { font-size: 1.4rem; font-weight: 700; letter-spacing: 2px; }
+.mode-display.online .mode-value { color: var(--green); }
+.mode-display.offline .mode-value { color: var(--yellow); }
+
+/* Knowledge sources */
+.knowledge-item {
+  padding: 0.5rem 0.8rem; border-radius: 6px; margin-bottom: 0.4rem;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.knowledge-title { font-size: 0.8rem; font-weight: 600; }
+.knowledge-meta { font-size: 0.65rem; color: var(--text2); }
+.knowledge-stat {
+  text-align: center; padding: 1rem; background: var(--surface); border-radius: 8px;
+  border: 1px solid var(--border); margin-bottom: 0.8rem;
+}
+.knowledge-stat .num { font-size: 2rem; font-weight: 700; color: var(--cyan); }
+.knowledge-stat .label { font-size: 0.7rem; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="/">Nomad<b>Gateway</b></a>
+  <div class="topbar-right">
+    <span class="demo-badge">Telnyx demo</span>
+    <span class="nav-badge">
+      <span class="status-dot" id="statusDot"></span> <span id="connLabel">Connecting</span>
+    </span>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-brand">Nomad<b>Gateway</b></div>
+  <div class="hero-features">SMS + Voice &middot; AI Inference &middot; Wikipedia &middot; Offline Fallback &middot; Edge Compute</div>
+  <div class="hero-mode online" id="heroMode">ONLINE</div>
+  <br>
+  <a class="hero-cta" id="heroCta" href="#">Text the Number</a>
+</div>
+
+<div class="layout">
+  <!-- Left: Query Log -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Query Log</h2>
+      <span id="queryCount">0 queries</span>
+    </div>
+    <div class="panel-body" id="queryList">
+      <div class="empty-state">No queries yet — text or call the number to start</div>
+    </div>
+  </div>
+
+  <!-- Center: System Status -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>System Status</h2>
+      <span id="lastCheck">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="mode-display online" id="modeDisplay">
+        <div class="mode-label">Inference Mode</div>
+        <div class="mode-value" id="modeValue">ONLINE</div>
+      </div>
+      <div class="status-grid">
+        <div class="status-card">
+          <div class="label">Internet</div>
+          <div class="indicator up" id="indInternet"></div>
+          <div class="value" id="valInternet">Online</div>
+        </div>
+        <div class="status-card">
+          <div class="label">Kiwix / Wikipedia</div>
+          <div class="indicator down" id="indKiwix"></div>
+          <div class="value" id="valKiwix">Offline</div>
+        </div>
+        <div class="status-card">
+          <div class="label">Ollama / Local AI</div>
+          <div class="indicator down" id="indOllama"></div>
+          <div class="value" id="valOllama">Offline</div>
+        </div>
+        <div class="status-card">
+          <div class="label">Maps</div>
+          <div class="indicator down" id="indMaps"></div>
+          <div class="value" id="valMaps">Offline</div>
+        </div>
+      </div>
+      <div class="status-grid">
+        <div class="status-card" style="grid-column: span 2;">
+          <div class="label">IoT SIM Backup</div>
+          <div class="indicator down" id="indIot"></div>
+          <div class="value" id="valIot">Unknown</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Knowledge Sources -->
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Knowledge Base</h2>
+      <span id="knowledgeInfo">—</span>
+    </div>
+    <div class="panel-body">
+      <div class="knowledge-stat">
+        <div class="num" id="chunkCount">0</div>
+        <div class="label">Indexed Chunks</div>
+      </div>
+      <div id="knowledgeList">
+        <div class="empty-state">No knowledge chunks indexed yet. Run: npm run seed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/dashboard.js"></script>
+</body>
+</html>

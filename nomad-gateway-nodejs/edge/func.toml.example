@@ -1,0 +1,6 @@
+[edge_compute]
+func_id = "YOUR_FUNCTION_ID_HERE"
+func_name = "nomad-gateway"
+
+# No storage bindings — the function uses Telnyx Edge SQL via REST API
+# using the NOMAD_SQLDB_ID secret. This means it deploys to every Edge site.

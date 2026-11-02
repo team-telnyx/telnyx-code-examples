@@ -1,0 +1,21 @@
+{
+  "name": "nomad-gateway",
+  "version": "1.0.0",
+  "description": "SMS/Voice to Offline AI + Wikipedia — Node.js/Express for Telnyx Edge Compute",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/smoke.test.js",
+    "seed": "node scripts/seed-knowledge.js",
+    "edge:build": "node scripts/edge-build.js",
+    "edge:ship": "npm run edge:build && telnyx-edge ship --from-dir=edge --timeout 25m",
+    "edge": "bash scripts/edge.sh"
+  },
+  "engines": {
+    "node": ">=22.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
