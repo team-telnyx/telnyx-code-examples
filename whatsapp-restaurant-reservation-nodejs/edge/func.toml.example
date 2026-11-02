@@ -1,0 +1,8 @@
+# Copy this file to edge/func.toml and fill in your function ID.
+# Get a function ID: telnyx-edge new-func --language js --name dinenyx
+[edge_compute]
+func_id = "YOUR_FUNCTION_ID_HERE"
+func_name = "dinenyx"
+
+# No storage bindings — the function reaches the SQL database via REST API
+# using the DINENYX_SQLDB_ID secret. This means it deploys to every Edge site.
