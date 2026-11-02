@@ -71,8 +71,33 @@ def _die_on_error(resp: requests.Response) -> None:
         )
 
 
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+RETRY_ATTEMPTS = 5
+
+
+def _request(method: str, url: str, **kwargs) -> requests.Response:
+    """requests.request with exponential backoff on transient failures (429/5xx)."""
+    for attempt in range(RETRY_ATTEMPTS):
+        try:
+            resp = requests.request(method, url, **kwargs)
+        except requests.RequestException:
+            if attempt == RETRY_ATTEMPTS - 1:
+                raise
+        else:
+            if resp.status_code not in RETRYABLE_STATUS or attempt == RETRY_ATTEMPTS - 1:
+                return resp
+        wait = 2 ** (attempt + 1)
+        print(
+            f"  transient error ({method} {url.split('?')[0]}); "
+            f"retrying in {wait}s (attempt {attempt + 1}/{RETRY_ATTEMPTS})",
+            file=sys.stderr,
+        )
+        time.sleep(wait)
+    raise SystemExit(f"retries exhausted: {method} {url}")
+
+
 def _get(path: str) -> dict:
-    resp = requests.get(f"{API_BASE}{path}", headers=_headers(), timeout=30)
+    resp = _request("GET", f"{API_BASE}{path}", headers=_headers(), timeout=30)
     _die_on_error(resp)
     return resp.json().get("data", {})
 

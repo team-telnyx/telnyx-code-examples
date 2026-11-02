@@ -346,9 +346,40 @@ def test_verify_revocation_accepts_401(monkeypatch):
     assert teardown.verify_revocation("tk") is True
 
 
+def test_verify_revocation_polls_until_rejected(monkeypatch):
+    calls = {"n": 0}
+
+    def flaky(*a, **kw):
+        calls["n"] += 1
+        if calls["n"] < 3:
+            return {"model": "x"}
+        raise _Unauthorized()
+
+    monkeypatch.setattr(teardown, "chat_completion", flaky)
+    monkeypatch.setattr(teardown.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(teardown.time, "monotonic", lambda: 0.0)
+    assert teardown.verify_revocation("tk", window_s=90, interval_s=0) is True
+    assert calls["n"] == 3
+
+
+def test_verify_revocation_reports_honestly_after_window(monkeypatch):
+    clock = {"t": 0.0}
+
+    def always_ok(*a, **kw):
+        return {"model": "x"}
+
+    def advance(_interval=0):
+        clock["t"] += 91
+
+    monkeypatch.setattr(teardown, "chat_completion", always_ok)
+    monkeypatch.setattr(teardown.time, "sleep", advance)
+    monkeypatch.setattr(teardown.time, "monotonic", lambda: clock["t"])
+    assert teardown.verify_revocation("tk", window_s=90, interval_s=1) is False
+
+
 def test_verify_revocation_rejects_living_key(monkeypatch):
     monkeypatch.setattr(teardown, "chat_completion", lambda *a, **kw: {"model": "x"})
-    assert teardown.verify_revocation("tk") is False
+    assert teardown.verify_revocation("tk", window_s=0) is False
 
 
 def test_verify_revocation_other_error_is_not_verified(monkeypatch):
@@ -414,6 +445,7 @@ def _dashboard_client(tmp_path, monkeypatch, token_key=None):
     else:
         monkeypatch.delenv("GATEWAY_TOKEN_KEY", raising=False)
     monkeypatch.setattr(gateway, "STATE_FILE", tmp_path / "state.json", raising=False)
+    monkeypatch.setattr(dashboard, "ENV_FILE", tmp_path / "no.env", raising=False)
     gateway.save_state("grp_1", "key_1", "now")
     return dashboard, dashboard.app.test_client()
 

@@ -147,11 +147,11 @@ All tests use mocked HTTP — no real API credentials needed.
 
 ## API Reference
 
-See [API.md](API.md) for the full endpoint reference.
+See [API.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-restaurant-reservation-python/API.md) for the full endpoint reference.
 
 ## Tutorial
 
-See [GUIDE.md](GUIDE.md) for a step-by-step walkthrough of how this app is built.
+See [GUIDE.md](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-restaurant-reservation-python/GUIDE.md) for a step-by-step walkthrough of how this app is built.
 
 ## Troubleshooting
 
@@ -184,13 +184,13 @@ The agent operates within Telnyx AI Communications Infrastructure, using the AI 
 
 ## Related Examples
 
-- [Email & WhatsApp Support](../email-whatsapp-support-python/) — Multi-channel AI customer support
-- [Restaurant Reservation Waitlist](../restaurant-reservation-waitlist-python/) — Voice-based reservation system
-- [WhatsApp Order Tracking](../whatsapp-order-tracking-notifications-python/) — WhatsApp notifications for order updates
-- [WhatsApp SMS Bridge](../whatsapp-sms-bridge-python/) — Bridge between WhatsApp and SMS channels
-- [AI Receptionist with Booking Tools](../ai-receptionist-with-booking-tools-python/) — AI phone receptionist for bookings
-- [Omnichannel AI Agent](../omnichannel-ai-agent-python/) — Multi-channel AI agent
-- [RCS Campaign Desk](../rcs-capability-campaign-desk-python/) — Rich messaging campaign management
+- [Email & WhatsApp Support](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/README.md) — Multi-channel AI customer support
+- [Restaurant Reservation Waitlist](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/restaurant-reservation-waitlist-python/README.md) — Voice-based reservation system
+- [WhatsApp Order Tracking](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-order-tracking-notifications-python/README.md) — WhatsApp notifications for order updates
+- [WhatsApp SMS Bridge](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-sms-bridge-python/README.md) — Bridge between WhatsApp and SMS channels
+- [AI Receptionist with Booking Tools](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-receptionist-with-booking-tools-python/README.md) — AI phone receptionist for bookings
+- [Omnichannel AI Agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-agent-python/README.md) — Multi-channel AI agent
+- [RCS Campaign Desk](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/rcs-capability-campaign-desk-python/README.md) — Rich messaging campaign management
 
 ## Frequently Asked Questions
 

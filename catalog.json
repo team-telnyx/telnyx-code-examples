@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-22T17:20:31Z",
-  "example_count": 583,
+  "generated_at": "2026-10-30T20:03:33Z",
+  "example_count": 586,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -511,6 +511,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/send-sms-nodejs"
     },
     {
+      "folder": "long-sms-chunking-and-tracking-nodejs",
+      "title": "Long SMS Chunking & Tracking (Node.js)",
+      "description": "Enable Telnyx long-message chunking, send a message over 1,530 characters, and correlate child delivery webhooks.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/long-sms-chunking-and-tracking-nodejs"
+    },
+    {
       "folder": "receive-sms-webhook-nodejs",
       "title": "Receive SMS Webhook",
       "description": "Receive inbound SMS messages via Telnyx webhooks with an Express server. Validates payloads and acknowledges within 5 seconds.",
@@ -518,6 +527,15 @@
       "language": "nodejs",
       "framework": "express",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/receive-sms-webhook-nodejs"
+    },
+    {
+      "folder": "join-meeting-by-sms-nodejs",
+      "title": "Join a Meeting by SMS",
+      "description": "Text a meeting link to a Telnyx number and a bot joins the call for you, then texts back a TL;DR when the meeting ends.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/join-meeting-by-sms-nodejs"
     },
     {
       "folder": "receive-sms-webhook-csharp",
@@ -5243,6 +5261,24 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/insights-pipeline"
+    },
+    {
+      "folder": "provision-and-route-email-dedicated-ips",
+      "title": "Provision and Route Email Dedicated IPs",
+      "description": "Provision a dedicated sending IP, start its warm-up, create a default IP pool, route the IP through the pool, and verify delivery with a test email.",
+      "product": "email",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/provision-and-route-email-dedicated-ips"
+    },
+    {
+      "folder": "voice-fraud-step-up-agent",
+      "title": "Voice Fraud Step-Up Agent",
+      "description": "Event-driven voice fraud gate with Telnyx AI Assistants, deepfake detection, durable risk ledger, flashcall step-up, and human-review routing.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voice-fraud-step-up-agent"
     }
   ]
 }

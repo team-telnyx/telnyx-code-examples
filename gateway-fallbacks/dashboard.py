@@ -36,6 +36,8 @@ from gateway import PRIMARY_MODEL, chat_completion, spend_date_range
 
 app = Flask(__name__)
 DASHBOARD_HTML = Path(__file__).parent / "dashboard.html"
+# Overridable so tests stay hermetic; the real file is written by provision.py.
+ENV_FILE = Path(os.getenv("GATEWAY_ENV_FILE", Path(__file__).parent / ".env"))
 
 NORMAL_CALL_PROMPT = "Say hello in one word."
 
@@ -47,7 +49,19 @@ def _state() -> dict[str, str] | None:
 
 
 def _token_key() -> str | None:
-    return os.environ.get("GATEWAY_TOKEN_KEY") or None
+    """The inference-plane secret: process env first, then .env (re-read per
+    call so a re-provisioned key never requires a server restart)."""
+    value = os.environ.get("GATEWAY_TOKEN_KEY")
+    if value:
+        return value
+    if not ENV_FILE.exists():
+        return None
+    for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
+        if line.startswith("GATEWAY_TOKEN_KEY="):
+            value = line.split("=", 1)[1].strip().strip('"')
+            if value:
+                return value
+    return None
 
 
 def _jsonable(value: Any) -> Any:

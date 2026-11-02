@@ -1,0 +1,19 @@
+{
+  "name": "long-sms-chunking-and-tracking-nodejs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enable Telnyx long-message chunking and track chunk delivery with webhooks.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --check server.js && node --check demo-appointment.js",
+    "demo": "node demo-appointment.js",
+    "demo:sequence": "node demo-appointment.js --sequence"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "telnyx": "^6.83.0",
+    "ws": "^8.21.0"
+  }
+}

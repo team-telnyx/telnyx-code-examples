@@ -359,10 +359,22 @@ examples:
     folder: send-sms-nodejs
 
   - product: sms
+    use_case: long-sms-chunking-and-tracking
+    language: nodejs
+    framework: express
+    folder: long-sms-chunking-and-tracking-nodejs
+
+  - product: sms
     use_case: receive-sms-webhook
     language: nodejs
     framework: express
     folder: receive-sms-webhook-nodejs
+
+  - product: sms
+    use_case: join-meeting-by-sms
+    language: nodejs
+    framework: express
+    folder: join-meeting-by-sms-nodejs
 
   - product: sms
     use_case: receive-sms-webhook
@@ -3574,3 +3586,15 @@ examples:
     language: python
     framework: flask
     folder: insights-pipeline
+
+  - product: email
+    use_case: "auto-generated-from-linear"
+    language: python
+    framework: flask
+    folder: provision-and-route-email-dedicated-ips
+
+  - product: ai
+    use_case: voice-fraud-step-up-agent
+    language: typescript
+    framework: edge
+    folder: voice-fraud-step-up-agent
