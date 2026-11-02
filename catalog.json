@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-21T18:16:05Z",
-  "example_count": 580,
+  "generated_at": "2026-10-22T17:20:31Z",
+  "example_count": 583,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -2552,6 +2552,24 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-sms-bridge-python"
+    },
+    {
+      "folder": "whatsapp-restaurant-reservation-python",
+      "title": "Restaurant Reservations via WhatsApp with AI Agent",
+      "description": "Build a WhatsApp-powered restaurant reservation system with AI agent, interactive messages, and real-time dashboard using Telnyx WhatsApp Business API and AI Inference",
+      "product": "sms",
+      "language": "python",
+      "framework": "flask",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-restaurant-reservation-python"
+    },
+    {
+      "folder": "whatsapp-restaurant-reservation-nodejs",
+      "title": "Restaurant Reservations via WhatsApp with AI Agent (Node.js)",
+      "description": "AI-powered restaurant reservations via WhatsApp with Node.js/Express, deployed on Telnyx Edge Compute. Browse restaurants, book tables through AI conversation, phone validation via Number Lookup API, and live dashboard.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-restaurant-reservation-nodejs"
     },
     {
       "folder": "white-label-appointment-platform-python",
