@@ -1,0 +1,20 @@
+{
+  "name": "otp-guard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Telnyx Verify step-up guard: a durable Edge actor that owns the OTP session, attempt budget, lockout, and audit trail.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "smoke": "npx tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
