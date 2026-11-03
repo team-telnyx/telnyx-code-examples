@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-10-30T20:03:33Z",
-  "example_count": 586,
+  "generated_at": "2026-11-03T19:14:32Z",
+  "example_count": 587,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5279,6 +5279,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voice-fraud-step-up-agent"
+    },
+    {
+      "folder": "crew-cast",
+      "title": "Crew Cast — Group MMS Delivery Scoreboard on a Durable Edge Actor",
+      "description": "One durable Edge actor owns a group MMS thread: per-recipient delivery state joined by group_message_id, inbound replies folded via the cc roster, and a dispatch scoreboard that survives worker restarts.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/crew-cast"
     }
   ]
 }

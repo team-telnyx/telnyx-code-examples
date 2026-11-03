@@ -43,6 +43,7 @@ export interface CrewState {
   cast_id: string; job_id: string; group_message_id: string | null; from: string; text: string; media_url: string | null;
   recipients: Recipient[]; replies: Reply[]; roster_cursor: number; repolls: number;
   notified_signature: string | null; created_at: string; updated_at: string;
+  [key: string]: unknown;
 }
 export interface CastInput { cast_id: string; job_id: string; from: string; recipients: string[]; text: string; media_url: string | null }
 export interface FinalizedEvent { group_message_id: string; phone_number: string; status: BoardStatus; occurred_at: string | null }
@@ -62,7 +63,7 @@ interface TelnyxBinding {
   messages: { send(params: { from: string; to: string[]; text: string; media_urls?: string[] }): Promise<unknown> };
 }
 export interface Env {
-  SECRETS: Secrets; CREW_CAST: ActorNamespace; CREW_DB: SqlDatabase; CREW_INDEX: KvNamespace; TELNYX: TelnyxBinding;
+  SECRETS: Secrets; CREW_CAST: ActorNamespace<CrewCast>; CREW_DB: SqlDatabase; CREW_INDEX: KvNamespace; TELNYX: TelnyxBinding;
   CREW_FROM: string; CREW_PROFILE_ID: string; DISPATCH_PHONE: string; PUBLIC_BASE_URL: string; DEMO_MODE: string;
   CREW_TO_1?: string; CREW_TO_2?: string; CREW_TO_3?: string; CREW_TO_4?: string; CREW_TO_5?: string; CREW_TO_6?: string;
 }
@@ -112,7 +113,7 @@ function actorRequest(path: string, body: unknown): Request {
   });
 }
 
-function base64ToBytes(value: string): Uint8Array {
+function base64ToBytes(value: string) {
   const binary = atob(value);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
@@ -195,6 +196,8 @@ export class CrewCast extends Agent<Env, CrewState> {
     await this.env.CREW_INDEX.put(`group:${result.group_message_id}`, input.cast_id);
     await this.env.CREW_INDEX.put(`thread:${input.from}`, input.cast_id);
     await this.syncDeliveryRows();
+    // AC: the 30-minute re-poll arms at cast time and reviews state on each fire.
+    await this.schedule(REPOLL_SECONDS, "repollUnknown");
     return this.deliveryReport();
   }
 
@@ -228,14 +231,17 @@ export class CrewCast extends Agent<Env, CrewState> {
     const known = new Set(recipients.map((r) => r.number));
     if (state.replies.length === 0) {
       for (const number of event.cc) {
-        if (!known.has(number)) {
-          known.add(number);
-          recipients.push({ number, carrier: null, line_type: null, status: "unknown", acked_at: null, finalized_at: null });
-        }
+        // The group owner (this thread's Telnyx number) appears in cc but is not a
+        // crew member — never backfill it onto the delivery board.
+        if (!number || number === state.from || known.has(number)) continue;
+        known.add(number);
+        recipients.push({ number, carrier: null, line_type: null, status: "unknown", acked_at: null, finalized_at: null });
       }
     }
     if (!known.has(event.from)) {
-      recipients.push({ number: event.from, carrier: null, line_type: null, status: "unknown", acked_at: null, finalized_at: null });
+      if (event.from !== state.from) {
+        recipients.push({ number: event.from, carrier: null, line_type: null, status: "unknown", acked_at: null, finalized_at: null });
+      }
     }
     recipients = recipients.map((r) => (r.number === event.from ? { ...r, acked_at: event.occurred_at } : r));
 
@@ -387,7 +393,7 @@ async function handleCast(request: Request, env: Env): Promise<Response> {
   if (!isE164(env.CREW_FROM)) return json({ error: "CREW_FROM must be a US/CA E.164 number" }, 500);
   if (!isDemoMode(env) && !env.CREW_PROFILE_ID) return json({ error: "CREW_PROFILE_ID is required in live mode" }, 500);
 
-  const stub = env.CREW_CAST.get(env.CREW_CAST.idFromName(jobId));
+  const stub = env.CREW_CAST.idFromName(jobId);
   const res = await stub.fetch(actorRequest("/cast", {
     cast_id: jobId, job_id: jobId, from: env.CREW_FROM, recipients, text, media_url: mediaUrl,
   }));
@@ -411,7 +417,7 @@ async function handleWebhook(request: Request, url: URL, env: Env): Promise<Resp
     if (!groupMessageId || !isE164(phoneNumber)) return json({ error: "group_message_id and to[0].phone_number are required" }, 400);
     const castId = await env.CREW_INDEX.get(`group:${groupMessageId}`);
     if (!castId) return json({ received: true, routed: false }, 200);
-    const stub = env.CREW_CAST.get(env.CREW_CAST.idFromName(castId));
+    const stub = env.CREW_CAST.idFromName(castId);
     const res = await stub.fetch(actorRequest("/finalized", {
       group_message_id: groupMessageId, phone_number: phoneNumber, status: normalizeStatus(payload.status),
       occurred_at: typeof payload.occurred_at === "string" ? payload.occurred_at : null,
@@ -429,7 +435,7 @@ async function handleWebhook(request: Request, url: URL, env: Env): Promise<Resp
       ? payload.cc.map((entry: any) => String(entry?.phone_number ?? entry ?? "")).filter(isE164)
       : [];
     const eventId = String(payload.id ?? `${from}:${payload.received_at ?? ""}:${payload.text ?? ""}`);
-    const stub = env.CREW_CAST.get(env.CREW_CAST.idFromName(castId));
+    const stub = env.CREW_CAST.idFromName(castId);
     const res = await stub.fetch(actorRequest("/reply", {
       id: eventId, from, text: String(payload.text ?? ""), cc,
       occurred_at: typeof payload.received_at === "string" ? payload.received_at : nowIso(),
@@ -449,7 +455,7 @@ export default {
       if (request.method === "GET" && (url.pathname === "/board" || url.pathname.startsWith("/board/"))) {
         const castId = url.pathname === "/board" ? url.searchParams.get("cast_id") : decodeURIComponent(url.pathname.slice(7));
         if (!castId || !/^[A-Za-z0-9_-]{1,64}$/.test(castId)) return json({ error: "cast_id required (1-64 chars of [A-Za-z0-9_-])" }, 400);
-        const stub = env.CREW_CAST.get(env.CREW_CAST.idFromName(castId));
+        const stub = env.CREW_CAST.idFromName(castId);
         const res = await stub.fetch(new Request("https://crew-cast.internal/board"));
         return json(await res.json(), res.status);
       }

@@ -1,3 +1,12 @@
+---
+name: whatsapp-restaurant-reservation-nodejs
+title: "Restaurant Reservations via WhatsApp with AI Agent (Node.js)"
+description: "AI-powered restaurant reservations via WhatsApp with Node.js/Express, deployed on Telnyx Edge Compute. Browse restaurants, book tables through AI conversation, phone validation via Number Lookup API, and live dashboard."
+language: nodejs
+framework: express
+telnyx_products: [whatsapp, ai-inference, edge-compute]
+---
+
 # DineNyx — WhatsApp Restaurant Reservations (Node.js)
 
 AI-powered restaurant reservations via WhatsApp, built with Node.js/Express on Telnyx AI Communications Infrastructure and deployed on [Telnyx Edge Compute](https://telnyx.com/products/edge-compute).
