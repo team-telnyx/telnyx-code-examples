@@ -3598,3 +3598,9 @@ examples:
     language: typescript
     framework: edge
     folder: voice-fraud-step-up-agent
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: crew-cast
