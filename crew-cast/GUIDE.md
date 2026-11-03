@@ -182,7 +182,7 @@ The actor's `fetch()` routes five internal paths:
 | `/repoll` | POST | `repollUnknown()` |
 | `/board` | GET | `deliveryReport()` |
 
-These are **not** public routes — the router in `src/index.ts` translates public HTTP requests into these internal calls via `env.CREW_CAST.get(idFromName(castId))`.
+These are **not** public routes — the router in `src/index.ts` translates public HTTP requests into these internal calls via `env.CREW_CAST.idFromName(castId).fetch(...)`.
 
 #### `cast()` — persist the roster, then send
 

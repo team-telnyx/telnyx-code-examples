@@ -103,6 +103,17 @@ Dispatch (curl / dispatch app)
 
 `TELNYX_API_KEY` and `TELNYX_PUBLIC_KEY` are declared as `[[secrets]]` in `telnyx.toml` and read via `env.SECRETS.get(...)`. The Telnyx API itself is reached through the zero-credential `[telnyx] binding = "TELNYX"` — the platform injects auth, so no key ever appears in a request body or a log line.
 
+> **Agent / CLI access** — provision resources programmatically with the [Telnyx CLI](https://developers.telnyx.com/development/cli):
+>
+> ```bash
+> telnyx auth login
+> telnyx numbers search --features mms --limit 1 --country-code US   # find an MMS-capable CREW_FROM
+> telnyx number-orders create --phone-numbers +12025550100           # buy the thread owner number
+> telnyx messaging-profiles create --name crew-cast --webhook-api-version v2
+> ```
+
+> Full API reference at [developers.telnyx.com](https://developers.telnyx.com)
+
 ## Setup
 
 ```bash
@@ -131,13 +142,28 @@ npx tsx smoke_test.ts
 npm run deploy          # → telnyx-edge ship
 ```
 
+<details><summary>Programmatic / CLI setup</summary>
+
+For the Telnyx Edge configuration, inspect your installed CLI's account, binding and secret commands before deployment:
+
+```bash
+telnyx-edge status
+telnyx-edge bindings --help
+telnyx-edge secrets --help
+telnyx-edge ship --help
+```
+
+`telnyx.toml` declares the `CREW_CAST` actor, `CREW_INDEX` KV namespace, `CREW_DB` SQL database, the `TELNYX` communications binding, and the two secrets. Configure the secrets and bindings in the target account before shipping. Keep `DEMO_MODE=true` for an initial deployed check — the group send simulates locally and unsigned webhooks are accepted. Set `DEMO_MODE=false` with real credentials and a registered `PUBLIC_BASE_URL/webhooks/messaging` endpoint for the live path.
+
+</details>
+
 `telnyx.toml` declares the actor binding (`CREW_CAST`), the KV namespace (`CREW_INDEX`), the SQL database (`CREW_DB`), the `TELNYX` API binding, and the two secrets. Replace the placeholder namespace UUIDs with your own before shipping.
 
 ### The demo flow, end to end
 
 ```bash
 # 1. Dispatch casts the job — roster persisted BEFORE the send
-curl -s -X POST "$PUBLIC_BASE_URL/cast" \
+CAST_RESPONSE=$(curl -s -X POST "$PUBLIC_BASE_URL/cast" \
   -H 'content-type: application/json' \
   -d '{
     "job_id": "job-1187",
@@ -147,14 +173,17 @@ curl -s -X POST "$PUBLIC_BASE_URL/cast" \
     ],
     "text": "Job 1187 — roof photo attached. Reply ON SITE when you are on the ladder.",
     "media_url": "https://example.com/roof-1187.jpg"
-  }'
+  }')
+echo "$CAST_RESPONSE"
 # → { cast_id, group_message_id, recipients[6] all "queued", totals, ... }
 
 # 2. Poll the board
 curl -s "$PUBLIC_BASE_URL/board/job-1187" | jq '.totals'
 
-# 3. Replay the six finalized events (demo/finalized-events.json)
-for ev in $(jq -c '.[]' demo/finalized-events.json); do
+# 3. Replay the six finalized events (demo/finalized-events.json),
+#    substituting your real group_message_id into each fixture
+GM_ID=$(echo "$CAST_RESPONSE" | jq -r '.group_message_id')
+for ev in $(jq -c --arg gm "$GM_ID" 'map(.data.payload.group_message_id = $gm)[]' demo/finalized-events.json); do
   curl -s -X POST "$PUBLIC_BASE_URL/webhooks/messaging" \
     -H 'content-type: application/json' -d "$ev" | jq -c
 done
@@ -184,7 +213,7 @@ curl -s "$PUBLIC_BASE_URL/board/job-1187" | jq '{totals, replies}'
 curl -s -X POST "$PUBLIC_BASE_URL/webhooks/messaging" \
   -H 'content-type: application/json' \
   -d '{"data":{"event_type":"message.finalized","payload":{
-        "group_message_id":"<group_message_id from step 1>",
+        "group_message_id":"'"$GM_ID"'",
         "to":[{"phone_number":"+12025550106"}],
         "status":"delivered",
         "occurred_at":"2026-07-28T08:15:00Z"}}}'
@@ -300,17 +329,24 @@ Answers dispatch's poll straight from actor state. No Telnyx API call.
 
 ## Agent Discovery
 
-- Agent signup and capability manifest: <https://telnyx.com/agent-signup.md>
-- Telnyx AI + agent examples: <https://github.com/team-telnyx/ai>
-- Machine-readable docs index: <https://developers.telnyx.com/llms.txt>
+This example is part of the [Telnyx Code Examples](https://github.com/team-telnyx/telnyx-code-examples) catalog.
+
+- **Agent signup**: [telnyx.com/agent-signup.md](https://telnyx.com/agent-signup.md) — automated account provisioning via agent mail; get an API key with no human intervention
+- **Agent CLI**: [github.com/team-telnyx/ai/tree/main/cli](https://github.com/team-telnyx/ai/tree/main/cli) — composite commands for agents ([commands reference](https://github.com/team-telnyx/ai/tree/main/cli/src/commands))
+- **Agent skills**: [github.com/team-telnyx/ai/tree/main/skills](https://github.com/team-telnyx/ai/tree/main/skills)
+- **Telnyx AI repo**: [github.com/team-telnyx/ai](https://github.com/team-telnyx/ai)
+- **Agent SDK docs**: [developers.telnyx.com/docs/agent-sdk](https://developers.telnyx.com/docs/agent-sdk)
+- **LLM-optimized docs**: [`llms-full.txt`](https://developers.telnyx.com/llms-full.txt)
+- **Example index**: [`llms.txt`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/llms.txt)
+- **Telnyx CLI (human)**: [developers.telnyx.com/development/cli](https://developers.telnyx.com/development/cli) — `go install github.com/team-telnyx/telnyx-cli/cmd/telnyx@latest`
 
 ## Related Examples
 
-- [`edge-customer-agent-typescript`](../edge-customer-agent-typescript) — the `Agent` + plain-fetch router pattern this sample follows.
-- [`edge-cron-scheduler`](../edge-cron-scheduler) — `this.schedule()` / `this.every()` task dispatch on Edge actors.
-- [`edge-kv-webhook-router`](../edge-kv-webhook-router) — KV-indexed webhook routing to `idFromName` actors.
-- [`sms-send-and-receive`](../sms-send-and-receive) — the one-to-one SMS baseline this sample extends to groups.
-- [`messaging-webhook-verification`](../messaging-webhook-verification) — Ed25519 signature verification with WebCrypto.
+- [`edge-customer-agent-typescript`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-customer-agent-typescript/README.md) — the `Agent` + plain-fetch router pattern this sample follows.
+- [`edge-cron-scheduler`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-cron-scheduler/README.md) — `this.schedule()` / `this.every()` task dispatch on Edge actors.
+- [`post-call-qa-scoring`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/post-call-qa-scoring/README.md) — per-actor durable state with exactly-once scheduled tasks and a daily SMS digest.
+- [`event-sponsorship-agent`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/event-sponsorship-agent/README.md) — KV-indexed webhook routing to `idFromName` actors.
+- [`receive-sms-webhook-python`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-python/README.md) — the one-to-one inbound webhook baseline this sample extends to groups.
 
 ## Resources
 

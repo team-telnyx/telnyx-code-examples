@@ -2,6 +2,10 @@ name = "crew-cast"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
 
+[edge_compute]
+func_id   = "<func-uuid>"
+func_name = "crew-cast"
+
 # The durable crew thread. One actor instance per job id (e.g. "job-1187").
 [[actors]]
 binding = "CREW_CAST"
