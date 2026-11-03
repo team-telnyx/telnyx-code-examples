@@ -124,7 +124,14 @@ class RestDb {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const e = body.errors?.[0] || {};
-      throw new Error(`SQL database ${res.status}: ${e.detail || e.title || "query failed"}`);
+      const detail = e.detail || e.title || "query failed";
+      // "write committed but snapshot ship failed" means the write succeeded;
+      // the internal snapshot is a background replication step — safe to ignore.
+      if (res.status === 422 && detail.includes("snapshot") && detail.includes("write committed")) {
+        console.warn("Edge SQL snapshot warning (write succeeded):", detail.slice(0, 120));
+        return body.data ?? { results: [], meta: {} };
+      }
+      throw new Error(`SQL database ${res.status}: ${detail}`);
     }
     return Array.isArray(body.data) ? body.data[0] ?? {} : body.data ?? {};
   }
