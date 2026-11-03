@@ -159,13 +159,11 @@ export async function openDb(dataDir) {
   }
   for (const sql of statements(SCHEMA)) await db.prepare(sql).run();
 
-  // Seed singleton system_status row if missing
-  const existing = await db.prepare("SELECT id FROM system_status WHERE id = 1").first();
-  if (!existing) {
-    await db.prepare(
-      "INSERT INTO system_status (id, internet_up, kiwix_up, ollama_up, maps_up, iot_sim_status, updated_at) VALUES (1,1,0,0,0,'unknown',?)"
-    ).bind(new Date().toISOString()).run();
-  }
+  // Seed singleton system_status row if missing (INSERT OR IGNORE handles
+  // the race when multiple Edge instances start simultaneously)
+  await db.prepare(
+    "INSERT OR IGNORE INTO system_status (id, internet_up, kiwix_up, ollama_up, maps_up, iot_sim_status, updated_at) VALUES (1,1,0,0,0,'unknown',?)"
+  ).bind(new Date().toISOString()).run();
 
   return { db, engine };
 }
