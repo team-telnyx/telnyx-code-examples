@@ -1,0 +1,43 @@
+name = "crew-cast"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# The durable crew thread. One actor instance per job id (e.g. "job-1187").
+[[actors]]
+binding = "CREW_CAST"
+type    = "CrewCast"
+
+# Zero-credential Telnyx API binding (platform injects auth at deploy time).
+[telnyx]
+binding = "TELNYX"
+
+# Agent SQL: backs the acknowledgement report returned by GET /board.
+[storage.sqldb.CREW_DB]
+id = "<sqldb-namespace-uuid>"
+
+# KV index: group_message_id -> cast_id (finalized routing) and
+# crew number -> cast_id (inbound reply routing).
+[storage.kv.CREW_INDEX]
+id = "<kv-namespace-uuid>"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+# Telnyx webhook signing public key (Ed25519). Required in live mode.
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name    = "TELNYX_PUBLIC_KEY"
+
+[env_vars]
+DEMO_MODE = "true"
+CREW_FROM = "+1555XXXXXXXX"
+CREW_PROFILE_ID = "<messaging-profile-id>"
+DISPATCH_PHONE = "+1555XXXXXXXX"
+PUBLIC_BASE_URL = "https://crew-cast.example.workers.dev"
+CREW_TO_1 = "+1555XXXXXXX1"
+CREW_TO_2 = "+1555XXXXXXX2"
+CREW_TO_3 = "+1555XXXXXXX3"
+CREW_TO_4 = "+1555XXXXXXX4"
+CREW_TO_5 = "+1555XXXXXXX5"
+CREW_TO_6 = "+1555XXXXXXX6"

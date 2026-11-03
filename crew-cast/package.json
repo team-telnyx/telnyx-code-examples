@@ -1,0 +1,21 @@
+{
+  "name": "crew-cast",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Telnyx Edge sample: a durable crew-thread actor that owns one group MMS and its per-recipient delivery scoreboard.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "smoke": "tsx smoke_test.ts",
+    "test": "tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
