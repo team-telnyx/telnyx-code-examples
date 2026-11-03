@@ -1,0 +1,26 @@
+name = "watchdog"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "WATCHDOG"
+type = "Watchdog"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+# Zero-credential platform binding: SMS + AI inference (auth injected by the runtime).
+[telnyx]
+binding = "TELNYX"
+
+# Durable run + incident ledger owned by the watchdog actor.
+[storage.sqldb.WATCHDOG_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+DEMO_MODE = "true"
+AI_MODEL = "DeepSeek-V4.1-Flash"
+WATCH_TARGET_URL = "https://your-fixture-host.example.com/"
+WATCH_OWNER_PHONE = "+1555XXXXXXX"
+FROM_NUMBER = "+1555XXXXXXX"
