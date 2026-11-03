@@ -196,7 +196,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 </details>
 
 <details open>
-<summary><h2>SMS & MMS</h2> <em>(176 examples)</em></summary>
+<summary><h2>SMS & MMS</h2> <em>(179 examples)</em></summary>
 
 Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/products/sms-api) - build autoresponders, implement 2FA, and manage bulk messaging campaigns.
 
@@ -231,6 +231,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [interview-screen-scheduler-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/interview-screen-scheduler-python/README.md) | Python | Candidate applies, AI calls for 5-min phone screen, scores answers, books qualified candidates on hiring manager's calendar. Integrates with Greenhouse ATS and Google Calendar. |
 | [isv-notification-engine-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/isv-notification-engine-python/README.md) | Python | SaaS platform sends alerts via SMS/voice/WhatsApp based on customer preference and urgency. Multi-channel with fallback cascade and delivery tracking. |
 | [ivr-prompt-generator-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ivr-prompt-generator-python/README.md) | Python | Generate professional IVR/phone system prompts. AI writes caller-friendly scripts from business descriptions, TTS renders in multiple voices, test via live Telnyx call playback. |
+| [join-meeting-by-sms-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/join-meeting-by-sms-nodejs/README.md) | Node.js | Text a meeting link to a Telnyx number and a bot joins the call for you, then texts back a TL;DR when the meeting ends. |
 | [law-firm-client-intake-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/law-firm-client-intake-python/README.md) | Python | AI answers after-hours calls, screens case type, collects facts, runs conflict check, books consultation via Calendly, collects retainer deposit via Stripe. |
 | [long-code-sms-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/long-code-sms-python/README.md) | Python | Send A2P SMS over a long code with a rate-limited queue, delivery tracking, and signed inbound webhooks using the Telnyx Messaging API. |
 | [long-sms-chunking-and-tracking-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/long-sms-chunking-and-tracking-nodejs/README.md) | Node.js | Enable Telnyx long-message chunking, send a message over 1,530 characters, and correlate child delivery webhooks. |
@@ -274,7 +275,6 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [receive-sms-webhook-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-go/README.md) | Go | --- |
 | [receive-sms-webhook-java](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-java/README.md) | Java | Receive inbound SMS via Telnyx webhooks with a JDK HttpServer, verifying the Ed25519 signature before reading data.payload. |
 | [receive-sms-webhook-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-nodejs/README.md) | Node.js | Receive inbound SMS messages via Telnyx webhooks with an Express server. Validates payloads and acknowledges within 5 seconds. |
-| [join-meeting-by-sms-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/join-meeting-by-sms-nodejs/README.md) | Node.js | Text a meeting link to a Telnyx number and a bot joins the call for you, then texts back a TL;DR when it ends. |
 | [receive-sms-webhook-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-php/README.md) | PHP | Receive and Ed25519-verify inbound Telnyx SMS webhooks using the Telnyx PHP SDK over a vanilla PHP front controller. |
 | [receive-sms-webhook-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-python/README.md) | Python | Receive inbound SMS via webhook. |
 | [receive-sms-webhook-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/receive-sms-webhook-ruby/README.md) | Ruby | Receive inbound SMS messages via Telnyx webhooks with a Sinatra server, verifying the Telnyx Ed25519 signature before trusting any payload. |
@@ -375,7 +375,7 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 | [verify-multi-channel-auth-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/verify-multi-channel-auth-python/README.md) | Python | Verify Multi-Channel Auth - multi-channel verification: SMS first, fallback to voice call, then WhatsApp. Cascading 2FA. |
 | [verify-phone-number-otp-flow-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/verify-phone-number-otp-flow-python/README.md) | Python | Verify Phone Number OTP Flow - Telnyx Verify API with SMS primary and voice call fallback. |
 | [whatsapp-order-tracking-notifications-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-order-tracking-notifications-python/README.md) | Python | WhatsApp Order Tracking Notifications - proactive shipping updates and AI-powered order inquiries. |
-| [whatsapp-restaurant-reservation-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-restaurant-reservation-nodejs/README.md) | Node.js | AI-powered restaurant reservations via WhatsApp on Telnyx Edge Compute. Browse restaurants, book tables through AI conversation, phone validation via Number Lookup API, and live dashboard. |
+| [whatsapp-restaurant-reservation-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-restaurant-reservation-nodejs/README.md) | Node.js | --- |
 | [whatsapp-restaurant-reservation-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-restaurant-reservation-python/README.md) | Python | Build a WhatsApp-powered restaurant reservation system with AI agent, interactive messages, and real-time dashboard using Telnyx WhatsApp Business API and AI Inference |
 | [whatsapp-sms-bridge-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-sms-bridge-python/README.md) | Python | WhatsApp-SMS Bridge - receive messages on WhatsApp and forward them via SMS, and vice versa. Bidirectional bridge between two messaging channels. |
 | [whatsapp-verify-otp-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/whatsapp-verify-otp-python/README.md) | Python | Send and verify one-time passwords via WhatsApp using the Telnyx Verify API. |
@@ -398,7 +398,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(174 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(175 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -543,6 +543,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [omnichannel-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-receptionist-python/README.md) | Python | One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference. |
 | [omnichannel-context-carrying-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-context-carrying-python/README.md) | Python | AI agent that carries customer context across email, voice, and SMS so customers never repeat themselves. Demonstrates cross-channel identity resolution with Telnyx Inference, Email, Messaging, and Call Control APIs. |
 | [order-status-self-service](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/order-status-self-service/README.md) | Typescript | A customer texts the store's line asking 'where's my order?' and a durable OrderAgent answers from its own per-actor SQL state and message history; carrier webhooks proactively text delays before the customer asks. |
+| [otp-guard](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/otp-guard/README.md) | Typescript | A durable Telnyx Edge actor that guards one high-risk action behind a Telnyx Verify code, owning the attempt budget, expiry clock, lockout, and audit trail. |
 | [outbound-hold-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/outbound-hold-agent-python/README.md) | Python | Call a business, navigate IVRs with a Telnyx AI Assistant, pause the assistant during hold, monitor with transcription, and resume with context when a representative answers. |
 | [patient-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/patient-agent/README.md) | Typescript | --- |
 | [per-caller-intake](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/per-caller-intake/README.md) | Typescript | A durable per-caller Agent-SDK dossier that greets returning patients with personalized dynamic variables, hands off an encrypted one-time portal credential, and files post-conversation visit summaries — so every call remembers the last one. |

@@ -1,0 +1,31 @@
+name = "otp-guard"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# The durable verification session. One actor instance per guarded action
+# (e.g. idFromName("action-4471")).
+[[actors]]
+binding = "OTP_GUARD"
+type = "OtpGuard"
+
+# Zero-credential Telnyx binding \u2014 used ONLY for SMS notifications/replies.
+# The Verify endpoints are called over raw REST with TELNYX_API_KEY.
+[telnyx]
+binding = "TELNYX"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+# Telnyx webhook signing public key (Ed25519, base64) \u2014 required by
+# POST /webhooks/verify. Without it the webhook route fails closed (503).
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[env_vars]
+DEMO_MODE = "true"
+DEMO_PHONE = "+1555XXXXXXXX"
+PUBLIC_BASE_URL = "https://otp-guard.example.com"
+DISPATCH_FROM_NUMBER = "+1555XXXXXXXX"
+# VERIFY_PROFILE_ID = "existing-profile-uuid"  # optional: reuse a step-up profile
