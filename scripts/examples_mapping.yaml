@@ -3603,4 +3603,10 @@ examples:
     use_case: "auto-generated-from-linear"
     language: typescript
     framework: edge
+    folder: crew-cast
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
     folder: watchdog

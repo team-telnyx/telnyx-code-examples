@@ -1,0 +1,110 @@
+[
+  {
+    "data": {
+      "record_type": "event",
+      "id": "b40653f5-91cd-46b1-9542-0c092bd29795",
+      "occurred_at": "2026-07-28T07:31:04Z",
+      "event_type": "message.finalized",
+      "payload": {
+        "record_type": "message",
+        "direction": "outbound",
+        "id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "group_message_id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "from": { "phone_number": "+12025550100" },
+        "to": [{ "phone_number": "+12025550101", "status": "delivered" }],
+        "text": "Job 1187 — roof photo attached. Reply ON SITE when you are on the ladder.",
+        "type": "MMS"
+      }
+    }
+  },
+  {
+    "data": {
+      "record_type": "event",
+      "id": "c51764a6-a2de-57c2-a653-1d1a3ce30806",
+      "occurred_at": "2026-07-28T07:31:06Z",
+      "event_type": "message.finalized",
+      "payload": {
+        "record_type": "message",
+        "direction": "outbound",
+        "id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "group_message_id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "from": { "phone_number": "+12025550100" },
+        "to": [{ "phone_number": "+12025550102", "status": "delivered" }],
+        "text": "Job 1187 — roof photo attached. Reply ON SITE when you are on the ladder.",
+        "type": "MMS"
+      }
+    }
+  },
+  {
+    "data": {
+      "record_type": "event",
+      "id": "d62875b7-b3ef-68d3-b764-2e2b4df41907",
+      "occurred_at": "2026-07-28T07:31:09Z",
+      "event_type": "message.finalized",
+      "payload": {
+        "record_type": "message",
+        "direction": "outbound",
+        "id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "group_message_id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "from": { "phone_number": "+12025550100" },
+        "to": [{ "phone_number": "+12025550103", "status": "delivered" }],
+        "text": "Job 1187 — roof photo attached. Reply ON SITE when you are on the ladder.",
+        "type": "MMS"
+      }
+    }
+  },
+  {
+    "data": {
+      "record_type": "event",
+      "id": "e73986c8-c4fa-79e4-c875-3f3c5ea52a08",
+      "occurred_at": "2026-07-28T07:31:12Z",
+      "event_type": "message.finalized",
+      "payload": {
+        "record_type": "message",
+        "direction": "outbound",
+        "id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "group_message_id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "from": { "phone_number": "+12025550100" },
+        "to": [{ "phone_number": "+12025550104", "status": "delivered" }],
+        "text": "Job 1187 — roof photo attached. Reply ON SITE when you are on the ladder.",
+        "type": "MMS"
+      }
+    }
+  },
+  {
+    "data": {
+      "record_type": "event",
+      "id": "f84a97d9-d5ab-8af5-d986-4a4d6fb63b09",
+      "occurred_at": "2026-07-28T07:31:18Z",
+      "event_type": "message.finalized",
+      "payload": {
+        "record_type": "message",
+        "direction": "outbound",
+        "id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "group_message_id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "from": { "phone_number": "+12025550100" },
+        "to": [{ "phone_number": "+12025550105", "status": "delivered" }],
+        "text": "Job 1187 — roof photo attached. Reply ON SITE when you are on the ladder.",
+        "type": "MMS"
+      }
+    }
+  },
+  {
+    "data": {
+      "record_type": "event",
+      "id": "0a5ba8ea-e6bc-9ba6-ea97-5b5e7ac74c10",
+      "occurred_at": "2026-07-28T07:31:22Z",
+      "event_type": "message.finalized",
+      "payload": {
+        "record_type": "message",
+        "direction": "outbound",
+        "id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "group_message_id": "REPLACE_WITH_GROUP_MESSAGE_ID",
+        "from": { "phone_number": "+12025550100" },
+        "to": [{ "phone_number": "+12025550106", "status": "unknown" }],
+        "text": "Job 1187 — roof photo attached. Reply ON SITE when you are on the ladder.",
+        "type": "MMS"
+      }
+    }
+  }
+]
