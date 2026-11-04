@@ -160,7 +160,7 @@ Inbound SMS arrives on `POST /webhooks/messaging` as a Telnyx `message.received`
 | --- | --- | --- | --- |
 | `watch <url>` | `url` — absolute https URL | Stores `target_url`, `allowed_domains: [hostname]`, `owner_phone`; seeds the KV index; keeps the baseline when re-arming the same host (resets it for a new host); arms daily `every(86400, "runCheck")` with a stable id; queues a first run in 5s | `Watching <hostname>. First check in ~5s, then daily.` |
 | `status [url]` | optional `url` selects the watch | Runs `statusReport()` against the SQL ledger | The same four-line report as `GET /status/{watch_id}` |
-| `recheck now [url]` | optional `url` — one-shot override | Forces an immediate run with `reason: "manual"`. With a URL, that run targets the override instead of the stored `target_url` (this is how the `?price=0.00` broken-verdict demo is reproduced without re-arming) | Run outcome, or an incident/fix SMS |
+| `recheck now [url]` | optional `url` — one-shot override | Queues a run with `reason: "manual"` as a durable task (the webhook returns at once), then texts an ack. With a URL, that run targets the override instead of the stored `target_url` (this is how the `?price=0.00` broken-verdict demo is reproduced without re-arming) | `Recheck queued for <url> — I'll text you the verdict.`, then the run outcome |
 | `recheck <incident_id>` | `incident_id` — e.g. `2026-07-28#2026-07-28T14:02:11.004Z` | Fix-verification run with `reason: "verify"`; closes that specific incident on a healthy verdict | `FIXED <url> — incident <id> closed. Before: <artifact> After: <artifact>` on success |
 | *(anything else)* | — | Status of the sender's single watch, or a hint | `Commands: watch <url> \| status \| recheck now [url] \| recheck <incident_id>` |
 
@@ -289,7 +289,7 @@ Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https
 
 ### Inference
 
-`this.env.TELNYX.ai.openai.chat.createCompletion({ model: AI_MODEL ?? "moonshotai/Kimi-K2.6", messages })`. Two turns: ref picking (the four `picked_refs`) and the verdict (`healthy` \| `broken` + `reason`). Both expect strict JSON; unparseable output falls back to `{ verdict: "broken", reason: "unparseable model output" }` for the verdict and throws for ref picking. The baseline capture turn (`describe()`) records `price_text` + `form_labels`.
+`this.env.TELNYX.ai.openai.chat.createCompletion({ model: AI_MODEL ?? "moonshotai/Kimi-K3", messages })`. Two turns: ref picking (the four `picked_refs`) and the verdict (`healthy` \| `broken` + `reason`). Both expect strict JSON; unparseable output falls back to `{ verdict: "broken", reason: "unparseable model output" }` for the verdict and throws for ref picking. The baseline capture turn (`describe()`) records `price_text` + `form_labels`.
 
 ---
 
@@ -315,7 +315,7 @@ Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https
 | `DEMO_MODE` | `true` | `true` → Agent Browser calls replay recorded fixtures, SMS is logged not sent, verdict is derived locally. `false` → live beta API + `TELNYX.messages.send`. Surfaced by `GET /health`. |
 | `WATCH_OWNER_PHONE` | — | The account-level owner. Fallback recipient when `POST /watch` omits `owner`; also authorizes SMS commands. |
 | `FROM_NUMBER` | — | Sender for outbound SMS in live mode. |
-| `AI_MODEL` | `moonshotai/Kimi-K2.6` | Model used for ref picking, baseline capture and the verdict. |
+| `AI_MODEL` | `moonshotai/Kimi-K3` | Model used for ref picking, baseline capture and the verdict. |
 | `WATCH_TARGET_URL` | — | Documented default target; used by URL-less `status` / `recheck now` SMS commands and by `POST /watch` without a `url`. |
 | `TELNYX_API_KEY` | — | Secret read from `SECRETS` for outbound Agent Browser REST calls. Missing in live mode → `TELNYX_API_KEY is not configured`. |
 | `TELNYX_PUBLIC_KEY` | — | Secret read from `SECRETS` to verify the Ed25519 webhook signature on `POST /webhooks/messaging`. Missing in live mode → `503` on unsigned deliveries. |

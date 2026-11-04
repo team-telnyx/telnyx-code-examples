@@ -87,7 +87,7 @@ A watchdog is only useful if it can act on what it finds, and that means three t
 | `WATCH_OWNER_PHONE` | `string` | `+1555XXXXXXX` | no | E.164 number that receives alerts and is allowed to send `watch` / `status` / `recheck` commands. | Your personal phone |
 | `FROM_NUMBER` | `string` | `+1555XXXXXXX` | no (required for live SMS) | E.164 Telnyx number the alert SMS is sent from. | [Telnyx Portal → Numbers](https://portal.telnyx.com/numbers) |
 | `DEMO_MODE` | `string` | `true` | no | `true` (default) replays the envelopes recorded in `demo/browser-fixtures.json` and derives the verdict locally — no API calls, no SMS. `false` drives the live beta API and the `TELNYX` binding. | — |
-| `AI_MODEL` | `string` | `moonshotai/Kimi-K2.6` | no | Model used for ref-picking and the verdict turn. | [Telnyx AI models](https://developers.telnyx.com/docs/inference/models) |
+| `AI_MODEL` | `string` | `moonshotai/Kimi-K3` | no | Model used for ref-picking and the verdict turn. | [Telnyx AI models](https://developers.telnyx.com/docs/inference/models) |
 | `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_webhook_public_key_here` | yes (live SMS webhook) | Ed25519 webhook signing public key for `POST /webhooks/messaging`. | [Portal → API Keys → Public key](https://portal.telnyx.com/api-keys/public-key) |
 
 Config knobs (`WATCH_TARGET_URL`, `WATCH_OWNER_PHONE`, `FROM_NUMBER`, `DEMO_MODE`, `AI_MODEL`) are read through a `setting()` helper with `env` → `process.env` → `SECRETS` fallbacks, because Edge env_vars do not reach the actor runtime — declare them as secrets (see `telnyx.toml`) for deploys.
@@ -204,7 +204,7 @@ The first run captures the baseline (no comparison yet). Point `recheck now` at 
 |---------|--------|
 | `watch <url>` | Validates `https://`, stores config + `allowed_domains`, arms `every(86400, "runCheck")` and a first run in ~5s. Does **not** create a browser session. |
 | `status [url]` | Replies from the actor's own SQL: watch URL, baseline price, last 3 runs, open incidents. |
-| `recheck now [url]` | Forces an immediate run; optional one-shot URL override (e.g. `?price=0.00`). |
+| `recheck now [url]` | Queues a run immediately and replies with an ack; optional one-shot URL override (e.g. `?price=0.00`). The verdict/alert SMS follows when the run lands. |
 | `recheck <incident_id>` | Fix-verification run — identical flow, closes the named incident on a healthy verdict. |
 
 Only the watch's owner phone (or the account-level `WATCH_OWNER_PHONE`) may send commands; other senders are refused.

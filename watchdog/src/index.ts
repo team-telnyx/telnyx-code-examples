@@ -296,8 +296,14 @@ export class Watchdog extends Agent<Env, WatchdogState> {
       if (request.method === "POST" && path === "/run") {
         const payload = (await request.json().catch(() => ({}))) as RunPayload;
         if (!(await this.isOwner(payload.from ?? ""))) return json({ error: "not_authorized" }, 403);
-        await this.runCheck(payload);
-        return json({ ok: true });
+        // Queue the run as a durable task so the calling webhook (SMS) returns
+        // immediately instead of holding the connection through the browser
+        // session; the verdict, alert, or fix-close SMS follows when it lands.
+        await this.queue("runCheck", payload);
+        await this.smsReply((await this.getState()).owner_phone, payload.reason === "verify"
+          ? `Recheck queued for incident ${payload.incident_id ?? ""} — I'll text you the verdict.`
+          : `Recheck queued for ${payload.target_url ?? (await this.getState()).target_url} — I'll text you the verdict.`);
+        return json({ ok: true, queued: true });
       }
       return json({ error: "not_found" }, 404);
     } catch (err) {
@@ -651,16 +657,21 @@ export class Watchdog extends Agent<Env, WatchdogState> {
 
   private async extract(obs: Observation): Promise<PickedRefs> {
     if (await isDemo(this.env)) return this.demoPick();
-    const raw = await this.complete(
+    const prompt =
       `Observation tree from a browser session:\n${obs.tree}\n\nRefs: ${JSON.stringify(obs.refs)}\n` +
       `Pick the refs for: the price element (the monthly-budget field), the Name field, the Email field, ` +
       `and the submit button of the contact form. ` +
-      `Return strict JSON {"price_ref":"<ref>","name_ref":"<ref>","email_ref":"<ref>","submit_ref":"<ref>"}`);
-    const parsed = parseJson<{ price_ref?: string; name_ref?: string; email_ref?: string; submit_ref?: string }>(raw, {});
-    if (!parsed.price_ref || !parsed.name_ref || !parsed.email_ref || !parsed.submit_ref) {
-      throw new Error("model did not return all four refs");
+      `Return strict JSON {"price_ref":"<ref>","name_ref":"<ref>","email_ref":"<ref>","submit_ref":"<ref>"}`;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const raw = await this.complete(prompt);
+      const parsed = parseJson<{ price_ref?: string; name_ref?: string; email_ref?: string; submit_ref?: string }>(raw, {});
+      if (parsed.price_ref && parsed.name_ref && parsed.email_ref && parsed.submit_ref) {
+        return { price: parsed.price_ref, name: parsed.name_ref, email: parsed.email_ref, submit: parsed.submit_ref };
+      }
+      console.warn(`model extraction attempt ${attempt + 1} returned no refs; retrying`);
+      await sleep(1500);
     }
-    return { price: parsed.price_ref, name: parsed.name_ref, email: parsed.email_ref, submit: parsed.submit_ref };
+    throw new Error("model did not return all four refs");
   }
 
   /** Demo extraction replays the recorded pick from demo/browser-fixtures.json. */
@@ -709,14 +720,20 @@ export class Watchdog extends Agent<Env, WatchdogState> {
   }
 
   private async complete(prompt: string): Promise<string> {
-    const res = await this.env.TELNYX.ai.openai.chat.createCompletion({
-      model: (await setting(this.env, "AI_MODEL")) || "moonshotai/Kimi-K2.6",
-      messages: [
-        { role: "system", content: "You are a web health checker. Reply with strict JSON only, no prose, no code fences." },
-        { role: "user", content: prompt },
-      ],
-    });
-    return res?.choices?.[0]?.message?.content ?? "";
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const res = await this.env.TELNYX.ai.openai.chat.createCompletion({
+        model: (await setting(this.env, "AI_MODEL")) || "moonshotai/Kimi-K3",
+        messages: [
+          { role: "system", content: "You are a web health checker. Reply with strict JSON only, no prose, no code fences." },
+          { role: "user", content: prompt },
+        ],
+      });
+      const content = res?.choices?.[0]?.message?.content ?? "";
+      if (content.trim()) return content;
+      console.warn(`inference attempt ${attempt + 1} returned empty content; retrying`);
+      await sleep(1500);
+    }
+    return "";
   }
 
   /* ---- ledger + incidents ---- */

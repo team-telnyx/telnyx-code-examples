@@ -57,7 +57,7 @@ name    = "AI_MODEL"
 # Documented defaults (apply when a knob is unset):
 [env_vars]
 DEMO_MODE = "true"
-AI_MODEL = "moonshotai/Kimi-K2.6"
+AI_MODEL = "moonshotai/Kimi-K3"
 WATCH_TARGET_URL = "https://your-fixture-host.example.com/"
 WATCH_OWNER_PHONE = "+1555XXXXXXX"
 FROM_NUMBER = "+1555XXXXXXX"

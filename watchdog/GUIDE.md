@@ -71,7 +71,7 @@ Copy `.env.example` to `.env` and fill in the placeholders:
 | `WATCH_OWNER_PHONE` | Who receives alert SMS and may send `watch` / `status` / `recheck` | `+1555XXXXXXXX` |
 | `FROM_NUMBER` | Telnyx number the alerts are sent from | `+1555XXXXXXXX` |
 | `DEMO_MODE` | `true` (default) replays recorded fixtures offline; `false` runs live | `true` |
-| `AI_MODEL` | Model name for the verdict turn | `moonshotai/Kimi-K2.6` |
+| `AI_MODEL` | Model name for the verdict turn | `moonshotai/Kimi-K3` |
 
 Bindings live in `telnyx.toml`:
 
@@ -112,7 +112,7 @@ name    = "TELNYX_PUBLIC_KEY"
 
 [env_vars]
 DEMO_MODE = "true"
-AI_MODEL = "moonshotai/Kimi-K2.6"
+AI_MODEL = "moonshotai/Kimi-K3"
 WATCH_TARGET_URL = "https://your-fixture-host.example.com/"
 WATCH_OWNER_PHONE = "+1555XXXXXXX"
 FROM_NUMBER = "+1555XXXXXXX"
@@ -318,7 +318,7 @@ Two inference calls, both via the `TELNYX` binding:
 
 ```ts
 this.env.TELNYX.ai.openai.chat.createCompletion({
-  model: this.env.AI_MODEL || "moonshotai/Kimi-K2.6",
+  model: this.env.AI_MODEL || "moonshotai/Kimi-K3",
   messages: [system, user],
 })
 ```

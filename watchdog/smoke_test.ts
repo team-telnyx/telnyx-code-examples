@@ -334,11 +334,19 @@ function makeHarness(demoMode: boolean): Harness {
 
   const makeActor = (): Watchdog => {
     const actor = new Watchdog(ctx() as never, env);
-    const runner = actor as unknown as { schedule: (delay: number, method: string, payload?: unknown) => Promise<string> };
+    const runner = actor as unknown as {
+      schedule: (delay: number, method: string, payload?: unknown) => Promise<string>;
+      queue: (method: string, payload?: unknown) => Promise<string>;
+    };
     runner.schedule = async (delay: number, method: string, payload?: unknown) => {
       await ctx().setAlarm();
       void delay; void method; void payload;
       return "scheduled";
+    };
+    // Drain queued tasks immediately so the recheck path runs synchronously.
+    runner.queue = async (method: string, payload?: unknown) => {
+      await (actor as unknown as Record<string, (p?: unknown) => Promise<void>>)[method](payload);
+      return "queued";
     };
     return actor as Watchdog;
   };
