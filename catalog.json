@@ -3,7 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-11-03T19:14:32Z",
+  "generated_at": "2026-11-04T21:46:33Z",
   "example_count": 587,
   "examples": [
     {
@@ -2582,8 +2582,8 @@
     },
     {
       "folder": "whatsapp-restaurant-reservation-nodejs",
-      "title": "Restaurant Reservations via WhatsApp with AI Agent (Node.js)",
-      "description": "AI-powered restaurant reservations via WhatsApp with Node.js/Express, deployed on Telnyx Edge Compute. Browse restaurants, book tables through AI conversation, phone validation via Number Lookup API, and live dashboard.",
+      "title": "Whatsapp Restaurant Reservation Nodejs",
+      "description": "",
       "product": "sms",
       "language": "nodejs",
       "framework": "express",
@@ -5281,13 +5281,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/voice-fraud-step-up-agent"
     },
     {
-      "folder": "crew-cast",
-      "title": "Crew Cast — Group MMS Delivery Scoreboard on a Durable Edge Actor",
-      "description": "One durable Edge actor owns a group MMS thread: per-recipient delivery state joined by group_message_id, inbound replies folded via the cc roster, and a dispatch scoreboard that survives worker restarts.",
+      "folder": "watchdog",
+      "title": "Browser Watchdog — Scheduled Web Checks With a Memory",
+      "description": "A durable Telnyx Edge actor that watches one web property, remembers what normal looks like, and proves when it broke and when it was fixed.",
       "product": "ai",
       "language": "typescript",
       "framework": "edge",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/crew-cast"
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/watchdog"
     }
   ]
 }

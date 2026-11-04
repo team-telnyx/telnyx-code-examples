@@ -2,7 +2,7 @@
   "name": "watchdog",
   "version": "1.0.0",
   "private": true,
-  "description": "Telnyx Edge Browser Watchdog \u2014 scheduled web checks with a memory",
+  "description": "Telnyx Edge Browser Watchdog — scheduled web checks with a memory",
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "smoke": "npx tsx smoke_test.ts"
   },
   "dependencies": {
-    "@telnyx/edge-runtime": "^0.15.1"
+    "@telnyx/edge-runtime": "^0.16.1"
   },
   "devDependencies": {
     "tsx": "^4.19.2",
