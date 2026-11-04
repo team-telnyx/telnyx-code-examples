@@ -405,7 +405,7 @@ async function run(): Promise<void> {
   const armed = await dispatchCmd(h, OWNER, `watch ${TARGET}`);
   await check("unsigned webhook accepted in demo mode; watch command arms the actor", async () => {
     assert(armed.status === 200, `status ${armed.status}`);
-    assert((h.kv.get("watch:demo-shop.example.com") ?? "") === normalizePhone(OWNER), "KV watch index not seeded");
+    assert((h.kv.get("watch/demo-shop.example.com") ?? "") === normalizePhone(OWNER), "KV watch index not seeded");
     assert(h.sms.some((s) => s.text.startsWith("Watching")), "no arm ack SMS to the owner");
   });
 
@@ -444,7 +444,7 @@ async function run(): Promise<void> {
     const state = (await (h.actor as unknown as { getState: () => Promise<WatchdogState> }).getState()) as WatchdogState;
     assert(state.baseline && state.baseline.price_text === "$24.00", `baseline price ${state.baseline?.price_text}`);
     assert(state.baseline?.form_labels.includes("Name"), "form labels not captured");
-    assert(h.kv.get("owner:15550001111") === JSON.stringify(["demo-shop.example.com"]), "owner index lost the watch");
+    assert(h.kv.get("owner/15550001111") === JSON.stringify(["demo-shop.example.com"]), "owner index lost the watch");
   });
 
   // ── AC: broken verdict files an incident + alert SMS ──

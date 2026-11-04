@@ -93,7 +93,7 @@ type ObsKind = keyof typeof RECORDED.observations;
 
 /* ------------------------------ constants ------------------------------ */
 
-const API_BASE = "https://api.telnyx.com";
+const API_BASE = "https://api.telnyx.com/v2";
 const DAILY_SECONDS = 86400;
 const FIRST_RUN_SECONDS = 5;
 const POLL_INTERVAL_MS = 1000;
@@ -137,6 +137,14 @@ export function maskPhone(value: string): string {
 /** Digits only, no leading +: the comparison key for ownership. */
 export function normalizePhone(value: string): string {
   return value.replace(/\D/g, "");
+}
+
+/**
+ * KV keys allow only `a-z A-Z 0-9 - _ / = .`; encode everything else.
+ * Used for keys derived from incident ids (`<runDate>#<ts>`).
+ */
+export function kvKey(key: string): string {
+  return key.replace(/[^a-zA-Z0-9._/-]/g, (c) => `=${c.charCodeAt(0)}`);
 }
 
 export interface Command {
@@ -329,7 +337,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
       owner_phone: ownerPhone,
     });
     if (ownerPhone) {
-      await this.env.WATCHDOG_INDEX.put(`watch:${ownerId}`, normalizePhone(ownerPhone));
+      await this.env.WATCHDOG_INDEX.put(kvKey(`watch/${ownerId}`), normalizePhone(ownerPhone));
       await this.indexOwner(ownerId, normalizePhone(ownerPhone), previous.owner_phone);
     }
     const dailyId = await this.every(DAILY_SECONDS, "runCheck", { reason: "scheduled" }, { id: `daily-${ownerId}` });
@@ -343,7 +351,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
   /** owner:<phone> -> JSON array of watch ids (deduped). */
   private async indexOwner(watch: string, newOwner: string, previousOwner: string | null): Promise<void> {
     for (const owner of new Set([previousOwner, newOwner].filter((p): p is string => !!p))) {
-      const key = `owner:${owner}`;
+      const key = kvKey(`owner/${owner}`);
       const existing = JSON.parse((await this.env.WATCHDOG_INDEX.get(key)) ?? "[]") as string[];
       const next = existing.includes(watch) ? existing : [...existing, watch];
       await this.env.WATCHDOG_INDEX.put(key, JSON.stringify(next));
@@ -739,7 +747,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
       "INSERT INTO incidents (id, run_date, first_broken_at, reason, before_artifact_id, status) VALUES (?, ?, ?, ?, ?, 'open')",
       incidentId, runDate, firstBrokenAt, verdict.reason.slice(0, 500), drive.artifactId);
     if (state.target_url) {
-      await this.env.WATCHDOG_INDEX.put(`incident:${incidentId}`, watchId(state.target_url));
+      await this.env.WATCHDOG_INDEX.put(kvKey(`incident/${incidentId}`), watchId(state.target_url));
     }
     await this.smsReply(state.owner_phone,
       `BROKEN ${state.target_url} — ${verdict.reason}. Incident ${incidentId}. Screenshot: ${drive.downloadUrl ?? "n/a"}`);
@@ -754,7 +762,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
       "INSERT INTO incidents (id, run_date, first_broken_at, reason, status) VALUES (?, ?, ?, ?, 'open')",
       incidentId, runDate, new Date().toISOString(), "stale_ref persisted after one re-observe");
     if (state.target_url) {
-      await this.env.WATCHDOG_INDEX.put(`incident:${incidentId}`, watchId(state.target_url));
+      await this.env.WATCHDOG_INDEX.put(kvKey(`incident/${incidentId}`), watchId(state.target_url));
     }
     await this.smsReply(state.owner_phone,
       `Watchdog note: ${state.target_url} kept re-rendering mid-run (stale_ref x2). Incident note ${incidentId}. Check ?render_wave.`);
@@ -949,7 +957,7 @@ async function resolveWatchForCommand(env: Env, from: string, url?: string): Pro
   const envOwner = ownerPhone ? normalizePhone(ownerPhone) : "";
   const targetUrl = await setting(env, "WATCH_TARGET_URL");
   if (sender && envOwner === sender && targetUrl) return watchId(targetUrl);
-  const owned = JSON.parse((await env.WATCHDOG_INDEX.get(`owner:${sender}`)) ?? "[]") as string[];
+  const owned = JSON.parse((await env.WATCHDOG_INDEX.get(kvKey(`owner/${sender}`))) ?? "[]") as string[];
   return owned.length === 1 ? owned[0] : null;
 }
 
@@ -959,7 +967,7 @@ async function senderOwnsWatch(env: Env, from: string, watch: string): Promise<b
   const ownerPhone = await setting(env, "WATCH_OWNER_PHONE");
   const envOwner = ownerPhone ? normalizePhone(ownerPhone) : "";
   if (envOwner && sender === envOwner) return true;
-  return sender !== "" && (await env.WATCHDOG_INDEX.get(`watch:${watch}`)) === sender;
+  return sender !== "" && (await env.WATCHDOG_INDEX.get(kvKey(`watch/${watch}`))) === sender;
 }
 
 async function ownerWatches(env: Env, from: string): Promise<string[]> {
@@ -968,7 +976,7 @@ async function ownerWatches(env: Env, from: string): Promise<string[]> {
   const envOwner = ownerPhone ? normalizePhone(ownerPhone) : "";
   const targetUrl = await setting(env, "WATCH_TARGET_URL");
   const envWatches = envOwner === sender && targetUrl ? [watchId(targetUrl)] : [];
-  const indexed = JSON.parse((await env.WATCHDOG_INDEX.get(`owner:${sender}`)) ?? "[]") as string[];
+  const indexed = JSON.parse((await env.WATCHDOG_INDEX.get(kvKey(`owner/${sender}`))) ?? "[]") as string[];
   return Array.from(new Set([...envWatches, ...indexed]));
 }
 
@@ -1035,6 +1043,16 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     try {
+      if (request.method === "GET" && url.pathname === "/debug/session") {
+        const key = await env.SECRETS.get("TELNYX_API_KEY");
+        const res = await fetch("https://api.telnyx.com/v2/browser_sessions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ policy: { allowed_domains: ["watchdog-9ecece16-e.telnyxcompute.com"] }, limits: { lifetime_s: 600, idle_timeout_s: 120 }, idempotency_key: "debug-probe-live" }),
+        });
+        const text = await res.text();
+        return json({ status: res.status, keyPresent: !!key, body: text.slice(0, 500) });
+      }
       if (request.method === "GET" && url.pathname === "/health") {
         return json({ ok: true, demo_mode: await isDemo(env) });
       }
