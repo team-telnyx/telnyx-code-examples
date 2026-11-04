@@ -117,14 +117,14 @@ In `DEMO_MODE=true` with no `TELNYX_PUBLIC_KEY` configured, signature verificati
 
 | Param | Type | Required | Description |
 |---|---|---|---|
-| `cast_id` | `string` | No | Forces routing for `message.received` events. Overrides the KV `thread:<crew number>` lookup. |
+| `cast_id` | `string` | No | Forces routing for `message.received` events. Overrides the KV `thread/<crew number>` lookup. |
 
 ### Event envelope (`message.finalized`)
 
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `data.event_type` | `string` | Yes | `"message.finalized"` |
-| `data.payload.group_message_id` | `string` | Yes | Join key back to the cast. Resolved via KV `group:<id>`. |
+| `data.payload.group_message_id` | `string` | No | Absent on live finalized payloads — the router falls back to the crew-number thread index (`thread/<CREW_FROM>`). Present in the demo fixtures. |
 | `data.payload.to[0].phone_number` | `string` | Yes | The recipient this finalization belongs to. |
 | `data.payload.status` | `string` | Yes | `delivered` \| `sending_failed` \| `delivery_failed` \| `unknown` \| `queued`. Anything unrecognized normalizes to `unknown`. |
 | `data.payload.occurred_at` | `string` | No | ISO-8601. Defaults to server time. |

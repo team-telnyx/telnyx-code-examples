@@ -249,7 +249,16 @@ function makeHarness(demoMode: boolean): TestHarness {
     } as unknown as Env["CREW_INDEX"],
     TELNYX: {
       messages: {
-        send: async (params: { from: string; to: string[]; text: string; media_urls?: string[] }) => {
+        send: async (params: { from: string; to: string; text: string }) => {
+          crewSends.push({ from: params.from, to: [params.to], text: params.text });
+          return {
+            data: {
+              id: `m-${Date.now()}`,
+              to: [{ phone_number: params.to, status: "queued", carrier: "demo", line_type: "Wireless" }],
+            },
+          };
+        },
+        sendGroupMms: async (params: { from: string; to: string[]; text: string; media_urls?: string[] }) => {
           crewSends.push(params);
           return {
             data: {
@@ -450,7 +459,7 @@ async function run(): Promise<void> {
   const h4 = makeHarness(true);
   await h4.actor.cast(CAST_INPUT);
   const demoState = (await h4.actor["getState"]()) as CrewState;
-  const kvRoute: Record<string, string> = { [`group:${demoState.group_message_id}`]: CAST_INPUT.cast_id };
+  const kvRoute: Record<string, string> = { [`group/${demoState.group_message_id}`]: CAST_INPUT.cast_id };
   await h4.actor.onFinalized({ group_message_id: demoState.group_message_id as string, phone_number: ROSTER[0], status: "delivered", occurred_at: null });
   const routed = await worker.fetch(
     new Request("https://crew-cast.test/webhooks/messaging", {
@@ -470,6 +479,101 @@ async function run(): Promise<void> {
     assert(routed.status === 200, `expected 200, got ${routed.status}`);
     assert(routedBody.applied === false, `expected a no-op verdict, got ${JSON.stringify(routedBody)}`);
     assert(routedBody.reason === "duplicate", `expected duplicate for a same-status replay, got ${routedBody.reason}`);
+  });
+
+  // Live API reality: finalized payloads carry NO group_message_id — the router
+  // falls back to the crew-number thread index. Verify that path applies the
+  // event to the right recipient.
+  const h5 = makeHarness(true);
+  await h5.actor.cast(CAST_INPUT);
+  const threadRouted = await worker.fetch(
+    new Request("https://crew-cast.test/webhooks/messaging", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        data: {
+          event_type: "message.finalized",
+          payload: { from: { phone_number: CREW_FROM }, to: [{ phone_number: ROSTER[1] }], status: "delivered" },
+        },
+      }),
+    }),
+    { ...h5.env, CREW_INDEX: { get: async (k: string) => (k === `thread/${CREW_FROM.replace("+", "_")}` ? CAST_INPUT.cast_id : null), put: async () => undefined } } as unknown as Env,
+  );
+  const threadBody = (await threadRouted.json()) as Record<string, unknown>;
+  const threadBoard = await h5.actor.deliveryReport();
+  check("router: finalized without group id routes via the thread index", () => {
+    assert(threadRouted.status === 200, `expected 200, got ${threadRouted.status}`);
+    assert(threadBody.applied === true, `expected applied, got ${JSON.stringify(threadBody)}`);
+    assert(threadBoard.totals.delivered === 1, `expected 1 delivered, got ${threadBoard.totals.delivered}`);
+    assert(threadBoard.recipients.find((r) => r.number === ROSTER[1])?.status === "delivered", "wrong recipient updated");
+  });
+
+  // A finalized event still reporting "queued" must not regress the board.
+  const queuedReplay = await worker.fetch(
+    new Request("https://crew-cast.test/webhooks/messaging", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        data: {
+          event_type: "message.finalized",
+          payload: { from: { phone_number: CREW_FROM }, to: [{ phone_number: ROSTER[3] }], status: "queued" },
+        },
+      }),
+    }),
+    { ...h5.env, CREW_INDEX: { get: async (k: string) => (k === `thread/${CREW_FROM.replace("+", "_")}` ? CAST_INPUT.cast_id : null), put: async () => undefined } } as unknown as Env,
+  );
+  const queuedBody = (await queuedReplay.json()) as Record<string, unknown>;
+  check("finalized with status queued is a no-op (no regression)", () => {
+    assert(queuedBody.applied === false, `expected not applied, got ${JSON.stringify(queuedBody)}`);
+    assert(
+      queuedBody.reason === "still_queued" || queuedBody.reason === "duplicate",
+      `expected a no-op (still_queued or duplicate), got ${JSON.stringify(queuedBody)}`,
+    );
+  });
+
+  // Telnyx member receipts: message.received with from == CREW_FROM is the
+  // member's delivery confirmation — fold it as that member's delivered event.
+  const receipt = await worker.fetch(
+    new Request("https://crew-cast.test/webhooks/messaging", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        data: {
+          event_type: "message.received",
+          payload: { from: { phone_number: CREW_FROM }, to: [{ phone_number: ROSTER[2] }], text: "receipt" },
+        },
+      }),
+    }),
+    { ...h5.env, CREW_INDEX: { get: async (k: string) => (k === `thread/${CREW_FROM.replace("+", "_")}` ? CAST_INPUT.cast_id : null), put: async () => undefined } } as unknown as Env,
+  );
+  const receiptBody = (await receipt.json()) as Record<string, unknown>;
+  const receiptBoard = await h5.actor.deliveryReport();
+  check("receipts from the crew number fold as delivery confirmations", () => {
+    assert(receipt.status === 200, `expected 200, got ${receipt.status}`);
+    assert(receiptBody.applied === true, `expected receipt applied, got ${JSON.stringify(receiptBody)}`);
+    assert(receiptBoard.recipients.find((r) => r.number === ROSTER[2])?.status === "delivered", "receipt not folded");
+  });
+
+  // Human replies (from anyone else) keep taking the reply path.
+  const replyRouted = await worker.fetch(
+    new Request("https://crew-cast.test/webhooks/messaging", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        data: {
+          event_type: "message.received",
+          payload: { from: { phone_number: ROSTER[0] }, to: [{ phone_number: CREW_FROM }], text: "on site", cc: [] },
+        },
+      }),
+    }),
+    { ...h5.env, CREW_INDEX: { get: async (k: string) => (k === `thread/${CREW_FROM.replace("+", "_")}` ? CAST_INPUT.cast_id : null), put: async () => undefined } } as unknown as Env,
+  );
+  const replyBody = (await replyRouted.json()) as Record<string, unknown>;
+  const replyBoard = await h5.actor.deliveryReport();
+  check("human replies still fold into the thread and ack the sender", () => {
+    assert(replyBody.applied === true, `expected reply applied, got ${JSON.stringify(replyBody)}`);
+    assert(replyBoard.replies.length === 1, `expected 1 reply, got ${replyBoard.replies.length}`);
+    assert(replyBoard.totals.acked === 1, `expected 1 acked, got ${replyBoard.totals.acked}`);
   });
 
   if (failures > 0) {

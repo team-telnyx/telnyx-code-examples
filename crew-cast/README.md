@@ -33,8 +33,8 @@ This is **AI Communications Infrastructure** in the literal sense: the messaging
 |--------|------------------|-----------------------|
 | `POST` | `/v2/messages/group_mms` | Send one text + photo to up to 8 US/CA recipients. Response `data.id` is the `group_message_id`; `data.to[]` seeds the board with per-recipient `status`, `carrier`, `line_type`. Called through the `TELNYX` binding as `this.env.TELNYX.messages.send({ from, to, text, media_urls })`. |
 | `POST` | `/v2/messages` | 1:1 SMS to `DISPATCH_PHONE` once every recipient reaches a terminal state ("Job 1187: all 6 accounted for — 5 delivered, 0 failed, 1 unknown"). Same binding, single-element `to`. |
-| webhook | `message.finalized` | One event per recipient. Carries `group_message_id`, `to[0].phone_number`, `status`. Folded into the board idempotently by `(group_message_id, recipient)`. |
-| webhook | `message.received` | Inbound crew reply. Carries `from.phone_number`, `text`, and `cc[]` — the full roster of *other* participants. Folded into `replies[]`, marks the sender `acked_at`, and backfills any roster entry missed at cast time. |
+| webhook | `message.finalized` | One event per recipient. Carries `to[0].phone_number` and its delivery `status` (the live payload carries no `group_message_id` — the router resolves the thread via the crew-number KV index). Folded into the board idempotently by recipient. |
+| webhook | `message.received` | Inbound crew reply. Carries `from.phone_number`, `text`, and `cc[]` — the full roster of *other* participants. Folded into `replies[]`, marks the sender `acked_at`, and backfills any roster entry missed at cast time. When `from` is the crew number itself, the event is a member's Telnyx-side receipt of the group message — folded as that member's `delivered` confirmation. |
 
 **Documented constraints (first-class rules, not footnotes):**
 
@@ -77,14 +77,14 @@ Dispatch (curl / dispatch app)
    └──────┬──────────────────────────────┬─────────────────────┘
           │                              │
    CREW_INDEX (KV)                 CREW_DB (SqlDatabase)
-   group:<gm_id>  → cast_id        crew_delivery
-   thread:<from>  → cast_id        (cast_id, phone_number) PK
+   group/<gm_id>  → cast_id        crew_delivery
+   thread/<from>  → cast_id        (cast_id, phone_number) PK
    ← webhook routing               ← GROUP BY status ack report
 ```
 
 **Why the actor is load-bearing.** Six `message.finalized` events arrive separately, minutes apart, and must land on one board. The router resolves `group_message_id → cast_id` through the KV index and hands the event to `idFromName(cast_id)` — the same actor instance every time, whether or not the worker that handled the previous event is still alive. `onFinalized` is a no-op when the incoming status equals the stored status (`duplicate`) or when the recipient is already in a hard-terminal state (`already_terminal`), so a replayed webhook updates nothing but still returns `200` to stop Telnyx retries.
 
-**Why the reply path needs no registry.** Inbound replies carry no `group_message_id`. The router looks up `thread:<to[0].phone_number>` (the crew number) in KV, or accepts `?cast_id=` as an override. The `cc` array on the first reply backfills any participant the cast-time roster missed.
+**Why the reply path needs no registry.** Inbound replies carry no `group_message_id` — and neither do the live `message.finalized` payloads, so the router resolves BOTH through the crew-number thread index (`thread/<CREW_FROM>` in KV, or `?cast_id=` as an override). The `cc` array on the first reply backfills any participant the cast-time roster missed, and a member's Telnyx-side receipt (`message.received` whose `from` is the crew number) folds as that member's `delivered` confirmation.
 
 **Why SQL.** `CREW_DB` holds a `crew_delivery` row per `(cast_id, phone_number)`, upserted on every state change. `deliveryReport()` runs a parameterized `GROUP BY status` query over it so the board's `sql_summary` is a real database answer, not an in-memory recount.
 

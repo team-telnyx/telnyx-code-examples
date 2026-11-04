@@ -193,7 +193,7 @@ The `cast()` method (roughly the first third of the actor class) does the critic
 3. **Send the group MMS** — call `sendGroupMms()` (demo or live).
 4. **Seed the board from the response** — merge carrier/line_type/status from `data.to[]`.
 5. **Record the `group_message_id`** — this is the join key for every future `message.finalized`.
-6. **Write the KV indexes** — `group:<id>` → `cast_id` and `thread:<from>` → `cast_id`.
+6. **Write the KV indexes** — `group/<id>` → `cast_id` and `thread/<from>` → `cast_id`.
 7. **Sync SQL rows** — `syncDeliveryRows()`.
 8. **Return the board.**
 
@@ -218,9 +218,9 @@ const id = typeof data.id === "string" ? data.id : "";
 
 #### `onFinalized()` — fold one recipient's delivery state
 
-Each `message.finalized` webhook carries `group_message_id`, `to[0].phone_number`, and `status`. The method:
+Each `message.finalized` webhook carries `to[0].phone_number` and `status` (the live payload carries no `group_message_id`). The method:
 
-1. Rejects events whose `group_message_id` doesn't match the actor's.
+1. Rejects events whose `group_message_id` (when present) doesn't match the actor's.
 2. Rejects recipients not on the roster.
 3. **Idempotency check** — if the incoming status equals the current status, return `{ applied: false, reason: "duplicate" }`.
 4. **Terminal check** — if the current status is in `HARD_TERMINAL`, return `{ applied: false, reason: "already_terminal" }`. This lets a provisional `unknown` upgrade to `delivered`, but never lets a `delivered` regress.
@@ -308,9 +308,9 @@ and forwards to the actor's `/cast` RPC. The response includes `webhook_url` so 
 2. Verifies the Ed25519 signature (or skips in demo mode with no key).
 3. Parses the event and branches on `data.event_type`:
 
-**`message.finalized`** — extracts `group_message_id` and `to[0].phone_number`, looks up `cast_id` in KV via `group:<id>`, and forwards to the actor's `/finalized`. If the KV lookup misses, returns `{ received: true, routed: false }` with `200` (so Telnyx doesn't retry an event for an unknown thread).
+**`message.finalized`** — extracts `to[0].phone_number` and `status`, looks up `cast_id` via the `group/<id>` KV index (when the payload carries one) and falls back to the crew-number `thread/<CREW_FROM>` index, then forwards to the actor's `/finalized`. If both lookups miss, returns `{ received: true, routed: false }` with `200` (so Telnyx doesn't retry an event for an unknown thread).
 
-**`message.received`** — extracts `from.phone_number`, resolves `cast_id` from `?cast_id=` or the KV `thread:<crewNumber>` index, normalizes the `cc` array, and forwards to the actor's `/reply`. Dedup key is `payload.id` (falling back to a composite of from/received_at/text).
+**`message.received`** — extracts `from.phone_number`, resolves `cast_id` from `?cast_id=` or the KV `thread/<crewNumber>` index (segments sanitized — KV keys allow `[a-zA-Z0-9/_=.-]` only), normalizes the `cc` array, and forwards to the actor's `/reply`. Dedup key is `payload.id` (falling back to a composite of from/received_at/text).
 
 Unknown event types return `200` with `{ ignored: type }`.
 

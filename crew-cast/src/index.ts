@@ -43,10 +43,11 @@ export interface CrewState {
   cast_id: string; job_id: string; group_message_id: string | null; from: string; text: string; media_url: string | null;
   recipients: Recipient[]; replies: Reply[]; roster_cursor: number; repolls: number;
   notified_signature: string | null; created_at: string; updated_at: string;
+  events: Array<{ at: string; what: string }>;
   [key: string]: unknown;
 }
 export interface CastInput { cast_id: string; job_id: string; from: string; recipients: string[]; text: string; media_url: string | null }
-export interface FinalizedEvent { group_message_id: string; phone_number: string; status: BoardStatus; occurred_at: string | null }
+export interface FinalizedEvent { group_message_id: string | null; phone_number: string; status: BoardStatus; occurred_at: string | null }
 export interface ReplyEvent { id: string; from: string; text: string; cc: string[]; occurred_at: string }
 export interface StatusCount { status: string; total: number; acked: number }
 export interface BoardReport {
@@ -54,17 +55,21 @@ export interface BoardReport {
   recipients: Recipient[]; replies: Reply[];
   totals: { recipients: number; queued: number; delivered: number; sending_failed: number; delivery_failed: number; unknown: number; acked: number; silent: number };
   repolls: number; dispatch_notified: boolean; sql_summary: StatusCount[]; updated_at: string;
+  events: Array<{ at: string; what: string }>;
 }
 interface GroupSendResult {
   group_message_id: string;
   recipients: Array<{ phone_number: string; status: string; carrier: string | null; line_type: string | null }>;
 }
 interface TelnyxBinding {
-  messages: { send(params: { from: string; to: string[]; text: string; media_urls?: string[] }): Promise<unknown> };
+  messages: {
+    send(params: { from: string; to: string; text: string; media_urls?: string[] }): Promise<unknown>;
+    sendGroupMms(params: { from: string; to: string[]; text: string; media_urls?: string[] }): Promise<unknown>;
+  };
 }
 export interface Env {
   SECRETS: Secrets; CREW_CAST: ActorNamespace<CrewCast>; CREW_DB: SqlDatabase; CREW_INDEX: KvNamespace; TELNYX: TelnyxBinding;
-  CREW_FROM: string; CREW_PROFILE_ID: string; DISPATCH_PHONE: string; PUBLIC_BASE_URL: string; DEMO_MODE: string;
+  CREW_FROM?: string; CREW_PROFILE_ID?: string; DISPATCH_PHONE?: string; PUBLIC_BASE_URL?: string; DEMO_MODE?: string;
   CREW_TO_1?: string; CREW_TO_2?: string; CREW_TO_3?: string; CREW_TO_4?: string; CREW_TO_5?: string; CREW_TO_6?: string;
 }
 
@@ -87,8 +92,35 @@ export function maskPhone(value: string): string {
   return value.length <= 5 ? "***" : `${value.slice(0, 3)}***${value.slice(-2)}`;
 }
 
-function isDemoMode(env: Env): boolean {
-  return (env.DEMO_MODE ?? "true").toLowerCase() !== "false";
+/** KV keys allow [a-zA-Z0-9/_=.-] only — sanitize segments (E.164 "+" → "_"). */
+function kvKey(prefix: string, value: string): string {
+  return `${prefix}/${value.replace(/[^a-zA-Z0-9/_=.-]/g, "_")}`;
+}
+
+/**
+ * [env_vars] reach the fetch-handler pod as `process.env`, but actor pods do
+ * not — so actor-readable config goes through the SECRETS binding first
+ * (values added via `telnyx-edge secrets add`), falling back to process.env
+ * and finally the env object. Mirrors event-sponsorship-agent's cfg() helper.
+ */
+async function cfg(env: Env, name: string, dflt = ""): Promise<string> {
+  try {
+    const fromSecret = await env.SECRETS.get(name);
+    if (fromSecret) return fromSecret;
+  } catch {
+    // secrets not configured — fall through
+  }
+  return process.env[name] ?? String((env as unknown as Record<string, unknown>)[name] ?? dflt);
+}
+
+/** Synchronous variant for the fetch-handler pod ([env_vars] land on process.env there). */
+function fnCfg(env: Env, name: string, dflt = ""): string {
+  return process.env[name] ?? String((env as unknown as Record<string, unknown>)[name] ?? dflt);
+}
+
+/** Demo-mode check that works on both pods: actors resolve via SECRETS. */
+async function isDemoMode(env: Env): Promise<boolean> {
+  return (await cfg(env, "DEMO_MODE", "true")).toLowerCase() !== "false";
 }
 
 function json(body: unknown, status = 200): Response {
@@ -125,22 +157,93 @@ async function verifySignature(request: Request, rawBody: string, env: Env): Pro
   let publicKey: string | null = null;
   try { publicKey = await env.SECRETS.get("TELNYX_PUBLIC_KEY"); } catch { publicKey = null; }
   if (!publicKey) {
-    if (isDemoMode(env)) { console.warn("TELNYX_PUBLIC_KEY unset \u2014 accepting unsigned webhook (DEMO_MODE)"); return true; }
+    if (await isDemoMode(env)) { console.warn("TELNYX_PUBLIC_KEY unset — accepting unsigned webhook (DEMO_MODE)"); return true; }
+    console.error("webhook-reject: no public key configured");
     return false;
   }
   const signature = request.headers.get("telnyx-signature-ed25519");
   const timestamp = request.headers.get("telnyx-timestamp");
-  if (!signature || !timestamp) return false;
-  const skew = Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp));
-  if (!Number.isFinite(skew) || skew > 300) return false;
-  try {
-    const key = await crypto.subtle.importKey("raw", base64ToBytes(publicKey), { name: "Ed25519" }, false, ["verify"]);
-    const payload = new TextEncoder().encode(`${timestamp}|${rawBody}`);
-    return await crypto.subtle.verify({ name: "Ed25519" }, key, base64ToBytes(signature), payload);
-  } catch (err) {
-    console.error("webhook signature verification failed:", err instanceof Error ? err.message : "unknown");
+  if (!signature || !timestamp) {
+    console.error(`webhook-reject: missing headers sig=${Boolean(signature)} ts=${Boolean(timestamp)}`);
     return false;
   }
+  const skew = Math.abs(Math.floor(Date.now() / 1000) - Number(timestamp));
+  if (!Number.isFinite(skew) || skew > 300) {
+    console.error(`webhook-reject: timestamp skew ${skew}s`);
+    return false;
+  }
+  try {
+    // Tolerate any key format: PEM armor, whitespace, quotes, stray chars; pad if needed.
+    let cleaned = publicKey.replace(/[^A-Za-z0-9+/=]/g, "").replace(/=+$/, "");
+    while (cleaned.length % 4 !== 0) cleaned += "=";
+    console.log(`webhook-verify: pubKey len=${cleaned.length} decoded=${base64ToBytes(cleaned).length}B`);
+    const keyBytes = base64ToBytes(cleaned);
+    if (keyBytes.length !== 32) {
+      console.error(`webhook-reject: public key decodes to ${keyBytes.length}B (expected 32B for Ed25519)`);
+      return false;
+    }
+    const key = await crypto.subtle.importKey("raw", keyBytes, { name: "Ed25519" }, false, ["verify"]);
+    // Format A: the documented `${timestamp}|${rawBody}`.
+    const payloadA = new TextEncoder().encode(`${timestamp}|${rawBody}`);
+    if (await crypto.subtle.verify({ name: "Ed25519" }, key, base64ToBytes(signature), payloadA)) return true;
+    // Format B: Standard-Webhooks style `${msgId}.${timestamp}.${rawBody}`.
+    const msgId = request.headers.get("webhook-id") ?? "";
+    const payloadB = new TextEncoder().encode(`${msgId}.${timestamp}.${rawBody}`);
+    if (await crypto.subtle.verify({ name: "Ed25519" }, key, base64ToBytes(signature), payloadB)) {
+      console.log("webhook-verify: matched Standard-Webhooks payload format");
+      return true;
+    }
+    console.error("webhook-reject: ed25519 mismatch in both payload formats");
+  } catch (err) {
+    console.error("webhook ed25519 verification failed:", err instanceof Error ? err.message : "unknown");
+  }
+  // Format C: Standard-Webhooks v1 HMAC-SHA256 with the profile's `v1_secret`.
+  // Try every plausible key encoding and signed-content format, log the winner.
+  try {
+    const v1Secret = await env.SECRETS.get("TELNYX_WEBHOOK_V1_SECRET");
+    if (v1Secret) {
+      const msgId = request.headers.get("webhook-id") ?? "";
+      const ts = request.headers.get("webhook-timestamp") ?? timestamp;
+      const enc = new TextEncoder();
+      const raw = v1Secret.replace(/^whsec_/, "").replace(/-/g, "+").replace(/_/g, "/");
+      const keys = [
+        ["raw", enc.encode(v1Secret)],
+        ["raw_noprefix", enc.encode(raw)],
+        ["b64", base64ToBytes(v1Secret)],
+        ["b64_noprefix", base64ToBytes(raw)],
+      ] as Array<[string, ArrayBuffer] | [string, ReturnType<typeof enc.encode>] | [string, ReturnType<typeof base64ToBytes>]>;
+      const contents = [
+        ["id.ts.body", enc.encode(`${msgId}.${ts}.${rawBody}`)],
+        ["ts.body", enc.encode(`${ts}.${rawBody}`)],
+        ["ts|body", enc.encode(`${ts}|${rawBody}`)],
+        ["id.ts.body(v1comma)", enc.encode(`v1,${msgId}.${ts}.${rawBody}`)],
+      ] as Array<[string, ArrayBuffer] | [string, ReturnType<typeof enc.encode>]>;
+      const expected = signature.replace(/^v1,/, "");
+      for (const [kname, keyBytes] of keys) {
+        const hmacKey = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+        for (const [cname, content] of contents) {
+          const mac = await crypto.subtle.sign("HMAC", hmacKey, content);
+          const macB64 = base64FromBytes(new Uint8Array(mac)).replace(/=+$/, "");
+          const got = expected.replace(/=+$/, "");
+          if (macB64 === got) {
+            console.log(`webhook-verify: matched v1 HMAC key=${kname} content=${cname}`);
+            return true;
+          }
+        }
+      }
+      console.error(`webhook-reject: all v1 HMAC variants failed msgId=${msgId} ts=${ts}`);
+    }
+  } catch (err) {
+    console.error("webhook v1 hmac verification failed:", err instanceof Error ? err.message : "unknown");
+  }
+  console.error(`webhook-reject: msgId=${request.headers.get("webhook-id") ?? ""} ts=${timestamp} bodyLen=${rawBody.length}`);
+  return false;
+}
+
+function base64FromBytes(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
 }
 
 /* ------------------------------- actor ------------------------------- */
@@ -152,7 +255,7 @@ export class CrewCast extends Agent<Env, CrewState> {
     return {
       cast_id: "", job_id: "", group_message_id: null, from: "", text: "", media_url: null,
       recipients: [], replies: [], roster_cursor: 0, repolls: 0, notified_signature: null,
-      created_at: "", updated_at: "",
+      created_at: "", updated_at: "", events: [],
     };
   }
 
@@ -164,10 +267,14 @@ export class CrewCast extends Agent<Env, CrewState> {
       if (request.method === "POST" && path === "/reply") return json(await this.onReply((await request.json()) as ReplyEvent));
       if (request.method === "POST" && path === "/repoll") { await this.repollUnknown(); return json({ ok: true }); }
       if (request.method === "GET" && path === "/board") return json(await this.deliveryReport());
+      if (request.method === "GET" && path === "/state") {
+        const s = await this.getState();
+        return json({ notified_signature: s.notified_signature, repolls: s.repolls, events: s.events ?? [], cast_id: s.cast_id });
+      }
       return json({ error: "not_found" }, 404);
     } catch (err) {
       console.error("crew-cast actor error:", err instanceof Error ? err.message : "unknown");
-      return json({ error: "internal_error" }, 500);
+      return json({ error: "internal_error", debug: err instanceof Error ? err.message : String(err) }, 500);
     }
   }
 
@@ -180,10 +287,13 @@ export class CrewCast extends Agent<Env, CrewState> {
     const roster: Recipient[] = input.recipients.map((number) => ({
       number, carrier: null, line_type: null, status: "queued", acked_at: null, finalized_at: null,
     }));
-    await this.setState({
-      cast_id: input.cast_id, job_id: input.job_id, from: input.from, text: input.text,
+    // replaceState (not merge): RFC 7396 merge-patch deletes keys whose patch
+    // value is null, so a plain setState would vaporize notified_signature and
+    // group_message_id — the exact bug that left dispatch_notified stuck true.
+    await this.replaceState({
+      cast_id: input.cast_id, job_id: input.job_id, group_message_id: null, from: input.from, text: input.text,
       media_url: input.media_url, recipients: roster, replies: [], roster_cursor: 0,
-      repolls: 0, notified_signature: null, created_at: createdAt, updated_at: createdAt,
+      repolls: 0, notified_signature: null, created_at: createdAt, updated_at: createdAt, events: [],
     });
 
     const result = await this.sendGroupMms(input);
@@ -193,18 +303,19 @@ export class CrewCast extends Agent<Env, CrewState> {
     });
 
     await this.setState({ group_message_id: result.group_message_id, recipients: seeded, updated_at: nowIso() });
-    await this.env.CREW_INDEX.put(`group:${result.group_message_id}`, input.cast_id);
-    await this.env.CREW_INDEX.put(`thread:${input.from}`, input.cast_id);
+    await this.env.CREW_INDEX.put(kvKey("group", result.group_message_id), input.cast_id);
+    await this.env.CREW_INDEX.put(kvKey("thread", input.from), input.cast_id);
     await this.syncDeliveryRows();
     // AC: the 30-minute re-poll arms at cast time and reviews state on each fire.
     await this.schedule(REPOLL_SECONDS, "repollUnknown");
     return this.deliveryReport();
   }
 
-  /** One message.finalized per recipient; group_message_id is the join key. */
+  /** One message.finalized per recipient; the thread index is the join key
+   *  (the live payload carries no group_message_id — matched by recipient). */
   async onFinalized(event: FinalizedEvent): Promise<{ applied: boolean; reason?: string }> {
     const state = await this.getState();
-    if (!state.group_message_id || event.group_message_id !== state.group_message_id) {
+    if (event.group_message_id && state.group_message_id && event.group_message_id !== state.group_message_id) {
       return { applied: false, reason: "unknown_group_message_id" };
     }
     const index = state.recipients.findIndex((r) => r.number === event.phone_number);
@@ -213,10 +324,18 @@ export class CrewCast extends Agent<Env, CrewState> {
     const current = state.recipients[index];
     if (current.status === event.status) return { applied: false, reason: "duplicate" };
     if (HARD_TERMINAL.has(current.status)) return { applied: false, reason: "already_terminal" };
+    // A finalized event never legitimately reports "queued" — that state comes
+    // only from the send response. Applying it would regress the board.
+    if (event.status === "queued") return { applied: false, reason: "still_queued" };
 
     const recipients = [...state.recipients];
     recipients[index] = { ...current, status: event.status, finalized_at: event.occurred_at ?? nowIso() };
-    await this.setState({ recipients, roster_cursor: state.roster_cursor + 1, updated_at: nowIso() });
+    await this.setState({
+      recipients,
+      roster_cursor: state.roster_cursor + 1,
+      updated_at: nowIso(),
+      events: await this.logEvent(state, `finalized ${maskPhone(event.phone_number)}: ${current.status} → ${event.status}`),
+    });
     await this.syncDeliveryRows();
     await this.maybeNotifyDispatch();
     return { applied: true };
@@ -267,7 +386,13 @@ export class CrewCast extends Agent<Env, CrewState> {
       recipients: state.recipients, replies: state.replies, totals,
       repolls: state.repolls, dispatch_notified: state.notified_signature !== null,
       sql_summary: await this.acknowledgementReport(state.cast_id), updated_at: state.updated_at,
+      events: state.events ?? [],
     };
+  }
+
+  /** Append to the persisted event ledger (cap 20) — the board's audit trail. */
+  private async logEvent(state: CrewState, what: string): Promise<Array<{ at: string; what: string }>> {
+    return [...state.events, { at: nowIso(), what }].slice(-20);
   }
 
   /** Scheduled task: review unresolved recipients, keep the question alive. */
@@ -283,14 +408,14 @@ export class CrewCast extends Agent<Env, CrewState> {
   }
 
   private async sendGroupMms(input: CastInput): Promise<GroupSendResult> {
-    if (isDemoMode(this.env)) {
+    if (await isDemoMode(this.env)) {
       console.log(`[demo] group MMS to ${input.recipients.length} recipients (no API call)`);
       return {
         group_message_id: `demo-gm-${crypto.randomUUID()}`,
         recipients: input.recipients.map((phone_number) => ({ phone_number, status: "queued", carrier: "demo", line_type: "mobile" })),
       };
     }
-    const response = await this.env.TELNYX.messages.send({
+    const response = await this.env.TELNYX.messages.sendGroupMms({
       from: input.from,
       to: input.recipients,
       text: input.text,
@@ -320,15 +445,20 @@ export class CrewCast extends Agent<Env, CrewState> {
     const unknown = state.recipients.filter((r) => r.status === "unknown").length;
     const signature = `${delivered}/${failed}/${unknown}`;
     if (signature === state.notified_signature) return;
-    const text = `Job ${state.job_id}: all ${state.recipients.length} accounted for \u2014 ${delivered} delivered, ${failed} failed, ${unknown} unknown`;
-    await this.sendSms(this.env.DISPATCH_PHONE, text);
-    await this.setState({ notified_signature: signature, updated_at: nowIso() });
+    const text = `Job ${state.job_id}: all ${state.recipients.length} accounted for — ${delivered} delivered, ${failed} failed, ${unknown} unknown`;
+    const dispatchPhone = await cfg(this.env, "DISPATCH_PHONE");
+    await this.sendSms(dispatchPhone, text);
+    await this.setState({
+      notified_signature: signature,
+      updated_at: nowIso(),
+      events: await this.logEvent(state, `dispatch notified: ${signature}`),
+    });
   }
 
   private async sendSms(to: string, text: string): Promise<void> {
     if (!isE164(to)) { console.warn("DISPATCH_PHONE is not a valid E.164 number \u2014 skipping dispatch notification"); return; }
-    if (isDemoMode(this.env)) { console.log(`[demo] dispatch SMS to ${maskPhone(to)}: ${text}`); return; }
-    await this.env.TELNYX.messages.send({ from: this.env.CREW_FROM, to: [to], text });
+    if (await isDemoMode(this.env)) { console.log(`[demo] dispatch SMS to ${maskPhone(to)}: ${text}`); return; }
+    await this.env.TELNYX.messages.send({ from: await cfg(this.env, "CREW_FROM"), to: to, text });
   }
 
   private async syncDeliveryRows(): Promise<void> {
@@ -368,7 +498,9 @@ export class CrewCast extends Agent<Env, CrewState> {
 interface CastRequest { job_id?: unknown; recipients?: unknown; text?: unknown; media_url?: unknown }
 
 function demoRoster(env: Env): string[] {
-  return [env.CREW_TO_1, env.CREW_TO_2, env.CREW_TO_3, env.CREW_TO_4, env.CREW_TO_5, env.CREW_TO_6].filter(isE164);
+  return ["CREW_TO_1", "CREW_TO_2", "CREW_TO_3", "CREW_TO_4", "CREW_TO_5", "CREW_TO_6"]
+    .map((name) => fnCfg(env, name))
+    .filter(isE164);
 }
 
 async function handleCast(request: Request, env: Env): Promise<Response> {
@@ -390,15 +522,15 @@ async function handleCast(request: Request, env: Env): Promise<Response> {
   if (!text) return json({ error: "text is required" }, 400);
   const mediaUrl = typeof body.media_url === "string" ? body.media_url : null;
   if (mediaUrl && !mediaUrl.startsWith("https://")) return json({ error: "media_url must be an https URL" }, 400);
-  if (!isE164(env.CREW_FROM)) return json({ error: "CREW_FROM must be a US/CA E.164 number" }, 500);
-  if (!isDemoMode(env) && !env.CREW_PROFILE_ID) return json({ error: "CREW_PROFILE_ID is required in live mode" }, 500);
+  if (!isE164(fnCfg(env, "CREW_FROM"))) return json({ error: "CREW_FROM must be a US/CA E.164 number" }, 500);
+  if (!(await isDemoMode(env)) && !fnCfg(env, "CREW_PROFILE_ID")) return json({ error: "CREW_PROFILE_ID is required in live mode" }, 500);
 
   const stub = env.CREW_CAST.idFromName(jobId);
   const res = await stub.fetch(actorRequest("/cast", {
-    cast_id: jobId, job_id: jobId, from: env.CREW_FROM, recipients, text, media_url: mediaUrl,
+    cast_id: jobId, job_id: jobId, from: fnCfg(env, "CREW_FROM"), recipients, text, media_url: mediaUrl,
   }));
   const board = (await res.json()) as Record<string, unknown>;
-  return json({ ...board, webhook_url: `${env.PUBLIC_BASE_URL}/webhooks/messaging` }, res.status);
+  return json({ ...board, webhook_url: `${fnCfg(env, "PUBLIC_BASE_URL")}/webhooks/messaging` }, res.status);
 }
 
 async function handleWebhook(request: Request, url: URL, env: Env): Promise<Response> {
@@ -412,10 +544,20 @@ async function handleWebhook(request: Request, url: URL, env: Env): Promise<Resp
   if (!payload || typeof payload !== "object") return json({ error: "missing data.payload" }, 400);
 
   if (type === "message.finalized") {
-    const groupMessageId = String(payload.group_message_id ?? "");
     const phoneNumber = String(payload?.to?.[0]?.phone_number ?? "");
-    if (!groupMessageId || !isE164(phoneNumber)) return json({ error: "group_message_id and to[0].phone_number are required" }, 400);
-    const castId = await env.CREW_INDEX.get(`group:${groupMessageId}`);
+    if (!isE164(phoneNumber)) return json({ error: "to[0].phone_number is required" }, 400);
+    // The live finalized payload carries no group_message_id — route by the
+    // crew number's thread index (falling back to the group index for
+    // payloads that do carry one, e.g. the demo fixtures).
+    const groupMessageId = payload.group_message_id === undefined || payload.group_message_id === null
+      ? null
+      : String(payload.group_message_id);
+    let castId: string | null = null;
+    if (groupMessageId) castId = await env.CREW_INDEX.get(kvKey("group", groupMessageId));
+    if (!castId) {
+      const crewNumber = String(payload?.from?.phone_number ?? "");
+      castId = crewNumber ? await env.CREW_INDEX.get(kvKey("thread", crewNumber)) : null;
+    }
     if (!castId) return json({ received: true, routed: false }, 200);
     const stub = env.CREW_CAST.idFromName(castId);
     const res = await stub.fetch(actorRequest("/finalized", {
@@ -429,7 +571,22 @@ async function handleWebhook(request: Request, url: URL, env: Env): Promise<Resp
     const from = String(payload?.from?.phone_number ?? "");
     if (!isE164(from)) return json({ error: "from.phone_number is required" }, 400);
     const crewNumber = String(payload?.to?.[0]?.phone_number ?? "");
-    const castId = url.searchParams.get("cast_id") ?? (crewNumber ? await env.CREW_INDEX.get(`thread:${crewNumber}`) : null);
+    // Receipts: when the group sender (the crew number) echoes back on a member's
+    // line, the member's Telnyx-side receipt IS their delivery confirmation —
+    // fold it as that member's delivered event. Human replies (from anyone else)
+    // take the normal reply path below.
+    const crewFrom = fnCfg(env, "CREW_FROM");
+    if (crewNumber && isE164(crewNumber) && from === crewFrom) {
+      const castId = url.searchParams.get("cast_id") ?? (await env.CREW_INDEX.get(kvKey("thread", crewFrom)));
+      if (!castId) return json({ received: true, routed: false }, 200);
+      const stub = env.CREW_CAST.idFromName(castId);
+      const res = await stub.fetch(actorRequest("/finalized", {
+        group_message_id: null, phone_number: crewNumber, status: "delivered",
+        occurred_at: typeof payload.received_at === "string" ? payload.received_at : nowIso(),
+      }));
+      return json(await res.json(), res.status);
+    }
+    const castId = url.searchParams.get("cast_id") ?? (crewNumber ? await env.CREW_INDEX.get(kvKey("thread", crewNumber)) : null);
     if (!castId) return json({ received: true, routed: false }, 200);
     const cc = Array.isArray(payload.cc)
       ? payload.cc.map((entry: any) => String(entry?.phone_number ?? entry ?? "")).filter(isE164)
