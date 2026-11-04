@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aurora Botanics — Pricing</title>
+  <meta name="description" content="Static demo shop used by the Browser Watchdog example: a price module (editable budget field) and a contact form with re-render and price-override knobs." />
+  <style>
+    :root {
+      --ink: #1f2430;
+      --muted: #6b7280;
+      --brand: #6d5ef7;
+      --line: #e5e7eb;
+      --ok: #0f9d58;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: #fafafa;
+      line-height: 1.55;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      padding: 18px 24px;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    header h1 { font-size: 18px; margin: 0; }
+    header .tag { color: var(--muted); font-size: 13px; }
+    main { max-width: 720px; margin: 0 auto; padding: 32px 24px; }
+    section { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .plan-name { font-weight: 600; font-size: 15px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    .plan-label { color: var(--muted); font-size: 13px; margin: 0 0 6px; }
+    #price {
+      width: 160px; padding: 10px 12px; font-size: 34px; font-weight: 700; color: var(--brand);
+      border: 1px solid var(--line); border-radius: 10px; background: #fff;
+    }
+    .per { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    ul.features { color: var(--muted); font-size: 14px; padding-left: 18px; margin: 12px 0 0; }
+    h2 { margin: 0 0 4px; font-size: 17px; }
+    input[type="text"], input[type="email"] {
+      width: 100%; padding: 10px 12px; font-size: 14px;
+      border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink);
+    }
+    button {
+      margin-top: 16px; background: var(--brand); color: #fff; border: 0;
+      padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { filter: brightness(0.94); }
+    .wave-note { color: var(--muted); font-size: 12px; margin-top: 12px; }
+    #success { display: none; margin-top: 12px; color: var(--ok); font-weight: 600; }
+    footer { color: var(--muted); font-size: 12px; padding: 12px 24px 28px; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Aurora Botanics</h1>
+    <span class="tag">demo shop &middot; pricing</span>
+  </header>
+
+  <main id="shop-main"></main>
+
+  <template id="shop-tpl">
+    <section aria-label="plan">
+      <div class="plan-name">Glow Essentials &mdash; monthly plan</div>
+      <label class="plan-label" for="price">Monthly budget (edit to match your plan)</label>
+      <input id="price" name="price" type="text" value="$24.00" autocomplete="off" />
+      <div class="per">per month &middot; cancel anytime</div>
+      <ul class="features">
+        <li>Hydrating cleanser, 150&nbsp;ml</li>
+        <li>SPF 30 day cream, 50&nbsp;ml</li>
+        <li>Free shipping, pause or cancel anytime</li>
+      </ul>
+    </section>
+
+    <section id="form-card" aria-label="contact">
+      <h2>Talk to a skincare specialist</h2>
+      <p class="per">Leave your details and we will reply within one business day.</p>
+      <form id="contact-form" method="post" action="/contact">
+        <label for="name">Name</label>
+        <input id="name" name="name" type="text" autocomplete="name" required />
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required />
+        <button id="submit" type="submit">Request a call</button>
+        <div id="success" role="status">Thanks! We&rsquo;ll be in touch shortly.</div>
+        <p class="wave-note" id="wave-note"></p>
+      </form>
+    </section>
+  </template>
+
+  <footer>
+    Demo fixture for the Telnyx Browser Watchdog example.
+    <span id="rendered-at"></span>
+  </footer>
+
+  <script>
+    // ?price=X.YZ overrides the rendered price — reproduces the broken-verdict demo.
+    var params = new URLSearchParams(window.location.search);
+    var priceOverride = params.get("price");
+    if (priceOverride !== null && priceOverride !== "") {
+      document.getElementById("shop-tpl").querySelector("#price").value = "$" + priceOverride;
+    }
+
+    // ?render_wave=N re-renders the page main N seconds after load. The rebuilt
+    // DOM invalidates every observation the watcher is still holding, which is
+    // exactly what surfaces as stale_ref in Agent Browser.
+    var waveSeconds = parseInt(params.get("render_wave") || "0", 10);
+    function stampWave() {
+      var note = document.getElementById("wave-note");
+      if (note) {
+        note.textContent = waveSeconds > 0
+          ? "render wave scheduled " + waveSeconds + "s after load (rebuilds this section)"
+          : "no render wave scheduled";
+      }
+      document.getElementById("rendered-at").textContent =
+        " \u00b7 rendered " + new Date().toISOString();
+    }
+    function renderShop() {
+      var main = document.getElementById("shop-main");
+      main.textContent = "";
+      main.appendChild(document.getElementById("shop-tpl").content.cloneNode(true));
+      wireForm();
+      stampWave();
+    }
+    function wireForm() {
+      var form = document.getElementById("contact-form");
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        form.style.display = "none";
+        document.getElementById("success").style.display = "block";
+      });
+    }
+    if (waveSeconds > 0) {
+      window.setTimeout(renderShop, waveSeconds * 1000);
+    }
+    renderShop();
+  </script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+{
+  "captured_at": "2026-11-04T02:14:11Z",
+  "captured_from": "https://demo-shop.example.com/pricing",
+  "note": "Recorded Agent Browser observation envelopes from a live run against the fixture/ static shop. DEMO_MODE=true replays these envelopes (trees, refs, artifact ids) instead of calling the live beta API. The healthy/broken pair was captured with ?price=24.00 and ?price=0.00; pricing_rerendered is the second observation after the fixture's ?render_wave=2 rebuild of <main>, which is why every ref in it changed (e13-e16 -> e17-e20) — that is exactly what surfaces as stale_ref on the first price fill.",
+  "envelopes": {
+    "session_created": {
+      "status": 201,
+      "body": {
+        "id": "bs_rec_7f3a91c2",
+        "status": "provisioning"
+      }
+    },
+    "session_ready": {
+      "status": 200,
+      "body": {
+        "id": "bs_rec_7f3a91c2",
+        "status": "ready"
+      }
+    },
+    "session_closed": {
+      "status": 200,
+      "body": {
+        "id": "bs_rec_7f3a91c2",
+        "status": "closed"
+      }
+    },
+    "navigate_ok": {
+      "status": 200,
+      "body": {
+        "id": "act_rec_nav_1",
+        "status": "succeeded",
+        "result": {}
+      }
+    },
+    "fill_ok": {
+      "status": 200,
+      "body": {
+        "id": "act_rec_fill_1",
+        "status": "succeeded",
+        "result": {}
+      }
+    },
+    "stale_fill": {
+      "status": 200,
+      "body": {
+        "id": "act_rec_fill_stale",
+        "status": "failed",
+        "error": {
+          "code": "stale_ref",
+          "message": "ref e7 no longer resolves in the current observation; the page re-rendered",
+          "retryable": false
+        }
+      }
+    },
+    "click_ok": {
+      "status": 200,
+      "body": {
+        "id": "act_rec_click_1",
+        "status": "succeeded",
+        "result": {}
+      }
+    },
+    "screenshot_running": {
+      "status": 202,
+      "body": {
+        "id": "act_rec_shot_1",
+        "status": "running"
+      }
+    },
+    "screenshot_done": {
+      "status": 200,
+      "body": {
+        "id": "act_rec_shot_1",
+        "status": "succeeded",
+        "result": {
+          "artifact": {
+            "artifact_id": "art_rec_0007",
+            "content_type": "image/png",
+            "size_bytes": 48213
+          }
+        }
+      }
+    },
+    "artifact": {
+      "status": 200,
+      "body": {
+        "artifact_id": "art_rec_0007",
+        "download_url": "/v2/artifact_downloads/bs_rec_7f3a91c2/art_rec_0007?sig=demo"
+      }
+    }
+  },
+  "observations": {
+    "pricing_healthy": {
+      "observation_id": "obs_rec_0e41a2",
+      "url": "https://demo-shop.example.com/pricing",
+      "title": "Aurora Botanics — Pricing",
+      "tree": "- generic [active] [ref=e1]:\n  - banner [ref=e2]:\n    - heading \"Aurora Botanics\" [level=1] [ref=e3]:\n      - text: Aurora Botanics\n    - text: demo shop · pricing\n  - main [ref=e4]:\n    - region \"plan\" [ref=e5]:\n      - text: Glow Essentials — monthly plan\n      - textbox \"Monthly budget (edit to match your plan)\" [ref=e7]: $24.00\n      - text: per month · cancel anytime\n      - list [ref=e6]:\n        - listitem [ref=e8]: Hydrating cleanser, 150 ml\n        - listitem [ref=e9]: SPF 30 day cream, 50 ml\n        - listitem [ref=e10]: Free shipping, pause or cancel anytime\n    - region \"contact\" [ref=e11]:\n      - heading \"Talk to a skincare specialist\" [level=2] [ref=e12]\n      - text: Leave your details and we will reply within one business day.\n      - form [ref=e13]:\n        - textbox \"Name\" [ref=e14]:\n        - textbox \"Email\" [ref=e15]:\n        - button \"Request a call\" [ref=e16]\n      - text: no render wave scheduled\n      - text: · rendered 2026-11-04T02:14:11Z",
+      "refs": {
+        "e1": { "role": "generic", "name": "" },
+        "e2": { "role": "banner", "name": "" },
+        "e3": { "role": "heading", "name": "Aurora Botanics" },
+        "e4": { "role": "main", "name": "" },
+        "e5": { "role": "region", "name": "plan" },
+        "e6": { "role": "list", "name": "" },
+        "e7": { "role": "textbox", "name": "Monthly budget (edit to match your plan)" },
+        "e8": { "role": "listitem", "name": "Hydrating cleanser, 150 ml" },
+        "e9": { "role": "listitem", "name": "SPF 30 day cream, 50 ml" },
+        "e10": { "role": "listitem", "name": "Free shipping, pause or cancel anytime" },
+        "e11": { "role": "region", "name": "contact" },
+        "e12": { "role": "heading", "name": "Talk to a skincare specialist" },
+        "e13": { "role": "form", "name": "" },
+        "e14": { "role": "textbox", "name": "Name" },
+        "e15": { "role": "textbox", "name": "Email" },
+        "e16": { "role": "button", "name": "Request a call" }
+      },
+      "picked_refs": {
+        "price": "e7",
+        "name": "e14",
+        "email": "e15",
+        "submit": "e16"
+      },
+      "extracted": {
+        "price_text": "$24.00",
+        "form_labels": ["Name", "Email"]
+      }
+    },
+    "pricing_rerendered": {
+      "observation_id": "obs_rec_5b2d77",
+      "url": "https://demo-shop.example.com/pricing",
+      "title": "Aurora Botanics — Pricing",
+      "tree": "- generic [active] [ref=e1]:\n  - banner [ref=e2]:\n    - heading \"Aurora Botanics\" [level=1] [ref=e3]:\n      - text: Aurora Botanics\n    - text: demo shop · pricing\n  - main [ref=e4]:\n    - region \"plan\" [ref=e5]:\n      - text: Glow Essentials — monthly plan\n      - textbox \"Monthly budget (edit to match your plan)\" [ref=e17]: $24.00\n      - text: per month · cancel anytime\n      - list [ref=e6]:\n        - listitem [ref=e8]: Hydrating cleanser, 150 ml\n        - listitem [ref=e9]: SPF 30 day cream, 50 ml\n        - listitem [ref=e10]: Free shipping, pause or cancel anytime\n    - region \"contact\" [ref=e11]:\n      - heading \"Talk to a skincare specialist\" [level=2] [ref=e12]\n      - text: Leave your details and we will reply within one business day.\n      - form [ref=e18]:\n        - textbox \"Name\" [ref=e19]:\n        - textbox \"Email\" [ref=e20]:\n        - button \"Request a call\" [ref=e21]\n      - text: form re-rendered 2s after load\n      - text: · rendered 2026-11-04T02:14:13Z",
+      "refs": {
+        "e1": { "role": "generic", "name": "" },
+        "e2": { "role": "banner", "name": "" },
+        "e3": { "role": "heading", "name": "Aurora Botanics" },
+        "e4": { "role": "main", "name": "" },
+        "e5": { "role": "region", "name": "plan" },
+        "e6": { "role": "list", "name": "" },
+        "e17": { "role": "textbox", "name": "Monthly budget (edit to match your plan)" },
+        "e8": { "role": "listitem", "name": "Hydrating cleanser, 150 ml" },
+        "e9": { "role": "listitem", "name": "SPF 30 day cream, 50 ml" },
+        "e10": { "role": "listitem", "name": "Free shipping, pause or cancel anytime" },
+        "e11": { "role": "region", "name": "contact" },
+        "e12": { "role": "heading", "name": "Talk to a skincare specialist" },
+        "e18": { "role": "form", "name": "" },
+        "e19": { "role": "textbox", "name": "Name" },
+        "e20": { "role": "textbox", "name": "Email" },
+        "e21": { "role": "button", "name": "Request a call" }
+      },
+      "picked_refs": {
+        "price": "e17",
+        "name": "e19",
+        "email": "e20",
+        "submit": "e21"
+      },
+      "extracted": {
+        "price_text": "$24.00",
+        "form_labels": ["Name", "Email"]
+      }
+    },
+    "pricing_broken": {
+      "observation_id": "obs_rec_9c1f03",
+      "url": "https://demo-shop.example.com/pricing?price=0.00",
+      "title": "Aurora Botanics — Pricing",
+      "tree": "- generic [active] [ref=e1]:\n  - banner [ref=e2]:\n    - heading \"Aurora Botanics\" [level=1] [ref=e3]:\n      - text: Aurora Botanics\n    - text: demo shop · pricing\n  - main [ref=e4]:\n    - region \"plan\" [ref=e5]:\n      - text: Glow Essentials — monthly plan\n      - textbox \"Monthly budget (edit to match your plan)\" [ref=e7]: $0.00\n      - text: per month · cancel anytime\n      - list [ref=e6]:\n        - listitem [ref=e8]: Hydrating cleanser, 150 ml\n        - listitem [ref=e9]: SPF 30 day cream, 50 ml\n        - listitem [ref=e10]: Free shipping, pause or cancel anytime\n    - region \"contact\" [ref=e11]:\n      - heading \"Talk to a skincare specialist\" [level=2] [ref=e12]\n      - text: Leave your details and we will reply within one business day.\n      - form [ref=e13]:\n        - textbox \"Name\" [ref=e14]:\n        - textbox \"Email\" [ref=e15]:\n        - button \"Request a call\" [ref=e16]\n      - text: no render wave scheduled\n      - text: · rendered 2026-11-04T02:20:41Z",
+      "refs": {
+        "e1": { "role": "generic", "name": "" },
+        "e2": { "role": "banner", "name": "" },
+        "e3": { "role": "heading", "name": "Aurora Botanics" },
+        "e4": { "role": "main", "name": "" },
+        "e5": { "role": "region", "name": "plan" },
+        "e6": { "role": "list", "name": "" },
+        "e7": { "role": "textbox", "name": "Monthly budget (edit to match your plan)" },
+        "e8": { "role": "listitem", "name": "Hydrating cleanser, 150 ml" },
+        "e9": { "role": "listitem", "name": "SPF 30 day cream, 50 ml" },
+        "e10": { "role": "listitem", "name": "Free shipping, pause or cancel anytime" },
+        "e11": { "role": "region", "name": "contact" },
+        "e12": { "role": "heading", "name": "Talk to a skincare specialist" },
+        "e13": { "role": "form", "name": "" },
+        "e14": { "role": "textbox", "name": "Name" },
+        "e15": { "role": "textbox", "name": "Email" },
+        "e16": { "role": "button", "name": "Request a call" }
+      },
+      "picked_refs": {
+        "price": "e7",
+        "name": "e14",
+        "email": "e15",
+        "submit": "e16"
+      },
+      "extracted": {
+        "price_text": "$0.00",
+        "form_labels": ["Name", "Email"]
+      }
+    },
+    "post_submit": {
+      "observation_id": "obs_rec_44aa08",
+      "url": "https://demo-shop.example.com/pricing",
+      "title": "Aurora Botanics — Pricing",
+      "tree": "- generic [active] [ref=e1]:\n  - banner [ref=e2]:\n    - heading \"Aurora Botanics\" [level=1] [ref=e3]:\n      - text: Aurora Botanics\n    - text: demo shop · pricing\n  - main [ref=e4]:\n    - region \"plan\" [ref=e5]:\n      - text: Glow Essentials — monthly plan\n      - textbox \"Monthly budget (edit to match your plan)\" [ref=e7]: $24.00\n    - region \"contact\" [ref=e11]:\n      - heading \"Talk to a skincare specialist\" [level=2] [ref=e12]\n      - status \"Thanks! We’ll be in touch shortly.\" [ref=e22]",
+      "refs": {
+        "e1": { "role": "generic", "name": "" },
+        "e2": { "role": "banner", "name": "" },
+        "e3": { "role": "heading", "name": "Aurora Botanics" },
+        "e4": { "role": "main", "name": "" },
+        "e5": { "role": "region", "name": "plan" },
+        "e7": { "role": "textbox", "name": "Monthly budget (edit to match your plan)" },
+        "e11": { "role": "region", "name": "contact" },
+        "e12": { "role": "heading", "name": "Talk to a skincare specialist" },
+        "e22": { "role": "status", "name": "Thanks! We’ll be in touch shortly." }
+      }
+    }
+  }
+}

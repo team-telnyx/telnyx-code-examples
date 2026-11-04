@@ -2,11 +2,11 @@
 
 Typed contract for the `watchdog` Edge sample. Everything below is derived from `src/index.ts`; nothing here is aspirational.
 
-The sample exposes **three HTTP routes** (plain-fetch router), an **SMS command surface** on the `Watchdog` actor, and a **scheduled task surface** (`runCheck`). All three are part of the public contract.
+The sample exposes **five HTTP routes** (plain-fetch router), an **SMS command surface** on `POST /webhooks/messaging`, and a **scheduled task surface** (`runCheck`). All three are part of the public contract.
 
 - **Base URL:** `https://<your-edge-deployment-host>` (the host printed by `telnyx-edge ship`)
 - **Content type:** `application/json` on every request and response body
-- **Auth:** none on the HTTP routes — the actor authenticates *outbound* to Telnyx with `TELNYX_API_KEY` from `SECRETS`, and the `[telnyx]` binding carries runtime-injected credentials. Do not expose this deployment publicly without putting your own auth in front of it.
+- **Auth:** the actor authenticates *outbound* to Telnyx with `TELNYX_API_KEY` from `SECRETS`, and the `[telnyx]` binding carries runtime-injected credentials. SMS commands are authorized against the watch's owner phone; the webhook route is Ed25519-verified in live mode.
 - **Watch identity:** `watch_id = new URL(target_url).hostname`. One actor per hostname (`idFromName(watch_id)`), so two URLs on the same host share a watch.
 
 ---
@@ -40,6 +40,19 @@ curl -s https://<your-edge-deployment-host>/health
 
 ---
 
+## `GET /fixture`
+
+Serves the bundled demo shop — the exact same document as `fixture/index.html` (kept in sync by the smoke test). This is the page a live run drives, so it must be reachable from Telnyx's cloud; serving it from the same worker makes the live demo self-contained.
+
+Query knobs (applied by the page itself):
+
+| Param | Effect |
+| --- | --- |
+| `?price=X.XX` | Overrides the rendered price (e.g. `?price=0.00` → broken verdict on demand) |
+| `?render_wave=N` | Rebuilds the page's `<main>` section `N` seconds after load → deliberately invalidates the watcher's observation → `stale_ref` |
+
+---
+
 ## `POST /watch`
 
 Arms a watch. Resolves the actor for the target hostname and calls `arm(url, owner)` on it.
@@ -50,8 +63,8 @@ This route **does not create a browser session and does not capture a baseline.*
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `url` | `string` | **yes** | Absolute URL of the page to watch. Must parse as a URL via `new URL()`. The actor additionally requires the `https:` scheme — a non-https URL is rejected over SMS, not over HTTP (see notes). |
-| `owner` | `string` | no | E.164 phone number that receives alert/reply SMS and may issue commands. Falls back to the `WATCH_OWNER_PHONE` env var, then to the actor's stored `owner_phone`. |
+| `url` | `string` | **yes** | Absolute URL of the page to watch. Must parse via `new URL()` and use the `https:` scheme. |
+| `owner` | `string` | no | E.164 phone number that receives alert/reply SMS and may issue commands. Falls back to the `WATCH_OWNER_PHONE` env var. |
 
 ```bash
 curl -s -X POST https://<your-edge-deployment-host>/watch \
@@ -66,22 +79,24 @@ curl -s -X POST https://<your-edge-deployment-host>/watch \
 
 | Status | Body | Meaning |
 | --- | --- | --- |
-| `202` | `{ "ok": true, "watch_id": string }` | Watch dispatched to the actor. `watch_id` is the target hostname. |
+| `202` | `{ "ok": true, "watch_id": string, "schedule_id": string }` | Watch armed. `watch_id` is the target hostname. |
 | `400` | `{ "error": "url is required" }` | Body missing, unparseable JSON, or `url` absent. |
-| `400` | `{ "error": "url must be a valid absolute URL" }` | `url` present but `new URL(url)` threw. |
+| `400` | `{ "error": "url must be an absolute URL" }` | `url` present but `new URL(url)` threw. |
+| `400` | `{ "error": "only https:// targets are supported" }` | Scheme is not `https:`. |
 | `500` | `{ "error": string }` | Unhandled runtime failure (actor dispatch, storage). |
 
 ```json
 {
   "ok": true,
-  "watch_id": "demo-shop.example.com"
+  "watch_id": "demo-shop.example.com",
+  "schedule_id": "daily-demo-shop.example.com"
 }
 ```
 
 ### Notes
 
-- **Idempotent per hostname.** Re-posting the same host routes to the same actor. `arm()` **resets `baseline` to `null`** and re-arms the daily schedule, so the next run re-captures the known-good state.
-- **Scheme validation is asynchronous.** The route only checks that the URL parses. `arm()` enforces `https:` and reports the rejection as an SMS reply (`"Only https:// targets are supported."`) — the HTTP response is still `202`. Poll `GET /status/{watch_id}` to confirm the watch actually armed.
+- **Idempotent per hostname.** Re-posting the same host routes to the same actor. `arm()` **resets `baseline` to `null`** and re-arms the daily schedule (stable task ids dedup the timers), so the next run re-captures the known-good state.
+- **Scheme validation is synchronous.** A non-`https` URL is rejected with `400` here — not deferred to the SMS path.
 - The `202` is returned after `arm()` resolves; the first browser session is created by the scheduled run, not by this request.
 
 ---
@@ -96,8 +111,14 @@ Reads the actor's SQL ledger and returns a human-readable report: current target
 | --- | --- | --- | --- |
 | `watch_id` | `string` | **yes** | Target hostname, URL-encoded. This is the `watch_id` returned by `POST /watch`. |
 
+### Query parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `owner` | `string` | yes (unless the sender is the account-level owner) | The requesting sender's phone; matched against the watch's owner. Non-owners get `403`. |
+
 ```bash
-curl -s https://<your-edge-deployment-host>/status/demo-shop.example.com
+curl -s "https://<your-edge-deployment-host>/status/demo-shop.example.com?owner=%2B15551234567"
 ```
 
 ### Response
@@ -106,6 +127,7 @@ curl -s https://<your-edge-deployment-host>/status/demo-shop.example.com
 | --- | --- | --- |
 | `200` | `{ "status": string }` | Multi-line report (see shape below). |
 | `400` | `{ "error": "watch id is required" }` | Path segment after `/status/` is empty. |
+| `403` | `{ "error": "not_authorized" }` | The requesting sender is not the watch's owner. |
 | `500` | `{ "error": string }` | Unhandled runtime failure. |
 
 ```json
@@ -132,15 +154,15 @@ The `status` string is always four newline-separated lines, in this order:
 
 ## SMS command surface
 
-The actor's `onMessage` handler is the operator interface. Inbound messages are matched on the first whitespace-delimited token; the sender's number becomes the reply target.
+Inbound SMS arrives on `POST /webhooks/messaging` as a Telnyx `message.received` envelope. The route is **Ed25519-verified** in live mode (`401` on a bad signature; `503` when `TELNYX_PUBLIC_KEY` is missing) and unsigned deliveries are only accepted in `DEMO_MODE`. Commands are authorized against the watch's owner: senders that are neither the env owner nor a registered owner of any watch are refused with `403` before anything is armed, run, or read.
 
 | Command | Arguments | Effect | Reply |
 | --- | --- | --- | --- |
-| `watch <url>` | `url` — absolute https URL | Stores `target_url`, `allowed_domains: [hostname]`, `owner_phone`; resets `baseline`; arms daily `every(86400, "runCheck")`; queues a first run in 5s | `Watching <hostname>. First check in ~5s, then daily.` |
-| `status` | — | Runs `statusReport()` against the SQL ledger | The same four-line report as `GET /status/{watch_id}` |
+| `watch <url>` | `url` — absolute https URL | Stores `target_url`, `allowed_domains: [hostname]`, `owner_phone`; seeds the KV index; resets `baseline`; arms daily `every(86400, "runCheck")` with a stable id; queues a first run in 5s | `Watching <hostname>. First check in ~5s, then daily.` |
+| `status [url]` | optional `url` selects the watch | Runs `statusReport()` against the SQL ledger | The same four-line report as `GET /status/{watch_id}` |
 | `recheck now [url]` | optional `url` — one-shot override | Forces an immediate run with `reason: "manual"`. With a URL, that run targets the override instead of the stored `target_url` (this is how the `?price=0.00` broken-verdict demo is reproduced without re-arming) | Run outcome, or an incident/fix SMS |
-| `recheck <incident_id>` | `incident_id` — e.g. `2026-07-28#2026-07-28T14:02:11.004Z` | Fix-verification run with `reason: "verify"` | `FIXED <url> — incident <id> closed. Before: <artifact> After: <artifact>` on success |
-| *(anything else)* | — | No-op | `Commands: watch <url> \| status \| recheck now [url] \| recheck <incident_id>` |
+| `recheck <incident_id>` | `incident_id` — e.g. `2026-07-28#2026-07-28T14:02:11.004Z` | Fix-verification run with `reason: "verify"`; closes that specific incident on a healthy verdict | `FIXED <url> — incident <id> closed. Before: <artifact> After: <artifact>` on success |
+| *(anything else)* | — | Status of the sender's single watch, or a hint | `Commands: watch <url> \| status \| recheck now [url] \| recheck <incident_id>` |
 
 **Rejection replies from `watch`:**
 
@@ -154,8 +176,10 @@ The actor's `onMessage` handler is the operator interface. Inbound messages are 
 | Trigger | Text |
 | --- | --- |
 | Broken verdict, new incident | `BROKEN <url> — <reason>. Incident <incident_id>. Screenshot: <download_url or n/a>` |
+| Broken verdict, incident already open | `BROKEN (again) <url> — <reason>. Existing incident <id>. Screenshot: <download_url or n/a>` |
+| Persistent staleness | `Watchdog note: <url> kept re-rendering mid-run (stale_ref x2). Incident note <id>. Check ?render_wave.` |
 | Healthy verdict with an open incident | `FIXED <url> — incident <id> closed. Before: <artifact_id> After: <artifact_id>` |
-| Run threw | `Watchdog run failed: <message>` |
+| Run threw (non-quota) | `Watchdog run failed: <message>` |
 
 In `DEMO_MODE=true` every outbound SMS is logged as `[demo] SMS to <masked>: <text>` and **nothing is sent**. Recipient numbers are masked to last-4 in logs.
 
@@ -170,7 +194,7 @@ In `DEMO_MODE=true` every outbound SMS is logged as `[demo] SMS to <masked>: <te
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `reason` | `"first" \| "scheduled" \| "manual" \| "verify" \| "retrySession"` | no | Defaults to `"scheduled"`. Controls the run key and whether an already-completed run is skipped. |
-| `incident_id` | `string` | no | Set by `recheck <incident_id>`. Present on the payload; incident closure itself is resolved from the newest open incident row. |
+| `incident_id` | `string` | no | Set by `recheck <incident_id>`; a healthy verdict closes that specific incident. Without it, a healthy verdict closes the newest open incident. |
 | `run_key` | `string` | no | Explicit idempotency key. Supplied by the quota-retry path so the retry reuses the original key. |
 | `target_url` | `string` | no | One-shot override of the stored `target_url` for this run only. |
 
@@ -178,23 +202,24 @@ In `DEMO_MODE=true` every outbound SMS is logged as `[demo] SMS to <masked>: <te
 
 | `reason` | `run_key` |
 | --- | --- |
-| `scheduled`, `first` | `YYYY-MM-DD` (UTC run date) |
-| `manual`, `verify`, `retrySession` | `YYYY-MM-DD#<reason>` |
+| `first` | `YYYY-MM-DD#first` (UTC run date) |
+| `scheduled` | `YYYY-MM-DD` (UTC run date) |
+| `manual`, `verify`, `retrySession` | `YYYY-MM-DD#<reason>#<HHMMSS>` (fresh each invocation) |
 | any, with explicit `run_key` | the supplied value |
 
-The run key is also the Agent Browser `idempotency_key`, so a retried run replays the original session instead of creating a duplicate.
+The run key is also the Agent Browser `idempotency_key`, so a retried run replays the original session instead of creating a duplicate. If the idempotent replay returns a terminal (`closed`/`failed`/`expired`) session, the actor re-creates with a fresh `#s<n>` suffix.
 
 ### Skip semantics
 
-If a row for `run_key` already has a non-null `verdict` **and** `reason` is neither `manual` nor `verify`, the run returns immediately. Scheduled runs are therefore once-per-day; manual and verify runs always execute.
+If a row for `run_key` already has a non-null `verdict` **and** `reason` is `scheduled` or `first`, the run returns immediately. Manual and verify runs always execute (fresh run keys).
 
 ### Schedule registration
 
 | Call | Interval | Payload |
 | --- | --- | --- |
-| `every(86400, "runCheck", { reason: "scheduled" })` | daily | `{ reason: "scheduled" }` |
-| `schedule(5, "runCheck", { reason: "first" })` | one-shot, +5s | `{ reason: "first" }` |
-| `schedule(60, "runCheck", { reason: "retrySession", run_key })` | one-shot, +60s | quota-retry path only |
+| `every(86400, "runCheck", { reason: "scheduled" }, { id: "daily-<watch>" })` | daily, stable id (dedup on re-arm) | `{ reason: "scheduled" }` |
+| `schedule(5, "runCheck", { reason: "first" }, { id: "first-<watch>" })` | one-shot, +5s, stable id | `{ reason: "first" }` |
+| `schedule(60, "runCheck", { reason: "manual", run_key, target_url })` | one-shot, +60s | quota-retry path only |
 
 ---
 
@@ -224,7 +249,7 @@ Two SQL tables in the `WATCHDOG_DB` binding, created idempotently by `ensureSche
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `id` | `TEXT PRIMARY KEY` | `<run_date>#<first_broken_at>` |
+| `id` | `TEXT PRIMARY KEY` | `<run_date>#<first_broken_at>` for breaks, `<run_date>#stale` for persistent-staleness notes |
 | `run_date` | `TEXT NOT NULL` | Date the break was first observed |
 | `first_broken_at` | `TEXT NOT NULL` | ISO 8601 |
 | `reason` | `TEXT NOT NULL` | Verdict reason, truncated to 500 chars |
@@ -233,18 +258,20 @@ Two SQL tables in the `WATCHDOG_DB` binding, created idempotently by `ensureSche
 | `status` | `TEXT NOT NULL` | `open` \| `closed` |
 | `closed_at` | `TEXT` | ISO 8601 |
 
-**Deduplication:** `fileIncident` returns early if any incident already exists for `run_date`, so a replayed or crash-resumed run cannot double-file. `closeIncident` closes the newest `open` row.
+**Deduplication:** `fileIncident` returns early (with a `BROKEN (again)` re-alert) if a break incident already exists for `run_date`, so a replayed or crash-resumed run cannot double-file. `closeIncident` closes the newest `open` row (or the `incident_id` supplied by `recheck <incident_id>`); stale notes are excluded from automatic closure.
 
 ---
 
 ## Upstream Telnyx calls
 
-Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https://api.telnyx.com/v2`. In `DEMO_MODE=true` all four are served from recorded fixtures and never hit the network.
+Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https://api.telnyx.com/v2`. In `DEMO_MODE=true` they are served from recorded fixtures and never hit the network.
 
 | Method | Path | Purpose | Handled failures |
 | --- | --- | --- | --- |
-| `POST` | `/browser_sessions` | Create session. Body: `{ policy: { allowed_domains: [hostname] }, limits: { lifetime_s: 900, idle_timeout_s: 120 }, idempotency_key: <run_key> }` | `429 quota_exceeded` → close own open session, `schedule(60, "runCheck", { reason: "retrySession", run_key })`, return without a verdict |
-| `POST` | `/browser_sessions/{id}/actions` | `navigate` → `observe` → `fill` ×3 → `click` → `observe` → `screenshot` | `stale_ref` / `stale_observation` → re-observe, re-pick refs, retry once; `execution_lost` → throw (never blind-resubmit) |
+| `POST` | `/browser_sessions` | Create session. Body: `{ policy: { allowed_domains: [hostname] }, limits: { lifetime_s: 900, idle_timeout_s: 120 }, idempotency_key: <run_key> }` | `429 quota_exceeded` → close own open session, `schedule(60, ...)`, return without a verdict; terminal replay → fresh key |
+| `GET` | `/browser_sessions/{id}` | Poll provisioning until `ready`; verify session state after `execution_lost` | Terminal session → `SessionLostError` → fresh session for the remainder of the run |
+| `POST` | `/browser_sessions/{id}/actions?wait_seconds=25` | `navigate` → `observe` → `fill` ×3 → `click` → `observe` → `screenshot` | `stale_ref`/`stale_observation` → re-observe, re-pick refs, retry once; `execution_lost` → verify page state, only re-mutate if the effect did not land; `202` → poll by action id |
+| `GET` | `/browser_sessions/{id}/actions/{action_id}` | Poll a still-running action to a terminal state | No tree/refs in polls — the actor re-observes when it needs them |
 | `GET` | `/browser_sessions/{id}/artifacts/{artifact_id}` | Resolve `download_url` for the screenshot | Missing `download_url` → stored as `NULL` |
 | `DELETE` | `/browser_sessions/{id}` | Close session in the `finally` path, success or failure | Best-effort; failure does not mask the run outcome |
 
@@ -252,15 +279,17 @@ Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https
 
 | `data.error.code` | HTTP | Actor behaviour |
 | --- | --- | --- |
-| `stale_ref` | `200` | Re-observe, re-extract refs, retry the fill once. Second consecutive staleness fails the run. |
+| `stale_ref` | `200` | Re-observe, re-extract refs, retry the fill once. Second consecutive staleness files an incident note instead of a verdict. |
 | `stale_observation` | `200` | Same recovery path as `stale_ref`. |
-| `execution_lost` | `200` | Throws `execution_lost: effect unproven — re-observe before retrying`. Never resubmitted. |
+| `execution_lost` | `200`/`503` | Never resubmitted blind: session status checked, page state re-observed, mutation repeated only if it did not land; a terminal session hands the rest of the run to a fresh session. |
+| `policy_denied` | `200` | Fails the run; the domain policy is intentional. |
+| `navigation_blocked` / `timeout` / `result_too_large` | `200` | Fails the run; recorded on the row and reported by SMS. |
 | `quota_exceeded` | `429` | Close-then-retry via `schedule(60, ...)` with the same `run_key`. |
 | any other | any | Throws; the run row records the message and the owner gets a failure SMS. |
 
 ### Inference
 
-`this.env.TELNYX.ai.openai.chat.createCompletion({ model: AI_MODEL ?? "DeepSeek-V4.1-Flash", messages })`. Two turns: ref extraction (`price_text`, `form_labels`, `refs`) and the verdict (`healthy` \| `broken` + `reason`). Both expect strict JSON; unparseable output falls back to `{ verdict: "broken", reason: "unparseable model output" }` for the verdict and to the raw observation refs for extraction.
+`this.env.TELNYX.ai.openai.chat.createCompletion({ model: AI_MODEL ?? "DeepSeek-V4.1-Flash", messages })`. Two turns: ref picking (the four `picked_refs`) and the verdict (`healthy` \| `broken` + `reason`). Both expect strict JSON; unparseable output falls back to `{ verdict: "broken", reason: "unparseable model output" }` for the verdict and throws for ref picking. The baseline capture turn (`describe()`) records `price_text` + `form_labels`.
 
 ---
 
@@ -268,9 +297,12 @@ Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https
 
 | Code | Where | Meaning |
 | --- | --- | --- |
-| `200` | `GET /health`, `GET /status/{watch_id}` | Success. |
-| `202` | `POST /watch` | Watch dispatched to the actor. Not a guarantee the watch armed — check `/status`. |
-| `400` | `POST /watch`, `GET /status/{watch_id}` | Missing/invalid `url`, or empty `watch_id`. |
+| `200` | `GET /health`, `GET /fixture`, `GET /status/{watch_id}` (owner), `POST /webhooks/messaging` | Success. |
+| `202` | `POST /watch` | Watch armed. The first browser session is created by the scheduled run. |
+| `400` | `POST /watch`, `GET /status/{watch_id}`, `POST /webhooks/messaging` | Missing/invalid `url`, empty `watch_id`, or invalid JSON. |
+| `401` | `POST /webhooks/messaging` | Signature header missing/invalid (live mode, key configured). |
+| `403` | `GET /status/{watch_id}`, `POST /webhooks/messaging` | The sender is not the watch's owner. |
+| `503` | `POST /webhooks/messaging` | Live mode without `TELNYX_PUBLIC_KEY` — unsigned deliveries are refused. |
 | `404` | any unmatched path or method | `{ "error": "not found" }` |
 | `500` | any route | Unhandled runtime exception (actor dispatch, SQL, secrets). Body is `{ "error": string }`; details are not leaked. |
 
@@ -280,9 +312,10 @@ Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https
 
 | Variable | Default | Effect on requests |
 | --- | --- | --- |
-| `DEMO_MODE` | `true` | `true` → Agent Browser calls replay fixtures, SMS is logged not sent, verdict is derived locally. `false` → live beta API + `TELNYX.messages.send`. Surfaced by `GET /health`. |
-| `WATCH_OWNER_PHONE` | — | Fallback recipient when `POST /watch` omits `owner`. |
+| `DEMO_MODE` | `true` | `true` → Agent Browser calls replay recorded fixtures, SMS is logged not sent, verdict is derived locally. `false` → live beta API + `TELNYX.messages.send`. Surfaced by `GET /health`. |
+| `WATCH_OWNER_PHONE` | — | The account-level owner. Fallback recipient when `POST /watch` omits `owner`; also authorizes SMS commands. |
 | `FROM_NUMBER` | — | Sender for outbound SMS in live mode. |
-| `AI_MODEL` | `DeepSeek-V4.1-Flash` | Model used for ref extraction and the verdict. |
-| `WATCH_TARGET_URL` | — | Documented default target; the actor only uses a URL supplied via `watch <url>` or `recheck now <url>`. |
+| `AI_MODEL` | `DeepSeek-V4.1-Flash` | Model used for ref picking, baseline capture and the verdict. |
+| `WATCH_TARGET_URL` | — | Documented default target; used by URL-less `status` / `recheck now` SMS commands and by `POST /watch` without a `url`. |
 | `TELNYX_API_KEY` | — | Secret read from `SECRETS` for outbound Agent Browser REST calls. Missing in live mode → `TELNYX_API_KEY is not configured`. |
+| `TELNYX_PUBLIC_KEY` | — | Secret read from `SECRETS` to verify the Ed25519 webhook signature on `POST /webhooks/messaging`. Missing in live mode → `503` on unsigned deliveries. |
