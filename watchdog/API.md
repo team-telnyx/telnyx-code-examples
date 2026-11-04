@@ -95,7 +95,7 @@ curl -s -X POST https://<your-edge-deployment-host>/watch \
 
 ### Notes
 
-- **Idempotent per hostname.** Re-posting the same host routes to the same actor. `arm()` **resets `baseline` to `null`** and re-arms the daily schedule (stable task ids dedup the timers), so the next run re-captures the known-good state.
+- **Idempotent per hostname.** Re-posting the same host routes to the same actor and **keeps the stored baseline** (the baseline is per-property — re-pointing the same host at a query override like `?price=0.00` must not wipe it). Arming a *different* host resets the baseline. The daily schedule re-arms with stable task ids, which dedup instead of stacking.
 - **Scheme validation is synchronous.** A non-`https` URL is rejected with `400` here — not deferred to the SMS path.
 - The `202` is returned after `arm()` resolves; the first browser session is created by the scheduled run, not by this request.
 
@@ -158,7 +158,7 @@ Inbound SMS arrives on `POST /webhooks/messaging` as a Telnyx `message.received`
 
 | Command | Arguments | Effect | Reply |
 | --- | --- | --- | --- |
-| `watch <url>` | `url` — absolute https URL | Stores `target_url`, `allowed_domains: [hostname]`, `owner_phone`; seeds the KV index; resets `baseline`; arms daily `every(86400, "runCheck")` with a stable id; queues a first run in 5s | `Watching <hostname>. First check in ~5s, then daily.` |
+| `watch <url>` | `url` — absolute https URL | Stores `target_url`, `allowed_domains: [hostname]`, `owner_phone`; seeds the KV index; keeps the baseline when re-arming the same host (resets it for a new host); arms daily `every(86400, "runCheck")` with a stable id; queues a first run in 5s | `Watching <hostname>. First check in ~5s, then daily.` |
 | `status [url]` | optional `url` selects the watch | Runs `statusReport()` against the SQL ledger | The same four-line report as `GET /status/{watch_id}` |
 | `recheck now [url]` | optional `url` — one-shot override | Forces an immediate run with `reason: "manual"`. With a URL, that run targets the override instead of the stored `target_url` (this is how the `?price=0.00` broken-verdict demo is reproduced without re-arming) | Run outcome, or an incident/fix SMS |
 | `recheck <incident_id>` | `incident_id` — e.g. `2026-07-28#2026-07-28T14:02:11.004Z` | Fix-verification run with `reason: "verify"`; closes that specific incident on a healthy verdict | `FIXED <url> — incident <id> closed. Before: <artifact> After: <artifact>` on success |
@@ -202,7 +202,7 @@ In `DEMO_MODE=true` every outbound SMS is logged as `[demo] SMS to <masked>: <te
 
 | `reason` | `run_key` |
 | --- | --- |
-| `first` | `YYYY-MM-DD#first` (UTC run date) |
+| `first` | `YYYY-MM-DD#first#<HHMMSS>` (fresh per arm) |
 | `scheduled` | `YYYY-MM-DD` (UTC run date) |
 | `manual`, `verify`, `retrySession` | `YYYY-MM-DD#<reason>#<HHMMSS>` (fresh each invocation) |
 | any, with explicit `run_key` | the supplied value |
@@ -289,7 +289,7 @@ Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https
 
 ### Inference
 
-`this.env.TELNYX.ai.openai.chat.createCompletion({ model: AI_MODEL ?? "DeepSeek-V4.1-Flash", messages })`. Two turns: ref picking (the four `picked_refs`) and the verdict (`healthy` \| `broken` + `reason`). Both expect strict JSON; unparseable output falls back to `{ verdict: "broken", reason: "unparseable model output" }` for the verdict and throws for ref picking. The baseline capture turn (`describe()`) records `price_text` + `form_labels`.
+`this.env.TELNYX.ai.openai.chat.createCompletion({ model: AI_MODEL ?? "moonshotai/Kimi-K2.6", messages })`. Two turns: ref picking (the four `picked_refs`) and the verdict (`healthy` \| `broken` + `reason`). Both expect strict JSON; unparseable output falls back to `{ verdict: "broken", reason: "unparseable model output" }` for the verdict and throws for ref picking. The baseline capture turn (`describe()`) records `price_text` + `form_labels`.
 
 ---
 
@@ -315,7 +315,7 @@ Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https
 | `DEMO_MODE` | `true` | `true` → Agent Browser calls replay recorded fixtures, SMS is logged not sent, verdict is derived locally. `false` → live beta API + `TELNYX.messages.send`. Surfaced by `GET /health`. |
 | `WATCH_OWNER_PHONE` | — | The account-level owner. Fallback recipient when `POST /watch` omits `owner`; also authorizes SMS commands. |
 | `FROM_NUMBER` | — | Sender for outbound SMS in live mode. |
-| `AI_MODEL` | `DeepSeek-V4.1-Flash` | Model used for ref picking, baseline capture and the verdict. |
+| `AI_MODEL` | `moonshotai/Kimi-K2.6` | Model used for ref picking, baseline capture and the verdict. |
 | `WATCH_TARGET_URL` | — | Documented default target; used by URL-less `status` / `recheck now` SMS commands and by `POST /watch` without a `url`. |
 | `TELNYX_API_KEY` | — | Secret read from `SECRETS` for outbound Agent Browser REST calls. Missing in live mode → `TELNYX_API_KEY is not configured`. |
 | `TELNYX_PUBLIC_KEY` | — | Secret read from `SECRETS` to verify the Ed25519 webhook signature on `POST /webhooks/messaging`. Missing in live mode → `503` on unsigned deliveries. |

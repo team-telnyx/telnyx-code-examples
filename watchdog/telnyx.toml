@@ -34,7 +34,7 @@ name    = "TELNYX_PUBLIC_KEY"
 
 [env_vars]
 DEMO_MODE = "true"
-AI_MODEL = "DeepSeek-V4.1-Flash"
+AI_MODEL = "moonshotai/Kimi-K2.6"
 WATCH_TARGET_URL = "https://your-fixture-host.example.com/"
 WATCH_OWNER_PHONE = "+1555XXXXXXX"
 FROM_NUMBER = "+1555XXXXXXX"

@@ -87,7 +87,7 @@ A watchdog is only useful if it can act on what it finds, and that means three t
 | `WATCH_OWNER_PHONE` | `string` | `+1555XXXXXXX` | no | E.164 number that receives alerts and is allowed to send `watch` / `status` / `recheck` commands. | Your personal phone |
 | `FROM_NUMBER` | `string` | `+1555XXXXXXX` | no (required for live SMS) | E.164 Telnyx number the alert SMS is sent from. | [Telnyx Portal → Numbers](https://portal.telnyx.com/numbers) |
 | `DEMO_MODE` | `string` | `true` | no | `true` (default) replays the envelopes recorded in `demo/browser-fixtures.json` and derives the verdict locally — no API calls, no SMS. `false` drives the live beta API and the `TELNYX` binding. | — |
-| `AI_MODEL` | `string` | `DeepSeek-V4.1-Flash` | no | Model used for ref-picking and the verdict turn. | [Telnyx AI models](https://developers.telnyx.com/docs/inference/models) |
+| `AI_MODEL` | `string` | `moonshotai/Kimi-K2.6` | no | Model used for ref-picking and the verdict turn. | [Telnyx AI models](https://developers.telnyx.com/docs/inference/models) |
 
 `TELNYX_API_KEY` is read from the `SECRETS` binding inside the actor (`await this.env.SECRETS.get("TELNYX_API_KEY")`) — set it with `telnyx-edge secrets add`, not by committing a `.env`. The webhook route additionally requires the `TELNYX_PUBLIC_KEY` secret (Ed25519 signing public key) in live mode; unsigned webhook deliveries are refused.
 

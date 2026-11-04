@@ -297,24 +297,28 @@ export class Watchdog extends Agent<Env, WatchdogState> {
   async arm(url: string, owner: string): Promise<Record<string, unknown>> {
     const ownerId = watchId(url);
     const ownerPhone = owner || this.env.WATCH_OWNER_PHONE || "";
-    const previousOwner = (await this.getState()).owner_phone;
+    const previous = await this.getState();
+    // A re-arm of the same property keeps the stored baseline; the baseline is
+    // per-property, and re-pointing at a query override must not wipe it.
+    const sameProperty = previous.target_url && watchId(previous.target_url) === ownerId;
     await this.replaceState({
       target_url: url,
       allowed_domains: [ownerId],
-      baseline: null,
-      last_verdict: null,
-      last_run_at: null,
+      baseline: sameProperty ? previous.baseline : null,
+      last_verdict: sameProperty ? previous.last_verdict : null,
+      last_run_at: previous.last_run_at,
       schedule_id: null,
       open_session_id: null,
       owner_phone: ownerPhone,
     });
     if (ownerPhone) {
       await this.env.WATCHDOG_INDEX.put(`watch:${ownerId}`, normalizePhone(ownerPhone));
-      await this.indexOwner(ownerId, normalizePhone(ownerPhone), previousOwner);
+      await this.indexOwner(ownerId, normalizePhone(ownerPhone), previous.owner_phone);
     }
     const dailyId = await this.every(DAILY_SECONDS, "runCheck", { reason: "scheduled" }, { id: `daily-${ownerId}` });
     await this.setState({ schedule_id: String(dailyId) });
-    await this.schedule(FIRST_RUN_SECONDS, "runCheck", { reason: "first" }, { id: `first-${ownerId}` });
+    const epoch = new Date().toISOString().slice(11, 19).replace(/[:.]/g, "");
+    await this.schedule(FIRST_RUN_SECONDS, "runCheck", { reason: "first", run_key: `${new Date().toISOString().slice(0, 10)}#first#${epoch}` }, { id: `first-${ownerId}` });
     await this.smsReply(ownerPhone, `Watching ${url}. First check in ~${FIRST_RUN_SECONDS}s, then daily.`);
     return { ok: true, watch_id: ownerId, schedule_id: String(dailyId) };
   }
@@ -681,7 +685,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
 
   private async complete(prompt: string): Promise<string> {
     const res = await this.env.TELNYX.ai.openai.chat.createCompletion({
-      model: this.env.AI_MODEL || "DeepSeek-V4.1-Flash",
+      model: this.env.AI_MODEL || "moonshotai/Kimi-K2.6",
       messages: [
         { role: "system", content: "You are a web health checker. Reply with strict JSON only, no prose, no code fences." },
         { role: "user", content: prompt },

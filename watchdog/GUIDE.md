@@ -71,7 +71,7 @@ Copy `.env.example` to `.env` and fill in the placeholders:
 | `WATCH_OWNER_PHONE` | Who receives alert SMS and may send `watch` / `status` / `recheck` | `+1555XXXXXXXX` |
 | `FROM_NUMBER` | Telnyx number the alerts are sent from | `+1555XXXXXXXX` |
 | `DEMO_MODE` | `true` (default) replays recorded fixtures offline; `false` runs live | `true` |
-| `AI_MODEL` | Model name for the verdict turn | `DeepSeek-V4.1-Flash` |
+| `AI_MODEL` | Model name for the verdict turn | `moonshotai/Kimi-K2.6` |
 
 Bindings live in `telnyx.toml`:
 
@@ -112,7 +112,7 @@ name    = "TELNYX_PUBLIC_KEY"
 
 [env_vars]
 DEMO_MODE = "true"
-AI_MODEL = "DeepSeek-V4.1-Flash"
+AI_MODEL = "moonshotai/Kimi-K2.6"
 WATCH_TARGET_URL = "https://your-fixture-host.example.com/"
 WATCH_OWNER_PHONE = "+1555XXXXXXX"
 FROM_NUMBER = "+1555XXXXXXX"
@@ -245,7 +245,7 @@ The optional URL override on `recheck now` is what makes the broken-price scenar
 `arm()` does **not** create a browser session. It:
 
 1. validates the URL (must be `https://`),
-2. `replaceState({ target_url, allowed_domains: [hostname], owner_phone, baseline: null })`,
+2. `replaceState({ target_url, allowed_domains: [hostname], owner_phone, baseline: keep-if-same-host })` — a re-arm of the same property keeps the stored baseline (the baseline is per-property, so re-pointing the same host at `?price=0.00` must not wipe it); a new host starts from scratch,
 3. seeds the KV routing index (`watch:<id>` → owner phone, `owner:<phone>` → watch ids),
 4. arms the recurring schedule with a **stable id**: `this.every(86400, "runCheck", { reason: "scheduled" }, { id: "daily-<watch>" })` — re-arming with the same id replaces the prior task instead of stacking a second daily timer,
 5. schedules the first run in 5 seconds (`schedule(5, "runCheck", { reason: "first" }, { id: "first-<watch>" })`),
@@ -318,7 +318,7 @@ Two inference calls, both via the `TELNYX` binding:
 
 ```ts
 this.env.TELNYX.ai.openai.chat.createCompletion({
-  model: this.env.AI_MODEL || "DeepSeek-V4.1-Flash",
+  model: this.env.AI_MODEL || "moonshotai/Kimi-K2.6",
   messages: [system, user],
 })
 ```
