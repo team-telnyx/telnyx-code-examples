@@ -32,6 +32,29 @@ name    = "TELNYX_API_KEY"
 binding = "TELNYX_PUBLIC_KEY"
 name    = "TELNYX_PUBLIC_KEY"
 
+# Edge env_vars do not reach the actor runtime, so the knobs are declared as
+# secrets (read via SECRETS with env/process fallbacks in setting()).
+[[secrets]]
+binding = "DEMO_MODE"
+name    = "DEMO_MODE"
+
+[[secrets]]
+binding = "WATCH_TARGET_URL"
+name    = "WATCH_TARGET_URL"
+
+[[secrets]]
+binding = "WATCH_OWNER_PHONE"
+name    = "WATCH_OWNER_PHONE"
+
+[[secrets]]
+binding = "FROM_NUMBER"
+name    = "FROM_NUMBER"
+
+[[secrets]]
+binding = "AI_MODEL"
+name    = "AI_MODEL"
+
+# Documented defaults (apply when a knob is unset):
 [env_vars]
 DEMO_MODE = "true"
 AI_MODEL = "moonshotai/Kimi-K2.6"

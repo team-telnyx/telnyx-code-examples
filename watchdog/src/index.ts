@@ -104,8 +104,25 @@ const DEMO_PRICE = "$24.00";
 
 /* ------------------------------ helpers ------------------------------ */
 
-export function isDemo(env: Pick<Env, "DEMO_MODE">): boolean {
-  return (env.DEMO_MODE ?? "true").toLowerCase() !== "false";
+type ConfigKey = "DEMO_MODE" | "WATCH_TARGET_URL" | "WATCH_OWNER_PHONE" | "FROM_NUMBER" | "AI_MODEL";
+
+/**
+ * Edge env_vars do not reach the actor runtime, so config falls back through
+ * `env` -> process.env -> SECRETS (the mechanism that reliably reaches actors;
+ * the knobs are declared as secrets in telnyx.toml).
+ */
+export async function setting(env: Env, key: ConfigKey): Promise<string | undefined> {
+  const direct = env[key] ?? (globalThis as { process?: { env?: Record<string, string> } }).process?.env?.[key];
+  if (direct !== undefined && direct !== "") return direct;
+  try {
+    return (await env.SECRETS.get(key)) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function isDemo(env: Env): Promise<boolean> {
+  return (await setting(env, "DEMO_MODE") ?? "true").toLowerCase() !== "false";
 }
 
 export function watchId(targetUrl: string): string {
@@ -290,13 +307,13 @@ export class Watchdog extends Agent<Env, WatchdogState> {
       return { error: "url must be an absolute URL" };
     }
     if (parsed.protocol !== "https:") return { error: "only https:// targets are supported" };
-    return this.arm(parsed.toString(), body.owner ?? this.env.WATCH_OWNER_PHONE ?? "");
+    return this.arm(parsed.toString(), body.owner ?? (await setting(this.env, "WATCH_OWNER_PHONE")) ?? "");
   }
 
   /** Stores config, seeds the KV routing index, and arms the daily schedule. */
   async arm(url: string, owner: string): Promise<Record<string, unknown>> {
     const ownerId = watchId(url);
-    const ownerPhone = owner || this.env.WATCH_OWNER_PHONE || "";
+    const ownerPhone = owner || (await setting(this.env, "WATCH_OWNER_PHONE")) || "";
     const previous = await this.getState();
     // A re-arm of the same property keeps the stored baseline; the baseline is
     // per-property, and re-pointing at a query override must not wipe it.
@@ -625,7 +642,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
   /* ---- extraction + verdict ---- */
 
   private async extract(obs: Observation): Promise<PickedRefs> {
-    if (isDemo(this.env)) return this.demoPick();
+    if (await isDemo(this.env)) return this.demoPick();
     const raw = await this.complete(
       `Observation tree from a browser session:\n${obs.tree}\n\nRefs: ${JSON.stringify(obs.refs)}\n` +
       `Pick the refs for: the price element (the monthly-budget field), the Name field, the Email field, ` +
@@ -649,7 +666,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
       const extracted = await this.describe(obs);
       return { verdict: "healthy", reason: "baseline captured", price_text: extracted.price_text, form_labels: extracted.form_labels };
     }
-    if (isDemo(this.env)) {
+    if (await isDemo(this.env)) {
       const seen = this.priceText(obs);
       return seen === baseline.price_text
         ? { verdict: "healthy", reason: "price and form match baseline", price_text: seen }
@@ -668,7 +685,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
   }
 
   private async describe(obs: Observation): Promise<{ price_text: string; form_labels: string[] }> {
-    if (isDemo(this.env)) {
+    if (await isDemo(this.env)) {
       const labels: string[] = [];
       const re = /textbox "(Name|Email)"/g;
       let match: RegExpExecArray | null;
@@ -685,7 +702,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
 
   private async complete(prompt: string): Promise<string> {
     const res = await this.env.TELNYX.ai.openai.chat.createCompletion({
-      model: this.env.AI_MODEL || "moonshotai/Kimi-K2.6",
+      model: (await setting(this.env, "AI_MODEL")) || "moonshotai/Kimi-K2.6",
       messages: [
         { role: "system", content: "You are a web health checker. Reply with strict JSON only, no prose, no code fences." },
         { role: "user", content: prompt },
@@ -760,13 +777,13 @@ export class Watchdog extends Agent<Env, WatchdogState> {
   }
 
   async smsReply(to: string, text: string): Promise<void> {
-    const target = to || (await this.getState()).owner_phone || this.env.WATCH_OWNER_PHONE || "";
+    const target = to || (await this.getState()).owner_phone || (await setting(this.env, "WATCH_OWNER_PHONE")) || "";
     if (!target) return;
-    if (isDemo(this.env)) {
+    if (await isDemo(this.env)) {
       console.log(`[demo] SMS to ${maskPhone(target)}: ${text}`);
       return;
     }
-    await this.env.TELNYX.messages.send({ to: target, from: this.env.FROM_NUMBER ?? "", text });
+    await this.env.TELNYX.messages.send({ to: target, from: (await setting(this.env, "FROM_NUMBER")) ?? "", text });
   }
 
   async ensureSchema(): Promise<void> {
@@ -792,7 +809,7 @@ export class Watchdog extends Agent<Env, WatchdogState> {
   /* ---- Agent Browser REST (demo replays recorded envelopes) ---- */
 
   private async browser(method: string, path: string, body?: Record<string, unknown>): Promise<BrowserResponse> {
-    if (isDemo(this.env)) return this.demoBrowser(method, path, body);
+    if (await isDemo(this.env)) return this.demoBrowser(method, path, body);
     const key = await this.env.SECRETS.get("TELNYX_API_KEY");
     if (!key) throw new Error("TELNYX_API_KEY is not configured");
     const res = await fetch(`${API_BASE}${path}`, {
@@ -902,7 +919,7 @@ async function handleSmsWebhook(request: Request, env: Env): Promise<Response> {
     if (!(await verifyWebhookSignature(request, raw, publicKey))) {
       return json({ error: "invalid_signature" }, 401);
     }
-  } else if (!isDemo(env)) {
+  } else if (!(await isDemo(env))) {
     return json({ error: "missing TELNYX_PUBLIC_KEY — refusing unsigned webhook in live mode" }, 503);
   } else {
     console.warn("TELNYX_PUBLIC_KEY unset — accepting unsigned webhook (DEMO_MODE)");
@@ -928,8 +945,10 @@ async function handleSmsWebhook(request: Request, env: Env): Promise<Response> {
 async function resolveWatchForCommand(env: Env, from: string, url?: string): Promise<string | null> {
   if (url) return watchId(url);
   const sender = normalizePhone(from);
-  const envOwner = env.WATCH_OWNER_PHONE ? normalizePhone(env.WATCH_OWNER_PHONE) : "";
-  if (sender && envOwner === sender && env.WATCH_TARGET_URL) return watchId(env.WATCH_TARGET_URL);
+  const ownerPhone = await setting(env, "WATCH_OWNER_PHONE");
+  const envOwner = ownerPhone ? normalizePhone(ownerPhone) : "";
+  const targetUrl = await setting(env, "WATCH_TARGET_URL");
+  if (sender && envOwner === sender && targetUrl) return watchId(targetUrl);
   const owned = JSON.parse((await env.WATCHDOG_INDEX.get(`owner:${sender}`)) ?? "[]") as string[];
   return owned.length === 1 ? owned[0] : null;
 }
@@ -937,15 +956,18 @@ async function resolveWatchForCommand(env: Env, from: string, url?: string): Pro
 /** A sender may command watch W only if W is theirs (or the env owner matches). */
 async function senderOwnsWatch(env: Env, from: string, watch: string): Promise<boolean> {
   const sender = normalizePhone(from);
-  const envOwner = env.WATCH_OWNER_PHONE ? normalizePhone(env.WATCH_OWNER_PHONE) : "";
+  const ownerPhone = await setting(env, "WATCH_OWNER_PHONE");
+  const envOwner = ownerPhone ? normalizePhone(ownerPhone) : "";
   if (envOwner && sender === envOwner) return true;
   return sender !== "" && (await env.WATCHDOG_INDEX.get(`watch:${watch}`)) === sender;
 }
 
 async function ownerWatches(env: Env, from: string): Promise<string[]> {
   const sender = normalizePhone(from);
-  const envOwner = env.WATCH_OWNER_PHONE ? normalizePhone(env.WATCH_OWNER_PHONE) : "";
-  const envWatches = envOwner === sender && env.WATCH_TARGET_URL ? [watchId(env.WATCH_TARGET_URL)] : [];
+  const ownerPhone = await setting(env, "WATCH_OWNER_PHONE");
+  const envOwner = ownerPhone ? normalizePhone(ownerPhone) : "";
+  const targetUrl = await setting(env, "WATCH_TARGET_URL");
+  const envWatches = envOwner === sender && targetUrl ? [watchId(targetUrl)] : [];
   const indexed = JSON.parse((await env.WATCHDOG_INDEX.get(`owner:${sender}`)) ?? "[]") as string[];
   return Array.from(new Set([...envWatches, ...indexed]));
 }
@@ -953,13 +975,15 @@ async function ownerWatches(env: Env, from: string): Promise<string[]> {
 async function authorizeForWatch(env: Env, from: string, watch: string): Promise<Response | null> {
   if (await senderOwnsWatch(env, from, watch)) return null;
   const owned = await ownerWatches(env, from);
-  if (owned.length === 0 && !env.WATCH_OWNER_PHONE) return null; // first-come ownership before WATCH_OWNER_PHONE is set
+  const ownerPhone = await setting(env, "WATCH_OWNER_PHONE");
+  if (owned.length === 0 && !ownerPhone) return null; // first-come ownership before WATCH_OWNER_PHONE is set
   return json({ error: "not_authorized" }, 403);
 }
 
 export async function dispatchSmsCommand(env: Env, from: string, text: string): Promise<Response> {
   const sender = normalizePhone(from);
-  const envOwner = env.WATCH_OWNER_PHONE ? normalizePhone(env.WATCH_OWNER_PHONE) : "";
+  const ownerPhone = await setting(env, "WATCH_OWNER_PHONE");
+  const envOwner = ownerPhone ? normalizePhone(ownerPhone) : "";
   const known = sender === envOwner || (await ownerWatches(env, from)).length > 0;
   if (!known) return json({ error: "not_authorized" }, 403);
   const cmd = parseCommand(text);
@@ -1012,7 +1036,7 @@ export default {
     const url = new URL(request.url);
     try {
       if (request.method === "GET" && url.pathname === "/health") {
-        return json({ ok: true, demo_mode: isDemo(env) });
+        return json({ ok: true, demo_mode: await isDemo(env) });
       }
       if (request.method === "GET" && (url.pathname === "/fixture" || url.pathname === "/fixture/")) {
         return new Response(FIXTURE_HTML, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
@@ -1028,7 +1052,7 @@ export default {
         }
         if (parsed.protocol !== "https:") return json({ error: "only https:// targets are supported" }, 400);
         const stub = env.WATCHDOG.idFromName(watchId(parsed.toString()));
-        const res = await stub.fetch(actorRequest("/arm", { url: parsed.toString(), owner: body.owner ?? env.WATCH_OWNER_PHONE ?? "" }));
+        const res = await stub.fetch(actorRequest("/arm", { url: parsed.toString(), owner: body.owner ?? (await setting(env, "WATCH_OWNER_PHONE")) ?? "" }));
         return json(await res.json() as Record<string, unknown>, res.status === 200 ? 202 : res.status);
       }
       if (request.method === "GET" && url.pathname.startsWith("/status/")) {

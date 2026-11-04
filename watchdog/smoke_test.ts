@@ -61,11 +61,13 @@ await check("watchId derives the host", () => {
   assert(watchId("https://demo-shop.example.com/pricing") === "demo-shop.example.com", "wrong watch id");
 });
 
-await check("isDemo defaults to true and honors DEMO_MODE=false", () => {
-  assert(isDemo({}) === true, "default is not demo");
-  assert(isDemo({ DEMO_MODE: "true" }) === true, "true is not demo");
-  assert(isDemo({ DEMO_MODE: "false" }) === false, "false is not live");
-  assert(isDemo({ DEMO_MODE: "nope" }) === true, "garbage value should stay in demo");
+const DEMO_ENV_SECRETS = { get: async () => null } as unknown as Env["SECRETS"];
+
+await check("isDemo defaults to true and honors DEMO_MODE=false", async () => {
+  assert((await isDemo({ SECRETS: DEMO_ENV_SECRETS } as Env)) === true, "default is not demo");
+  assert((await isDemo({ SECRETS: DEMO_ENV_SECRETS, DEMO_MODE: "true" } as Env)) === true, "true is not demo");
+  assert((await isDemo({ SECRETS: DEMO_ENV_SECRETS, DEMO_MODE: "false" } as Env)) === false, "false is not live");
+  assert((await isDemo({ SECRETS: DEMO_ENV_SECRETS, DEMO_MODE: "nope" } as Env)) === true, "garbage value should stay in demo");
 });
 
 await check("maskPhone never leaks the full number", () => {

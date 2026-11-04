@@ -88,6 +88,9 @@ A watchdog is only useful if it can act on what it finds, and that means three t
 | `FROM_NUMBER` | `string` | `+1555XXXXXXX` | no (required for live SMS) | E.164 Telnyx number the alert SMS is sent from. | [Telnyx Portal → Numbers](https://portal.telnyx.com/numbers) |
 | `DEMO_MODE` | `string` | `true` | no | `true` (default) replays the envelopes recorded in `demo/browser-fixtures.json` and derives the verdict locally — no API calls, no SMS. `false` drives the live beta API and the `TELNYX` binding. | — |
 | `AI_MODEL` | `string` | `moonshotai/Kimi-K2.6` | no | Model used for ref-picking and the verdict turn. | [Telnyx AI models](https://developers.telnyx.com/docs/inference/models) |
+| `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_webhook_public_key_here` | yes (live SMS webhook) | Ed25519 webhook signing public key for `POST /webhooks/messaging`. | [Portal → API Keys → Public key](https://portal.telnyx.com/api-keys/public-key) |
+
+Config knobs (`WATCH_TARGET_URL`, `WATCH_OWNER_PHONE`, `FROM_NUMBER`, `DEMO_MODE`, `AI_MODEL`) are read through a `setting()` helper with `env` → `process.env` → `SECRETS` fallbacks, because Edge env_vars do not reach the actor runtime — declare them as secrets (see `telnyx.toml`) for deploys.
 
 `TELNYX_API_KEY` is read from the `SECRETS` binding inside the actor (`await this.env.SECRETS.get("TELNYX_API_KEY")`) — set it with `telnyx-edge secrets add`, not by committing a `.env`. The webhook route additionally requires the `TELNYX_PUBLIC_KEY` secret (Ed25519 signing public key) in live mode; unsigned webhook deliveries are refused.
 
