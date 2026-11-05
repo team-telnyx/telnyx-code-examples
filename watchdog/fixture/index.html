@@ -102,8 +102,9 @@
     // ?price=X.YZ overrides the rendered price — reproduces the broken-verdict demo.
     var params = new URLSearchParams(window.location.search);
     var priceOverride = params.get("price");
+    var shopTemplate = document.getElementById("shop-tpl");
     if (priceOverride !== null && priceOverride !== "") {
-      document.getElementById("shop-tpl").querySelector("#price").value = "$" + priceOverride;
+      shopTemplate.content.querySelector("#price").value = "$" + priceOverride;
     }
 
     // ?render_wave=N re-renders the page main N seconds after load. The rebuilt

@@ -1062,30 +1062,6 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     try {
-      if (request.method === "GET" && url.pathname === "/debug/infer") {
-        try {
-          const res = await env.TELNYX.ai.openai.chat.createCompletion({
-            model: (await setting(env, "AI_MODEL")) || "moonshotai/Kimi-K3",
-            messages: [
-              { role: "system", content: "You are a web health checker. Reply with strict JSON only, no prose, no code fences." },
-              { role: "user", content: "Observation tree:\n- main [ref=f31e5]:\n  - textbox \"Monthly budget (edit to match your plan)\" [ref=f31e9]: $0.00\n  - form [ref=f31e13]:\n    - textbox \"Name\" [ref=f31e14]:\n    - textbox \"Email\" [ref=f31e15]:\n    - button \"Request a call\" [ref=f31e16]\n\nRefs: {\"f31e9\":{\"role\":\"textbox\"},\"f31e14\":{\"role\":\"textbox\"},\"f31e15\":{\"role\":\"textbox\"},\"f31e16\":{\"role\":\"button\"}}\nPick the refs for the price element, the Name field, the Email field, and the submit button. Return strict JSON {\"price_ref\":\"<ref>\",\"name_ref\":\"<ref>\",\"email_ref\":\"<ref>\",\"submit_ref\":\"<ref>\"}" },
-            ],
-          });
-          return json({ raw: JSON.stringify(res).slice(0, 600), content: res?.choices?.[0]?.message?.content ?? null });
-        } catch (err) {
-          return json({ debug_error: err instanceof Error ? `${err.name}: ${err.message}` : String(err) });
-        }
-      }
-      if (request.method === "GET" && url.pathname === "/debug/session") {
-        const key = await env.SECRETS.get("TELNYX_API_KEY");
-        const res = await fetch("https://api.telnyx.com/v2/browser_sessions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ policy: { allowed_domains: ["watchdog-9ecece16-e.telnyxcompute.com"] }, limits: { lifetime_s: 600, idle_timeout_s: 120 }, idempotency_key: "debug-probe-live" }),
-        });
-        const text = await res.text();
-        return json({ status: res.status, keyPresent: !!key, body: text.slice(0, 500) });
-      }
       if (request.method === "GET" && url.pathname === "/health") {
         return json({ ok: true, demo_mode: await isDemo(env) });
       }
