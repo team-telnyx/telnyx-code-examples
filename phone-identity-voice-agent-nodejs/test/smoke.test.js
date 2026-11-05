@@ -118,7 +118,7 @@ describe("assessRisk", () => {
 
   it("trusted: high confidence + name + mobile + not ported + address → score ≥ 70", () => {
     const data = {
-      caller_identity: { name: "Sarah Johnson", confidence_score: 85, postal_address: { city: "Austin", state: "TX" } },
+      caller_identity: { name: "Sarah Johnson", confidence_score: 85, address: { city: "Austin", state_code: "TX" } },
       caller_name: { caller_name: "Sarah Johnson" },
       carrier: { name: "T-Mobile", type: "mobile" },
       portability: { ported_status: "not_ported" },
@@ -180,7 +180,7 @@ describe("assessRisk", () => {
 
   it("no CNAM deducts 15 points", () => {
     const base = {
-      caller_identity: { name: "Name", confidence_score: 90, postal_address: { city: "NY", state: "NY" } },
+      caller_identity: { name: "Name", confidence_score: 90, address: { city: "NY", state_code: "NY" } },
       caller_name: {},
       carrier: { type: "mobile" },
       portability: { ported_status: "not_ported" },
@@ -192,7 +192,7 @@ describe("assessRisk", () => {
 
   it("VoIP line type deducts 20 points", () => {
     const base = {
-      caller_identity: { name: "Name", confidence_score: 90, postal_address: { city: "NY", state: "NY" } },
+      caller_identity: { name: "Name", confidence_score: 90, address: { city: "NY", state_code: "NY" } },
       caller_name: { caller_name: "Name" },
       carrier: { type: "voip" },
       portability: { ported_status: "not_ported" },
@@ -204,7 +204,7 @@ describe("assessRisk", () => {
 
   it("ported number deducts 10 points", () => {
     const base = {
-      caller_identity: { name: "Name", confidence_score: 90, postal_address: { city: "NY", state: "NY" } },
+      caller_identity: { name: "Name", confidence_score: 90, address: { city: "NY", state_code: "NY" } },
       caller_name: { caller_name: "Name" },
       carrier: { type: "mobile" },
       portability: { ported_status: "ported" },
@@ -216,7 +216,7 @@ describe("assessRisk", () => {
 
   it("factors array populated with signal/value/impact", () => {
     const data = {
-      caller_identity: { name: "Name", confidence_score: 90, postal_address: { city: "Austin", state: "TX" } },
+      caller_identity: { name: "Name", confidence_score: 90, address: { city: "Austin", state_code: "TX" } },
       caller_name: { caller_name: "Name" },
       carrier: { type: "mobile" },
       portability: { ported_status: "not_ported" },
@@ -243,7 +243,7 @@ describe("buildDynamicVars", () => {
 
   it("trusted with name: personalized greeting with first name, skip verification", () => {
     const data = {
-      caller_identity: { name: "Sarah Johnson", confidence_score: 85, postal_address: { city: "Austin", state: "TX" } },
+      caller_identity: { name: "Sarah Johnson", confidence_score: 85, address: { city: "Austin", state_code: "TX" } },
       caller_name: { caller_name: "Sarah Johnson" },
       carrier: { name: "T-Mobile", type: "mobile" },
       portability: {},
@@ -264,7 +264,7 @@ describe("buildDynamicVars", () => {
     };
     const risk = { score: 55, level: "standard", factors: [] };
     const v = buildDynamicVars(data, risk);
-    assert.ok(v.behaviorInstructions.includes("Verify their identity"));
+    assert.ok(v.behaviorInstructions.includes("full name"));
     assert.ok(v.callerContext.includes("John Doe"));
   });
 
@@ -281,7 +281,7 @@ describe("buildDynamicVars", () => {
     assert.ok(!v.callerContext.includes("undefined"));
   });
 
-  it("suspicious: formal greeting, MUST verify, full security", () => {
+  it("suspicious: formal greeting, strict verification, full security", () => {
     const data = {
       caller_identity: {},
       caller_name: {},
@@ -290,8 +290,9 @@ describe("buildDynamicVars", () => {
     };
     const risk = { score: 25, level: "suspicious", factors: [] };
     const v = buildDynamicVars(data, risk);
-    assert.ok(v.behaviorInstructions.includes("MUST verify"));
     assert.ok(v.behaviorInstructions.includes("full name"));
+    assert.ok(v.behaviorInstructions.includes("date of birth"));
+    assert.ok(v.behaviorInstructions.includes("last four digits"));
   });
 
   it("includes confidence value in caller context", () => {
@@ -308,7 +309,7 @@ describe("buildDynamicVars", () => {
 
   it("includes location in caller context when address available", () => {
     const data = {
-      caller_identity: { name: "Test", confidence_score: 90, postal_address: { city: "Austin", state: "TX" } },
+      caller_identity: { name: "Test", confidence_score: 90, address: { city: "Austin", state_code: "TX" } },
       caller_name: { caller_name: "Test" },
       carrier: { name: "T-Mobile", type: "mobile" },
       portability: {},
@@ -332,7 +333,7 @@ describe("buildIdentityCard", () => {
 
   it("all fields populated from full lookup data", () => {
     const data = {
-      caller_identity: { name: "Sarah Johnson", confidence_score: 85, postal_address: { city: "Austin", state: "TX" } },
+      caller_identity: { name: "Sarah Johnson", confidence_score: 85, address: { city: "Austin", state_code: "TX" } },
       caller_name: { caller_name: "Sarah Johnson" },
       carrier: { name: "T-Mobile", type: "mobile" },
       portability: { ported_status: "not_ported" },

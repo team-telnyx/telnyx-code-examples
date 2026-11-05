@@ -164,6 +164,9 @@ async function handleCallInitiated(ccid, payload) {
   const from = payload.from || "";
   console.log(`Incoming call from ${from} (ccid: ${ccid})`);
 
+  // Reset transcription alternation state
+  expectedNextRole = null;
+
   // Reset state for new call
   callState = freshState();
   callState.status = "incoming";
@@ -286,9 +289,14 @@ function handleAiStarted(ccid, _payload) {
     greeting: callState.dynamicVars?.greetingText || "",
   });
 
+  // AI speaks first (greeting), then caller, then AI, etc.
+  expectedNextRole = "ai";
+
   // Start transcription so we get live speech events for the dashboard
+  // transcription_tracks: "both" captures caller (inbound) AND AI (outbound)
   callControlAction(ccid, "transcription_start", {
     transcription_engine: "B",
+    transcription_tracks: "both",
   }).catch((err) => console.error("transcription_start failed:", err.message));
 }
 
@@ -316,6 +324,12 @@ function handleCallHangup(ccid, payload) {
 
 /* ── call.transcription → live speech for dashboard ───────────────── */
 
+// Telnyx transcription with engine "B" does not label inbound vs outbound in the
+// webhook payload (channel is always empty, leg ID is the same for both).
+// We use an alternation heuristic: the AI speaks first (greeting), then caller,
+// then AI, and so on. This matches the natural turn-taking of a phone call.
+let expectedNextRole = null; // set to "ai" when AI Assistant starts
+
 function handleTranscription(payload) {
   const data = payload.transcription_data || {};
   const text = (data.transcript || "").trim();
@@ -323,13 +337,20 @@ function handleTranscription(payload) {
   // Only forward final transcriptions with actual text
   if (!text || data.is_final === false) return;
 
-  // Telnyx transcription_engine "B" labels the channel:
-  //   "inbound" = caller mic, "outbound" = AI/system audio
-  const channel = payload.transcription_channel || data.channel || "";
-  const role = channel === "outbound" ? "ai" : "caller";
+  // Alternation: AI speaks first after assistant starts, then they take turns
+  const role = expectedNextRole || "caller";
+  if (expectedNextRole) {
+    expectedNextRole = role === "ai" ? "caller" : "ai";
+  }
 
   console.log(`Transcript [${role}]: ${text.slice(0, 80)}`);
   ssePublish("transcript", { role, text });
+
+  // Detect when AI confirms verification is complete → unlock accounts on dashboard
+  if (role === "ai" && /\bverified\b/i.test(text)) {
+    console.log("Verification detected in AI speech — unlocking accounts");
+    ssePublish("verification.complete", {});
+  }
 }
 
 /* ── Call Control helper ───────────────────────────────────────────── */

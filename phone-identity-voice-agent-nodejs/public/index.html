@@ -855,9 +855,14 @@
       ['Confidence', id.confidence != null ? String(id.confidence) : 'N/A'],
     ];
 
-    const access = trust === 'verified' ? 'full'
-                 : trust === 'standard' ? 'stepup'
-                 : 'locked';
+    const access = trust === 'verified' ? 'full' : 'stepup';
+
+    // Demo always shows accounts — same mock data as the simulation scenarios
+    const demoAccounts = [
+      ['checking', 'Everyday Checking', '•••• 4582', '$3,247.89', 'Available'],
+      ['savings', 'High-Yield Savings', '•••• 9013', '$18,420.00', '4.10% APY'],
+      ['card', 'Apex Visa Signature', '•••• 7731', '$612.40', 'Current balance']
+    ];
 
     return {
       phone, masked,
@@ -872,8 +877,8 @@
       risk,
       chips,
       access,
-      accounts: [],
-      customerSince: '',
+      accounts: demoAccounts,
+      customerSince: trust === 'verified' ? 'Since 2016 · Premier' : 'Verification pending',
     };
   }
 
@@ -884,6 +889,8 @@
   }
 
   /** Connect to the server's SSE /stream endpoint. */
+  let liveCallData = null; // stores mapped identity for live calls (used to unlock accounts)
+
   function connectSSE() {
     const es = new EventSource('/stream');
     console.log('SSE: connecting to /stream');
@@ -896,6 +903,7 @@
 
       switch (ev.type) {
         case 'call.incoming':
+          liveCallData = null;
           D.reset();
           D.incoming();
           D.timeline('Incoming call from ' + (ev.phone || 'unknown'), 'blue');
@@ -909,6 +917,7 @@
         case 'lookup.complete': {
           const id = ev.identity || {};
           const mapped = mapIdentity(id);
+          liveCallData = mapped;
           D.identity(mapped);
           const parts = [id.carrier, id.lineType, id.location].filter(Boolean).join(' \u00b7 ');
           D.timeline('Identity data received \u2014 ' + (id.name || 'Unknown'), 'green', parts);
@@ -954,7 +963,15 @@
           D.message(ev.role === 'ai' ? 'ai' : 'caller', ev.text);
           break;
 
+        case 'verification.complete':
+          if (liveCallData) {
+            D.accounts({ ...liveCallData, access: 'full', customerSince: 'Verified this call' });
+            D.timeline('Step-up verification passed', 'green', 'Identity confirmed by caller');
+          }
+          break;
+
         case 'state.reset':
+          liveCallData = null;
           D.reset();
           break;
       }
