@@ -38,6 +38,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 /* ── Live state ────────────────────────────────────────────────────── */
 let callState = freshState();
+let lookupReady = null; // resolves when Number Lookup + risk assessment is done
 
 function freshState() {
   return {
@@ -146,6 +147,11 @@ app.post("/webhooks/call-events", async (req, res) => {
       handleAiStarted(ccid, payload);
     } else if (eventType === "call.conversation.ended") {
       await handleConversationEnded(ccid, payload);
+    } else if (eventType === "call.transcription") {
+      handleTranscription(payload);
+    } else {
+      // Log any unhandled events so we can see what Telnyx sends
+      console.log(`Unhandled event: ${eventType} | payload keys: ${Object.keys(payload).join(", ")}`);
     }
   } catch (err) {
     console.error(`Error handling ${eventType}:`, err.message);
@@ -167,36 +173,41 @@ async function handleCallInitiated(ccid, payload) {
 
   pushEvent("call.incoming", { phone: from });
 
-  // 1. Answer the call immediately
-  console.log("Answering call...");
-  await callControlAction(ccid, "answer");
-
-  // 2. Number Lookup (runs while call is connecting)
+  // 1. Start Number Lookup BEFORE answering so the promise exists
+  //    when handleCallAnswered fires (avoids race condition).
   callState.status = "lookup";
   pushEvent("lookup.started", { phone: from });
 
-  let lookupData;
-  try {
-    lookupData = await numberLookup(from);
-  } catch (err) {
-    console.error("Number Lookup failed:", err.message);
-    lookupData = { phone_number: from, carrier: {}, caller_name: {}, portability: {} };
-  }
+  lookupReady = (async () => {
+    let lookupData;
+    try {
+      lookupData = await numberLookup(from);
+    } catch (err) {
+      console.error("Number Lookup failed:", err.message);
+      lookupData = { phone_number: from, carrier: {}, caller_name: {}, portability: {} };
+    }
 
-  // 3. Risk assessment
-  const risk = assessRisk(lookupData);
-  const identity = buildIdentityCard(from, lookupData, risk);
-  const dynamicVars = buildDynamicVars(lookupData, risk);
+    const risk = assessRisk(lookupData);
+    const identity = buildIdentityCard(from, lookupData, risk);
+    const dynamicVars = buildDynamicVars(lookupData, risk);
 
-  callState.identity = identity;
-  callState.dynamicVars = dynamicVars;
+    callState.identity = identity;
+    callState.dynamicVars = dynamicVars;
 
-  pushEvent("lookup.complete", { identity });
-  pushEvent("risk.assessed", {
-    score: risk.score,
-    level: risk.level,
-    factors: risk.factors,
-  });
+    pushEvent("lookup.complete", { identity });
+    pushEvent("risk.assessed", {
+      score: risk.score,
+      level: risk.level,
+      factors: risk.factors,
+    });
+  })();
+
+  // 2. Answer the call (runs in parallel with lookup)
+  console.log("Answering call...");
+  await callControlAction(ccid, "answer");
+
+  // 3. Wait for lookup to finish too
+  await lookupReady;
 }
 
 /* ── call.answered → start AI Assistant ───────────────────────────── */
@@ -204,6 +215,15 @@ async function handleCallInitiated(ccid, payload) {
 async function handleCallAnswered(ccid, _payload) {
   callState.status = "answered";
   pushEvent("call.answered");
+
+  // Wait for Number Lookup to finish so the AI gets real identity data.
+  // Without this, the AI starts with fallback "No identity data available"
+  // and asks for SSN verification even when the caller is trusted.
+  if (lookupReady) {
+    console.log("Waiting for Number Lookup to finish before starting AI...");
+    await lookupReady;
+    console.log("Lookup done — dynamicVars ready:", !!callState.dynamicVars);
+  }
 
   const assistantId = setting("TELNYX_ASSISTANT_ID");
   if (!assistantId) {
@@ -265,6 +285,11 @@ function handleAiStarted(ccid, _payload) {
     mode: callState.identity?.trustLevel || "standard",
     greeting: callState.dynamicVars?.greetingText || "",
   });
+
+  // Start transcription so we get live speech events for the dashboard
+  callControlAction(ccid, "transcription_start", {
+    transcription_engine: "B",
+  }).catch((err) => console.error("transcription_start failed:", err.message));
 }
 
 /* ── call.conversation.ended → hang up the call ──────────────────── */
@@ -287,6 +312,24 @@ function handleCallHangup(ccid, payload) {
     reason: payload.hangup_cause || "normal",
     duration,
   });
+}
+
+/* ── call.transcription → live speech for dashboard ───────────────── */
+
+function handleTranscription(payload) {
+  const data = payload.transcription_data || {};
+  const text = (data.transcript || "").trim();
+
+  // Only forward final transcriptions with actual text
+  if (!text || data.is_final === false) return;
+
+  // Telnyx transcription_engine "B" labels the channel:
+  //   "inbound" = caller mic, "outbound" = AI/system audio
+  const channel = payload.transcription_channel || data.channel || "";
+  const role = channel === "outbound" ? "ai" : "caller";
+
+  console.log(`Transcript [${role}]: ${text.slice(0, 80)}`);
+  ssePublish("transcript", { role, text });
 }
 
 /* ── Call Control helper ───────────────────────────────────────────── */
@@ -323,6 +366,7 @@ app.get("/api/state", (_req, res) => {
 /** Reset state (for re-recording demo). */
 app.post("/api/reset", (_req, res) => {
   callState = freshState();
+  lookupReady = null;
   ssePublish("state.reset", {});
   res.json({ ok: true });
 });
