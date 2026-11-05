@@ -162,6 +162,12 @@ examples:
     framework: sinatra
     folder: route-phone-calls-to-ai-agent-ruby
 
+  - product: voice
+    use_case: phone-identity-voice-agent
+    language: nodejs
+    framework: express
+    folder: phone-identity-voice-agent-nodejs
+
   # ─────────────────────────────────────────────────────────────────────
   # AI Assistants (8 examples)
   # ─────────────────────────────────────────────────────────────────────

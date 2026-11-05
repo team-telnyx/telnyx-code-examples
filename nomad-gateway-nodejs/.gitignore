@@ -1,0 +1,12 @@
+node_modules/
+data/
+.env
+.edge-home/
+edge/func.toml
+edge/node_modules/
+edge/package-lock.json
+edge/package.json
+edge/*.js
+edge/public/
+edge/build.json
+*.log
