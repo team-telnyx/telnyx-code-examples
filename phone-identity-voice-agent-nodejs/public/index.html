@@ -65,18 +65,17 @@
   .nav a.active svg { opacity: 1; }
   .nav .count { margin-left: auto; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.12); color: #fff; padding: 1px 7px; border-radius: 999px; }
   .nav .live { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: #34D399; box-shadow: 0 0 0 3px rgba(52,211,153,0.2); }
-  .side-foot { margin-top: auto; margin-bottom: 62px; padding: 14px 12px 4px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 11.5px; color: #8FA3C0; line-height: 1.6; }
-  .side-foot strong { color: #fff; font-weight: 600; }
-  .side-foot .tx { display: inline-flex; align-items: center; gap: 6px; }
-  .side-foot .tx i { width: 7px; height: 7px; border-radius: 2px; background: #00C896; }
 
   /* ───────── Topbar ───────── */
   .main { display: grid; grid-template-rows: 60px auto 1fr; min-width: 0; min-height: 0; }
   .topbar { display: flex; align-items: center; gap: 16px; padding: 0 28px; background: var(--surface); border-bottom: 1px solid var(--border); }
   .menu-btn { display: none; width: 36px; height: 36px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; place-items: center; }
-  .search { display: flex; align-items: center; gap: 10px; height: 38px; width: min(440px, 100%); padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text-3); font-size: 13.5px; }
-  .search svg { width: 16px; height: 16px; }
-  .search kbd { margin-left: auto; font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); }
+  .topbar-brand { display: flex; flex-direction: column; gap: 2px; }
+  .topbar-title { display: flex; align-items: center; gap: 14px; font-family: var(--font-mono); font-size: 13px; font-weight: 600; letter-spacing: 8px; text-transform: uppercase; color: var(--navy); white-space: nowrap; }
+  .topbar-powered { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-sans); font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--text-3); border-left: 1px solid var(--border); padding-left: 14px; }
+  .topbar-powered i { width: 7px; height: 7px; border-radius: 2px; background: #00C896; }
+  .topbar-powered strong { color: var(--text); font-weight: 600; }
+  .topbar-sub { font-family: var(--font-sans); font-size: 10px; font-weight: 400; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-3); white-space: nowrap; }
   .top-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
   .icon-btn { position: relative; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; color: var(--text-2); }
   .icon-btn svg { width: 18px; height: 18px; }
@@ -272,22 +271,12 @@
   .powered strong { color: var(--text-2); font-weight: 600; }
 
   /* ───────── Demo controls ───────── */
-  .demo { position: fixed; right: 20px; bottom: 16px; z-index: 20; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border-strong); box-shadow: var(--shadow-lg); opacity: .5; transition: opacity .3s; }
-  .demo:hover, .demo:focus-within { opacity: 1; }
+  .demo { display: flex; align-items: center; gap: 4px; }
   .demo button { font: inherit; font-size: 12px; color: var(--text-2); background: transparent; border: 0; border-radius: 7px; padding: 6px 10px; cursor: pointer; }
   .demo button:hover { background: var(--surface-2); color: var(--text); }
   .demo button.primary { color: #fff; background: var(--navy); }
   .demo button.secondary { border: 1px solid var(--border-strong); }
   .demo.hidden { display: none; }
-  @media (min-width: 1181px) {
-    .demo { left: 14px; right: auto; width: auto; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); box-shadow: none; opacity: .75; }
-    .demo button { color: #C9D4E5; padding: 6px 7px; white-space: nowrap; }
-    .demo { gap: 2px; padding: 3px; }
-    .demo button:hover { background: rgba(255,255,255,0.08); color: #fff; }
-    .demo button.primary { background: var(--gold); color: var(--navy); font-weight: 600; }
-    .demo button.secondary { border-color: rgba(255,255,255,0.18); }
-  }
-  .side-foot.no-demo { margin-bottom: 4px; }
 
   /* ───────── Keyframes ───────── */
   @keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
@@ -328,14 +317,13 @@
   }
   @media (max-width: 600px) {
     .topbar, .page-head, .content { padding-left: 16px; padding-right: 16px; }
-    .search kbd, .search span, .lt { display: none; }
-    .search { width: 40px; padding: 0 11px; }
+    .lt { display: none; }
     .page-head h1 { font-size: 19px; }
     .call-actions .btn span { display: none; }
     .fields { grid-template-columns: 1fr; }
     .msg { max-width: 88%; }
     .hero h2 strong { font-size: 24px; }
-    .powered { flex-wrap: wrap; padding-bottom: 70px; }
+    .powered { flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -361,22 +349,26 @@
       <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Reports</a>
       <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>Settings</a>
     </nav>
-    <div class="side-foot">
-      <span class="tx"><i></i>Powered by <strong>Telnyx</strong></span><br>
-      Phone Identity Intelligence<br>AI Assistants
-    </div>
   </aside>
 
   <!-- ───────── Main ───────── -->
   <div class="main">
     <div class="topbar">
       <button class="menu-btn" aria-label="Menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search customers, accounts, cases…</span><kbd>&#8984;K</kbd></div>
+      <div class="topbar-brand">
+        <div class="topbar-title">Phone Identity Intelligence</div>
+        <div class="topbar-sub">Number Lookup · Call Control · AI Assistants · Live Transcription</div>
+      </div>
+      <span class="topbar-powered"><i></i>Powered by <strong>Telnyx</strong></span>
       <div class="top-right">
+        <div class="demo" id="demo">
+          <button class="primary" id="btnSim">&#9654; Simulate call</button>
+          <button class="secondary" id="btnReset">&#x21bb; Reset</button>
+        </div>
         <div class="icon-btn" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="badge"></span></div>
         <div class="agent">
-          <div class="agent-av">PP</div>
-          <div><b>Priya Patel</b><span>Contact Center Supervisor</span></div>
+          <div class="agent-av">HS</div>
+          <div><b>Harpreet Seehra</b><span>Contact Center Supervisor</span></div>
         </div>
       </div>
     </div>
@@ -497,11 +489,6 @@
       </div>
     </div>
   </div>
-</div>
-
-<div class="demo" id="demo">
-  <button class="primary" id="btnSim">&#9654; Simulate call</button>
-  <button class="secondary" id="btnReset">&#x21bb; Reset</button>
 </div>
 
 <script>
@@ -815,7 +802,7 @@
   /* URL options: ?demo=auto · ?view=complete · ?scenario=verified|standard|suspicious · ?controls=0 */
   const resumeKey = sessionStorage.getItem('simActive');
   reset();
-  if (params.get('controls') === '0') { $('demo').classList.add('hidden'); document.querySelector('.side-foot').classList.add('no-demo'); }
+  if (params.get('controls') === '0') { $('demo').classList.add('hidden'); }
   if (SCENARIOS[params.get('scenario')]) { simIndex = SCENARIO_KEYS.indexOf(params.get('scenario')); sessionStorage.setItem('simIndex', simIndex); }
   if (params.get('view') === 'complete') { speed = 0; simulate(); }
   else if (params.get('demo') === 'auto') setTimeout(() => simulate(), 2500);
