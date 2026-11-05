@@ -167,7 +167,7 @@ function handleEvent(event) {
       iot_sim_status: event.iot_sim || "unknown",
       updated_at: event.ts,
     });
-  } else if (type === "channel.sms" || type === "channel.voice" || type === "agent.done") {
+  } else if (type === "channel.sms" || type === "channel.voice" || type === "channel.web" || type === "agent.done") {
     // Refresh query log when new activity happens
     loadQueries();
   } else if (type === "knowledge.search" || type === "knowledge.article") {
@@ -176,6 +176,55 @@ function handleEvent(event) {
 }
 
 // ---------------------------------------------------------------------------
+// Chat bar — send messages from the dashboard
+// ---------------------------------------------------------------------------
+function initChat() {
+  const input = document.getElementById("chatInput");
+  const btn = document.getElementById("chatSend");
+  const replyBox = document.getElementById("chatReply");
+  const replyText = document.getElementById("chatReplyText");
+
+  async function send() {
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    btn.disabled = true;
+    btn.textContent = "Thinking…";
+    replyBox.classList.add("visible");
+    replyText.textContent = "Processing…";
+
+    try {
+      const resp = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await resp.json();
+      if (data.answer) {
+        replyText.textContent = data.answer;
+      } else if (data.error) {
+        replyText.textContent = `Error: ${data.error}`;
+      } else {
+        replyText.textContent = "No response received.";
+      }
+      loadQueries();
+    } catch (err) {
+      replyText.textContent = `Error: ${err.message}`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Send";
+      input.focus();
+    }
+  }
+
+  btn.addEventListener("click", send);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
 init();
+initChat();

@@ -26,10 +26,10 @@ CRITICAL RULES:
 - ALWAYS use the send_sms tool to reply. NEVER put your reply in plain text — it MUST go through send_sms.
 - Send EXACTLY ONE SMS per turn. After calling send_sms, STOP.
 - Keep messages SHORT — this is SMS, not email. 1-3 sentences max. SMS has segment limits.
-- For factual questions, ALWAYS search the knowledge base first using search_knowledge or get_article.
+- For factual questions, try the knowledge base first (search_knowledge or get_article), but if it returns no results, use your own knowledge to answer.
 - For location questions, use search_maps.
-- Cite your sources briefly: "(Wikipedia)" or "(OpenStreetMap)".
-- If you can't find an answer, say so honestly.
+- Cite your sources briefly: "(Wikipedia)", "(OpenStreetMap)", or "(general knowledge)" as appropriate.
+- If you truly don't know, say so — but don't refuse just because the knowledge base is empty. You are a capable AI with broad knowledge.
 - You may call search_knowledge, get_article, search_maps, or check_system_status multiple times before sending your ONE message via send_sms.
 
 System status context:
@@ -366,6 +366,135 @@ export async function processInbound(db, ssePublish, fromNumber, text, channel =
   // Log the query
   const latencyMs = Date.now() - startTime;
   await storeQuery(db, fromNumber, channel, text, answerText, `${inferenceMode}-ai`, inferenceMode, latencyMs);
+}
+
+// ---------------------------------------------------------------------------
+// Web channel — same agentic loop but captures reply instead of sending SMS
+// ---------------------------------------------------------------------------
+export async function processWeb(db, ssePublish, text) {
+  const webPhone = "web-dashboard";
+  const channel = "web";
+  const startTime = Date.now();
+
+  await storeMessage(db, webPhone, "user", text, channel);
+  ssePublish("channel.web", { direction: "inbound", from: webPhone, text });
+
+  const history = await getConversationHistory(db, webPhone);
+  const historyText = history.map((m) => `${m.role}: ${m.content}`).join("\n");
+
+  const systemPrompt = buildSystemPrompt().replace(
+    "ALWAYS use the send_sms tool to reply",
+    "ALWAYS use the send_reply tool to reply"
+  ).replace(
+    /send_sms/g, "send_reply"
+  );
+
+  const webTools = TOOLS.map((t) => {
+    if (t.function.name === "send_sms") {
+      return {
+        type: "function",
+        function: {
+          name: "send_reply",
+          description: "Send a reply to the user. This is the ONLY way to respond — you must call this exactly once per turn.",
+          parameters: {
+            type: "object",
+            properties: {
+              text: { type: "string", description: "Message text" },
+            },
+            required: ["text"],
+          },
+        },
+      };
+    }
+    return t;
+  });
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    {
+      role: "user",
+      content: `Channel: web dashboard\nInbound message: ${text}\n\nRecent conversation:\n${historyText}\n\nAnswer the question. Search the knowledge base if needed. Send your reply via send_reply.`,
+    },
+  ];
+
+  let inferenceMode = "online";
+  let answerText = "";
+
+  for (let i = 0; i < 10; i++) {
+    let data;
+    try {
+      // Use same inference but pass webTools
+      const resp = await fetch(TELNYX_INFERENCE, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${setting("TELNYX_API_KEY")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: setting("AI_MODEL") || "meta-llama/Llama-3.3-70B-Instruct",
+          messages,
+          tools: webTools,
+          max_tokens: 4096,
+        }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!resp.ok) throw new Error(`Telnyx inference failed: ${resp.status}`);
+      data = await resp.json();
+      data._mode = "online";
+    } catch (err) {
+      console.warn("Telnyx AI unavailable, falling back to Ollama:", err.message);
+      try {
+        const host = setting("OLLAMA_HOST");
+        if (!host) throw new Error("OLLAMA_HOST not configured");
+        const resp = await fetch(`${host}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: setting("OLLAMA_MODEL") || "llama3.2", messages, tools: webTools, stream: false }),
+          signal: AbortSignal.timeout(60_000),
+        });
+        if (!resp.ok) throw new Error(`Ollama inference failed: ${resp.status}`);
+        data = normalizeOllamaResponse(await resp.json());
+        data._mode = "offline";
+      } catch (err2) {
+        return { answer: "Sorry, I'm having trouble right now. Please try again shortly.", mode: "error" };
+      }
+    }
+
+    inferenceMode = data._mode || "online";
+    const msg = data.choices[0].message;
+
+    if (!msg.tool_calls) {
+      answerText = msg.content || "";
+      break;
+    }
+
+    messages.push(msg);
+
+    for (const tc of msg.tool_calls) {
+      const fn = tc.function;
+      const toolName = fn.name;
+      let toolInput;
+      try { toolInput = JSON.parse(fn.arguments || "{}"); } catch { toolInput = {}; }
+
+      if (toolName === "send_reply") {
+        answerText = toolInput.text || "";
+        await storeMessage(db, webPhone, "assistant", answerText, channel);
+        ssePublish("channel.web", { direction: "outbound", text: answerText });
+        messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify({ status: "sent" }) });
+      } else {
+        const result = await executeTool(db, ssePublish, toolName, toolInput, webPhone);
+        messages.push({ role: "tool", tool_call_id: tc.id, content: result });
+      }
+    }
+
+    if (answerText) break;
+  }
+
+  const latencyMs = Date.now() - startTime;
+  await storeQuery(db, webPhone, channel, text, answerText, `${inferenceMode}-ai`, inferenceMode, latencyMs);
+  ssePublish("agent.done", { content: "Reply sent" });
+
+  return { answer: answerText, mode: inferenceMode, latency_ms: latencyMs };
 }
 
 export { getConversationHistory };

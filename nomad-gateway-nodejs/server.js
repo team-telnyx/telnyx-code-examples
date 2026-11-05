@@ -9,7 +9,7 @@ import express from "express";
 import { setting } from "./settings.js";
 import { openDb } from "./db.js";
 import { parseInbound } from "./messaging.js";
-import { processInbound, storeMessage } from "./ai.js";
+import { processInbound, processWeb, storeMessage } from "./ai.js";
 import { handleVoiceEvent } from "./voice.js";
 import { checkKiwix, checkOllama, checkInternet } from "./knowledge.js";
 
@@ -224,6 +224,21 @@ app.delete("/api/conversations", async (req, res) => {
     await db.prepare("DELETE FROM ui_events").run();
   }
   res.json({ status: "cleared" });
+});
+
+// ---------------------------------------------------------------------------
+// Web channel — send a message from the dashboard
+// ---------------------------------------------------------------------------
+app.post("/api/send", async (req, res) => {
+  const text = (req.body.text || "").trim();
+  if (!text) return res.status(400).json({ error: "No message text" });
+  try {
+    const result = await processWeb(db, ssePublish, text);
+    res.json(result);
+  } catch (err) {
+    console.error("Web send failed:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get("/", (_req, res) => {
