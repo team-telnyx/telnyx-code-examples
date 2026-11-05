@@ -277,7 +277,7 @@ function makeHarness(demoMode: boolean): Harness {
   const rawLog = console.log;
   console.log = (...args: unknown[]) => {
     const line = args.join(" ");
-    const match = /^\[demo\] SMS to (\S+): (.*)$/.exec(line);
+    const match = /^\[demo\] SMS to (\S+): ([\s\S]*)$/.exec(line);
     if (match) sms.push({ to: match[1], text: match[2] });
     else rawLog(...args);
   };
@@ -430,11 +430,11 @@ async function run(): Promise<void> {
 
   // ── AC: status answers from actor SQL ──
   const status = await dispatchCmd(h, OWNER, "status");
-  const statusBody = (await status.json()) as { status?: string };
   await check("status replies from actor SQL", () => {
     assert(status.status === 200, `status ${status.status}`);
-    assert((statusBody.status ?? "").includes("Watch: https://demo-shop.example.com/pricing"), `unexpected status: ${statusBody.status}`);
-    assert((statusBody.status ?? "").includes("Baseline: not captured"), "baseline state missing before first run");
+    const smsText = h.sms.find((s) => s.text.startsWith("Watch: "))?.text ?? "";
+    assert(smsText.includes("Watch: https://demo-shop.example.com/pricing"), `unexpected status: ${smsText}`);
+    assert(smsText.includes("Baseline: not captured"), "baseline state missing before first run");
   });
 
   // ── AC: first scheduled run captures the baseline; stale_ref recovered in-run ──

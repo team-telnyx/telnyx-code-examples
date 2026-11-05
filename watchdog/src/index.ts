@@ -939,6 +939,16 @@ function actorRequest(path: string, body: unknown): Request {
 
 /* ------------------------- messaging webhook ------------------------- */
 
+/** Reply to an SMS command over the TELNYX binding (logged in demo mode). */
+async function replySms(env: Env, to: string, text: string): Promise<void> {
+if (!to) return;
+  if (await isDemo(env)) {
+console.log(`[demo] SMS to ${maskPhone(to)}: ${text}`);
+    return;
+  }
+  await env.TELNYX.messages.send({ to, from: (await setting(env, "FROM_NUMBER")) ?? "", text });
+}
+
 async function handleSmsWebhook(request: Request, env: Env): Promise<Response> {
   const raw = await request.text();
   const publicKey = await env.SECRETS.get("TELNYX_PUBLIC_KEY").catch(() => null);
@@ -1018,12 +1028,20 @@ export async function dispatchSmsCommand(env: Env, from: string, text: string): 
     const watch = await resolveWatchForCommand(env, from, undefined);
     if (watch && (await senderOwnsWatch(env, from, watch))) {
       const res = await env.WATCHDOG.idFromName(watch).fetch(actorRequest("/status", { from }));
-      return json(await res.json() as Record<string, unknown>, res.status);
+      const body = (await res.json()) as { status?: string; error?: string };
+      if (res.status === 200 && body.status) {
+        await replySms(env, from, body.status);
+        return json({ ok: true });
+      }
     }
-    return json({ received: true, commands: ["watch <url>", "status [url]", "recheck now [url]", "recheck <incident_id>"] }, 200);
+    await replySms(env, from, "Commands: watch <url> | status [url] | recheck now [url] | recheck <incident_id>");
+    return json({ received: true }, 200);
   }
   if (cmd.kind === "watch") {
-    if (!cmd.url) return json({ error: "usage: watch <url>" }, 400);
+    if (!cmd.url) {
+      await replySms(env, from, "Usage: watch <url>");
+      return json({ error: "usage: watch <url>" }, 400);
+    }
     let parsed: URL;
     try {
       parsed = new URL(cmd.url);
@@ -1035,17 +1053,31 @@ export async function dispatchSmsCommand(env: Env, from: string, text: string): 
     const denied = await authorizeForWatch(env, from, watch);
     if (denied) return denied;
     const res = await env.WATCHDOG.idFromName(watch).fetch(actorRequest("/arm", { url: parsed.toString(), owner: from }));
-    return json(await res.json() as Record<string, unknown>, res.status);
+    const armBody = (await res.json()) as Record<string, unknown>;
+    if (res.status !== 200 || armBody.error) {
+      await replySms(env, from, `Could not arm watch: ${String(armBody.error ?? res.status)}`);
+    }
+    return json(armBody, res.status);
   }
   const watch = await resolveWatchForCommand(env, from, cmd.url);
   if (!watch) {
-    return json({ error: cmd.kind === "status" ? "no watch found for this sender; send: watch <url>" : "usage: recheck now [url]" }, 404);
+    await replySms(env, from, cmd.kind === "status" ? "No watch found for you. Send: watch <url>" : "Usage: recheck now [url] or recheck <incident_id>");
+    return json({ error: "not_found" }, 404);
   }
   const denied = await authorizeForWatch(env, from, watch);
-  if (denied) return denied;
+  if (denied) {
+    await replySms(env, from, "Not authorized: only the watch's owner phone can send commands.");
+    return denied;
+  }
   if (cmd.kind === "status") {
     const res = await env.WATCHDOG.idFromName(watch).fetch(actorRequest("/status", { from }));
-    return json(await res.json() as Record<string, unknown>, res.status);
+    const body = (await res.json()) as { status?: string; error?: string };
+    if (res.status === 200 && body.status) {
+      await replySms(env, from, body.status);
+      return json({ ok: true });
+    }
+    await replySms(env, from, `Status unavailable: ${body.error ?? res.status}`);
+    return json(body as Record<string, unknown>, res.status);
   }
   const res = await env.WATCHDOG.idFromName(watch).fetch(actorRequest("/run", {
     from,
@@ -1053,7 +1085,11 @@ export async function dispatchSmsCommand(env: Env, from: string, text: string): 
     target_url: cmd.url,
     incident_id: cmd.incident_id,
   }));
-  return json(await res.json() as Record<string, unknown>, res.status);
+  const runBody = (await res.json()) as Record<string, unknown>;
+  if (res.status !== 200) {
+    await replySms(env, from, `Recheck failed: ${String(runBody.error ?? res.status)}`);
+  }
+  return json(runBody, res.status);
 }
 
 /* ------------------------------- worker ------------------------------- */
