@@ -274,18 +274,18 @@
   /* ───────── Demo controls ───────── */
   .demo { position: fixed; right: 20px; bottom: 16px; z-index: 20; display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border-strong); box-shadow: var(--shadow-lg); opacity: .5; transition: opacity .3s; }
   .demo:hover, .demo:focus-within { opacity: 1; }
-  .demo button, .demo select { font: inherit; font-size: 12px; color: var(--text-2); background: transparent; border: 0; border-radius: 7px; padding: 6px 10px; cursor: pointer; }
-  .demo button:hover, .demo select:hover { background: var(--surface-2); color: var(--text); }
+  .demo button { font: inherit; font-size: 12px; color: var(--text-2); background: transparent; border: 0; border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+  .demo button:hover { background: var(--surface-2); color: var(--text); }
   .demo button.primary { color: #fff; background: var(--navy); }
+  .demo button.secondary { border: 1px solid var(--border-strong); }
   .demo.hidden { display: none; }
   @media (min-width: 1181px) {
-    .demo { left: 14px; right: auto; width: 220px; justify-content: space-between; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); box-shadow: none; opacity: .75; }
-    .demo button, .demo select { color: #C9D4E5; padding: 6px 7px; white-space: nowrap; }
-    .demo select { width: 72px; }
+    .demo { left: 14px; right: auto; width: auto; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); box-shadow: none; opacity: .75; }
+    .demo button { color: #C9D4E5; padding: 6px 7px; white-space: nowrap; }
     .demo { gap: 2px; padding: 3px; }
-    .demo button:hover, .demo select:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .demo button:hover { background: rgba(255,255,255,0.08); color: #fff; }
     .demo button.primary { background: var(--gold); color: var(--navy); font-weight: 600; }
-    .demo select option { color: var(--text); }
+    .demo button.secondary { border-color: rgba(255,255,255,0.18); }
   }
   .side-foot.no-demo { margin-bottom: 4px; }
 
@@ -500,13 +500,8 @@
 </div>
 
 <div class="demo" id="demo">
-  <select id="scenario" aria-label="Scenario">
-    <option value="verified">Verified</option>
-    <option value="standard">Standard</option>
-    <option value="suspicious">Suspicious</option>
-  </select>
   <button class="primary" id="btnSim">&#9654; Simulate call</button>
-  <button id="btnReset">Reset</button>
+  <button class="secondary" id="btnReset">&#x21bb; Reset</button>
 </div>
 
 <script>
@@ -737,6 +732,7 @@
   }
   function reset() {
     run++;
+    sessionStorage.removeItem('simActive');
     typing(false);
     timerStop(); $('timer').textContent = '00:00';
     setStatus('idle');
@@ -755,10 +751,14 @@
 
   /* ───────────── Simulation ───────────── */
   let run = 0, speed = 1;
+  const SCENARIO_KEYS = Object.keys(SCENARIOS);
+  let simIndex = parseInt(sessionStorage.getItem('simIndex'), 10) || 0;
   const params = new URLSearchParams(location.search);
 
-  async function simulate(key = $('scenario').value) {
+  async function simulate(key = SCENARIO_KEYS[simIndex++ % SCENARIO_KEYS.length]) {
     reset();
+    sessionStorage.setItem('simIndex', simIndex);
+    sessionStorage.setItem('simActive', key);
     const id = run, d = SCENARIOS[key];
     const wait = (ms) => new Promise((res, rej) => setTimeout(() => (run === id ? res() : rej('cancelled')), ms * speed));
     try {
@@ -798,9 +798,7 @@
 
       if (params.get('demo') === 'auto') {
         await wait(8000);
-        const keys = Object.keys(SCENARIOS);
-        const next = keys[(keys.indexOf(key) + 1) % keys.length];
-        $('scenario').value = next; simulate(next);
+        simulate();
       }
     } catch (e) { /* run was reset or replaced */ }
   }
@@ -809,17 +807,19 @@
   $('btnReset').addEventListener('click', reset);
   $('btnEnd').addEventListener('click', () => { run++; const dur = endCall(); timeline(`Call ended by supervisor (${dur})`, 'gray'); });
   document.addEventListener('keydown', (e) => {
-    if (e.target.closest('select, input, textarea')) return;
+    if (e.target.closest('input, textarea')) return;
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); simulate(); }
     if (e.key === 'Escape') reset();
   });
 
   /* URL options: ?demo=auto · ?view=complete · ?scenario=verified|standard|suspicious · ?controls=0 */
+  const resumeKey = sessionStorage.getItem('simActive');
   reset();
   if (params.get('controls') === '0') { $('demo').classList.add('hidden'); document.querySelector('.side-foot').classList.add('no-demo'); }
-  if (SCENARIOS[params.get('scenario')]) $('scenario').value = params.get('scenario');
+  if (SCENARIOS[params.get('scenario')]) { simIndex = SCENARIO_KEYS.indexOf(params.get('scenario')); sessionStorage.setItem('simIndex', simIndex); }
   if (params.get('view') === 'complete') { speed = 0; simulate(); }
   else if (params.get('demo') === 'auto') setTimeout(() => simulate(), 2500);
+  else if (resumeKey && SCENARIOS[resumeKey]) { speed = 0; simulate(resumeKey).then(() => { speed = 1; }); }
 
   /* Public API for live wiring (Telnyx webhooks -> SSE -> these calls) */
   window.ApexDashboard = {
@@ -1057,7 +1057,7 @@
     } catch { /* initial load failed, SSE will catch up */ }
   }
 
-  recoverState();
+  if (!sessionStorage.getItem('simActive')) recoverState();
   connectSSE();
 })();
 </script>
