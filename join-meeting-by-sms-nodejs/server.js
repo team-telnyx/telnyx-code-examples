@@ -58,6 +58,18 @@ async function sendSms(text) {
 }
 
 /**
+ * Webex has no native meeting chat, and the API rejects chat_on_enter there
+ * with 422 unsupported_capability. Google Meet, Zoom, and Teams support it.
+ */
+function supportsChat(meetingUrl) {
+  try {
+    return !new URL(meetingUrl).hostname.endsWith("webex.com");
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Create the meeting session. The idempotency key is derived from the inbound
  * message ID so a webhook retry never puts a second bot in the meeting.
  */
@@ -65,10 +77,10 @@ async function joinMeeting(meetingUrl, messageId) {
   const params = {
     meeting_url: meetingUrl,
     bot_name: BOT_NAME,
-    chat_on_enter: CHAT_ON_ENTER,
     summarize_on_end: true,
     idempotency_key: `join-meeting-by-sms:${messageId}`,
   };
+  if (supportsChat(meetingUrl)) params.chat_on_enter = CHAT_ON_ENTER;
   if (ASSISTANT_ID) {
     params.assistant = { id: ASSISTANT_ID, audio_gate: "half_duplex", leave_on_end: true };
   }
@@ -119,12 +131,18 @@ async function watchSession(sessionId) {
       }
       if (TERMINAL.includes(session.status)) {
         if (session.status === "ended") {
-          const summary = await fetchSummary(sessionId);
-          await sendSms(
-            summary
-              ? `TL;DR: ${summary}`
-              : "The meeting ended, but the summary is not available. The transcript is still in your Telnyx account.",
-          );
+          // A session that timed out in the waiting room also ends as "ended",
+          // with joined_at null. Only a non-null joined_at proves the bot got in.
+          if (!session.joined_at) {
+            await sendSms("The meeting ended, but your bot was never admitted, so there are no notes.");
+          } else {
+            const summary = await fetchSummary(sessionId);
+            await sendSms(
+              summary
+                ? `TL;DR: ${summary}`
+                : "The meeting ended, but the summary is not available. The transcript is still in your Telnyx account.",
+            );
+          }
         }
         watchedSessions.delete(sessionId);
         return;
@@ -165,7 +183,11 @@ async function handleInboundMessage(payload) {
   try {
     const session = await joinMeeting(meetingUrl, payload.id);
     console.log(`[join] session=${session.id} status=${session.status}`);
-    await sendSms("On it. Your bot is joining now. I will text you when it is in and send a TL;DR after the meeting.");
+    await sendSms(
+      supportsChat(meetingUrl)
+        ? "On it. Your bot is joining now. I will text you when it is in and send a TL;DR after the meeting."
+        : "On it. Your bot is joining now. This platform has no meeting chat, so the bot cannot announce itself. Let the host know. I will text you when it is in.",
+    );
     if (!watchedSessions.has(session.id)) {
       watchedSessions.set(session.id, session.status);
       watchSession(session.id);
