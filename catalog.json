@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-11-03T19:14:32Z",
-  "example_count": 587,
+  "generated_at": "2026-11-04T22:04:36Z",
+  "example_count": 588,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5288,6 +5288,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/crew-cast"
+    },
+    {
+      "folder": "watchdog",
+      "title": "Browser Watchdog — Scheduled Web Checks With a Memory",
+      "description": "A durable Telnyx Edge actor that watches one web property, remembers what normal looks like, proves when it broke, and proves when it was fixed.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/watchdog"
     }
   ]
 }
