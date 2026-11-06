@@ -3380,6 +3380,12 @@ examples:
     folder: edge-call-transcription-agent
 
   - product: voice
+    use_case: ai-appointment-recovery-autocaller
+    language: nodejs
+    framework: express
+    folder: ai-appointment-recovery-autocaller-nodejs
+
+  - product: voice
     use_case: edge-customer-agent-typescript
     language: nodejs
     framework: edge
