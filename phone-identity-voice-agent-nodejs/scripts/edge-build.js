@@ -23,8 +23,11 @@ writeFileSync(
     {
       name: "phone-identity-voice-agent",
       version: pkg.version,
+      private: true,
       type: "module",
       main: "server.js",
+      scripts: { start: "node server.js" },
+      engines: { node: ">=22.0" },
       dependencies: {
         ...pkg.dependencies,
         "@telnyx/edge-runtime": "^0.16.0",

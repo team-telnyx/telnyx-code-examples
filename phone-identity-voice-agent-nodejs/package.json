@@ -11,7 +11,8 @@
     "start": "node server.js",
     "test": "node --test test/smoke.test.js test/server.test.js",
     "edge:build": "node scripts/edge-build.js",
-    "edge:ship": "npm run edge:build && telnyx-edge ship --from-dir=edge --timeout 25m"
+    "edge": "bash scripts/edge.sh",
+    "edge:ship": "npm run edge:build && npm run edge -- ship --from-dir=edge --timeout 25m"
   },
   "dependencies": {
     "express": "^5.1.0"

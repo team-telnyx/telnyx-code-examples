@@ -5,7 +5,8 @@
  * ------------------------------------------------------------------ */
 
 import express from "express";
-import { createServer } from "node:http";
+
+
 import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -346,9 +347,12 @@ function handleTranscription(payload) {
   console.log(`Transcript [${role}]: ${text.slice(0, 80)}`);
   ssePublish("transcript", { role, text });
 
-  // Detect when AI confirms verification is complete → unlock accounts on dashboard
-  if (role === "ai" && /\bverified\b/i.test(text)) {
-    console.log("Verification detected in AI speech — unlocking accounts");
+  // Detect when the AI confirms verification is complete → unlock accounts on
+  // dashboard.  We check ALL transcriptions regardless of the guessed role
+  // because the alternation heuristic can mislabel speakers; the verification
+  // phrase only ever comes from the AI so a false positive is extremely unlikely.
+  if (/\bverif(?:ied|ication)\b/i.test(text)) {
+    console.log("Verification detected in transcript — unlocking accounts");
     ssePublish("verification.complete", {});
   }
 }
@@ -407,8 +411,8 @@ app.get("/lookup/:phone", async (req, res) => {
   }
 });
 
-/** Health / readiness probe. */
-app.get("/health", (_req, res) => {
+/** Health / readiness probe (Edge checks /health/readiness). */
+app.get(["/health", "/health/{*path}"], (_req, res) => {
   res.json({
     status: "ok",
     edge: onEdge(),
@@ -418,13 +422,13 @@ app.get("/health", (_req, res) => {
 
 /* ── Start ─────────────────────────────────────────────────────────── */
 
-const HOST = setting("HOST") || "0.0.0.0";
-const PORT = parseInt(setting("PORT") || "3000", 10);
-const server = createServer(app);
+// PORT comes from the platform on Edge (not a PHONEID_ secret), so read it
+// directly from process.env rather than through setting().
+const PORT = Number(process.env.PORT || 3000);
 
-server.listen(PORT, HOST, () => {
+app.listen(PORT, () => {
   const phoneNumber = setting("TELNYX_PHONE_NUMBER") || "(not set)";
-  console.log(`Apex Bank AI Contact Center listening on http://${HOST}:${PORT}`);
+  console.log(`Apex Bank AI Contact Center listening on port ${PORT}`);
   console.log(`  Phone number: ${phoneNumber}`);
   console.log(`  AI Assistant: ${setting("TELNYX_ASSISTANT_ID") ? "configured" : "NOT configured"}`);
   console.log(`  Edge mode:    ${onEdge() ? "yes" : "no"}`);

@@ -895,9 +895,9 @@
     const es = new EventSource('/stream');
     console.log('SSE: connecting to /stream');
 
-    es.onopen = () => console.log('SSE: connected');
+    es.onopen = () => { console.log('SSE: connected'); recoverState(); };
 
-    es.onmessage = (e) => {
+    es.onmessage = async (e) => {
       let ev;
       try { ev = JSON.parse(e.data); } catch { return; }
 
@@ -907,6 +907,11 @@
           D.reset();
           D.incoming();
           D.timeline('Incoming call from ' + (ev.phone || 'unknown'), 'blue');
+          // Sync poll tracker so the interval doesn't re-trigger recovery
+          fetch('/api/state').then(r => r.json()).then(s => {
+            lastServerCallId = s.callControlId || null;
+            lastServerStatus = s.status;
+          }).catch(() => {});
           break;
 
         case 'lookup.started':
@@ -963,12 +968,23 @@
           D.message(ev.role === 'ai' ? 'ai' : 'caller', ev.text);
           break;
 
-        case 'verification.complete':
-          if (liveCallData) {
-            D.accounts({ ...liveCallData, access: 'full', customerSince: 'Verified this call' });
+        case 'verification.complete': {
+          // If liveCallData is missing (page was refreshed mid-call), rebuild
+          // from the server state so the unlock still works.
+          let lcd = liveCallData;
+          if (!lcd) {
+            try {
+              const r = await fetch('/api/state');
+              const s = await r.json();
+              if (s.identity) { lcd = mapIdentity(s.identity); liveCallData = lcd; }
+            } catch { /* ignore */ }
+          }
+          if (lcd) {
+            D.accounts({ ...lcd, access: 'full', customerSince: 'Verified this call' });
             D.timeline('Step-up verification passed', 'green', 'Identity confirmed by caller');
           }
           break;
+        }
 
         case 'state.reset':
           liveCallData = null;
@@ -984,7 +1000,31 @@
     };
   }
 
-  /** Recover mid-call state on page load via /api/state. */
+  /**
+   * Poll /api/state every 3 s so a real call always takes over the UI even
+   * when SSE events are missed (Edge multi-instance, dropped connections).
+   */
+  let lastServerStatus = 'idle';
+  let lastServerCallId = null;
+  setInterval(async () => {
+    try {
+      const resp = await fetch('/api/state');
+      const state = await resp.json();
+      const sid = state.callControlId || null;
+      // A new call arrived that the dashboard hasn't shown yet
+      if (state.status !== 'idle' && sid !== lastServerCallId) {
+        lastServerStatus = state.status;
+        lastServerCallId = sid;
+        D.reset();
+        recoverState();
+        return;
+      }
+      lastServerStatus = state.status;
+      lastServerCallId = sid;
+    } catch { /* network hiccup — skip */ }
+  }, 3000);
+
+  /** Recover mid-call state via /api/state (runs on load and SSE reconnect). */
   async function recoverState() {
     try {
       const resp = await fetch('/api/state');
@@ -996,10 +1036,13 @@
         D.incoming();
       }
 
-      // Step 2: If identity data exists, show it; otherwise advance to lookup if past incoming
+      // Step 2: If identity data exists, show it AND store liveCallData so
+      // verification.complete can unlock accounts later.
       if (state.identity) {
+        const mapped = mapIdentity(state.identity);
+        liveCallData = mapped;
         D.lookup();
-        D.identity(mapIdentity(state.identity));
+        D.identity(mapped);
       } else if (state.status !== 'incoming') {
         D.lookup();
       }
@@ -1058,10 +1101,10 @@
             break;
         }
       }
-    } catch { /* initial load failed, SSE will catch up */ }
+    } catch { /* initial load or recovery failed — SSE will catch up */ }
   }
 
-  if (!sessionStorage.getItem('simActive')) recoverState();
+  recoverState();
   connectSSE();
 })();
 </script>
