@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apex Bank · Contact Center</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230B2545'/><path d='M16 6l9 18H7L16 6Z' fill='%23C9A227'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F7FA;
+    --surface: #FFFFFF;
+    --surface-2: #F8FAFC;
+    --border: #E5E9F0;
+    --border-strong: #D5DCE6;
+    --text: #0F172A;
+    --text-2: #475569;
+    --text-3: #8492A6;
+
+    --navy: #0B2545;
+    --navy-2: #13315C;
+    --primary: #1D4ED8;
+    --primary-soft: #EEF3FF;
+    --gold: #C9A227;
+
+    --trusted: #15803D;   --trusted-rgb: 21,128,61;
+    --standard: #B45309;  --standard-rgb: 180,83,9;
+    --suspicious: #B91C1C;--suspicious-rgb: 185,28,28;
+    --info: #2563EB;
+
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.04);
+    --shadow-lg: 0 4px 24px -8px rgba(15,23,42,0.12);
+    --ease: cubic-bezier(.2,.8,.2,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font-family: var(--font-sans); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; overflow: hidden; font-size: 14px; }
+  button { font: inherit; }
+
+  .shell { display: grid; grid-template-columns: 248px 1fr; height: 100vh; }
+
+  /* ───────── Sidebar ───────── */
+  aside {
+    background: var(--navy); color: #C9D4E5;
+    display: flex; flex-direction: column; padding: 20px 14px;
+    background-image: radial-gradient(600px 300px at -20% -10%, rgba(255,255,255,0.08), transparent 60%);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; padding: 4px 10px 22px; }
+  .logo-mark { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; background: linear-gradient(135deg, #E8C766, var(--gold)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.4); }
+  .logo-mark svg { width: 18px; height: 18px; }
+  .logo b { display: block; color: #fff; font-size: 15px; letter-spacing: 0.14em; font-weight: 700; }
+  .logo span { display: block; font-size: 11px; color: #8FA3C0; letter-spacing: 0.02em; margin-top: 1px; }
+  .nav-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #6E84A6; padding: 14px 12px 8px; }
+  .nav a {
+    display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 8px;
+    color: #C9D4E5; text-decoration: none; font-size: 13.5px; font-weight: 500; cursor: default;
+  }
+  .nav a svg { width: 18px; height: 18px; flex: none; opacity: .8; }
+  .nav a:hover { background: rgba(255,255,255,0.05); }
+  .nav a.active { background: rgba(255,255,255,0.1); color: #fff; box-shadow: inset 3px 0 0 var(--gold); }
+  .nav a.active svg { opacity: 1; }
+  .nav .count { margin-left: auto; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.12); color: #fff; padding: 1px 7px; border-radius: 999px; }
+  .nav .live { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: #34D399; box-shadow: 0 0 0 3px rgba(52,211,153,0.2); }
+
+  /* ───────── Topbar ───────── */
+  .main { display: grid; grid-template-rows: 60px auto 1fr; min-width: 0; min-height: 0; }
+  .topbar { display: flex; align-items: center; gap: 16px; padding: 0 28px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .menu-btn { display: none; width: 36px; height: 36px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; place-items: center; }
+  .topbar-brand { display: flex; flex-direction: column; gap: 2px; }
+  .topbar-title { display: flex; align-items: center; gap: 14px; font-family: var(--font-mono); font-size: 13px; font-weight: 600; letter-spacing: 8px; text-transform: uppercase; color: var(--navy); white-space: nowrap; }
+  .topbar-powered { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-sans); font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--text-3); border-left: 1px solid var(--border); padding-left: 14px; }
+  .topbar-powered i { width: 7px; height: 7px; border-radius: 2px; background: #00C896; }
+  .topbar-powered strong { color: var(--text); font-weight: 600; }
+  .topbar-sub { font-family: var(--font-sans); font-size: 10px; font-weight: 400; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-3); white-space: nowrap; }
+  .top-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .icon-btn { position: relative; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; color: var(--text-2); }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .icon-btn .badge { position: absolute; top: 7px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: #EF4444; box-shadow: 0 0 0 2px var(--surface); }
+  .agent { display: flex; align-items: center; gap: 10px; padding-left: 14px; border-left: 1px solid var(--border); }
+  .agent-av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #DBEAFE, #BFDBFE); color: var(--navy); display: grid; place-items: center; font-weight: 600; font-size: 13px; position: relative; }
+  .agent-av::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px; border-radius: 50%; background: #22C55E; border: 2px solid var(--surface); }
+  .agent b { display: block; font-size: 13px; font-weight: 600; }
+  .agent span { display: block; font-size: 11.5px; color: var(--text-3); }
+
+  /* ───────── Page header ───────── */
+  .demo-banner { margin: 16px 28px 0; padding: 12px 16px; background: var(--primary-soft); border: 1px solid #CBD5F0; border-radius: 8px; }
+  .demo-banner p { font-size: 13px; line-height: 1.55; color: var(--text-2); }
+  .demo-banner b { color: var(--text); font-weight: 600; }
+
+  .page-head { display: flex; align-items: flex-end; gap: 20px; padding: 20px 28px 16px; }
+  .crumbs { font-size: 12.5px; color: var(--text-3); margin-bottom: 6px; }
+  .crumbs b { color: var(--text-2); font-weight: 500; }
+  .page-head h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; display: flex; align-items: center; gap: 12px; }
+  .ph-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  .status { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px 0 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--border); background: var(--surface); color: var(--text-2); transition: all .4s; }
+  .status-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--c, #94A3B8); }
+  .status-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--c, #94A3B8); opacity: 0; }
+  .status[data-state="idle"] .status-dot { animation: breathe 2.4s ease-in-out infinite; }
+  .status[data-state="incoming"]  { --c: var(--info); color: #1E40AF; background: #EFF6FF; border-color: #BFDBFE; }
+  .status[data-state="lookup"]    { --c: #4F46E5; color: #3730A3; background: #EEF2FF; border-color: #C7D2FE; }
+  .status[data-state="connected"] { --c: #16A34A; color: #166534; background: #F0FDF4; border-color: #BBF7D0; }
+  .status[data-state="ended"]     { --c: #94A3B8; }
+  .status[data-state="incoming"] .status-dot::after, .status[data-state="lookup"] .status-dot::after, .status[data-state="connected"] .status-dot::after { animation: ping 1.6s cubic-bezier(0,0,.2,1) infinite; }
+
+  .timer { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-family: var(--font-mono); font-size: 14px; font-weight: 500; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .timer svg { width: 15px; height: 15px; }
+  .timer.running { color: var(--text); }
+  .btn { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; box-shadow: var(--shadow); transition: opacity .3s, background .2s; }
+  .btn svg { width: 15px; height: 15px; }
+  .btn:hover { background: var(--surface-2); }
+  .btn.danger { background: #DC2626; border-color: #DC2626; color: #fff; }
+  .btn.danger:hover { background: #B91C1C; }
+  body[data-state="idle"] .call-actions .btn, body[data-state="ended"] .call-actions .btn { opacity: .45; pointer-events: none; }
+
+  /* ───────── Content grid ───────── */
+  .content { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 18px; padding: 0 28px 16px; min-height: 0; }
+  .col-left { display: flex; flex-direction: column; gap: 18px; min-height: 0; overflow-y: auto; scrollbar-width: thin; padding-bottom: 2px; }
+  .col-right { display: grid; grid-template-rows: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; min-height: 0; }
+  .col-left > .card { flex: none; }
+  .row-split { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; min-height: 0; }
+
+  .card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; min-height: 0; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .card-title { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); display: flex; align-items: center; gap: 8px; }
+  .card-title svg { width: 15px; height: 15px; color: var(--text-3); }
+  .card-meta { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+  .card-title { white-space: nowrap; }
+  .card-title .lt { margin-left: -4px; }
+  .card-body { padding: 18px; min-height: 0; }
+
+  /* ───────── Identity card ───────── */
+  .id-card { transition: box-shadow 1.2s var(--ease), border-color 1.2s var(--ease); --tc: var(--text-3); }
+  .id-card[data-trust="verified"]   { --tc: var(--trusted);    --tc-rgb: var(--trusted-rgb); }
+  .id-card[data-trust="standard"]   { --tc: var(--standard);   --tc-rgb: var(--standard-rgb); }
+  .id-card[data-trust="suspicious"] { --tc: var(--suspicious); --tc-rgb: var(--suspicious-rgb); }
+  .id-card[data-trust] { border-color: rgba(var(--tc-rgb),0.45); box-shadow: 0 0 0 3px rgba(var(--tc-rgb),0.08), 0 10px 30px -12px rgba(var(--tc-rgb),0.35); }
+  .id-card.ringing { animation: ring-border 1.4s ease-in-out infinite; }
+
+  .trust-badge { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--text-3); border: 1px dashed var(--border-strong); }
+  .trust-badge svg { width: 12px; height: 12px; display: none; }
+  .id-card[data-trust] .trust-badge { color: var(--tc); border: 1px solid rgba(var(--tc-rgb),0.3); background: rgba(var(--tc-rgb),0.08); animation: pop .5s var(--ease) both; }
+  .id-card[data-trust] .trust-badge svg { display: block; }
+
+  .id-top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .avatar { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 17px; font-weight: 600; color: var(--navy); background: #EEF2F7; border: 1px solid var(--border); transition: all .8s var(--ease); }
+  .id-card.idle .avatar { opacity: .6; }
+  .id-card[data-trust] .avatar { background: rgba(var(--tc-rgb),0.1); border-color: rgba(var(--tc-rgb),0.3); color: var(--tc); }
+  .id-who { min-width: 0; flex: 1; }
+  .cust-tag { display: none; font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
+
+  .field-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 6px; }
+  .val { display: none; }
+  .val.name { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .val.phone { font-family: var(--font-mono); font-size: 13px; color: var(--text-2); margin-top: 3px; }
+  .val.std { font-size: 15.5px; font-weight: 500; }
+  .val small { display: block; font-size: 12px; font-weight: 400; color: var(--text-3); margin-top: 2px; }
+
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; padding: 16px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); }
+
+  .skel { height: 12px; border-radius: 6px; background: linear-gradient(90deg, #EEF1F5 0%, #E1E6EE 50%, #EEF1F5 100%); background-size: 200% 100%; }
+  .skel.lg { height: 18px; width: 60%; }
+  .skel.sm { height: 10px; width: 38%; margin-top: 8px; }
+  .skel.md { width: 72%; height: 14px; }
+  .id-card.idle .skel { opacity: .7; }
+  .id-card.loading .skel { animation: shimmer 1.3s linear infinite; }
+  .id-card.revealed .skel { display: none; }
+  .id-card.revealed .val { display: block; animation: rise .55s var(--ease) both; animation-delay: calc(var(--i, 0) * 150ms); }
+
+  .meter { padding-top: 18px; }
+  .meter-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .meter-score { font-family: var(--font-mono); font-size: 28px; font-weight: 600; line-height: 1; color: var(--text-3); font-variant-numeric: tabular-nums; transition: color .6s; }
+  .meter-score span { font-size: 13px; font-weight: 400; color: var(--text-3); margin-left: 2px; }
+  .id-card[data-trust] .meter-score { color: var(--tc); }
+  .meter-track { position: relative; height: 8px; border-radius: 999px; background: #EDF0F5; overflow: hidden; }
+  .meter-track::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent calc(40% - 1px), #fff calc(40% - 1px), #fff calc(40% + 1px), transparent calc(40% + 1px), transparent calc(70% - 1px), #fff calc(70% - 1px), #fff calc(70% + 1px), transparent calc(70% + 1px)); }
+  .meter-fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, rgba(var(--tc-rgb, 132,146,166),0.55), var(--tc)); transition: width 1.5s var(--ease); }
+  .meter-scale { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--text-3); }
+  .meter-scale span:nth-child(2) { margin-left: 22%; }
+
+  /* ───────── Pills & chips ───────── */
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 7px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); animation: pop .5s var(--ease) both; animation-delay: calc(var(--i, 0) * 120ms); }
+  .pill .ic { width: 19px; height: 19px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .pill.pos .ic { background: #DCFCE7; color: var(--trusted); }
+  .pill.neg .ic { background: #FEE2E2; color: var(--suspicious); }
+  .pill.neu .ic { background: #F1F5F9; color: var(--text-2); }
+  .pill.neg { border-color: #FECACA; background: #FFFBFB; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 6px; font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); animation: rise .45s var(--ease) both; animation-delay: calc(var(--i, 0) * 80ms); }
+  .chip b { font-weight: 600; color: var(--text-3); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .chip code { font-family: var(--font-mono); font-size: 11.5px; color: var(--text); }
+  .placeholder { font-size: 13px; color: var(--text-3); }
+  .ghost-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ghost-pills i { display: block; height: 32px; border-radius: 999px; border: 1px dashed var(--border-strong); }
+
+  /* ───────── Conversation ───────── */
+  .convo .card-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 0; position: relative; }
+  .mode-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--primary); padding: 3px 10px; border-radius: 999px; background: var(--primary-soft); border: 1px solid #D6E0FB; opacity: 0; transform: translateY(-4px); transition: all .4s var(--ease); }
+  .mode-tag.show { opacity: 1; transform: none; }
+  .chat { flex: 1; overflow-y: auto; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; background: linear-gradient(180deg, #FBFCFE, #fff); }
+  .msg { max-width: 76%; display: flex; flex-direction: column; gap: 5px; }
+  .msg .meta { display: flex; gap: 8px; align-items: center; font-size: 11.5px; color: var(--text-3); }
+  .msg .meta strong { font-weight: 600; color: var(--text-2); }
+  .bubble { padding: 11px 15px; font-size: 14px; line-height: 1.55; border-radius: 14px; }
+  .msg.ai { align-self: flex-start; animation: in-left .45s var(--ease) both; }
+  .msg.ai .bubble { background: var(--primary-soft); border: 1px solid #DCE5FB; color: #172554; border-top-left-radius: 4px; }
+  .msg.caller { align-self: flex-end; align-items: flex-end; animation: in-right .45s var(--ease) both; }
+  .msg.caller .bubble { background: var(--navy); color: #F1F5F9; border-top-right-radius: 4px; }
+  .ai-av { width: 18px; height: 18px; border-radius: 5px; background: var(--primary); display: grid; place-items: center; }
+  .ai-av svg { width: 10px; height: 10px; }
+  .typing { align-self: flex-start; display: inline-flex; gap: 5px; padding: 13px 15px; border-radius: 14px; border-top-left-radius: 4px; background: var(--primary-soft); border: 1px solid #DCE5FB; animation: in-left .3s var(--ease) both; }
+  .typing i { width: 7px; height: 7px; border-radius: 50%; background: #6B8DE8; animation: bounce 1.2s infinite ease-in-out; }
+  .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+  .empty { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; color: var(--text-3); font-size: 13.5px; padding: 20px; }
+  .empty svg { width: 28px; height: 28px; }
+  body:not([data-state="idle"]) .convo:not(.has-msgs) .empty { display: flex; }
+
+  .hero { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; padding: 24px; opacity: 0; pointer-events: none; transition: opacity .5s var(--ease); background: var(--surface); border-radius: inherit; }
+  body[data-state="idle"] .hero { opacity: 1; pointer-events: auto; }
+  .phone-orb { position: relative; width: 92px; height: 92px; display: grid; place-items: center; margin-bottom: 6px; }
+  .phone-orb .core { position: relative; z-index: 2; width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(145deg, var(--navy-2), var(--navy)); box-shadow: 0 12px 30px -8px rgba(11,37,69,0.5); animation: wiggle 4s ease-in-out infinite; }
+  .phone-orb .core svg { width: 28px; height: 28px; }
+  .phone-orb .ring { position: absolute; inset: 12px; border-radius: 50%; border: 1.5px solid rgba(29,78,216,0.4); animation: ripple 3s cubic-bezier(.2,.6,.3,1) infinite; }
+  .phone-orb .ring:nth-child(2) { animation-delay: 1s; } .phone-orb .ring:nth-child(3) { animation-delay: 2s; }
+  .hero-kicker { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+  .hero h2 { font-size: 18px; font-weight: 500; color: var(--text-2); }
+  .hero h2 strong { display: block; margin-top: 6px; font-family: var(--font-mono); font-size: 30px; font-weight: 600; color: var(--navy); }
+  .awaiting { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-3); padding: 6px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+  .awaiting i { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: breathe 2.4s ease-in-out infinite; }
+  .queue-stats { display: flex; gap: 28px; margin-top: 10px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .queue-stats div { font-size: 11.5px; color: var(--text-3); }
+  .queue-stats b { display: block; font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 2px; font-variant-numeric: tabular-nums; }
+
+  /* ───────── Accounts ───────── */
+  .accounts .card-body { flex: 1; overflow-y: auto; padding: 8px 18px 14px; }
+  .acct { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border); animation: rise .45s var(--ease) both; animation-delay: calc(var(--i, 0) * 120ms); }
+  .acct:last-child { border-bottom: 0; }
+  .acct-ic { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; background: #EEF2F7; color: var(--navy); }
+  .acct-ic svg { width: 17px; height: 17px; }
+  .acct-name { font-size: 13.5px; font-weight: 500; }
+  .acct-name small { display: block; font-size: 12px; color: var(--text-3); font-weight: 400; font-family: var(--font-mono); margin-top: 1px; }
+  .acct-bal { text-align: right; font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .acct-bal small { display: block; font-size: 11.5px; font-weight: 400; color: var(--text-3); }
+  .acct.masked .acct-bal { color: var(--text-3); letter-spacing: 0.1em; }
+  .lock-note { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; line-height: 1.45; animation: rise .45s var(--ease) both; }
+  .lock-note svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+  .lock-note.warn { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+  .lock-note.bad { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+  .lock-note.ok { background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
+  .acct-empty { height: 100%; min-height: 120px; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+  .acct-empty .row { display: grid; grid-template-columns: 34px 1fr 70px; gap: 12px; align-items: center; }
+  .acct-empty .row i { display: block; height: 10px; border-radius: 5px; background: #EEF1F5; }
+  .acct-empty .row i:first-child { height: 34px; border-radius: 8px; }
+  .acct-empty p { font-size: 12.5px; color: var(--text-3); margin-top: 4px; }
+
+  /* ───────── Timeline ───────── */
+  .timeline .card-body { flex: 1; overflow-y: auto; padding: 12px 18px 14px; scroll-behavior: smooth; }
+  .tl { list-style: none; position: relative; }
+  .tl::before { content: ""; position: absolute; left: 4px; top: 10px; bottom: 10px; width: 1px; background: var(--border-strong); }
+  .tl li { position: relative; display: grid; grid-template-columns: 9px 1fr auto; gap: 12px; align-items: start; padding: 6px 0; animation: rise .4s var(--ease) both; }
+  .tl .dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; background: var(--d); box-shadow: 0 0 0 3px var(--surface); }
+  .tl .dot.green { --d: #16A34A; } .tl .dot.blue { --d: var(--info); } .tl .dot.yellow { --d: #D97706; }
+  .tl .dot.red { --d: #DC2626; } .tl .dot.gray { --d: #94A3B8; } .tl .dot.indigo { --d: #4F46E5; }
+  .tl .txt { font-size: 13px; line-height: 1.45; }
+  .tl .txt small { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
+  .tl time { font-family: var(--font-mono); font-size: 11px; color: var(--text-3); padding-top: 2px; }
+  .tl-empty { font-size: 13px; color: var(--text-3); }
+
+  .powered { display: flex; justify-content: center; gap: 10px; font-size: 11.5px; color: var(--text-3); padding: 0 28px 12px; grid-column: 1 / -1; }
+  .powered strong { color: var(--text-2); font-weight: 600; }
+
+  /* ───────── Demo controls ───────── */
+  .demo { display: flex; align-items: center; gap: 4px; }
+  .demo button { font: inherit; font-size: 12px; color: var(--text-2); background: transparent; border: 0; border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+  .demo button:hover { background: var(--surface-2); color: var(--text); }
+  .demo button.primary { color: #fff; background: var(--navy); }
+  .demo button.secondary { border: 1px solid var(--border-strong); }
+  .demo.hidden { display: none; }
+
+  /* ───────── Keyframes ───────── */
+  @keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { 0% { opacity: 0; transform: scale(0); } 65% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+  @keyframes in-left { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+  @keyframes in-right { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-5px); opacity: 1; } }
+  @keyframes breathe { 0%, 100% { opacity: .4; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.1); } }
+  @keyframes ping { 0% { transform: scale(1); opacity: .6; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+  @keyframes ripple { 0% { transform: scale(1); opacity: .8; } 100% { transform: scale(2.1); opacity: 0; } }
+  @keyframes wiggle { 0%, 82%, 100% { transform: rotate(0); } 85% { transform: rotate(-10deg); } 88% { transform: rotate(10deg); } 91% { transform: rotate(-6deg); } 94% { transform: rotate(4deg); } }
+  @keyframes ring-border {
+    0%, 100% { border-color: #BFDBFE; box-shadow: 0 0 0 0 rgba(37,99,235,0); }
+    50% { border-color: #3B82F6; box-shadow: 0 0 0 4px rgba(37,99,235,0.12), 0 10px 30px -10px rgba(37,99,235,0.35); }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+  /* ───────── Responsive ───────── */
+  @media (max-width: 1180px) {
+    .shell { grid-template-columns: 1fr; }
+    aside { display: none; }
+    .menu-btn { display: grid; }
+    .agent div { display: none; }
+  }
+  @media (max-width: 960px) {
+    body { overflow: auto; }
+    .shell, .main { height: auto; min-height: 100vh; display: block; }
+    .topbar { position: sticky; top: 0; z-index: 10; height: 60px; }
+    .page-head { flex-wrap: wrap; align-items: center; }
+    .ph-right { margin-left: 0; flex-wrap: wrap; }
+    .content { grid-template-columns: 1fr; }
+    .col-left { overflow: visible; }
+    .col-right { grid-template-rows: auto auto; }
+    .convo { height: 520px; }
+    .row-split { grid-template-columns: 1fr; }
+    .timeline, .accounts { max-height: 380px; }
+  }
+  @media (max-width: 600px) {
+    .topbar, .page-head, .content { padding-left: 16px; padding-right: 16px; }
+    .lt { display: none; }
+    .page-head h1 { font-size: 19px; }
+    .call-actions .btn span { display: none; }
+    .fields { grid-template-columns: 1fr; }
+    .msg { max-width: 88%; }
+    .hero h2 strong { font-size: 24px; }
+    .powered { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body data-state="idle">
+<div class="shell">
+
+  <!-- ───────── Sidebar ───────── -->
+  <aside>
+    <div class="logo">
+      <div class="logo-mark"><svg viewBox="0 0 16 16"><path d="M8 2.5 13.5 13.5h-3L8 8.3 5.5 13.5h-3L8 2.5Z" fill="#0B2545"/></svg></div>
+      <div><b>APEX BANK</b><span>Operations Console</span></div>
+    </div>
+    <nav class="nav">
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5Z"/></svg>Overview</a>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.4 3.4-5.5 6.5-5.5s5.7 2.1 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.6 3.5 5.2"/></svg>Customers</a>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg>Accounts &amp; Cards</a>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-3-3M17 17H4l3 3"/></svg>Payments</a>
+      <div class="nav-label">Service</div>
+      <a class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg>Contact Center<span class="live" title="Live"></span></a>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4V5Z"/></svg>Cases<span class="count">12</span></a>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>Fraud &amp; Risk<span class="count">3</span></a>
+      <div class="nav-label">Insights</div>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Reports</a>
+      <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>Settings</a>
+    </nav>
+  </aside>
+
+  <!-- ───────── Main ───────── -->
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-btn" aria-label="Menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="topbar-brand">
+        <div class="topbar-title">Phone Identity Intelligence</div>
+        <div class="topbar-sub">Number Lookup · Call Control · AI Assistants · Live Transcription</div>
+      </div>
+      <span class="topbar-powered"><i></i>Powered by <strong>Telnyx</strong></span>
+      <div class="top-right">
+        <div class="demo" id="demo">
+          <button class="primary" id="btnSim">&#9654; Simulate call</button>
+          <button class="secondary" id="btnReset">&#x21bb; Reset</button>
+        </div>
+        <div class="icon-btn" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="badge"></span></div>
+        <div class="agent">
+          <div class="agent-av">HS</div>
+          <div><b>Harpreet Seehra</b><span>Contact Center Supervisor</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-banner">
+      <p>This demo shows how <b>Telnyx Number Lookup</b> identifies callers before the AI answers. Call the number, and watch the dashboard verify your identity, assess risk, and personalize the AI assistant in real time — or click <b>Simulate Call</b> to see it with sample data.</p>
+    </div>
+
+    <div class="page-head">
+      <div>
+        <div class="crumbs">Contact Center <span>›</span> <b>Retail Banking Line</b></div>
+        <h1>Live call monitor
+          <span class="status" id="status" data-state="idle" role="status" aria-live="polite"><span class="status-dot"></span><span id="statusLabel">Awaiting Call</span></span>
+        </h1>
+      </div>
+      <div class="ph-right">
+        <div class="timer" id="timerBox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg><span id="timer">00:00</span></div>
+        <div class="call-actions" style="display:flex; gap:8px;">
+          <button class="btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg><span>Take over</span></button>
+          <button class="btn danger" type="button" id="btnEnd"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-2.6 0-5.1.6-7.3 1.7-.7.3-1 1-.9 1.7l.4 2.2c.1.6.7 1 1.3.9l2.9-.6c.5-.1.9-.6.9-1.1v-1.6a12 12 0 0 1 5.4 0v1.6c0 .5.4 1 .9 1.1l2.9.6c.6.1 1.2-.3 1.3-.9l.4-2.2c.1-.7-.2-1.4-.9-1.7A16 16 0 0 0 12 9Z"/></svg><span>End call</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- LEFT -->
+      <div class="col-left">
+        <section class="card id-card idle" id="idCard">
+          <div class="card-head">
+            <span class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="11" r="2.5"/><path d="M5.5 17c.6-1.8 2-2.8 3.5-2.8s2.9 1 3.5 2.8M15 9h3M15 13h3"/></svg>Caller Identity</span>
+            <span class="trust-badge"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="trustIcon"><path d="M2.5 6.2 5 8.5l4.5-5"/></svg><span id="trustLabel">PENDING</span></span>
+          </div>
+          <div class="card-body">
+            <div class="id-top">
+              <div class="avatar" id="avatar"></div>
+              <div class="id-who">
+                <div class="skel lg"></div><div class="skel sm"></div>
+                <div class="val name" id="fName" style="--i:0">—</div>
+                <div class="val phone" id="fPhone" style="--i:1">—</div>
+              </div>
+            </div>
+            <div class="fields">
+              <div><div class="field-label">Location</div><div class="skel md"></div><div class="val std" id="fLocation" style="--i:2">—</div></div>
+              <div><div class="field-label">Carrier</div><div class="skel md" style="width:58%"></div><div class="val std" id="fCarrier" style="--i:3">—</div></div>
+              <div><div class="field-label">Line Type</div><div class="skel md" style="width:48%"></div><div class="val std" id="fLine" style="--i:4">—</div></div>
+              <div><div class="field-label">Caller ID (CNAM)</div><div class="skel md" style="width:80%"></div><div class="val std" id="fCnam" style="--i:5">—</div></div>
+            </div>
+            <div class="meter">
+              <div class="meter-row"><span class="field-label" style="margin:0">Trust Score</span><span class="meter-score" id="score">--<span>/100</span></span></div>
+              <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+              <div class="meter-scale"><span>Suspicious</span><span>Standard</span><span>Verified</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <span class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/></svg>Risk Signals</span>
+            <span class="card-meta" id="riskMeta"></span>
+          </div>
+          <div class="card-body"><div class="pills" id="risk"></div></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <span class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h7"/></svg>Identity Signals</span>
+            <span class="card-meta" id="lookupMeta"></span>
+          </div>
+          <div class="card-body"><div class="chips" id="chips"></div></div>
+        </section>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="col-right">
+        <section class="card convo" id="convo">
+          <div class="card-head">
+            <span class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4V5Z"/></svg>AI Conversation<span class="lt"> · Live transcript</span></span>
+            <span class="mode-tag" id="modeTag"><svg width="11" height="11" viewBox="0 0 12 12"><path d="M6 1l1.3 3.2L10.5 5.5 7.3 6.8 6 10 4.7 6.8 1.5 5.5l3.2-1.3L6 1Z" fill="currentColor"/></svg><span id="modeLabel">Personalized mode</span></span>
+          </div>
+          <div class="card-body">
+            <div class="chat" id="chat" aria-live="polite"></div>
+            <div class="empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4V5Z"/></svg>
+              Conversation will appear here when the AI Assistant connects
+            </div>
+          </div>
+          <div class="hero">
+            <div class="phone-orb">
+              <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+              <div class="core"><svg viewBox="0 0 24 24" fill="#fff"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1L6.6 10.8Z"/></svg></div>
+            </div>
+            <div class="hero-kicker">Live demo</div>
+            <h2>Dial to start the demo<strong id="heroPhone">+1 (737) 427-0385</strong></h2>
+            <div class="awaiting"><i></i>Awaiting incoming call…</div>
+            <div class="queue-stats">
+              <div><b>0</b>In queue</div>
+              <div><b>&lt;1s</b>Avg. answer</div>
+              <div><b>94%</b>AI containment</div>
+            </div>
+          </div>
+        </section>
+
+        <div class="row-split">
+          <section class="card timeline">
+            <div class="card-head">
+              <span class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/></svg>Call Timeline</span>
+              <span class="card-meta" id="tlMeta"></span>
+            </div>
+            <div class="card-body" id="tlWrap">
+              <ul class="tl" id="tl"></ul>
+              <div class="tl-empty" id="tlEmpty">No call activity yet</div>
+            </div>
+          </section>
+          <section class="card accounts">
+            <div class="card-head">
+              <span class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>Accounts</span>
+              <span class="card-meta" id="acctMeta"></span>
+            </div>
+            <div class="card-body" id="accts"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  /* ───────────── Mock scenarios ───────────── */
+  const SCENARIOS = {
+    verified: {
+      phone: '+1 (512) 555-0147', masked: '+1 (512) ...47',
+      name: 'Sarah Johnson', first: 'Sarah',
+      location: 'Austin, TX', locationSub: 'United States · Central Time',
+      carrier: 'T-Mobile', carrierSub: 'Wireless · US',
+      line: 'Mobile', lineSub: 'Postpaid',
+      cnam: 'SARAH JOHNSON', score: 85,
+      risk: [['pos', 'High confidence (85)'], ['pos', 'Name on file'], ['pos', 'Mobile line'], ['pos', 'Address verified'], ['neg', 'Recently ported']],
+      chips: [['CNAM', 'SARAH JOHNSON'], ['Carrier', 'T-Mobile USA'], ['Line', 'mobile'], ['Ported', '34 days ago'], ['Country', 'US'], ['Lookup', '412 ms']],
+      access: 'full', customerSince: 'Since 2016 · Premier',
+      accounts: [
+        ['checking', 'Everyday Checking', '•••• 4582', '$3,247.89', 'Available'],
+        ['savings', 'High-Yield Savings', '•••• 9013', '$18,420.00', '4.10% APY'],
+        ['card', 'Apex Visa Signature', '•••• 7731', '$612.40', 'Current balance']
+      ],
+      mode: 'Personalized mode', aiMode: 'personalized mode', aiDetail: 'Greeting personalized with caller name',
+      convo: [
+        ['ai', "Good afternoon, Sarah. Thank you for calling Apex Bank. I can see you're calling from your registered number. How can I help you today?"],
+        ['caller', "Hi, I'd like to check my account balance please."],
+        ['ai', 'Of course, Sarah. Your checking account ending in 4582 has a current balance of $3,247.89. Would you like to hear about any recent transactions?'],
+        ['caller', "No that's all, thank you."],
+        ['ai', "You're welcome, Sarah. Have a wonderful day. Goodbye!"]
+      ]
+    },
+    standard: {
+      phone: '+1 (415) 555-0193', masked: '+1 (415) ...93',
+      name: 'Michael Chen', first: 'Michael',
+      location: 'San Francisco, CA', locationSub: 'United States · Pacific Time',
+      carrier: 'Verizon', carrierSub: 'Wireline · US',
+      line: 'Landline', lineSub: 'Residential',
+      cnam: 'M CHEN', score: 58,
+      risk: [['neu', 'Medium confidence (58)'], ['pos', 'Name on file'], ['neu', 'Landline'], ['pos', 'Not ported'], ['neg', 'Address unverified']],
+      chips: [['CNAM', 'M CHEN'], ['Carrier', 'Verizon'], ['Line', 'landline'], ['Ported', 'no'], ['Country', 'US'], ['Lookup', '388 ms']],
+      access: 'stepup', customerSince: 'Since 2021',
+      accounts: [
+        ['checking', 'Everyday Checking', '•••• 2207', '$1,904.12', 'Available'],
+        ['card', 'Apex Cash Rewards', '•••• 5528', '$412.50', 'Payment posted today']
+      ],
+      mode: 'Step-up verification', aiMode: 'step-up verification', aiDetail: 'Knowledge-based check required before account access',
+      convo: [
+        ['ai', 'Thank you for calling Apex Bank. Before I access your account, could you please confirm your date of birth?'],
+        ['caller', "Sure, it's March 3rd, 1985."],
+        ['ai', "Thank you, Michael, you're verified. How can I help you today?"],
+        ['caller', 'I wanted to make sure my credit card payment went through.'],
+        ['ai', 'It did. Your payment of $412.50 posted this morning. Is there anything else I can help with?'],
+        ['caller', "No, that's it. Thanks."],
+        ['ai', 'My pleasure, Michael. Have a great day!']
+      ]
+    },
+    suspicious: {
+      phone: '+1 (305) 555-0118', masked: '+1 (305) ...18',
+      name: 'Unknown Caller', first: null,
+      location: 'Miami, FL', locationSub: 'Differs from address on file',
+      carrier: 'VoIP Provider', carrierSub: 'Non-fixed VoIP',
+      line: 'VoIP', lineSub: 'Non-fixed',
+      cnam: 'Unavailable', score: 18,
+      risk: [['neg', 'Low confidence (18)'], ['neg', 'No name on file'], ['neg', 'Non-fixed VoIP'], ['neg', 'Recently ported'], ['neu', 'Location mismatch']],
+      chips: [['CNAM', 'UNAVAILABLE'], ['Carrier', 'VoIP'], ['Line', 'voip (non-fixed)'], ['Ported', '2 days ago'], ['Country', 'US'], ['Lookup', '455 ms']],
+      access: 'locked', customerSince: 'No profile match',
+      accounts: [],
+      mode: 'Restricted mode', aiMode: 'restricted mode', aiDetail: 'Sensitive actions blocked · fraud team on standby',
+      escalate: true,
+      convo: [
+        ['ai', "Thank you for calling Apex Bank. Before we continue, I'll need to verify your identity."],
+        ['caller', 'I need to wire five thousand dollars out of my account right now. It is urgent.'],
+        ['ai', "I understand this feels urgent. For your protection, wire transfers can't be started on this call. I'm connecting you with our security team now."]
+      ]
+    }
+  };
+
+  /* ───────────── Helpers ───────────── */
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const clock = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const trustOf = (s) => s >= 70 ? 'verified' : s >= 40 ? 'standard' : 'suspicious';
+  const TRUST_COLOR = { verified: 'green', standard: 'yellow', suspicious: 'red' };
+  const TRUST_ICON = { verified: '<path d="M2.5 6.2 5 8.5l4.5-5"/>', standard: '<path d="M6 3v3.5M6 8.6v.1"/>', suspicious: '<path d="M3 3l6 6M9 3 3 9"/>' };
+  const AI_AV = '<span class="ai-av"><svg viewBox="0 0 12 12" fill="#fff"><path d="M6 1l1.3 3.2L10.5 5.5 7.3 6.8 6 10 4.7 6.8 1.5 5.5l3.2-1.3L6 1Z"/></svg></span>';
+  const PERSON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8492A6" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" stroke-linecap="round"/></svg>';
+  const ACCT_ICON = {
+    checking: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>',
+    savings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9c1.2.5 2 1.7 2 3v2h-2l-1 3h-3v-2h-4v2H8l-1-3c-2-1-3-3-3-5a6 6 0 0 1 6-6h4c2 0 3.8 1.1 4.8 2.7"/><circle cx="15" cy="9" r=".6" fill="currentColor"/></svg>',
+    card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg>'
+  };
+  const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>';
+
+  const card = $('idCard'), chat = $('chat'), convo = $('convo');
+
+  /* ───────────── Status & timer ───────────── */
+  const LABELS = { idle: 'Awaiting Call', incoming: 'Incoming', lookup: 'Looking Up', connected: 'AI Connected', ended: 'Call Ended' };
+  function setStatus(state) {
+    $('status').dataset.state = state;
+    $('statusLabel').textContent = LABELS[state] || state;
+    document.body.dataset.state = state;
+  }
+  let tStart = 0, tInt = null;
+  const fmt = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+  function timerStart() {
+    timerStop(); tStart = Date.now(); $('timerBox').classList.add('running');
+    const tick = () => { $('timer').textContent = fmt(Math.floor((Date.now() - tStart) / 1000)); };
+    tick(); tInt = setInterval(tick, 250);
+  }
+  function timerStop() { clearInterval(tInt); tInt = null; $('timerBox').classList.remove('running'); return $('timer').textContent; }
+
+  /* ───────────── Timeline ───────────── */
+  function timeline(text, color = 'gray', detail) {
+    $('tlEmpty').style.display = 'none';
+    const li = el('li');
+    li.innerHTML = `<span class="dot ${color}"></span><div class="txt">${esc(text)}${detail ? `<small>${esc(detail)}</small>` : ''}</div><time>${clock()}</time>`;
+    $('tl').appendChild(li);
+    $('tlMeta').textContent = `${$('tl').children.length} events`;
+    const w = $('tlWrap'); w.scrollTop = w.scrollHeight;
+  }
+
+  /* ───────────── Conversation ───────────── */
+  let typingNode = null;
+  function typing(on) {
+    if (on && !typingNode) { typingNode = el('div', 'typing', '<i></i><i></i><i></i>'); chat.appendChild(typingNode); convo.classList.add('has-msgs'); }
+    else if (!on && typingNode) { typingNode.remove(); typingNode = null; }
+    chat.scrollTop = chat.scrollHeight;
+  }
+  function message(role, text) {
+    typing(false);
+    const m = el('div', `msg ${role}`);
+    const who = role === 'ai' ? `${AI_AV}<strong>Apex Assist</strong>` : '<strong>Caller</strong>';
+    m.innerHTML = `<div class="meta">${who}<span>${clock().slice(0, 5)}</span></div><div class="bubble">${esc(text)}</div>`;
+    chat.appendChild(m); convo.classList.add('has-msgs');
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  /* ───────────── Accounts ───────────── */
+  function accountsPlaceholder(text) {
+    $('accts').innerHTML = `<div class="acct-empty">
+      <div class="row"><i></i><i style="width:70%"></i><i></i></div>
+      <div class="row"><i></i><i style="width:55%"></i><i></i></div>
+      <p>${esc(text)}</p></div>`;
+    $('acctMeta').textContent = '';
+  }
+  function accounts(d) {
+    const box = $('accts'); box.innerHTML = '';
+    const masked = d.access !== 'full';
+    d.accounts.forEach(([type, name, num, bal, sub], i) => {
+      const r = el('div', `acct${masked ? ' masked' : ''}`);
+      r.style.setProperty('--i', i);
+      r.innerHTML = `<div class="acct-ic">${ACCT_ICON[type]}</div><div class="acct-name">${esc(name)}<small>${esc(num)}</small></div>
+        <div class="acct-bal">${masked ? '••••••' : esc(bal)}<small>${masked ? 'Hidden until verified' : esc(sub)}</small></div>`;
+      box.appendChild(r);
+    });
+    const notes = {
+      full: ['ok', CHECK, 'Caller matched to customer profile. Self-service unlocked for balance & transactions.'],
+      stepup: ['warn', LOCK, 'Balances hidden. AI Assistant is running step-up verification before account access.'],
+      locked: ['bad', LOCK, 'No profile match. All account actions blocked for this call; fraud team notified.']
+    };
+    const [cls, ic, txt] = notes[d.access];
+    box.appendChild(el('div', `lock-note ${cls}`, `${ic}<span>${txt}</span>`));
+    $('acctMeta').textContent = d.customerSince;
+  }
+  function unlockAccounts(d) { accounts({ ...d, access: 'full', customerSince: d.customerSince }); }
+
+  /* ───────────── Identity ───────────── */
+  function incoming() {
+    card.classList.remove('idle', 'revealed');
+    card.classList.add('ringing', 'loading');
+    setStatus('incoming');
+    accountsPlaceholder('Matching caller to customer profile…');
+  }
+  function lookup() { card.classList.remove('ringing'); card.classList.add('loading'); setStatus('lookup'); }
+  function countUp(node, to, ms) {
+    const start = performance.now();
+    const step = (now) => { const p = Math.min(1, (now - start) / ms); node.firstChild.nodeValue = String(Math.round(to * (1 - Math.pow(1 - p, 3)))); if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+  function identity(d) {
+    const trust = d.trust || trustOf(d.score);
+    $('fName').textContent = d.name;
+    $('fPhone').textContent = d.phone;
+    const sub = (v, s) => `${esc(v)}${s ? `<small>${esc(s)}</small>` : ''}`;
+    $('fLocation').innerHTML = sub(d.location, d.locationSub);
+    $('fCarrier').innerHTML = sub(d.carrier, d.carrierSub);
+    $('fLine').innerHTML = sub(d.line, d.lineSub);
+    $('fCnam').textContent = d.cnam;
+    $('avatar').textContent = d.first ? d.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2) : '?';
+
+    card.classList.remove('ringing', 'loading', 'idle');
+    void card.offsetWidth;
+    card.classList.add('revealed');
+
+    setTimeout(() => {
+      card.dataset.trust = trust;
+      $('trustLabel').textContent = trust.toUpperCase();
+      $('trustIcon').innerHTML = TRUST_ICON[trust];
+      $('meterFill').style.width = d.score + '%';
+      countUp($('score'), d.score, 1500);
+    }, 750);
+
+    const risk = $('risk'); risk.innerHTML = '';
+    const ICON = { pos: '\u2713', neg: '\u2717', neu: '\u25CB' };
+    (d.risk || []).forEach(([kind, text], i) => {
+      const p = el('span', `pill ${kind}`, `<span class="ic">${ICON[kind]}</span>${esc(text)}`);
+      p.style.setProperty('--i', i + 6); risk.appendChild(p);
+    });
+    $('riskMeta').textContent = `${(d.risk || []).filter(r => r[0] === 'pos').length}/${(d.risk || []).length} positive`;
+
+    const chips = $('chips'); chips.innerHTML = '';
+    (d.chips || []).forEach(([k, v], i) => {
+      const c = el('span', 'chip', `<b>${esc(k)}</b><code>${esc(v)}</code>`);
+      c.style.setProperty('--i', i + 10); chips.appendChild(c);
+    });
+    $('lookupMeta').textContent = 'Telnyx Number Lookup';
+    if (d.accounts) setTimeout(() => accounts(d), 900);
+    return trust;
+  }
+  function aiConnected(label) { setStatus('connected'); $('modeLabel').textContent = label || 'Personalized mode'; $('modeTag').classList.add('show'); }
+  function endCall() { typing(false); setStatus('ended'); return timerStop(); }
+
+  function idleLeft() {
+    $('avatar').innerHTML = PERSON;
+    $('risk').innerHTML = '<div class="ghost-pills"><i style="width:150px"></i><i style="width:118px"></i><i style="width:106px"></i><i style="width:134px"></i></div>';
+    $('chips').innerHTML = '<span class="placeholder">Signals populate after Number Lookup completes</span>';
+  }
+  function reset() {
+    run++;
+    sessionStorage.removeItem('simActive');
+    typing(false);
+    timerStop(); $('timer').textContent = '00:00';
+    setStatus('idle');
+    card.className = 'card id-card idle';
+    delete card.dataset.trust;
+    $('trustLabel').textContent = 'PENDING';
+    $('meterFill').style.width = '0';
+    $('score').firstChild.nodeValue = '--';
+    idleLeft();
+    $('riskMeta').textContent = ''; $('lookupMeta').textContent = '';
+    chat.innerHTML = ''; convo.classList.remove('has-msgs');
+    $('modeTag').classList.remove('show');
+    $('tl').innerHTML = ''; $('tlEmpty').style.display = ''; $('tlMeta').textContent = '';
+    accountsPlaceholder('Customer profile loads after the caller is identified');
+  }
+
+  /* ───────────── Simulation ───────────── */
+  let run = 0, speed = 1;
+  const SCENARIO_KEYS = Object.keys(SCENARIOS);
+  let simIndex = parseInt(sessionStorage.getItem('simIndex'), 10) || 0;
+  const params = new URLSearchParams(location.search);
+
+  async function simulate(key = SCENARIO_KEYS[simIndex++ % SCENARIO_KEYS.length]) {
+    reset();
+    sessionStorage.setItem('simIndex', simIndex);
+    sessionStorage.setItem('simActive', key);
+    const id = run, d = SCENARIOS[key];
+    const wait = (ms) => new Promise((res, rej) => setTimeout(() => (run === id ? res() : rej('cancelled')), ms * speed));
+    try {
+      await wait(400);
+      incoming();
+      timeline(`Incoming call from ${d.masked}`, 'blue', 'Retail Banking Line · +1 (737) 427-0385');
+      await wait(1500);
+      lookup();
+      timeline('Number Lookup started', 'indigo', 'caller-name · carrier · portability');
+      await wait(1700);
+      const trust = identity(d);
+      timeline(`Identity data received — ${d.name}`, 'green', `${d.carrier} · ${d.line} · ${d.location}`);
+      await wait(1100);
+      timeline(`Trust level: ${trust.toUpperCase()} (${d.score}/100)`, TRUST_COLOR[trust]);
+      await wait(900);
+      timeline('Call answered', 'blue');
+      timerStart();
+      await wait(700);
+      aiConnected(d.mode);
+      timeline(`AI Assistant connected — ${d.aiMode}`, trust === 'suspicious' ? 'red' : 'green', d.aiDetail);
+
+      for (let i = 0; i < d.convo.length; i++) {
+        const [role, text] = d.convo[i];
+        if (role === 'ai') { await wait(500); typing(true); await wait(Math.min(2400, 900 + text.length * 10)); }
+        else { await wait(Math.min(2800, 1000 + text.length * 22)); }
+        message(role, text);
+        if (d.access === 'stepup' && i === 2) {
+          timeline('Step-up verification passed', 'green', 'Date of birth confirmed');
+          unlockAccounts(d);
+        }
+      }
+      if (d.escalate) { await wait(900); timeline('Escalated to fraud team', 'red', 'Warm transfer · risk report attached'); }
+      await wait(1600);
+      let dur = endCall();
+      if (speed === 0) { dur = '01:23'; $('timer').textContent = dur; }
+      timeline(`Call ended (${dur})`, 'gray');
+
+      if (params.get('demo') === 'auto') {
+        await wait(8000);
+        simulate();
+      }
+    } catch (e) { /* run was reset or replaced */ }
+  }
+
+  $('btnSim').addEventListener('click', () => simulate());
+  $('btnReset').addEventListener('click', reset);
+  $('btnEnd').addEventListener('click', () => {
+    run++; const dur = endCall(); timeline(`Call ended by supervisor (${dur})`, 'gray');
+    fetch('/api/hangup', { method: 'POST' }).catch(() => {});
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest('input, textarea')) return;
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); simulate(); }
+    if (e.key === 'Escape') reset();
+  });
+
+  /* URL options: ?demo=auto · ?view=complete · ?scenario=verified|standard|suspicious · ?controls=0 */
+  const resumeKey = sessionStorage.getItem('simActive');
+  reset();
+  if (params.get('controls') === '0') { $('demo').classList.add('hidden'); }
+  if (SCENARIOS[params.get('scenario')]) { simIndex = SCENARIO_KEYS.indexOf(params.get('scenario')); sessionStorage.setItem('simIndex', simIndex); }
+  if (params.get('view') === 'complete') { speed = 0; simulate(); }
+  else if (params.get('demo') === 'auto') setTimeout(() => simulate(), 2500);
+  else if (resumeKey && SCENARIOS[resumeKey]) { speed = 0; simulate(resumeKey).then(() => { speed = 1; }); }
+
+  /* Public API for live wiring (Telnyx webhooks -> SSE -> these calls) */
+  window.ApexDashboard = {
+    setStatus, incoming, lookup, identity, accounts, aiConnected, typing, message, timeline, reset, simulate,
+    answered: () => timerStart(), end: endCall, scenarios: SCENARIOS
+  };
+})();
+
+/* ───────────── SSE Integration — live Telnyx webhook events ───────────── */
+(function sseIntegration() {
+  const D = window.ApexDashboard;
+  if (!D) return;
+
+  const MODE_LABELS = {
+    trusted: 'Personalized mode',
+    standard: 'Step-up verification',
+    suspicious: 'Restricted mode',
+  };
+
+  /** Map server's buildIdentityCard format to the design's identity() parameter format. */
+  function mapIdentity(id) {
+    const trust = id.trustLevel === 'trusted' ? 'verified'
+                : id.trustLevel === 'suspicious' ? 'suspicious'
+                : 'standard';
+
+    const phone = id.phone || '';
+    const masked = phone.length >= 8
+      ? phone.slice(0, 8) + '...' + phone.slice(-2)
+      : phone;
+    const firstName = id.name ? id.name.split(/\s+/)[0] : null;
+
+    // Map factors: { signal, value, impact } -> [kind, text]
+    const risk = (id.factors || []).map(f => {
+      const kind = f.impact === 'positive' ? 'pos'
+                 : f.impact === 'negative' ? 'neg'
+                 : 'neu';
+      const text = f.value != null ? `${f.signal} (${f.value})` : f.signal;
+      return [kind, text];
+    });
+
+    const chips = [
+      ['CNAM', id.cnam || 'N/A'],
+      ['Carrier', id.carrier || 'N/A'],
+      ['Line', id.lineType || 'N/A'],
+      ['Ported', id.ported || 'N/A'],
+      ['Confidence', id.confidence != null ? String(id.confidence) : 'N/A'],
+    ];
+
+    const access = trust === 'verified' ? 'full' : 'stepup';
+
+    // Demo always shows accounts — same mock data as the simulation scenarios
+    const demoAccounts = [
+      ['checking', 'Everyday Checking', '•••• 4582', '$3,247.89', 'Available'],
+      ['savings', 'High-Yield Savings', '•••• 9013', '$18,420.00', '4.10% APY'],
+      ['card', 'Apex Visa Signature', '•••• 7731', '$612.40', 'Current balance']
+    ];
+
+    return {
+      phone, masked,
+      name: id.name || 'Unknown Caller',
+      first: firstName,
+      location: id.location || 'Unknown',
+      carrier: id.carrier || 'Unknown',
+      line: id.lineType || 'Unknown',
+      cnam: id.cnam || 'N/A',
+      score: id.trustScore ?? 0,
+      trust,
+      risk,
+      chips,
+      access,
+      accounts: demoAccounts,
+      customerSince: trust === 'verified' ? 'Since 2016 · Premier' : 'Verification pending',
+    };
+  }
+
+  function formatDuration(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  /** Connect to the server's SSE /stream endpoint. */
+  let liveCallData = null; // stores mapped identity for live calls (used to unlock accounts)
+
+  function connectSSE() {
+    const es = new EventSource('/stream');
+    console.log('SSE: connecting to /stream');
+
+    es.onopen = () => { console.log('SSE: connected'); recoverState(); };
+
+    es.onmessage = async (e) => {
+      let ev;
+      try { ev = JSON.parse(e.data); } catch { return; }
+
+      switch (ev.type) {
+        case 'call.incoming':
+          liveCallData = null;
+          D.reset();
+          D.incoming();
+          D.timeline('Incoming call from ' + (ev.phone || 'unknown'), 'blue');
+          // Sync poll tracker so the interval doesn't re-trigger recovery
+          fetch('/api/state').then(r => r.json()).then(s => {
+            lastServerCallId = s.callControlId || null;
+            lastServerStatus = s.status;
+          }).catch(() => {});
+          break;
+
+        case 'lookup.started':
+          D.lookup();
+          D.timeline('Number Lookup started', 'indigo', 'caller-name \u00b7 carrier \u00b7 portability');
+          break;
+
+        case 'lookup.complete': {
+          const id = ev.identity || {};
+          const mapped = mapIdentity(id);
+          liveCallData = mapped;
+          D.identity(mapped);
+          const parts = [id.carrier, id.lineType, id.location].filter(Boolean).join(' \u00b7 ');
+          D.timeline('Identity data received \u2014 ' + (id.name || 'Unknown'), 'green', parts);
+          break;
+        }
+
+        case 'risk.assessed': {
+          const trust = ev.level === 'trusted' ? 'VERIFIED'
+                      : ev.level === 'suspicious' ? 'SUSPICIOUS'
+                      : 'STANDARD';
+          const color = ev.level === 'trusted' ? 'green'
+                      : ev.level === 'suspicious' ? 'red'
+                      : 'yellow';
+          D.timeline('Trust level: ' + trust + ' (' + ev.score + '/100)', color);
+          break;
+        }
+
+        case 'call.answered':
+          D.answered();
+          D.timeline('Call answered', 'blue');
+          break;
+
+        case 'ai.starting':
+          D.timeline('AI Assistant launching', 'blue', 'Mode: ' + (MODE_LABELS[ev.mode] || ev.mode));
+          break;
+
+        case 'ai.started':
+        case 'ai.connected':
+          D.aiConnected(MODE_LABELS[ev.mode] || ev.mode || 'Standard mode');
+          D.timeline('AI Assistant connected', 'green', MODE_LABELS[ev.mode] || ev.mode);
+          break;
+
+        case 'ai.error':
+          D.timeline('AI error: ' + (ev.message || 'unknown'), 'red');
+          break;
+
+        case 'call.ended':
+          D.end();
+          D.timeline('Call ended' + (ev.duration ? ' (' + formatDuration(ev.duration) + ')' : ''), 'gray', ev.reason || '');
+          break;
+
+        case 'transcript':
+          D.message(ev.role === 'ai' ? 'ai' : 'caller', ev.text);
+          break;
+
+        case 'verification.complete': {
+          // If liveCallData is missing (page was refreshed mid-call), rebuild
+          // from the server state so the unlock still works.
+          let lcd = liveCallData;
+          if (!lcd) {
+            try {
+              const r = await fetch('/api/state');
+              const s = await r.json();
+              if (s.identity) { lcd = mapIdentity(s.identity); liveCallData = lcd; }
+            } catch { /* ignore */ }
+          }
+          if (lcd) {
+            D.accounts({ ...lcd, access: 'full', customerSince: 'Verified this call' });
+            D.timeline('Step-up verification passed', 'green', 'Identity confirmed by caller');
+          }
+          break;
+        }
+
+        case 'state.reset':
+          liveCallData = null;
+          D.reset();
+          break;
+      }
+    };
+
+    es.onerror = () => {
+      console.log('SSE: connection lost, reconnecting in 3s');
+      es.close();
+      setTimeout(connectSSE, 3000);
+    };
+  }
+
+  /**
+   * Poll /api/state every 3 s so a real call always takes over the UI even
+   * when SSE events are missed (Edge multi-instance, dropped connections).
+   */
+  let lastServerStatus = 'idle';
+  let lastServerCallId = null;
+  setInterval(async () => {
+    try {
+      const resp = await fetch('/api/state');
+      const state = await resp.json();
+      const sid = state.callControlId || null;
+      // A new call arrived that the dashboard hasn't shown yet
+      if (state.status !== 'idle' && sid !== lastServerCallId) {
+        lastServerStatus = state.status;
+        lastServerCallId = sid;
+        D.reset();
+        recoverState();
+        return;
+      }
+      lastServerStatus = state.status;
+      lastServerCallId = sid;
+    } catch { /* network hiccup — skip */ }
+  }, 3000);
+
+  /** Recover mid-call state via /api/state (runs on load and SSE reconnect). */
+  async function recoverState() {
+    try {
+      const resp = await fetch('/api/state');
+      const state = await resp.json();
+      if (state.status === 'idle') return;
+
+      // Step 1: Show incoming call state
+      if (state.phone) {
+        D.incoming();
+      }
+
+      // Step 2: If identity data exists, show it AND store liveCallData so
+      // verification.complete can unlock accounts later.
+      if (state.identity) {
+        const mapped = mapIdentity(state.identity);
+        liveCallData = mapped;
+        D.lookup();
+        D.identity(mapped);
+      } else if (state.status !== 'incoming') {
+        D.lookup();
+      }
+
+      // Step 3: Set correct final status
+      switch (state.status) {
+        case 'answered':
+          D.answered();
+          break;
+        case 'ai_connected':
+          D.answered();
+          D.aiConnected(MODE_LABELS[state.identity?.trustLevel] || state.identity?.trustLevel || 'Standard mode');
+          break;
+        case 'ended':
+          D.end();
+          break;
+        // 'incoming' and 'lookup' are already set by the calls above
+      }
+
+      // Replay events to timeline
+      for (const ev of state.events || []) {
+        switch (ev.type) {
+          case 'call.incoming':
+            D.timeline('Incoming call from ' + (ev.phone || 'unknown'), 'blue');
+            break;
+          case 'lookup.started':
+            D.timeline('Number Lookup started', 'indigo');
+            break;
+          case 'lookup.complete':
+            D.timeline('Identity data received', 'green');
+            break;
+          case 'risk.assessed': {
+            const trust = ev.level === 'trusted' ? 'VERIFIED'
+                        : ev.level === 'suspicious' ? 'SUSPICIOUS'
+                        : 'STANDARD';
+            const color = ev.level === 'trusted' ? 'green'
+                        : ev.level === 'suspicious' ? 'red'
+                        : 'yellow';
+            D.timeline('Trust level: ' + trust + ' (' + ev.score + '/100)', color);
+            break;
+          }
+          case 'call.answered':
+            D.timeline('Call answered', 'blue');
+            break;
+          case 'ai.starting':
+            D.timeline('AI Assistant launching', 'blue');
+            break;
+          case 'ai.started':
+            D.timeline('AI Assistant connected', 'green');
+            break;
+          case 'ai.error':
+            D.timeline('AI error: ' + (ev.message || 'unknown'), 'red');
+            break;
+          case 'call.ended':
+            D.timeline('Call ended', 'gray');
+            break;
+        }
+      }
+    } catch { /* initial load or recovery failed — SSE will catch up */ }
+  }
+
+  recoverState();
+  connectSSE();
+})();
+</script>
+</body>
+</html>
