@@ -388,6 +388,19 @@ app.get("/api/state", (_req, res) => {
   res.json(callState);
 });
 
+/** Hang up the live call (supervisor end-call button). */
+app.post("/api/hangup", async (_req, res) => {
+  const ccid = callState.callControlId;
+  if (!ccid) return res.json({ ok: false, reason: "no active call" });
+  try {
+    await callControlAction(ccid, "hangup");
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Supervisor hangup failed:", err.message);
+    res.status(500).json({ ok: false, reason: err.message });
+  }
+});
+
 /** Reset state (for re-recording demo). */
 app.post("/api/reset", (_req, res) => {
   callState = freshState();

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Apex Bank · Contact Center</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230B2545'/><path d='M16 6l9 18H7L16 6Z' fill='%23C9A227'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -87,6 +88,10 @@
   .agent span { display: block; font-size: 11.5px; color: var(--text-3); }
 
   /* ───────── Page header ───────── */
+  .demo-banner { margin: 16px 28px 0; padding: 12px 16px; background: var(--primary-soft); border: 1px solid #CBD5F0; border-radius: 8px; }
+  .demo-banner p { font-size: 13px; line-height: 1.55; color: var(--text-2); }
+  .demo-banner b { color: var(--text); font-weight: 600; }
+
   .page-head { display: flex; align-items: flex-end; gap: 20px; padding: 20px 28px 16px; }
   .crumbs { font-size: 12.5px; color: var(--text-3); margin-bottom: 6px; }
   .crumbs b { color: var(--text-2); font-weight: 500; }
@@ -371,6 +376,10 @@
           <div><b>Harpreet Seehra</b><span>Contact Center Supervisor</span></div>
         </div>
       </div>
+    </div>
+
+    <div class="demo-banner">
+      <p>This demo shows how <b>Telnyx Number Lookup</b> identifies callers before the AI answers. Call the number, and watch the dashboard verify your identity, assess risk, and personalize the AI assistant in real time — or click <b>Simulate Call</b> to see it with sample data.</p>
     </div>
 
     <div class="page-head">
@@ -792,7 +801,10 @@
 
   $('btnSim').addEventListener('click', () => simulate());
   $('btnReset').addEventListener('click', reset);
-  $('btnEnd').addEventListener('click', () => { run++; const dur = endCall(); timeline(`Call ended by supervisor (${dur})`, 'gray'); });
+  $('btnEnd').addEventListener('click', () => {
+    run++; const dur = endCall(); timeline(`Call ended by supervisor (${dur})`, 'gray');
+    fetch('/api/hangup', { method: 'POST' }).catch(() => {});
+  });
   document.addEventListener('keydown', (e) => {
     if (e.target.closest('input, textarea')) return;
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); simulate(); }
