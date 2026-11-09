@@ -387,9 +387,113 @@ async function callControlAction(ccid, action, extraBody = {}) {
 
 /* ── API routes ────────────────────────────────────────────────────── */
 
+/**
+ * Cross-instance call detection for Edge.
+ * When webhooks land on a different Edge instance than the dashboard,
+ * this instance's callState is idle.  We fall back to the Telnyx Call
+ * Control API to detect active calls, then run our own Number Lookup
+ * so the dashboard still lights up.  The lookup result is cached per
+ * call_control_id so we only hit the API once per call.
+ */
+let remoteCallCache = null; // { ccid, state, ts }
+
+async function detectRemoteCall() {
+  const phone = setting("TELNYX_PHONE_NUMBER");
+  const key = setting("TELNYX_API_KEY");
+  if (!phone || !key) return null;
+
+  // If we have a recent cache, return it (refresh every 4 s)
+  if (remoteCallCache && Date.now() - remoteCallCache.ts < 4_000) {
+    return remoteCallCache.state;
+  }
+
+  try {
+    const resp = await fetch(`${API}/calls`, {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(3_000),
+    });
+    if (!resp.ok) return null;
+
+    const body = await resp.json();
+    const calls = body.data || [];
+    // Find a live call involving our phone number
+    const active = calls.find(
+      (c) => c.is_alive && (c.to === phone || c.from === phone)
+    );
+
+    if (!active) {
+      // No active call — if we had a cached one, mark it ended
+      if (remoteCallCache) {
+        const ended = { ...remoteCallCache.state, status: "ended" };
+        remoteCallCache = null;
+        return ended;
+      }
+      return null;
+    }
+
+    const ccid = active.call_control_id;
+    const from =
+      active.to === phone ? active.from : active.to === phone ? active.from : active.from;
+
+    // Already cached for this call — just bump timestamp
+    if (remoteCallCache && remoteCallCache.ccid === ccid) {
+      remoteCallCache.ts = Date.now();
+      return remoteCallCache.state;
+    }
+
+    // New call — run Number Lookup once
+    console.log(`[remote-detect] Active call found: ${from} → ${phone} (ccid: ${ccid})`);
+    let lookupData;
+    try {
+      lookupData = await numberLookup(from);
+    } catch {
+      lookupData = { phone_number: from, carrier: {}, caller_name: {}, portability: {} };
+    }
+
+    const risk = assessRisk(lookupData);
+    const identity = buildIdentityCard(from, lookupData, risk);
+    const dynamicVars = buildDynamicVars(lookupData, risk);
+
+    const state = {
+      status: "ai_connected",
+      phone: from,
+      callControlId: ccid,
+      callStartedAt: active.start_time || new Date().toISOString(),
+      identity,
+      dynamicVars,
+      events: [
+        { type: "call.incoming", ts: active.start_time || new Date().toISOString(), phone: from },
+        { type: "lookup.started", ts: new Date().toISOString(), phone: from },
+        { type: "lookup.complete", ts: new Date().toISOString(), identity },
+        { type: "risk.assessed", ts: new Date().toISOString(), score: risk.score, level: risk.level, factors: risk.factors },
+        { type: "call.answered", ts: new Date().toISOString() },
+        { type: "ai.started", ts: new Date().toISOString(), mode: risk.level },
+      ],
+    };
+
+    remoteCallCache = { ccid, state, ts: Date.now() };
+    return state;
+  } catch (err) {
+    console.error("[remote-detect] error:", err.message);
+    return null;
+  }
+}
+
 /** Current state snapshot for dashboard initial load. */
-app.get("/api/state", (_req, res) => {
+app.get("/api/state", async (_req, res) => {
   res.set("Cache-Control", "no-store, no-cache, max-age=0");
+
+  // This instance owns the call — return immediately
+  if (callState.status !== "idle") {
+    return res.json(callState);
+  }
+
+  // Edge fallback: check Telnyx API for a call on a different instance
+  if (onEdge()) {
+    const remote = await detectRemoteCall();
+    if (remote) return res.json(remote);
+  }
+
   res.json(callState);
 });
 
