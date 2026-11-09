@@ -457,13 +457,18 @@ async function handleSms(req: Request, env: Env): Promise<Response> {
     return json({ received: true, rota: maskPhone(state.number) }, 200);
   }
 
-  const patient = text.match(/^PATIENT\s+([a-z0-9][a-z0-9-]{1,63})\s+([\s\S]+)$/i);
-  if (patient && E164_RE.test(from)) {
-    const handle = patient[1].toLowerCase();
-    const nurse = env.NURSES.idFromName(handle) as unknown as NurseStub;
-    const reply = await nurse.chat({ patientId: handle, text: patient[2].trim() });
-    await sendSms(env, from, reply.content);
-    return json({ received: true, replied: true }, 200);
+  // Deterministic split (no backtracking on uncontrolled SMS text — CodeQL ReDoS):
+  // "PATIENT <handle> <message…>" where handle is 2-64 chars [a-z0-9-].
+  if (/^PATIENT(\s|$)/i.test(text)) {
+    const rest = text.replace(/^PATIENT\s+/i, "");
+    const sp = rest.indexOf(" ");
+    const handle = sp > 0 ? rest.slice(0, sp).toLowerCase() : "";
+    if (sp > 0 && /^[a-z0-9][a-z0-9-]{1,63}$/.test(handle) && E164_RE.test(from)) {
+      const nurse = env.NURSES.idFromName(handle) as unknown as NurseStub;
+      const reply = await nurse.chat({ patientId: handle, text: rest.slice(sp + 1).trim() });
+      await sendSms(env, from, reply.content);
+      return json({ received: true, replied: true }, 200);
+    }
   }
   return json({ received: true, ignored: true }, 200);
 }
