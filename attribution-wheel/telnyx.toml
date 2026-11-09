@@ -1,0 +1,25 @@
+name = "attribution-wheel"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "WHEELS"
+type = "AttributionWheel"
+
+[telnyx]
+binding = "TELNYX"
+
+[storage.sqldb.WHEEL_DB]
+id = "<sqldb-namespace-uuid>"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[env_vars]
+DEMO_MODE = "true"
+ALERT_SHARE_PCT = "40"
+SPIKE_MULTIPLE = "2.0"
+AI_GATEWAY_MODEL = "Kimi-K3"
+ONCALL_E164 = "+1555XXXXXXXX"
+DEMO_TELNYX_NUMBER = "+1555XXXXXXXX"
