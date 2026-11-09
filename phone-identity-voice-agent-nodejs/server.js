@@ -81,14 +81,18 @@ function ssePublish(eventType, data) {
 app.get("/stream", (req, res) => {
   res.set({
     "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
+    "Cache-Control": "no-cache, no-store",
+    "Connection": "keep-alive",
     "X-Accel-Buffering": "no",
   });
   res.flushHeaders();
+  // Send an immediate comment + heartbeat so Edge proxies start streaming
+  res.write(`: connected ${new Date().toISOString()}\n\n`);
   subscribers.push(res);
+  // 15 s keepalive — short enough to survive Edge proxy idle timeouts
   const keepalive = setInterval(() => {
     try { res.write(": keepalive\n\n"); } catch { /* closed */ }
-  }, 30_000);
+  }, 15_000);
   req.on("close", () => {
     clearInterval(keepalive);
     const idx = subscribers.indexOf(res);
@@ -385,6 +389,7 @@ async function callControlAction(ccid, action, extraBody = {}) {
 
 /** Current state snapshot for dashboard initial load. */
 app.get("/api/state", (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, max-age=0");
   res.json(callState);
 });
 
