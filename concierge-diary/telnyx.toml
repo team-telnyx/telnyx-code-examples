@@ -1,0 +1,28 @@
+name = "concierge-diary"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# One durable diary entry per conversation.
+[[actors]]
+binding = "DIARY"
+type    = "DiaryActor"
+
+# Used only in live mode (DEMO_MODE=false) for the scheduled-events REST calls.
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+# Zero-credential Telnyx API binding, used for the "your callback is booked" SMS.
+[telnyx]
+binding = "TELNYX"
+
+# Diary table: (conversation_id, patient, callback_at, status, event_id).
+[storage.sqldb.DIARY_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+TELNYX_ASSISTANT_ID = "<your_assistant_id>"
+TELNYX_FROM_NUMBER  = "+1555XXXXXXXX"
+CLINIC_NAME         = "Northside Imaging"
+DEMO_MODE           = "true"
+DIARY_SWEEP_SECONDS = "120"
