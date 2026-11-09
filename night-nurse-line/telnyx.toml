@@ -1,0 +1,41 @@
+name = "night-nurse-line"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# One durable NightNurse actor per patient handle (env.NURSES.idFromName("maya-481")).
+[[actors]]
+binding = "NURSES"
+type = "NightNurse"
+
+# Single-purpose on-call rota desk (env.ROTAS.idFromName("oncall")).
+[[actors]]
+binding = "ROTAS"
+type = "RotaDesk"
+
+# Relay-side clinic desk: clinic-wide ledger + the daily handoff SMS.
+[[actors]]
+binding = "CLINIC"
+type = "ClinicDesk"
+
+# Zero-credential Telnyx API binding (messages.send).
+[telnyx]
+binding = "TELNYX"
+
+# Shared agent SQL: patient_chart, sessions, pages, rota.
+[storage.sqldb.CLINIC_DB]
+id = "<sqldb-namespace-uuid>"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[env_vars]
+NIGHT_NURSE_ASSISTANT_ID = "<assistant-id-from-scripts/setup_assistant.sh>"
+ONCALL_E164 = "+1555XXXXXXX"
+DAY_TEAM_E164 = "+1555XXXXXXX"
+FROM_E164 = "+1555XXXXXXX"
+DEMO_MODE = "true"
