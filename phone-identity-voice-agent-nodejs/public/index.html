@@ -952,7 +952,7 @@
           D.incoming();
           D.timeline('Incoming call from ' + (ev.phone || 'unknown'), 'blue');
           // Sync poll tracker so the interval doesn't re-trigger recovery
-          fetch('/api/state?_=' + Date.now()).then(r => r.json()).then(s => {
+          fetch('/api/state').then(r => r.json()).then(s => {
             lastServerCallId = s.callControlId || null;
             lastServerStatus = s.status;
           }).catch(() => {});
@@ -1018,7 +1018,7 @@
           let lcd = liveCallData;
           if (!lcd) {
             try {
-              const r = await fetch('/api/state?_=' + Date.now());
+              const r = await fetch('/api/state');
               const s = await r.json();
               if (s.identity) { lcd = mapIdentity(s.identity); liveCallData = lcd; }
             } catch { /* ignore */ }
@@ -1038,22 +1038,21 @@
     };
 
     es.onerror = () => {
-      console.log('SSE: connection lost, reconnecting in 1s');
+      console.log('SSE: connection lost, reconnecting in 3s');
       es.close();
-      setTimeout(connectSSE, 1000);
+      setTimeout(connectSSE, 3000);
     };
   }
 
   /**
-   * Poll /api/state every 1.5 s so a real call always takes over the UI even
-   * when SSE events are missed (Edge proxy buffering, dropped connections).
-   * Cache-busting query param prevents Edge/CDN from returning stale responses.
+   * Poll /api/state every 3 s so a real call always takes over the UI even
+   * when SSE events are missed (Edge multi-instance, dropped connections).
    */
   let lastServerStatus = 'idle';
   let lastServerCallId = null;
   setInterval(async () => {
     try {
-      const resp = await fetch('/api/state?_=' + Date.now(), { cache: 'no-store' });
+      const resp = await fetch('/api/state');
       const state = await resp.json();
       const sid = state.callControlId || null;
       // A new call arrived that the dashboard hasn't shown yet
@@ -1064,20 +1063,15 @@
         recoverState();
         return;
       }
-      // Call ended on server but dashboard still shows connected
-      if (state.status === 'idle' && lastServerStatus !== 'idle' && lastServerCallId) {
-        lastServerStatus = 'idle';
-        lastServerCallId = null;
-      }
       lastServerStatus = state.status;
       lastServerCallId = sid;
     } catch { /* network hiccup — skip */ }
-  }, 1500);
+  }, 3000);
 
   /** Recover mid-call state via /api/state (runs on load and SSE reconnect). */
   async function recoverState() {
     try {
-      const resp = await fetch('/api/state?_=' + Date.now());
+      const resp = await fetch('/api/state');
       const state = await resp.json();
       if (state.status === 'idle') return;
 
