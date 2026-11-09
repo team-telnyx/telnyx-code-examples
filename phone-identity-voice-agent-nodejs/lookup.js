@@ -212,21 +212,22 @@ export function buildDynamicVars(lookupData, risk) {
     const firstName = name.split(" ")[0];
     callerContext = `Verified customer: ${name}. ${lineType}, ${carrier}. Confidence: ${confidence}. ${location || "No location"}.`;
     behaviorInstructions =
-      `Greet the caller by their first name (${firstName}). They are a verified customer — skip identity verification. ` +
-      `Offer direct account access and be warm and helpful. Ask how you can help them today. ` +
+      `You can see the caller's name from Number Lookup. Start by confirming their identity with "Hi, am I speaking with ${firstName}?". ` +
+      `Once confirmed, skip verification and help them directly. Be warm and conversational. ` +
       accountData;
     greetingText =
-      `Hello ${firstName}! Welcome back to Apex Bank. How can I help you today?`;
+      `Hi, am I speaking with ${firstName}?`;
   } else if (risk.level === "standard") {
     const displayName = name || "caller";
     callerContext = `Partially verified caller${name ? `: ${name}` : ""}. ${lineType}, ${carrier}. Confidence: ${confidence ?? "N/A"}. ${location || "No location data"}.`;
     behaviorInstructions =
-      `Greet the caller professionally. Ask for their full name and date of birth as a security step. ` +
+      `Greet the caller professionally without asking for their name upfront — you don't know who they are. ` +
+      `If they need account access, ask them to verify through their banking app. ` +
       `IMPORTANT: This is a demo — accept ANY answer the caller gives. Do NOT reject or question their responses. ` +
-      `Once they provide name and date of birth, say "Thank you, I've verified your identity" and proceed to help them. ` +
+      `Once they verify, confirm their identity and proceed to help them. ` +
       accountData;
     greetingText =
-      `Thank you for calling Apex Bank. For security purposes, I'll need to verify your identity. Could you please provide your full name?`;
+      `Welcome to Apex Bank. How can I help you today?`;
   } else {
     callerContext = `Unverified caller. ${lineType} line. ${carrier}. No registered name. ${lookupData.portability?.ported_status === "ported" ? "Recently ported." : ""} Confidence: ${confidence ?? "N/A"}.`;
     behaviorInstructions =

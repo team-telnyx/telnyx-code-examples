@@ -282,6 +282,14 @@
   .demo button.primary { color: #fff; background: var(--navy); }
   .demo button.secondary { border: 1px solid var(--border-strong); }
   .demo.hidden { display: none; }
+  .sim-dropdown { position: relative; }
+  .sim-menu { display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.12); overflow: hidden; z-index: 50; min-width: 160px; }
+  .sim-menu.open { display: block; }
+  .sim-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 14px; font: inherit; font-size: 12px; background: transparent; border: 0; color: var(--text); cursor: pointer; text-align: left; }
+  .sim-menu button:hover { background: var(--surface-2); }
+  .sim-menu button[data-scenario="verified"]::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .sim-menu button[data-scenario="standard"]::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); }
+  .sim-menu button[data-scenario="suspicious"]::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
 
   /* ───────── Keyframes ───────── */
   @keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
@@ -367,7 +375,14 @@
       <span class="topbar-powered"><i></i>Powered by <strong>Telnyx</strong></span>
       <div class="top-right">
         <div class="demo" id="demo">
-          <button class="primary" id="btnSim">&#9654; Simulate call</button>
+          <div class="sim-dropdown" id="simDropdown">
+            <button class="primary" id="btnSim">&#9654; Simulate call &#9662;</button>
+            <div class="sim-menu" id="simMenu">
+              <button data-scenario="verified">Verified</button>
+              <button data-scenario="standard">Standard</button>
+              <button data-scenario="suspicious">Suspicious</button>
+            </div>
+          </div>
           <button class="secondary" id="btnReset">&#x21bb; Reset</button>
         </div>
         <div class="icon-btn" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="badge"></span></div>
@@ -521,36 +536,43 @@
       ],
       mode: 'Personalized mode', aiMode: 'personalized mode', aiDetail: 'Greeting personalized with caller name',
       convo: [
-        ['ai', "Good afternoon, Sarah. Thank you for calling Apex Bank. I can see you're calling from your registered number. How can I help you today?"],
-        ['caller', "Hi, I'd like to check my account balance please."],
-        ['ai', 'Of course, Sarah. Your checking account ending in 4582 has a current balance of $3,247.89. Would you like to hear about any recent transactions?'],
-        ['caller', "No that's all, thank you."],
-        ['ai', "You're welcome, Sarah. Have a wonderful day. Goodbye!"]
+        ['ai', "Hi, am I speaking with Sarah?"],
+        ['caller', "Yes, that's me."],
+        ['ai', "Hi Sarah! How can I help you today?"],
+        ['caller', "I noticed a payment I don't recognize. I think someone might have used my card. Can you block it?"],
+        ['ai', "Of course. Let's secure your card. I've sent a quick confirmation request to your banking app."],
+        ['caller', "Done, I've approved it."],
+        ['ai', "Your Visa ending in 7731 is now temporarily frozen. Would you also like me to help you report the suspicious transaction?"],
+        ['caller', "No, that's all I needed. Thank you!"],
+        ['ai', "You're welcome, Sarah. Your card is secure. Have a great day!"]
       ]
     },
     standard: {
       phone: '+1 (415) 555-0193', masked: '+1 (415) ...93',
-      name: 'Michael Chen', first: 'Michael',
+      name: 'Sarah Johnson', first: 'Sarah',
       location: 'San Francisco, CA', locationSub: 'United States · Pacific Time',
       carrier: 'Verizon', carrierSub: 'Wireline · US',
       line: 'Landline', lineSub: 'Residential',
-      cnam: 'M CHEN', score: 58,
+      cnam: 'S JOHNSON', score: 58,
       risk: [['neu', 'Medium confidence (58)'], ['pos', 'Name on file'], ['neu', 'Landline'], ['pos', 'Not ported'], ['neg', 'Address unverified']],
-      chips: [['CNAM', 'M CHEN'], ['Carrier', 'Verizon'], ['Line', 'landline'], ['Ported', 'no'], ['Country', 'US'], ['Lookup', '388 ms']],
-      access: 'stepup', customerSince: 'Since 2021',
+      chips: [['CNAM', 'S JOHNSON'], ['Carrier', 'Verizon'], ['Line', 'landline'], ['Ported', 'no'], ['Country', 'US'], ['Lookup', '388 ms']],
+      access: 'stepup', customerSince: 'Since 2016 · Premier',
       accounts: [
-        ['checking', 'Everyday Checking', '•••• 2207', '$1,904.12', 'Available'],
-        ['card', 'Apex Cash Rewards', '•••• 5528', '$412.50', 'Payment posted today']
+        ['checking', 'Everyday Checking', '•••• 4582', '$3,247.89', 'Requires verification'],
+        ['savings', 'High-Yield Savings', '•••• 9013', '$18,420.00', 'Requires verification'],
+        ['card', 'Apex Visa Signature', '•••• 7731', '$612.40', 'Requires verification']
       ],
       mode: 'Step-up verification', aiMode: 'step-up verification', aiDetail: 'Knowledge-based check required before account access',
       convo: [
-        ['ai', 'Thank you for calling Apex Bank. Before I access your account, could you please confirm your date of birth?'],
-        ['caller', "Sure, it's March 3rd, 1985."],
-        ['ai', "Thank you, Michael, you're verified. How can I help you today?"],
-        ['caller', 'I wanted to make sure my credit card payment went through.'],
-        ['ai', 'It did. Your payment of $412.50 posted this morning. Is there anything else I can help with?'],
-        ['caller', "No, that's it. Thanks."],
-        ['ai', 'My pleasure, Michael. Have a great day!']
+        ['ai', "Welcome to Apex Bank. How can I help you today?"],
+        ['caller', "Hi, I'm Sarah. I think someone used my credit card. Can you block it?"],
+        ['ai', "Absolutely. To keep your account secure, I'll need to confirm your identity first. Can you open your Apex banking app?"],
+        ['caller', "Yes, I have it open."],
+        ['ai', "Great. Please approve the verification request in your app."],
+        ['caller', "Approved."],
+        ['ai', "Thanks, Sarah. Your identity is confirmed. I've temporarily frozen your Visa ending in 7731. Would you like to report the charge?"],
+        ['caller', "No, just the freeze is fine. Thanks for your help."],
+        ['ai', "Of course. Your card is secure, Sarah. Have a great day!"]
       ]
     },
     suspicious: {
@@ -568,8 +590,8 @@
       escalate: true,
       convo: [
         ['ai', "Thank you for calling Apex Bank. Before we continue, I'll need to verify your identity."],
-        ['caller', 'I need to wire five thousand dollars out of my account right now. It is urgent.'],
-        ['ai', "I understand this feels urgent. For your protection, wire transfers can't be started on this call. I'm connecting you with our security team now."]
+        ['caller', "I need to block a card and wire the remaining balance to a new account immediately."],
+        ['ai', "I understand this feels urgent. For your protection, card changes and wire transfers can't be processed on this call. I'm connecting you with our security team now."]
       ]
     }
   };
@@ -799,7 +821,17 @@
     } catch (e) { /* run was reset or replaced */ }
   }
 
-  $('btnSim').addEventListener('click', () => simulate());
+  $('btnSim').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('simMenu').classList.toggle('open');
+  });
+  $('simMenu').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-scenario]');
+    if (!btn) return;
+    $('simMenu').classList.remove('open');
+    simulate(btn.dataset.scenario);
+  });
+  document.addEventListener('click', () => $('simMenu').classList.remove('open'));
   $('btnReset').addEventListener('click', reset);
   $('btnEnd').addEventListener('click', () => {
     run++; const dur = endCall(); timeline(`Call ended by supervisor (${dur})`, 'gray');
@@ -807,8 +839,8 @@
   });
   document.addEventListener('keydown', (e) => {
     if (e.target.closest('input, textarea')) return;
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); simulate(); }
-    if (e.key === 'Escape') reset();
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); $('simMenu').classList.toggle('open'); }
+    if (e.key === 'Escape') { $('simMenu').classList.remove('open'); reset(); }
   });
 
   /* URL options: ?demo=auto · ?view=complete · ?scenario=verified|standard|suspicious · ?controls=0 */
