@@ -3610,3 +3610,9 @@ examples:
     language: typescript
     framework: edge
     folder: watchdog
+
+  - product: voice
+    use_case: acp-appointment-intake
+    language: acp
+    framework: agent-control-plane
+    folder: acp-business-line

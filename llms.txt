@@ -4,6 +4,7 @@
 
 ## Voice AI
 
+- [Turn a phone number into an AI business line with the Telnyx Agent Control Plane](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/acp-business-line/README.md): Declare a clinic appointment-intake agent in configuration — agent.json plus instructions.md, no application code — and answer calls and texts on one number with the Agent Control Plane.
 - [AI Assistant Client-Side Tools](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-client-side-tools-nextjs/README.md): Build a browser-based Next.js dashboard where a Telnyx AI Assistant invokes client-side JavaScript tools to navigate the UI, change theme, open a modal, and update React form state.
 - [AI Assistant Multiparticipant Calling](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-multiparticipant-calling-nodejs/README.md): Build a Telnyx Voice AI assistant that answers an inbound call, uses a backend tool to dial a second participant, and joins them into the same live AI conversation with ai_assistant_join.
 - [AI Billing Warm Transfer with Python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-billing-warm-transfer-python/README.md)

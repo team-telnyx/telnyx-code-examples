@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-11-04T22:04:36Z",
-  "example_count": 588,
+  "generated_at": "2026-11-10T03:25:28Z",
+  "example_count": 589,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5297,6 +5297,15 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/watchdog"
+    },
+    {
+      "folder": "acp-business-line",
+      "title": "Turn a phone number into an AI business line with the Telnyx Agent Control Plane",
+      "description": "Declare a clinic appointment-intake agent in configuration — agent.json plus instructions.md, no application code — and answer calls and texts on one number with the Agent Control Plane.",
+      "product": "voice",
+      "language": "acp",
+      "framework": "agent-control-plane",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/acp-business-line"
     }
   ]
 }
