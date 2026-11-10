@@ -20,6 +20,7 @@ Usage:
 """
 
 import argparse
+import json
 import os
 import subprocess  # nosec B404
 import sys
@@ -41,6 +42,7 @@ LANG_CODE_FILE = {
     "java": "Application.java",
     "csharp": "Program.cs",
     "typescript": "src/index.ts",  # Agent SDK examples ship an ESM entry point under src/
+    "acp": "agent.json",  # Agent Control Plane examples are config-only: agent.json + instructions.md
 }
 
 LANG_DEP_FILE = {
@@ -52,6 +54,7 @@ LANG_DEP_FILE = {
     "java": "pom.xml",
     "csharp": "*.csproj",  # name varies per project; matched as a glob
     "typescript": "package.json",
+    "acp": None,  # config-only: no dependency manifest
 }
 
 # Sections required on every example README. Kept to the set common to both the
@@ -96,8 +99,9 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
         "README.md",
         code_file,
         ".env.example",
-        dep_file,
     ]
+    if dep_file is not None:  # config-only languages (e.g. acp) ship no dependency manifest
+        required_files.append(dep_file)
 
     for filename in required_files:
         if "*" in filename:  # glob pattern (e.g. *.csproj — name varies per project)
@@ -168,6 +172,21 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
                     )
             except (subprocess.TimeoutExpired, FileNotFoundError):
                 pass
+
+        elif language == "acp":
+            try:
+                spec = json.loads(code_path.read_text())
+            except (ValueError, OSError) as exc:
+                errors.append(f"Invalid JSON in {code_file}: {exc}")
+            else:
+                instructions_rel = spec.get("instructions", "")
+                if instructions_rel:
+                    if not (folder_path / instructions_rel).exists():
+                        errors.append(
+                            f"agent.json references missing instructions file: {instructions_rel}"
+                        )
+                if spec.get("kind") != "configuration":
+                    errors.append("agent.json: expected kind=configuration for acp examples")
 
     # --- .env.example checks ---
     env_example_path = folder_path / ".env.example"
