@@ -944,6 +944,7 @@
     es.onmessage = async (e) => {
       let ev;
       try { ev = JSON.parse(e.data); } catch { return; }
+      console.log('[SSE]', ev.type, ev);
 
       switch (ev.type) {
         case 'call.incoming':
@@ -1038,9 +1039,9 @@
     };
 
     es.onerror = () => {
-      console.log('SSE: connection lost, reconnecting in 3s');
+      console.log('[SSE] connection lost, reconnecting in 1s');
       es.close();
-      setTimeout(connectSSE, 3000);
+      setTimeout(connectSSE, 1000);
     };
   }
 
@@ -1057,11 +1058,18 @@
       const sid = state.callControlId || null;
       // A new call arrived that the dashboard hasn't shown yet
       if (state.status !== 'idle' && sid !== lastServerCallId) {
+        console.log('[POLL] new call detected:', state.status, sid);
         lastServerStatus = state.status;
         lastServerCallId = sid;
         D.reset();
         recoverState();
         return;
+      }
+      // State changed within the same call (SSE might be dead)
+      if (sid && sid === lastServerCallId && state.status !== lastServerStatus) {
+        console.log('[POLL] state change:', lastServerStatus, '→', state.status);
+        lastServerStatus = state.status;
+        if (state.status === 'ended') D.end();
       }
       lastServerStatus = state.status;
       lastServerCallId = sid;
@@ -1073,6 +1081,7 @@
     try {
       const resp = await fetch('/api/state');
       const state = await resp.json();
+      console.log('[RECOVER]', state.status, state.callControlId?.slice(0, 20));
       if (state.status === 'idle') return;
 
       // Step 1: Show incoming call state

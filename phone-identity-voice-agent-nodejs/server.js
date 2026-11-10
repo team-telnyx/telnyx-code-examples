@@ -64,6 +64,7 @@ const subscribers = [];
 
 function ssePublish(eventType, data) {
   const payload = JSON.stringify({ type: eventType, ts: new Date().toISOString(), ...data });
+  console.log(`SSE publish [${eventType}] → ${subscribers.length} subscriber(s)`);
   const dead = [];
   for (const res of subscribers) {
     try {
@@ -86,17 +87,19 @@ app.get("/stream", (req, res) => {
     "X-Accel-Buffering": "no",
   });
   res.flushHeaders();
-  // Send an immediate comment + heartbeat so Edge proxies start streaming
+  // Send an immediate comment so Edge proxies start streaming
   res.write(`: connected ${new Date().toISOString()}\n\n`);
   subscribers.push(res);
-  // 15 s keepalive — short enough to survive Edge proxy idle timeouts
+  console.log(`SSE: new subscriber (total: ${subscribers.length})`);
+  // 5 s keepalive — must be shorter than Edge proxy idle timeout (~10 s)
   const keepalive = setInterval(() => {
     try { res.write(": keepalive\n\n"); } catch { /* closed */ }
-  }, 15_000);
+  }, 5_000);
   req.on("close", () => {
     clearInterval(keepalive);
     const idx = subscribers.indexOf(res);
     if (idx !== -1) subscribers.splice(idx, 1);
+    console.log(`SSE: subscriber closed (remaining: ${subscribers.length})`);
   });
 });
 
