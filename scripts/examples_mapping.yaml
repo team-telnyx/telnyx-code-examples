@@ -3611,6 +3611,11 @@ examples:
     framework: edge
     folder: watchdog
 
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: concierge-diary
   - product: voice
     use_case: acp-appointment-intake
     language: acp
