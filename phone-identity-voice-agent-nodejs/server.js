@@ -389,6 +389,7 @@ async function callControlAction(ccid, action, extraBody = {}) {
 
 /** Current state snapshot for dashboard initial load. */
 app.get("/api/state", (_req, res) => {
+  res.set("Cache-Control", "no-store");
   res.json(callState);
 });
 
