@@ -1065,6 +1065,15 @@
         recoverState();
         return;
       }
+      // Server went back to idle but dashboard still shows a call
+      if (state.status === 'idle' && lastServerCallId) {
+        console.log('[POLL] server idle, resetting dashboard');
+        lastServerStatus = 'idle';
+        lastServerCallId = null;
+        liveCallData = null;
+        D.reset();
+        return;
+      }
       // State changed within the same call (SSE might be dead)
       if (sid && sid === lastServerCallId && state.status !== lastServerStatus) {
         console.log('[POLL] state change:', lastServerStatus, '→', state.status);
@@ -1082,7 +1091,15 @@
       const resp = await fetch('/api/state');
       const state = await resp.json();
       console.log('[RECOVER]', state.status, state.callControlId?.slice(0, 20));
-      if (state.status === 'idle') return;
+      if (state.status === 'idle') {
+        // Server is idle — make sure dashboard is also idle (handles missed
+        // state.reset SSE events when the proxy drops the connection).
+        liveCallData = null;
+        D.reset();
+        lastServerStatus = 'idle';
+        lastServerCallId = null;
+        return;
+      }
 
       // Step 1: Show incoming call state
       if (state.phone) {
