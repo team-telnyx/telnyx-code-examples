@@ -40,7 +40,9 @@ export interface DiaryIntent {
   agentTarget: string;
 }
 
-export interface DiaryState {
+// Type alias (not interface) so DiaryState satisfies Agent's
+// `State extends Record<string, unknown>` constraint under `tsc --noEmit`.
+export type DiaryState = {
   conversationId: string;
   patientName: string;
   topic: string;
@@ -52,7 +54,7 @@ export interface DiaryState {
   status: DiaryStatus;
   createPending: boolean;
   pendingBody: DiaryIntent | null;
-}
+};
 
 export interface ScheduledEventPayload {
   telnyx_conversation_channel: "phone_call";
@@ -74,6 +76,7 @@ export interface Env {
   CLINIC_NAME: string;
   DEMO_MODE: string;
   DIARY_SWEEP_SECONDS: string;
+  DIARY_WEBHOOK_SECRET: string;
 }
 
 export class HttpError extends Error {
@@ -101,8 +104,9 @@ function asObject(raw: unknown): Record<string, unknown> {
 function field(body: Record<string, unknown>, name: string, max: number): string {
   const value = body[name];
   if (typeof value !== "string" || !value.trim()) throw new HttpError(400, `${name} is required`);
-  if (value.length > max) throw new HttpError(400, `${name} must be at most ${max} characters`);
-  return value.trim();
+  const trimmed = value.trim();
+  if (trimmed.length > max) throw new HttpError(400, `${name} must be at most ${max} characters`);
+  return trimmed;
 }
 
 function phone(body: Record<string, unknown>, name: string): string {
@@ -188,6 +192,9 @@ export class DiaryActor extends Agent<Env, DiaryState> {
   async onWebhook(intent: DiaryIntent): Promise<DiaryState> {
     const state = await this.getState();
     if (state.eventId && state.callbackAt === intent.callbackAt && state.status === "booked") return state;
+    // Re-book: retire the superseded event first so it can never fire alongside
+    // the replacement (a stale event would produce a duplicate follow-up call).
+    if (state.eventId) await this.deleteScheduledEvent(state.eventId);
     await this.replaceState({
       ...state,
       conversationId: intent.conversationId,
@@ -204,7 +211,7 @@ export class DiaryActor extends Agent<Env, DiaryState> {
     });
     await this.writeRow("booked", null);
     // Durable sweep: if the pod dies before the create lands, this re-creates it once.
-    await this.schedule(this.sweepSeconds(), "onSweep", { conversationId: intent.conversationId });
+    await this.schedule(await this.sweepSeconds(), "onSweep", { conversationId: intent.conversationId });
     await this.createPendingEvent("booked");
     return this.getState();
   }
@@ -239,7 +246,7 @@ export class DiaryActor extends Agent<Env, DiaryState> {
     const state = await this.getState();
     if (!state.conversationId) throw new HttpError(404, "no diary entry for this conversation");
     const callbackAt = futureIso(body, "callbackAt");
-    const opener = typeof body.opener === "string" && body.opener.trim() ? body.opener.trim().slice(0, 400) : state.opener;
+    const opener = typeof body.opener === "string" && body.opener.trim() ? field(body, "opener", 400) : state.opener;
     if (state.eventId) await this.deleteScheduledEvent(state.eventId);
     const intent: DiaryIntent = {
       conversationId: state.conversationId, patientName: state.patientName, reason: state.topic,
@@ -247,7 +254,7 @@ export class DiaryActor extends Agent<Env, DiaryState> {
     };
     await this.replaceState({ ...state, callbackAt, opener, eventId: null, status: "rescheduled", createPending: true, pendingBody: intent });
     await this.writeRow("rescheduled", null);
-    await this.schedule(this.sweepSeconds(), "onSweep", { conversationId: intent.conversationId });
+    await this.schedule(await this.sweepSeconds(), "onSweep", { conversationId: intent.conversationId });
     await this.createPendingEvent("rescheduled");
     return this.getState();
   }
@@ -273,40 +280,47 @@ export class DiaryActor extends Agent<Env, DiaryState> {
   }
 
   private async createScheduledEvent(intent: DiaryIntent): Promise<string> {
-    if (this.demoMode()) {
+    if (await this.demoMode()) {
       console.log(`[demo] would create scheduled event for conversation ${intent.conversationId} at ${intent.callbackAt}`);
       return `demo_evt_${intent.conversationId}_${Date.parse(intent.callbackAt)}`;
     }
-    const url = `${API_BASE}/ai/assistants/${encodeURIComponent(this.env.TELNYX_ASSISTANT_ID)}/scheduled_events`;
+    const assistantId = await this.setting("TELNYX_ASSISTANT_ID");
+    if (!assistantId) throw new Error("TELNYX_ASSISTANT_ID is not configured");
+    const url = `${API_BASE}/ai/assistants/${encodeURIComponent(assistantId)}/scheduled_events`;
     const res = await fetch(url, {
       method: "POST",
       headers: { Authorization: `Bearer ${await this.apiKey()}`, "Content-Type": "application/json" },
-      body: JSON.stringify(buildScheduledEventPayload(intent, this.env.CLINIC_NAME)),
+      body: JSON.stringify(buildScheduledEventPayload(intent, (await this.setting("CLINIC_NAME")) || "Clinic")),
     });
     if (!res.ok) throw new Error(`scheduled event create failed with status ${res.status}`);
-    const eventId = ((await res.json()) as { data?: { id?: string } }).data?.id;
+    const body = (await res.json()) as Record<string, unknown>;
+    const event = (typeof body.data === "object" && body.data !== null ? body.data : body) as Record<string, unknown>;
+    const eventId =
+      typeof event.scheduled_event_id === "string" ? event.scheduled_event_id : typeof event.id === "string" ? event.id : undefined;
     if (!eventId) throw new Error("scheduled event create returned no id");
     return eventId;
   }
 
   private async deleteScheduledEvent(eventId: string): Promise<void> {
-    if (this.demoMode()) {
+    if (await this.demoMode()) {
       console.log(`[demo] would delete scheduled event ${eventId}`);
       return;
     }
-    const url = `${API_BASE}/ai/assistants/${encodeURIComponent(this.env.TELNYX_ASSISTANT_ID)}/scheduled_events/${encodeURIComponent(eventId)}`;
+    const assistantId = await this.setting("TELNYX_ASSISTANT_ID");
+    if (!assistantId) throw new Error("TELNYX_ASSISTANT_ID is not configured");
+    const url = `${API_BASE}/ai/assistants/${encodeURIComponent(assistantId)}/scheduled_events/${encodeURIComponent(eventId)}`;
     const res = await fetch(url, { method: "DELETE", headers: { Authorization: `Bearer ${await this.apiKey()}` } });
     if (!res.ok && res.status !== 404) throw new Error(`scheduled event delete failed with status ${res.status}`);
   }
 
   private async sendConfirmation(intent: DiaryIntent): Promise<void> {
-    if (this.demoMode()) {
+    if (await this.demoMode()) {
       console.log(`[demo] would send confirmation SMS to ${maskPhone(intent.endUserTarget)}`);
       return;
     }
-    const text = `${this.env.CLINIC_NAME}: your callback is booked for ${intent.callbackAt}. Reply RESCHEDULE to move it.`;
+    const text = `${(await this.setting("CLINIC_NAME")) || "Clinic"}: your callback is booked for ${intent.callbackAt}. Reply RESCHEDULE to move it.`;
     try {
-      await this.env.TELNYX.messages.send({ to: intent.endUserTarget, from: this.env.TELNYX_FROM_NUMBER, text });
+      await this.env.TELNYX.messages.send({ to: intent.endUserTarget, from: (await this.setting("TELNYX_FROM_NUMBER")) || "", text });
     } catch (err) {
       console.error("confirmation SMS failed:", err instanceof Error ? err.message : "unknown");
     }
@@ -318,13 +332,19 @@ export class DiaryActor extends Agent<Env, DiaryState> {
     return key;
   }
 
-  private demoMode(): boolean {
-    return (this.env.DEMO_MODE ?? "true").toLowerCase() !== "false";
+  private demoMode(): Promise<boolean> {
+    return workerDemoMode(this.env);
   }
 
-  private sweepSeconds(): number {
-    const seconds = Number(this.env.DIARY_SWEEP_SECONDS);
-    return Number.isFinite(seconds) && seconds > 0 ? seconds : 120;
+  private sweepSeconds(): Promise<number> {
+    return this.setting("DIARY_SWEEP_SECONDS").then((value) => {
+      const seconds = Number(value);
+      return Number.isFinite(seconds) && seconds > 0 ? seconds : 120;
+    });
+  }
+
+  private setting(key: ConfigKey): Promise<string> {
+    return setting(this.env, key);
   }
 
   private async ensureSchema(): Promise<void> {
@@ -362,6 +382,57 @@ export class DiaryActor extends Agent<Env, DiaryState> {
 
 const ROUTES = new Set(["entries", "reschedule", "event-status", "sweep", "cancel"]);
 
+type ConfigKey = "TELNYX_ASSISTANT_ID" | "TELNYX_FROM_NUMBER" | "CLINIC_NAME" | "DEMO_MODE" | "DIARY_SWEEP_SECONDS" | "DIARY_WEBHOOK_SECRET";
+
+/**
+ * Read a config knob: from the secrets store first (env_vars declared in
+ * telnyx.toml [env_vars] do not reach the actor runtime on current edge
+ * runtimes), falling back to the plain env property for local development.
+ */
+async function setting(env: Env, key: ConfigKey): Promise<string> {
+  try {
+    const fromSecrets = await env.SECRETS.get(key);
+    if (fromSecrets) return fromSecrets.trim();
+  } catch {
+    // No secrets store configured or read failed — fall through to env.
+  }
+  return ((env as unknown as Record<string, string>)[key] ?? "").trim();
+}
+
+function workerDemoModeSync(env: Env): boolean {
+  return ((env as unknown as Record<string, string>)["DEMO_MODE"] ?? "true").toLowerCase() !== "false";
+}
+
+async function workerDemoMode(env: Env): Promise<boolean> {
+  const value = await setting(env, "DEMO_MODE");
+  return (value || "true").toLowerCase() !== "false";
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Shared-secret gate for the diary routes. The AI Assistant's post-conversation
+ * webhook tool is the only intended caller: set DIARY_WEBHOOK_SECRET and point
+ * the tool's auth header at it. In live mode (DEMO_MODE=false) the secret is
+ * mandatory; in demo mode it is optional so the sample runs out of the box.
+ */
+async function authorized(req: Request, env: Env): Promise<boolean> {
+  const secret = await webhookSecret(env);
+  if (!secret) return workerDemoMode(env);
+  const provided =
+    (req.headers.get("X-Diary-Token") ?? "").replace(/^Bearer\s+/i, "").trim() ||
+    (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!provided) return false;
+  return (await sha256Hex(provided)) === (await sha256Hex(secret));
+}
+
+async function webhookSecret(env: Env): Promise<string> {
+  return setting(env, "DIARY_WEBHOOK_SECRET");
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
@@ -376,6 +447,11 @@ export default {
 
     if (req.method !== "POST" || segments.length !== 2 || !ROUTES.has(segments[1])) {
       return json({ error: "not found" }, 404);
+    }
+
+    if (!(await authorized(req, env))) {
+      // Generic body: do not reveal whether the secret is unset or wrong.
+      return json({ error: "unauthorized" }, 401);
     }
 
     let body: Record<string, unknown>;

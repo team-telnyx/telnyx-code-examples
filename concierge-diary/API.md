@@ -4,7 +4,7 @@ Typed endpoint contract for the `concierge-diary` edge service. Every route is s
 
 - **Base URL:** `$BASE_URL` (your `telnyx-edge ship` deployment host, e.g. `https://concierge-diary.example.telnyxedge.dev`)
 - **Content-Type:** `application/json` on every request with a body
-- **Auth:** none at the edge — the diary webhook is called by the Telnyx AI Assistant's post-conversation tool. Restrict access at the network/deployment layer in production.
+- **Auth:** shared secret. If `DIARY_WEBHOOK_SECRET` is set (secret store or env), every mutating `POST` must present it as `Authorization: Bearer <secret>` or `X-Diary-Token: <secret>`; requests without it get `401`. In live mode (`DEMO_MODE=false`) the secret is mandatory — the AI Assistant's diary webhook tool is the only intended caller, and unauthenticated bookings could place real outbound calls. `GET /diary` (read-only diary view) stays unauthenticated.
 - **Actor routing:** `conversationId` is the actor key. It is read from the JSON body for `POST` routes and from the `conversationId` query parameter for `GET /diary`.
 
 ---

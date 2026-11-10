@@ -112,6 +112,51 @@ async function main(): Promise<void> {
     assert(res.status === 400, `expected 400, got ${res.status}`);
   });
 
+  await check("auth: live mode without DIARY_WEBHOOK_SECRET rejects POSTs", async () => {
+    const env = { DEMO_MODE: "false" } as never;
+    const res = await worker.fetch(
+      new Request("https://example.com/diary/entries", { method: "POST", body: JSON.stringify(validBody) }),
+      env,
+    );
+    assert(res.status === 401, `expected 401 in live mode without secret, got ${res.status}`);
+  });
+
+  await check("auth: wrong shared secret rejects POSTs", async () => {
+    const env = { DEMO_MODE: "true", DIARY_WEBHOOK_SECRET: "s3cret" } as never;
+    const res = await worker.fetch(
+      new Request("https://example.com/diary/entries", {
+        method: "POST",
+        headers: { Authorization: "Bearer wrong" },
+        body: JSON.stringify(validBody),
+      }),
+      env,
+    );
+    assert(res.status === 401, `expected 401 for wrong secret, got ${res.status}`);
+  });
+
+  await check("auth: correct shared secret passes the gate", async () => {
+    const env = { DEMO_MODE: "true", DIARY_WEBHOOK_SECRET: "s3cret" } as never;
+    const res = await worker.fetch(
+      new Request("https://example.com/diary/entries", {
+        method: "POST",
+        headers: { "X-Diary-Token": "Bearer s3cret" },
+        body: JSON.stringify({}),
+      }),
+      env,
+    );
+    // Auth passes; the empty body then fails intent validation with 400.
+    assert(res.status === 400, `expected 400 past the auth gate, got ${res.status}`);
+  });
+
+  await check("auth: demo mode without a secret stays open (runnable out of the box)", async () => {
+    const env = { DEMO_MODE: "true" } as never;
+    const res = await worker.fetch(
+      new Request("https://example.com/diary/entries", { method: "POST", body: JSON.stringify({}) }),
+      env,
+    );
+    assert(res.status === 400, `expected 400 in demo mode, got ${res.status}`);
+  });
+
   await check("worker rejects a GET without conversationId", async () => {
     const res = await worker.fetch(new Request("https://example.com/diary"), {} as never);
     assert(res.status === 400, `expected 400, got ${res.status}`);

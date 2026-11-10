@@ -81,6 +81,10 @@ id = "<sqldb-namespace-uuid>"
 [telnyx]
 binding = "TELNYX"
 
+[[secrets]]
+binding = "DIARY_WEBHOOK_SECRET"
+name    = "DIARY_WEBHOOK_SECRET"
+
 [env_vars]
 TELNYX_ASSISTANT_ID = "assistant-xxxxxxxx"
 TELNYX_FROM_NUMBER  = "+1555XXXXXXXX"
@@ -94,6 +98,7 @@ DIARY_SWEEP_SECONDS = "120"
 | Variable | Read by | Purpose |
 |---|---|---|
 | `TELNYX_API_KEY` | `apiKey()` via `SECRETS` | Bearer token for the scheduled-events REST calls. Never in code. |
+| `DIARY_WEBHOOK_SECRET` | `authorized()` via `SECRETS` | Shared secret the assistant's diary webhook tool sends as `Authorization: Bearer <secret>` (or `X-Diary-Token`). Mandatory in live mode. |
 | `TELNYX_ASSISTANT_ID` | `createScheduledEvent`, `deleteScheduledEvent` | Which assistant owns the scheduled event. |
 | `TELNYX_FROM_NUMBER` | `sendConfirmation` | Sender for the "your callback is booked" SMS. |
 | `CLINIC_NAME` | `buildScheduledEventPayload`, `sendConfirmation` | Injected into `dynamic_variables.clinic_name` and the SMS body. |
@@ -107,6 +112,7 @@ DIARY_SWEEP_SECONDS = "120"
 ```bash
 telnyx-edge auth api-key set <YOUR_API_KEY>
 telnyx-edge secrets add TELNYX_API_KEY "<YOUR_API_KEY>"
+telnyx-edge secrets add DIARY_WEBHOOK_SECRET "$(openssl rand -hex 32)"
 telnyx-edge types      # regenerate telnyx-env.d.ts from telnyx.toml
 ```
 
@@ -124,7 +130,7 @@ The sample is **safe by default**. `demoMode()` returns `true` unless `DEMO_MODE
 
 Everything else — state transitions, the diary table, the sweep timer, the exactly-once guard — runs identically in both modes. That's deliberate: you can exercise the full lifecycle, including the crash-recovery path, without placing a single call.
 
-**To go live**, set `DEMO_MODE=false` in `telnyx.toml` `[env_vars]` (or via the dashboard), point `TELNYX_ASSISTANT_ID` at a real assistant, and set `TELNYX_FROM_NUMBER` to a number you own. Re-ship with `telnyx-edge ship`.
+**To go live**, set `DEMO_MODE=false` in `telnyx.toml` `[env_vars]` (or via the dashboard), point `TELNYX_ASSISTANT_ID` at a real assistant, set `TELNYX_FROM_NUMBER` to a number you own, and add the `DIARY_WEBHOOK_SECRET` as an auth header on the assistant's diary webhook tool (see section 6). Re-ship with `telnyx-edge ship`.
 
 ---
 
@@ -197,7 +203,14 @@ A pure function, easy to unit-test, that turns a `DiaryIntent` into the wire pay
 
 Two things to notice.
 
-**`dynamic_variables` is the personalization.** The assistant's prompt references `{{patient_name}}`, `{{topic}}`, `{{clinic_name}}`, and `{{opener}}`. When the executor dials Thursday at 10, those resolve per-event — which is why the follow-up transcript contains "Maya" and "MRI results" rather than a generic greeting. The `opener` variable is the assistant's own sentence, captured at wrap-up time when it still had the full conversation in context.
+**`dynamic_variables` is the personalization — but only if the assistant's instructions reference them.** The variables are delivered per-event when the executor dials; a static prompt never touches them. Give the assistant instructions that interpolate, e.g.:
+
+```
+You are a clinic scheduling concierge making a scheduled follow-up call.
+Open the call by saying exactly: {{opener}}
+```
+
+With `{{opener}}` (and optionally `{{patient_name}}`, `{{topic}}`, `{{clinic_name}}`) referenced in the instructions, the Thursday 10:00 call opens with "Hi Maya, Dr. Chen's office — your MRI results are in." rather than a generic greeting. The `opener` variable is the assistant's own sentence, captured at wrap-up time when it still had the full conversation in context. If the follow-up transcript reads generic, the first thing to check is that the instructions actually contain the `{{...}}` placeholders — that is the failure mode to look for before blaming the event.
 
 **The retry fields are legal on `phone_call` events.** `max_retries_client_errors: 2` with `retry_interval_secs: 300` means a no-answer follow-up retries twice on its own, five minutes apart. The diary's value is the intent and the personalization, not the retry mechanics — but the fields are accepted (no 400) and they're set here so the demo behaves like a real clinic.
 
@@ -205,7 +218,7 @@ Two things to notice.
 
 In live mode this is a raw `POST` to `https://api.telnyx.com/v2/ai/assistants/{assistant_id}/scheduled_events` with a Bearer token pulled from `SECRETS`. The sample uses raw REST rather than a typed SDK resource because the typed `assistants.scheduledEvents` surface isn't guaranteed on the edge binding — an `AttributeError` at runtime is worse than an explicit `fetch`.
 
-The response envelope is unwrapped as `{ data: { id } }`. A non-2xx status or a missing id throws, which propagates up through `createPendingEvent` and leaves `createPending: true` in state — the sweep will retry.
+The create response is the bare event object (no `{ data: ... }` envelope), and the id lives under `scheduled_event_id` — the unwrapping handles both shapes defensively. A non-2xx status or a missing id throws, which propagates up through `createPendingEvent` and leaves `createPending: true` in state — the sweep will retry.
 
 ### 6.6 The exactly-once guard — `createPendingEvent` + `onSweep`
 
@@ -322,10 +335,11 @@ Two settings on the assistant make the seam work.
 
 This gives the assistant one extra LLM turn after the conversation ends, with the full transcript in context and the ability to call HTTP tools. That turn is where "she needs a callback Thursday at 10 about the MRI results" gets decided.
 
-**The diary webhook tool.** Register an HTTP tool pointing at your deployed actor:
+**The diary webhook tool.** Register an HTTP tool pointing at your deployed actor, with the shared secret in the auth header:
 
 ```
 POST https://<your-edge-host>/diary/entries
+Authorization: Bearer <DIARY_WEBHOOK_SECRET>
 {
   "conversationId": "{{conversation_id}}",
   "patientName":    "{{patient_name}}",

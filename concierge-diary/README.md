@@ -87,6 +87,7 @@ The seam is the whole demo: the assistant's wrap-up turn is stateless and decide
 | `TELNYX_ASSISTANT_ID` | `string` | `asst_01J9XK2Q8ZR4M0T7` | **yes** | Assistant that owns the scheduled events and whose post-conversation turn calls the diary webhook | Telnyx Portal → AI Assistants, or the `id` returned by `POST /v2/ai/assistants` |
 | `TELNYX_FROM_NUMBER` | `string` | `+1555XXXXXXXX` | **yes** | E.164 number the confirmation SMS is sent from (must be on your account) | Telnyx Portal → Numbers |
 | `CLINIC_NAME` | `string` | `Northside Imaging` | **yes** | Clinic name injected into `dynamic_variables.clinic_name` and the confirmation SMS | Your own config |
+| `DIARY_WEBHOOK_SECRET` | `string` | `your_diary_webhook_secret_here` | live only | Shared secret the assistant's diary webhook tool sends as `Authorization: Bearer <secret>` (or `X-Diary-Token`). Required when `DEMO_MODE=false`; optional in demo mode | Your own config — point the assistant tool's auth header at it |
 | `DEMO_MODE` | `string` | `true` | no | `true` (default) logs the scheduled-event create/delete and SMS instead of placing them | — |
 | `DIARY_SWEEP_SECONDS` | `string` | `120` | no | Delay before the `onSweep` recovery timer fires (default `120`) | — |
 
@@ -115,7 +116,7 @@ telnyx-edge types
 telnyx-edge ship
 ```
 
-Point the assistant's post-conversation webhook tool at `https://<your-actor-host>/diary/entries` and set `post_conversation_settings.enabled: true` on the assistant. The sample runs in **safe demo mode** by default (`DEMO_MODE=true`): diary rows and state transitions are real, but no scheduled event is created and no SMS is sent — the calls are logged instead. Set `DEMO_MODE=false` for live mode. See `GUIDE.md` for the full demo-vs-live walkthrough.
+Point the assistant's post-conversation webhook tool at `https://<your-actor-host>/diary/entries`, set `post_conversation_settings.enabled: true` on the assistant, and give the tool an `Authorization: Bearer <DIARY_WEBHOOK_SECRET>` header — in live mode (`DEMO_MODE=false`) the routes reject bookings without it. The sample runs in **safe demo mode** by default (`DEMO_MODE=true`): diary rows and state transitions are real, but no scheduled event is created and no SMS is sent — the calls are logged instead. Set `DEMO_MODE=false` for live mode. See `GUIDE.md` for the full demo-vs-live walkthrough.
 
 ## API Reference
 
