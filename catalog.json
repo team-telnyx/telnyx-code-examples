@@ -3,6 +3,7 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
+  "generated_at": "2026-11-09T22:35:11Z",
   "generated_at": "2026-11-10T17:49:13Z",
   "generated_at": "2026-11-10T03:25:28Z",
   "example_count": 589,
@@ -5300,6 +5301,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/watchdog"
     },
     {
+      "folder": "night-nurse-line",
+      "title": "Night Nurse Line — After-Hours Triage Chat With a Memory",
+      "description": "A durable per-patient nurse-line actor that keeps an overnight web chat alive across visits, pages the on-call once, and hands off a morning report.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/night-nurse-line"
       "folder": "concierge-diary",
       "title": "Concierge Diary — Follow-Up Calls the Assistant Books Itself",
       "description": "A durable per-conversation diary actor that turns an AI Assistant's post-conversation wrap-up turn into a personalized, exactly-once scheduled callback.",
