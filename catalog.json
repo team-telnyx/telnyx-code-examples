@@ -3,10 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-11-09T22:35:11Z",
-  "generated_at": "2026-11-10T17:49:13Z",
-  "generated_at": "2026-11-10T03:25:28Z",
-  "example_count": 589,
+  "generated_at": "2026-11-11T21:53:41Z",
+  "example_count": 592,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -5301,13 +5299,6 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/watchdog"
     },
     {
-      "folder": "night-nurse-line",
-      "title": "Night Nurse Line — After-Hours Triage Chat With a Memory",
-      "description": "A durable per-patient nurse-line actor that keeps an overnight web chat alive across visits, pages the on-call once, and hands off a morning report.",
-      "product": "ai",
-      "language": "typescript",
-      "framework": "edge",
-      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/night-nurse-line"
       "folder": "concierge-diary",
       "title": "Concierge Diary — Follow-Up Calls the Assistant Books Itself",
       "description": "A durable per-conversation diary actor that turns an AI Assistant's post-conversation wrap-up turn into a personalized, exactly-once scheduled callback.",
@@ -5315,6 +5306,17 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/concierge-diary"
+    },
+    {
+      "folder": "night-nurse-line",
+      "title": "Night Nurse Line — After-Hours Triage Chat With a Memory",
+      "description": "A durable per-patient nurse-line actor that keeps an overnight web chat alive across visits, pages the on-call once, and hands off a morning report.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/night-nurse-line"
+    },
+    {
       "folder": "acp-business-line",
       "title": "Turn a phone number into an AI business line with the Telnyx Agent Control Plane",
       "description": "Declare a clinic appointment-intake agent in configuration — agent.json plus instructions.md, no application code — and answer calls and texts on one number with the Agent Control Plane.",
@@ -5322,6 +5324,15 @@
       "language": "acp",
       "framework": "agent-control-plane",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/acp-business-line"
+    },
+    {
+      "folder": "phone-identity-voice-agent-nodejs",
+      "title": "Phone Identity Intelligence — Voice AI Agent",
+      "description": "Inbound call triggers Number Lookup for caller identity, risk scoring, and a live dashboard, then an AI Assistant greets the caller based on trust level.",
+      "product": "voice",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/phone-identity-voice-agent-nodejs"
     }
   ]
 }

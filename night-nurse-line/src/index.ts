@@ -119,6 +119,27 @@ function isDemo(env: Env): boolean {
   return (env.DEMO_MODE ?? "true").toLowerCase() !== "false";
 }
 
+type ConfigKey =
+  | "NIGHT_NURSE_ASSISTANT_ID"
+  | "ONCALL_E164"
+  | "DAY_TEAM_E164"
+  | "FROM_E164"
+  | "DEMO_MODE";
+
+async function setting(env: Env, key: ConfigKey): Promise<string> {
+  try {
+    const fromSecrets = await env.SECRETS.get(key);
+    if (fromSecrets) return fromSecrets.trim();
+  } catch {
+    // No secrets store configured or read failed — fall through to env.
+  }
+  return ((env as unknown as Record<string, string | undefined>)[key] ?? "").trim();
+}
+
+async function demoMode(env: Env): Promise<boolean> {
+  return (await setting(env, "DEMO_MODE") || "true").toLowerCase() !== "false";
+}
+
 function maskPhone(value: string): string {
   return value.length <= 4 ? "****" : `${value.slice(0, 2)}******${value.slice(-4)}`;
 }
@@ -202,6 +223,21 @@ function buildPageSummary(patientId: string, text: string, facts: Facts): string
   return `${patientId}, ${bits.join(", ")}`;
 }
 
+async function createConversation(env: Env, patientId: string): Promise<string> {
+  const apiKey = await secret(env, "TELNYX_API_KEY");
+  if (!apiKey) throw new Error("TELNYX_API_KEY is not configured");
+  const res = await fetch("https://api.telnyx.com/v2/ai/conversations", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({ name: patientId }),
+  });
+  if (!res.ok) throw new Error(`conversation create failed with status ${res.status}`);
+  const body = (await res.json()) as { data?: { id?: string } };
+  const id = body.data?.id;
+  if (!id) throw new Error("conversation create returned no id");
+  return id;
+}
+
 async function assistantChat(
   env: Env,
   input: { assistantId: string; content: string; name: string; conversationId: string | null },
@@ -218,8 +254,12 @@ async function assistantChat(
     }),
   });
   if (!res.ok) throw new Error(`assistant chat failed with status ${res.status}`);
-  const body = (await res.json()) as { data?: { content?: string; conversation_id?: string } };
-  const data = body.data ?? {};
+  const body = (await res.json()) as {
+    data?: { content?: string; conversation_id?: string };
+    content?: string;
+    conversation_id?: string;
+  };
+  const data = body.data ?? body;
   return { content: String(data.content ?? ""), conversationId: data.conversation_id ?? input.conversationId };
 }
 
@@ -266,11 +306,11 @@ async function fetchConversationTail(
 
 async function sendSms(env: Env, to: string, text: string): Promise<{ id: string; demo: boolean }> {
   if (!E164_RE.test(to)) throw new Error("destination must be an E.164 number");
-  if (isDemo(env)) {
+  if (await demoMode(env)) {
     console.log(`[demo] SMS to ${maskPhone(to)}: ${text.slice(0, 120)}`);
     return { id: `demo-${Date.now()}`, demo: true };
   }
-  const from = env.FROM_E164 ?? "";
+  const from = await setting(env, "FROM_E164");
   if (!E164_RE.test(from)) throw new Error("FROM_E164 must be an E.164 number in live mode");
   const res = await env.TELNYX.messages.send({ to, from, text });
   return { id: String(res?.id ?? ""), demo: false };
@@ -290,10 +330,11 @@ export class NightNurse extends Agent<Env, NurseState> {
     const state = await this.getState();
     const patientId = state.patientId || input.patientId;
     if (!PATIENT_ID_RE.test(patientId)) throw new Error("invalid patient handle");
-    const assistantId = this.env.NIGHT_NURSE_ASSISTANT_ID ?? "";
+    const assistantId = await setting(this.env, "NIGHT_NURSE_ASSISTANT_ID");
     if (!assistantId) throw new Error("NIGHT_NURSE_ASSISTANT_ID is not configured");
 
-    const conversationId = state.conversationId ?? input.conversationId ?? null;
+    const existingConversationId = state.conversationId ?? input.conversationId ?? null;
+    const conversationId = existingConversationId ?? (await createConversation(this.env, patientId));
     const reply = await assistantChat(this.env, { assistantId, content: input.text, name: patientId, conversationId });
     const parsed = splitTriage(reply.content);
     const facts = extractFacts(input.text);
@@ -445,7 +486,7 @@ export class RotaDesk extends Agent<Env, RotaState> {
     await ensureSchema(this.env);
     const rows = await query<{ number: string }>(this.env.CLINIC_DB, "SELECT number FROM rota WHERE id = 1");
     if (rows.length) return rows[0].number;
-    const seed = this.env.ONCALL_E164 ?? "";
+    const seed = await setting(this.env, "ONCALL_E164");
     if (!E164_RE.test(seed)) throw new Error("ONCALL_E164 is not a valid E.164 number");
     await this.setNumber({ number: seed, updatedBy: "env-seed" });
     return seed;
@@ -498,7 +539,7 @@ export class ClinicDesk extends Agent<Env, ClinicState> {
   async dailyHandoff(): Promise<ClinicReport> {
     const day = todayPT();
     const report = await this.report(day);
-    const to = this.env.DAY_TEAM_E164 ?? "";
+    const to = await setting(this.env, "DAY_TEAM_E164");
     if (E164_RE.test(to)) {
       await sendSms(this.env, to,
         `Night Nurse handoff ${day}: ${report.chats} chats, ${report.pages} pages, ${report.selfCare} self-care.`);
@@ -528,7 +569,7 @@ function base64ToBytes(value: string): Uint8Array<ArrayBuffer> {
 async function verifySignature(req: Request, raw: string, env: Env): Promise<boolean> {
   const publicKey = await secret(env, "TELNYX_PUBLIC_KEY");
   if (!publicKey) {
-    if (isDemo(env)) {
+    if (await demoMode(env)) {
       console.warn("TELNYX_PUBLIC_KEY not configured \u2014 accepting webhook in demo mode only");
       return true;
     }
@@ -619,59 +660,135 @@ async function handleReport(url: URL, env: Env): Promise<Response> {
   return json(await clinic.report(day), 200);
 }
 
-const RELAY_PAGE = `<!doctype html>
-<html><head><meta charset="utf-8"><title>Night Nurse Line</title>
-<style>body{font:15px/1.5 system-ui;max-width:640px;margin:40px auto;padding:0 16px}pre{white-space:pre-wrap;border:1px solid #ddd;border-radius:8px;padding:12px;min-height:180px}input{width:78%;padding:6px}</style>
-</head><body>
+const PAGE_CSS = `
+*{box-sizing:border-box}
+:root{--ink:#102a43;--ink-soft:#486581;--card:#ffffff;--line:#d9e2ec;--accent:#0b5ea8;--accent-deep:#0b3f70;--danger:#c62828;--ok:#1b8756;--radius:16px}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);min-height:100vh;background:linear-gradient(180deg,#0b2540 0%,#144a75 60%,#1b5e8f 100%)}
+.page{max-width:560px;margin:0 auto;padding:40px 16px 64px}
+.hero{color:#fff;text-align:center;margin-bottom:22px}
+.logo{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.14);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;border:1px solid rgba(255,255,255,.25)}
+.hero h1{font-size:1.55rem;margin:0 0 6px;letter-spacing:-.01em}
+.hero p{margin:0;color:rgba(255,255,255,.82);font-size:.95rem}
+.badge-row{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid transparent}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.badge.ah{background:#0f3324;color:#8ff0c0;border-color:rgba(129,240,192,.35)}
+.badge.oh{background:#083049;color:#9fd2f7;border-color:rgba(159,210,247,.35)}
+.badge.info{background:rgba(255,255,255,.12);color:#e3ecf5;border-color:rgba(255,255,255,.28)}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:0 18px 48px rgba(4,20,38,.42);overflow:hidden;border:1px solid rgba(255,255,255,.35)}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-head h2{font-size:.95rem;margin:0}
+.card-head span{font-size:.75rem;color:var(--ink-soft)}
+#log{list-style:none;margin:0;padding:18px;height:380px;overflow-y:auto;background:#f4f7fb;display:flex;flex-direction:column;gap:10px}
+#log li{max-width:82%;padding:10px 14px;border-radius:14px;font-size:.92rem;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+#log li.you{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
+#log li.nurse{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+#log li.system{align-self:center;background:transparent;color:var(--danger);font-weight:600;font-size:.8rem}
+#log li:empty{display:none}
+form#f{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line);background:#fff}
+input#t{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;color:var(--ink);outline:none}
+input#t:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(11,94,168,.14)}
+button.send{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer}
+button.send:hover{background:var(--accent-deep)}
+.disclaimer{text-align:center;color:rgba(255,255,255,.75);font-size:.78rem;margin-top:16px;line-height:1.5}
+.disclaimer a{color:#9fd2f7}
+telnyx-ai-agent{width:100%;min-height:540px;display:block;background:#fff}
+@media(max-width:480px){.page{padding:24px 10px 48px}#log{height:320px}}
+`;
+
+const HERO_SVG = `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 21s-7.5-4.7-9.7-9C.7 8.6 2.6 5 6 5c2 0 3.4 1.1 4.2 2.3L12 9l1.8-1.7C14.6 6.1 16 5 18 5c3.4 0 5.3 3.6 3.7 7-2.2 4.3-9.7 9-9.7 9z" fill="#7fd4ff" opacity=".9"/><path d="M11 7h2v4h4v2h-4v4h-2v-4H7v-2h4V7z" fill="#0b2540" opacity=".85"/></svg>`;
+
+function statusChipJs(): string {
+  return `const _chip=document.getElementById('status');
+if(_chip){const _f=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',weekday:'short',hour:'numeric',hour12:false}).formatToParts(new Date());
+const _h=Number(_f.find(p=>p.type==='hour').value)%24;const _wd=_f.find(p=>p.type==='weekday').value;
+const _oh=_wd!=='Sat'&&_wd!=='Sun'&&_h>=9&&_h<17;
+_chip.textContent=_oh?'Office hours · front desk replies to routine chats':'After hours · nurse line active';
+_chip.className='badge '+(_oh?'oh':'ah');}`;
+}
+
+function heroBlock(subtitle: string): string {
+  return `<div class="hero"><div class="logo">${HERO_SVG}</div>
 <h1>Night Nurse Line</h1>
-<p>Relay path (Path B): the browser posts each turn to <code>/chat</code>; the actor owns the chart.</p>
-<pre id="log"></pre>
-<form id="f"><input id="t" placeholder="Describe your symptoms" autocomplete="off"><button>Send</button></form>
+<p>${subtitle}</p>
+<div class="badge-row"><span class="badge info" id="status"><span class="dot"></span></span><span class="badge info">OB triage · demo</span></div></div>`;
+}
+
+function relayPage(): string {
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Night Nurse Line \u2014 Relay Path</title>
+<style>${PAGE_CSS}</style></head>
+<body><div class="page">
+${heroBlock("Path B \u2014 the browser posts each turn to the NightNurse actor, which owns the chart.")}
+<div class="card">
+  <div class="card-head"><h2>Triage chat</h2><span id="handle">patient \u00b7 maya-481</span></div>
+  <ul id="log"></ul>
+  <form id="f"><input id="t" placeholder="Describe your symptoms" autocomplete="off"><button class="send" type="submit">Send</button></form>
+</div>
+<p class="disclaimer">For medical emergencies call 911.<br>Path A (widget) is at <a href="/widget">/widget</a> \u00b7 morning report: <a href="/report">/report</a></p>
 <script>
 const log=document.getElementById('log');
 const handle=new URLSearchParams(location.search).get('patient')||'maya-481';
+document.getElementById('handle').textContent='patient \u00b7 '+handle;
 let conversationId=null;
+function add(role,text){const li=document.createElement('li');li.className=role;li.textContent=text;log.appendChild(li);log.scrollTop=log.scrollHeight;}
+${statusChipJs()}
 document.getElementById('f').addEventListener('submit',async e=>{
   e.preventDefault();
   const input=document.getElementById('t'),text=input.value.trim();
   if(!text)return;
-  input.value='';log.textContent+='You: '+text+'\\n';
-  const res=await fetch('/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({patientId:handle,text,conversationId})});
-  const data=await res.json();
-  if(data.conversationId)conversationId=data.conversationId;
-  log.textContent+='Night Nurse: '+(data.content||data.error)+'\\n';
-  if(data.triage==='page-on-call')log.textContent+='[on-call paged]\\n';
-  log.scrollTop=log.scrollHeight;
+  input.value='';add('you',text);
+  try{
+    const res=await fetch('/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({patientId:handle,text,conversationId})});
+    const data=await res.json();
+    if(data.conversationId)conversationId=data.conversationId;
+    if(data.error)add('system',data.error);
+    else{
+      add('nurse',data.content||'(no reply)');
+      if(data.triage==='page-on-call')add('system','on-call has been paged');
+      else if(data.pageSent)add('system','on-call was paged earlier for this patient');
+    }
+  }catch(err){add('system','Something went wrong. Please try again.');}
 });
-</script></body></html>`;
+</script></div></body></html>`;
+}
 
-function widgetPage(assistantId: string): string {
+function widgetPage(assistantId: string, patientHandle: string): string {
   return `<!doctype html>
-<html><head><meta charset="utf-8"><title>Night Nurse Line \u2014 widget</title></head><body>
-<h1>Night Nurse Line</h1>
-<p>Path A: the Telnyx web-chat widget (text-only) talks to the assistant directly; the bridge forwards the conversation id to the actor, which reads the transcript back and updates the chart.</p>
-<telnyx-ai-agent agent-id="${assistantId}" text-only data-patient-handle="maya-481"></telnyx-ai-agent>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Night Nurse Line \u2014 Widget</title>
+<style>${PAGE_CSS}</style></head>
+<body><div class="page">
+${heroBlock("Path A \u2014 the Telnyx web-chat widget talks to the assistant directly; the actor keeps the chart.")}
+<div class="card">
+  <div class="card-head"><h2>Triage chat</h2><span>patient \u00b7 ${patientHandle}</span></div>
+  <telnyx-ai-agent agent-id="${assistantId}" text-only data-patient-handle="${patientHandle}"></telnyx-ai-agent>
+</div>
+<p class="disclaimer">For medical emergencies call 911.<br>Path B (relay) is at <a href="/">/</a> \u00b7 morning report: <a href="/report">/report</a></p>
 <script type="module" src="https://esm.sh/@telnyx/ai-agent-widget"></script>
 <script>
 const widget=document.querySelector('telnyx-ai-agent');
-const handle=new URLSearchParams(location.search).get('patient')||'maya-481';
+const handle=new URLSearchParams(location.search).get('patient')||'${patientHandle}';
 let conversationId=null;
 const sync=()=>{if(!conversationId)return;fetch('/conversation',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({patientId:handle,conversationId})});};
 widget.addEventListener('agent.connected',e=>{if(e.detail&&e.detail.conversationId)conversationId=e.detail.conversationId;sync();});
 widget.addEventListener('transcript.item',()=>sync());
-</script>
-</body></html>`;
+${statusChipJs()}
+</script></div></body></html>`;
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     try {
-      if (request.method === "GET" && url.pathname === "/") return html(RELAY_PAGE);
+      if (request.method === "GET" && url.pathname === "/") return html(relayPage());
       if (request.method === "GET" && url.pathname === "/widget") {
-        const assistantId = env.NIGHT_NURSE_ASSISTANT_ID ?? "";
+        const assistantId = await setting(env, "NIGHT_NURSE_ASSISTANT_ID");
         if (!/^[A-Za-z0-9_-]{1,64}$/.test(assistantId)) return json({ error: "NIGHT_NURSE_ASSISTANT_ID is not configured" }, 500);
-        return html(widgetPage(assistantId));
+        const patientHandle = (url.searchParams.get("patient") || "maya-481").toLowerCase();
+        if (!PATIENT_ID_RE.test(patientHandle)) return json({ error: "patientId must match ^[a-z0-9][a-z0-9-]{1,63}$" }, 400);
+        return html(widgetPage(assistantId, patientHandle));
       }
       if (request.method === "POST" && url.pathname === "/chat") return await handleChat(request, env);
       if (request.method === "POST" && url.pathname === "/conversation") return await handleConversation(request, env);

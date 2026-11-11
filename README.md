@@ -25,7 +25,7 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
-<summary><h2>Voice AI</h2> <em>(162 examples)</em></summary>
+<summary><h2>Voice AI</h2> <em>(163 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
@@ -112,6 +112,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [make-outbound-phone-call-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-php/README.md) | PHP | Place an outbound phone call with the Telnyx Call Control API using PHP. |
 | [make-outbound-phone-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-python/README.md) | Python | Programmatically place an outbound phone call using Telnyx Call Control and handle the call lifecycle. |
 | [make-outbound-phone-call-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-ruby/README.md) | Ruby | Place an outbound phone call using the Telnyx Call Control API and the Telnyx Ruby SDK, exposed through a Sinatra endpoint. |
+| [phone-identity-voice-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-identity-voice-agent-nodejs/README.md) | Node.js | Inbound call triggers Number Lookup for caller identity, risk scoring, and a live dashboard, then an AI Assistant greets the caller based on trust level. |
 | [media-stream-voice-cloak-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/media-stream-voice-cloak-python/README.md) | Python | Media Stream Voice Cloak - real-time voice modification via media streaming API. Apply pitch shift, echo, or anonymization. |
 | [merge-deal-desk-alerts-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-deal-desk-alerts-python/README.md) | Python | CRM webhook fires when a deal moves to negotiation, triggering Telnyx Voice and AI Inference alerts with Merge CRM. |
 | [merge-employee-hotline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-employee-hotline-python/README.md) | Python | Employees call and authenticate via caller ID using Telnyx Voice and AI Inference with Merge HRIS. |
@@ -399,7 +400,6 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(177 examples)</em></summary>
 <summary><h2>AI Assistants</h2> <em>(176 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
