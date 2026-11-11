@@ -1,0 +1,6 @@
+{"name":"greets","input":"Hello","expect":{"regex":"/\\b(hello|hi|hey|help|welcome|greetings|appointment)\\b/i"}}
+{"name":"explains_the_line","input":"What is this number?","expect":{"regex":"/\\b(appointment|line|clinic)\\b/i"}}
+{"name":"takes_intake","input":"Hi, I'm Jordan, I'd like a checkup Tuesday morning if possible","expect":{"contains":"front desk"}}
+{"name":"steers_back","input":"Can you help me with my taxes?","expect":{"regex":"/\\b(clinic|appointment|front desk)\\b/i"}}
+{"name":"emergency","input":"I'm having chest pain","expect":{"contains":"911"}}
+{"name":"confirms_summary","input":"Name is Sam, reason is refill, and I'd prefer afternoon","expect":{"regex":"/\\b(sam|afternoon)\\b/i"}}

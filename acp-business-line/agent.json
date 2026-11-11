@@ -1,0 +1,79 @@
+{
+  "name": "acp-business-line",
+  "kind": "configuration",
+  "model": "zai-org/GLM-5.3-Flash",
+  "instructions": "instructions.md",
+  "channels": [],
+  "phone": [
+    "+15072291272"
+  ],
+  "tools": [],
+  "memory": {
+    "type": "agent_memory",
+    "namespace": "default",
+    "profile": "{{conversation}}"
+  },
+  "voice": {
+    "filler": {
+      "maxPerCall": 3
+    }
+  },
+  "secrets": [
+    "TELNYX_PUBLIC_KEY"
+  ],
+  "deployed": {
+    "functionId": "48af29c0-00e3-4189-998d-b419046a3aaa",
+    "functionName": "acp-business-line",
+    "mountUrl": "https://acp-business-line-48af29c0-0.telnyxcompute.com",
+    "actorType": "AcpBusinessLine",
+    "channels": [
+      {
+        "type": "call_control_application",
+        "id": "3089753312187123628",
+        "webhookUrl": "https://acp-business-line-48af29c0-0.telnyxcompute.com/webhooks/call_control_application/3089753312187123628",
+        "previous": null,
+        "numbers": [
+          "+15072291272"
+        ]
+      },
+      {
+        "type": "messaging_profile",
+        "id": "4001a1c2-ffad-49f8-ab13-c8c9e46fbfdd",
+        "webhookUrl": "https://acp-business-line-48af29c0-0.telnyxcompute.com/webhooks/messaging_profile/4001a1c2-ffad-49f8-ab13-c8c9e46fbfdd",
+        "previous": null,
+        "numbers": [
+          "+15072291272"
+        ]
+      }
+    ],
+    "phones": [
+      {
+        "number": "+15072291272",
+        "numberId": "3089751179727472329",
+        "voice": {
+          "type": "call_control_application",
+          "id": "3089753312187123628",
+          "created": true,
+          "previousId": null
+        },
+        "messaging": {
+          "type": "messaging_profile",
+          "id": "4001a1c2-ffad-49f8-ab13-c8c9e46fbfdd",
+          "created": true,
+          "previousId": null
+        }
+      }
+    ],
+    "revision": "87e7c065a907",
+    "revisions": {
+      "599dba9c0e87": {
+        "note": "0b19a5a9",
+        "at": "2026-11-10T01:08:21.234Z"
+      },
+      "87e7c065a907": {
+        "note": "0b19a5a9",
+        "at": "2026-11-10T03:01:14.623Z"
+      }
+    }
+  }
+}

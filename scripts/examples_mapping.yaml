@@ -3616,3 +3616,9 @@ examples:
     language: typescript
     framework: edge
     folder: night-nurse-line
+    folder: concierge-diary
+  - product: voice
+    use_case: acp-appointment-intake
+    language: acp
+    framework: agent-control-plane
+    folder: acp-business-line
