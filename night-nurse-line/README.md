@@ -25,7 +25,7 @@ The night nurse line is only as good as the communications plumbing underneath i
 |----------|--------|---------|
 | `/v2/ai/assistants/{assistant_id}/chat` | `POST` | Assistant Chat API — sends the patient turn with `content`, `name`, and `conversation_id`; returns `{ content, conversation_id }` with a `TRIAGE:` suffix the actor parses. |
 | `/v2/messages` (via `env.TELNYX.messages.send`) | `POST` | On-call page SMS and the daily handoff SMS to the day team. |
-| `/v2/conversations/{id}/messages` | `GET` | Morning-report transcript readback (documented path; the relay backend owns the clinic-wide ledger). |
+| `/v2/ai/conversations/{id}/messages` | `GET` | Transcript readback — the actor ingests the widget path's conversation (chart extraction + page guard). |
 | Inbound Message Webhook → `POST /sms` | `POST` | Clinic manager's `ONCALL +1...` rota change and `PATIENT <handle> <text>` SMS replies; Ed25519 signature verified. |
 
 ## Architecture
@@ -35,7 +35,8 @@ The night nurse line is only as good as the communications plumbing underneath i
    Browser (Path A)    │  GET /widget  →  <telnyx-ai-agent text-only>  │
    ─────────────────►  │  widget talks to Telnyx directly (no key)     │
                        └──────────────────────────────────────────────┘
-                                        │ transcript readback
+                       │ agent.connected / transcript.item bridge
+                       │ POST /conversation { patientId, conversationId }
                                         ▼
    Browser (Path B)    ┌──────────────────────────────────────────────┐
    ─────────────────►  │  GET /  →  relay page  →  POST /chat          │
@@ -48,9 +49,10 @@ The night nurse line is only as good as the communications plumbing underneath i
                        │  │ NightNurse extends Agent                │  │
                        │  │  state: symptoms, meds, allergies,     │  │
                        │  │         redFlag, pageSent, chats...    │  │
-                       │  │  chat()  → Assistant Chat API          │  │
-                       │  │  pageOnCall() → schedule(0) → SMS      │  │
-                       │  │  report(day) → per-patient ledger      │  │
+                        │  │  chat()  → Assistant Chat API          │  │
+                        │  │  ingestConversation() → readback        │  │
+                        │  │  pageOnCall() → schedule(0) → SMS      │  │
+                        │  │  report(day) → per-patient ledger      │  │
                        │  └───────┬────────────────────┬───────────┘  │
                        └──────────┼────────────────────┼──────────────┘
                                   │                    │
@@ -71,7 +73,7 @@ The night nurse line is only as good as the communications plumbing underneath i
                     └────────────────────────────┘   └──────────────┘
 ```
 
-**Data flow.** The relay page (`GET /`) posts each completed patient turn to `POST /chat`, which resolves `env.NURSES.idFromName(patientId)` and calls the actor's `chat()` RPC. The actor calls the Assistant Chat API with the stored `conversation_id`, parses the trailing `TRIAGE: <self-care|appointment|page-on-call>` line out of the reply, extracts chart facts from the raw patient text, writes `patient_chart` rows, and — only when the verdict is `page-on-call` and `state.pageSent` is false — schedules `pageOnCall` at delay 0. `pageOnCall` asks `RotaDesk.current()` for the live on-call number and sends the SMS through `env.TELNYX.messages.send`. The pure-widget path (`GET /widget`) skips the relay: the widget talks to Telnyx directly and the actor reads the transcript back via `GET /v2/conversations/{id}/messages`.
+**Data flow.** The relay page (`GET /`) posts each completed patient turn to `POST /chat`, which resolves `env.NURSES.idFromName(patientId)` and calls the actor's `chat()` RPC. The actor calls the Assistant Chat API with the stored `conversation_id`, parses the trailing `TRIAGE: <self-care|appointment|page-on-call>` line out of the reply, extracts chart facts from the raw patient text, writes `patient_chart` rows, and — only when the verdict is `page-on-call` and `state.pageSent` is false — schedules `pageOnCall` at delay 0. `pageOnCall` asks `RotaDesk.current()` for the live on-call number and sends the SMS through `env.TELNYX.messages.send`. The widget path (`GET /widget`) talks to Telnyx directly: the page's bridge script forwards `agent.connected` (which carries the `conversationId`) and every `transcript.item` to `POST /conversation`, and the actor ingests the conversation via `GET /v2/ai/conversations/{id}/messages` — same chart extraction, same page-once guard, no double page.
 
 ## Environment Variables
 
@@ -122,11 +124,12 @@ Point the demo number's **Inbound Message Webhook** at `https://<your-deployment
 | `/` | `GET` | — | Relay chat page (Path B). `?patient=maya-481` sets the handle. |
 | `/widget` | `GET` | — | Widget page (Path A) embedding `<telnyx-ai-agent text-only>`. |
 | `/chat` | `POST` | `{ patientId, text, conversationId? }` | `{ patientId, content, conversationId, triage, pageSent, officeHours, redFlag }` |
+| `/conversation` | `POST` | `{ patientId, conversationId }` | `{ patientId, conversationId, ingested, triage, pageSent }` — ingests the widget transcript (chart + page guard). |
 | `/sms` | `POST` | Telnyx `message.received` webhook | `{ received: true, rota? , replied? }` — `ONCALL <number>` updates the rota; `PATIENT <handle> <text>` chats and replies. |
 | `/report` | `GET` | `?day=YYYY-MM-DD` | Clinic-wide `{ day, chats, pages, selfCare, appointments, pageOnCall }` |
 | `/handoff` | `POST` | — | Triggers the daily handoff SMS and returns the same clinic report. |
 
-**Actor RPC surface.** `NightNurse.chat(input)` and `NightNurse.report(day)` (per-patient ledger); `RotaDesk.current()` and `RotaDesk.setNumber({ number, updatedBy })`; `ClinicDesk.report(day)`, `ClinicDesk.dailyHandoff()`, and `ClinicDesk.arm()` (registers the 24-hour `every` schedule).
+**Actor RPC surface.** `NightNurse.chat(input)`, `NightNurse.ingestConversation({ conversationId })` (widget-path transcript ingest), and `NightNurse.report(day)` (per-patient ledger); `RotaDesk.current()` and `RotaDesk.setNumber({ number, updatedBy })`; `ClinicDesk.report(day)`, `ClinicDesk.dailyHandoff()`, and `ClinicDesk.arm()` (registers the 24-hour `every` schedule).
 
 **Chart schema.** `patient_chart(patient_id, field, value, updated_at)` with `field` values like `symptom:chest_tightness`, `med:metformin`, `allergy:penicillin`, `redflag`, `pregnancy_weeks`. `sessions(patient_id, day, verdict, created_at)` and `pages(patient_id, day, to_number, summary, created_at)` back the reports; `rota(id, number, updated_by, updated_at)` holds the single live on-call number.
 
@@ -135,6 +138,7 @@ Point the demo number's **Inbound Message Webhook** at `https://<your-deployment
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | `NIGHT_NURSE_ASSISTANT_ID is not configured` | Env var missing or `/widget` hit before setup | Run `scripts/setup_assistant.sh` and set the returned id in `.env`. |
+| Widget shows a connection error | Assistant missing `telephony_settings.supports_unauthenticated_web_calls` | Re-create the assistant with `scripts/setup_assistant.sh` (it sets the flag) or enable it in the portal. |
 | Replies never page | Assistant instructions don't end with `TRIAGE: page-on-call` | Re-create the assistant with the setup script; the actor treats a missing suffix as `appointment` (safe default). |
 | `invalid signature` on `/sms` | `TELNYX_PUBLIC_KEY` missing in live mode, or clock skew > 5 min | Set the public key from the portal; ensure the host clock is synced. |
 | Page goes to the old number | Rota row not updated | Text `ONCALL +1XXXXXXXXXX` to the demo number; confirm the `rota` row in `CLINIC_DB`. |

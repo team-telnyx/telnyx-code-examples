@@ -32,7 +32,7 @@ export interface Env {
   DEMO_MODE?: string;
 }
 
-export interface NurseState {
+export interface NurseState extends Record<string, unknown> {
   patientId: string;
   conversationId: string | null;
   symptoms: string[];
@@ -45,14 +45,22 @@ export interface NurseState {
   selfCare: number;
   lastSeen: string | null;
   lastVerdict: Triage | null;
+  ingestedConversationId: string | null;
+  ingestedCount: number;
 }
 
-export interface RotaState { number: string; updatedBy: string; updatedAt: string }
-export interface ClinicState { armed: boolean; lastHandoff: string | null }
+export interface RotaState extends Record<string, unknown> { number: string; updatedBy: string; updatedAt: string }
+export interface ClinicState extends Record<string, unknown> { armed: boolean; lastHandoff: string | null }
 export interface ChatInput { patientId: string; text: string; conversationId?: string | null }
 export interface ChatResult {
   patientId: string; content: string; conversationId: string | null;
   triage: Triage; pageSent: boolean; officeHours: boolean; redFlag: boolean;
+}
+export interface TranscriptMessage { role: "user" | "assistant" | "tool"; text: string }
+export interface IngestInput { patientId: string; conversationId: string }
+export interface IngestResult {
+  patientId: string; conversationId: string; ingested: number;
+  triage: Triage; pageSent: boolean;
 }
 export interface PatientReport {
   patientId: string; day: string; chats: number; pages: number;
@@ -63,7 +71,7 @@ export interface ClinicReport {
   selfCare: number; appointments: number; pageOnCall: number;
 }
 
-interface NurseStub { chat(input: ChatInput): Promise<ChatResult>; report(day: string): Promise<PatientReport> }
+interface NurseStub { chat(input: ChatInput): Promise<ChatResult>; ingestConversation(input: IngestInput): Promise<IngestResult>; report(day: string): Promise<PatientReport> }
 interface RotaStub { current(): Promise<string>; setNumber(input: { number: string; updatedBy: string }): Promise<RotaState> }
 interface ClinicStub { arm(): Promise<void>; report(day: string): Promise<ClinicReport>; dailyHandoff(): Promise<ClinicReport> }
 
@@ -215,6 +223,47 @@ async function assistantChat(
   return { content: String(data.content ?? ""), conversationId: data.conversation_id ?? input.conversationId };
 }
 
+export function triageFromTranscript(messages: TranscriptMessage[]): Triage {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message.role !== "assistant" || !message.text) continue;
+    return splitTriage(message.text).triage;
+  }
+  return "appointment";
+}
+
+async function fetchConversationTail(
+  env: Env,
+  conversationId: string,
+): Promise<{ messages: TranscriptMessage[]; offset: number }> {
+  const apiKey = await secret(env, "TELNYX_API_KEY");
+  if (!apiKey) throw new Error("TELNYX_API_KEY is not configured");
+  const base = `https://api.telnyx.com/v2/ai/conversations/${encodeURIComponent(conversationId)}/messages`;
+  const first = await fetch(`${base}?page[size]=100`, { headers: { authorization: `Bearer ${apiKey}` } });
+  if (!first.ok) throw new Error(`conversation readback failed with status ${first.status}`);
+  const firstBody = (await first.json()) as {
+    data?: TranscriptMessage[];
+    meta?: { total_pages?: number; total_results?: number };
+  };
+  const totalPages = Number(firstBody.meta?.total_pages ?? 1);
+  const totalResults = Number(firstBody.meta?.total_results ?? 0);
+  let messages = firstBody.data ?? [];
+  let offset = 0;
+  if (totalPages > 1) {
+    const last = await fetch(`${base}?page[size]=100&page[number]=${totalPages}`, {
+      headers: { authorization: `Bearer ${apiKey}` },
+    });
+    if (last.ok) {
+      const lastBody = (await last.json()) as { data?: TranscriptMessage[] };
+      if (Array.isArray(lastBody.data)) {
+        messages = lastBody.data;
+        offset = Math.max(0, totalResults - messages.length);
+      }
+    }
+  }
+  return { messages, offset };
+}
+
 async function sendSms(env: Env, to: string, text: string): Promise<{ id: string; demo: boolean }> {
   if (!E164_RE.test(to)) throw new Error("destination must be an E.164 number");
   if (isDemo(env)) {
@@ -232,7 +281,7 @@ export class NightNurse extends Agent<Env, NurseState> {
     return {
       patientId: "", conversationId: null, symptoms: [], meds: [], allergies: [],
       redFlag: false, pageSent: false, chats: 0, pages: 0, selfCare: 0,
-      lastSeen: null, lastVerdict: null,
+      lastSeen: null, lastVerdict: null, ingestedConversationId: null, ingestedCount: 0,
     };
   }
 
@@ -279,6 +328,79 @@ export class NightNurse extends Agent<Env, NurseState> {
     });
 
     return { patientId, content, conversationId: reply.conversationId, triage: parsed.triage, pageSent, officeHours, redFlag };
+  }
+
+  async ingestConversation(input: IngestInput): Promise<IngestResult> {
+    await ensureSchema(this.env);
+    const state = await this.getState();
+    const patientId = state.patientId || input.patientId;
+    if (!PATIENT_ID_RE.test(patientId)) throw new Error("invalid patient handle");
+
+    const { messages, offset } = await fetchConversationTail(this.env, input.conversationId);
+    const sameConversation = state.ingestedConversationId === input.conversationId;
+    const start = sameConversation ? Math.max(0, state.ingestedCount - offset) : 0;
+
+    let pageSent = state.pageSent;
+    let chats = 0;
+    let selfCare = state.selfCare;
+    let symptoms = state.symptoms;
+    let meds = state.meds;
+    let allergies = state.allergies;
+    let redFlag = state.redFlag;
+    let lastVerdict: Triage | null = null;
+    let lastUserText = "";
+
+    for (let i = start; i < messages.length; i += 1) {
+      const message = messages[i];
+      if (message.role === "user" && message.text) {
+        lastUserText = message.text;
+        const facts = extractFacts(message.text);
+        await writeChart(this.env, patientId, facts);
+        symptoms = [...symptoms, ...facts.symptoms].slice(-20);
+        meds = uniq([...meds, ...facts.meds]);
+        allergies = uniq([...allergies, ...facts.allergies]);
+        redFlag = redFlag || facts.redFlag;
+        continue;
+      }
+      if (message.role === "assistant" && message.text) {
+        const parsed = splitTriage(message.text);
+        chats += 1;
+        lastVerdict = parsed.triage;
+        await write(this.env.CLINIC_DB,
+          "INSERT INTO sessions (patient_id, day, verdict, created_at) VALUES (?, ?, ?, ?)",
+          patientId, todayPT(), parsed.triage, new Date().toISOString());
+        if (parsed.triage === "page-on-call" && !pageSent) {
+          pageSent = true;
+          const userText = lastUserText || message.text.slice(0, 80);
+          await this.schedule(0, "pageOnCall", { patientId, summary: buildPageSummary(patientId, userText, extractFacts(userText)) });
+        }
+        if (parsed.triage === "self-care") {
+          selfCare += 1;
+        }
+      }
+    }
+
+    await this.setState({
+      patientId,
+      conversationId: input.conversationId,
+      symptoms, meds, allergies,
+      redFlag,
+      pageSent,
+      chats: state.chats + chats,
+      selfCare,
+      lastSeen: new Date().toISOString(),
+      lastVerdict: lastVerdict ?? state.lastVerdict,
+      ingestedConversationId: input.conversationId,
+      ingestedCount: offset + messages.length,
+    });
+
+    return {
+      patientId,
+      conversationId: input.conversationId,
+      ingested: messages.length - start,
+      triage: lastVerdict ?? "appointment",
+      pageSent,
+    };
   }
 
   async pageOnCall(payload: { patientId: string; summary: string }): Promise<void> {
@@ -396,8 +518,11 @@ function html(body: string): Response {
   return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 }
 
-function base64ToBytes(value: string): Uint8Array {
-  return Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
+function base64ToBytes(value: string): Uint8Array<ArrayBuffer> {
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
 async function verifySignature(req: Request, raw: string, env: Env): Promise<boolean> {
@@ -433,6 +558,20 @@ async function handleChat(req: Request, env: Env): Promise<Response> {
   if (!text || text.length > 2000) return json({ error: "text is required (max 2000 chars)" }, 400);
   const nurse = env.NURSES.idFromName(patientId) as unknown as NurseStub;
   const result = await nurse.chat({ patientId, text, conversationId: body?.conversationId ?? null });
+  return json(result, 200);
+}
+
+const CONVERSATION_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+
+async function handleConversation(req: Request, env: Env): Promise<Response> {
+  const body = (await req.json().catch(() => null)) as
+    { patientId?: string; conversationId?: string } | null;
+  const patientId = String(body?.patientId ?? "").trim().toLowerCase();
+  const conversationId = String(body?.conversationId ?? "").trim();
+  if (!PATIENT_ID_RE.test(patientId)) return json({ error: "patientId must match ^[a-z0-9][a-z0-9-]{1,63}$" }, 400);
+  if (!CONVERSATION_ID_RE.test(conversationId)) return json({ error: "conversationId must match ^[A-Za-z0-9_-]{1,128}$" }, 400);
+  const nurse = env.NURSES.idFromName(patientId) as unknown as NurseStub;
+  const result = await nurse.ingestConversation({ patientId, conversationId });
   return json(result, 200);
 }
 
@@ -510,9 +649,17 @@ function widgetPage(assistantId: string): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>Night Nurse Line \u2014 widget</title></head><body>
 <h1>Night Nurse Line</h1>
-<p>Path A: the Telnyx web-chat widget (text-only) talks to the assistant directly.</p>
+<p>Path A: the Telnyx web-chat widget (text-only) talks to the assistant directly; the bridge forwards the conversation id to the actor, which reads the transcript back and updates the chart.</p>
 <telnyx-ai-agent agent-id="${assistantId}" text-only data-patient-handle="maya-481"></telnyx-ai-agent>
 <script type="module" src="https://esm.sh/@telnyx/ai-agent-widget"></script>
+<script>
+const widget=document.querySelector('telnyx-ai-agent');
+const handle=new URLSearchParams(location.search).get('patient')||'maya-481';
+let conversationId=null;
+const sync=()=>{if(!conversationId)return;fetch('/conversation',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({patientId:handle,conversationId})});};
+widget.addEventListener('agent.connected',e=>{if(e.detail&&e.detail.conversationId)conversationId=e.detail.conversationId;sync();});
+widget.addEventListener('transcript.item',()=>sync());
+</script>
 </body></html>`;
 }
 
@@ -527,6 +674,7 @@ export default {
         return html(widgetPage(assistantId));
       }
       if (request.method === "POST" && url.pathname === "/chat") return await handleChat(request, env);
+      if (request.method === "POST" && url.pathname === "/conversation") return await handleConversation(request, env);
       if (request.method === "POST" && url.pathname === "/sms") return await handleSms(request, env);
       if (request.method === "GET" && url.pathname === "/report") return await handleReport(url, env);
       if (request.method === "POST" && url.pathname === "/handoff") {

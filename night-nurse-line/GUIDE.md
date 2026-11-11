@@ -57,7 +57,7 @@ Everything lives in `src/index.ts`. It exports three actor classes and a default
 | `NightNurse` | One durable actor per patient. Owns the chart, the conversation id, the page-once guard. |
 | `RotaDesk` | Single actor (`"oncall"`) that owns the current on-call number. |
 | `ClinicDesk` | Single actor (`"clinic"`) that aggregates the clinic-wide ledger and sends the daily handoff SMS. |
-| `default.fetch` | HTTP router: `/`, `/widget`, `/chat`, `/sms`, `/report`, `/handoff`. |
+| `default.fetch` | HTTP router: `/`, `/widget`, `/chat`, `/conversation`, `/sms`, `/report`, `/handoff`. |
 
 ---
 
@@ -149,6 +149,8 @@ https://<your-deployment-host>/sms
 
 That's the route the clinic manager texts to change the on-call rota.
 
+Use a dedicated demo number for this sample — `+16282210134` is provisioned for it (its messaging profile points here; its voice connection stays untouched, so the `conference-agent-mediator` demo keeps working). Do **not** point the Business Line ACP number (`+15072291272`, shared with the concierge-diary sample) at `/sms` — that number's messaging profile is wired for the ACP demo, and repointing it would pull the night-nurse webhook traffic off the other sample.
+
 ---
 
 ## 5. Environment variables
@@ -180,7 +182,7 @@ if (isDemo(env)) {
 
 **Demo mode (default).** Every outbound SMS — the on-call page, the rota confirmation, the daily handoff — is logged with a masked destination and never sent. No charges, no real numbers dialed. The full state machine still runs: the chart is written, `pageSent` flips, the `pages` ledger row is inserted. You can exercise every acceptance criterion without a single SMS leaving the building.
 
-**Live mode.** Set `DEMO_MODE=false` **and** a valid `FROM_E164`. `sendSms()` then calls `this.env.TELNYX.messages.send({ to, from, text })` through the zero-credential Telnyx binding — the platform injects auth, so no key is ever read in that path. If `FROM_E164` is missing or malformed, `sendSms()` throws rather than silently dropping the page.
+**Live mode.** Set `DEMO_MODE=false` **and** a valid `FROM_E164`. `sendSms()` then calls `this.env.TELNYX.messages.send({ to, from, text })` through the zero-credential Telnyx binding — the platform injects auth, so no key is ever read in that path. If `FROM_E164` is missing or malformed, `sendSms()` throws rather than silently dropping the page. In the demo environment, set `FROM_E164` to `+16282210134` (the night-nurse demo number — see section 4.4) and text `ONCALL <on-call E.164>` from the clinic manager's phone to seed the rota.
 
 > **Note on webhook verification.** `verifySignature()` also has a demo-mode escape hatch: if `TELNYX_PUBLIC_KEY` is unset and `DEMO_MODE` is true, it logs a warning and accepts the webhook. In live mode, a missing key means every webhook is rejected with 401. Set the key before you flip the switch.
 
@@ -344,7 +346,9 @@ The sample ships **both** front ends because they demonstrate different integrat
 <script type="module" src="https://esm.sh/@telnyx/ai-agent-widget"></script>
 ```
 
-The widget opens a server-brokered WebSocket straight to Telnyx — the browser never holds an API key, and the actor **cannot inject into that stream**. The widget renders the assistant's replies natively. The actor's job in this path is to read the completed transcript back via `GET /v2/conversations/{id}/messages` after each turn and do the chart/page logic from that. The `data-patient-handle` attribute is how the page knows which actor to key.
+The widget opens a server-brokered WebSocket straight to Telnyx — the browser never holds an API key, and the actor **cannot inject into that stream**. The widget renders the assistant's replies natively. The page carries a tiny bridge script so the actor still owns the chart: on `agent.connected` (whose detail carries the `conversationId`) and on every `transcript.item`, it POSTs `{ patientId, conversationId }` to `/conversation`; the actor then reads the completed transcript back via `GET /v2/ai/conversations/{id}/messages`, extracts chart facts from each new patient turn, and runs the same page-once guard — idempotently, keyed by how many messages it has already ingested. The `data-patient-handle` attribute is how the page knows which actor to key.
+
+> The assistant must have `telephony_settings.supports_unauthenticated_web_calls` enabled for the text-only widget to connect — `scripts/setup_assistant.sh` sets it for you.
 
 **Path B — relay (`GET /`).** The page renders its own chat div and POSTs each completed patient turn to `/chat`:
 
@@ -360,7 +364,7 @@ if (data.conversationId) conversationId = data.conversationId;
 
 The actor calls the Assistant Chat API, returns `content`, and the page renders it. `conversationId` is held in a page variable and passed back on every turn — that's how the assistant's server-side history continues. The handle comes from `?patient=maya-481` in the URL.
 
-Path B is the one to use when you need the actor to own the reply text (custom UI, extra annotations, the `[on-call paged]` marker). Path A is the one to use when you want the widget's built-in UI and are happy reading the transcript after the fact.
+Path B is the one to use when you need the actor to own the reply text (custom UI, extra annotations, the `[on-call paged]` marker). Path A is the one to use when you want the widget's built-in UI; the actor still sees the whole conversation through the readback ingest, so the chart and the page guard work identically in both paths.
 
 ---
 

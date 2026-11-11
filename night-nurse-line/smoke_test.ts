@@ -1,6 +1,6 @@
 // Smoke test: verifies the module loads, the actors expose their RPC surface,
 // and the triage/chart parsers behave. Run with: npx tsx smoke_test.ts
-import worker, { ClinicDesk, NightNurse, RotaDesk, extractFacts, splitTriage } from "./src/index";
+import worker, { ClinicDesk, NightNurse, RotaDesk, extractFacts, splitTriage, triageFromTranscript } from "./src/index";
 
 let passed = 0;
 
@@ -25,8 +25,8 @@ check("default export exposes a fetch handler", () => {
   assert(typeof worker.fetch === "function", "fetch handler is missing");
 });
 
-check("NightNurse exposes chat / pageOnCall / report", () => {
-  hasMethods(NightNurse.prototype, ["chat", "pageOnCall", "report", "initialState"]);
+check("NightNurse exposes chat / ingestConversation / pageOnCall / report", () => {
+  hasMethods(NightNurse.prototype, ["chat", "ingestConversation", "pageOnCall", "report", "initialState"]);
 });
 
 check("RotaDesk exposes current / setNumber", () => {
@@ -60,6 +60,24 @@ check("extractFacts leaves a benign message unflagged", () => {
   const facts = extractFacts("mild heartburn after dinner, no other symptoms");
   assert(facts.redFlag === false, "benign message flagged as red flag");
   assert(facts.symptoms.length === 0, "unexpected symptoms recorded");
+});
+
+check("triageFromTranscript picks the latest assistant verdict", () => {
+  const verdict = triageFromTranscript([
+    { role: "user", text: "chest tightness since dinner" },
+    { role: "assistant", text: "Call 911 now.\nTRIAGE: page-on-call" },
+    { role: "user", text: "ok thank you" },
+    { role: "assistant", text: "Glad to hear it.\nTRIAGE: appointment" },
+  ]);
+  assert(verdict === "appointment", `unexpected transcript triage: ${verdict}`);
+});
+
+check("triageFromTranscript ignores user turns and tool messages", () => {
+  const verdict = triageFromTranscript([
+    { role: "tool", text: "TRIAGE: self-care" },
+    { role: "user", text: "TRIAGE: self-care" },
+  ]);
+  assert(verdict === "appointment", "user/tool text should not become the verdict");
 });
 
 console.log(`\n${passed} smoke checks passed`);

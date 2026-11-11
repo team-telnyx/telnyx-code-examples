@@ -17,6 +17,6 @@ Use self-care only for clearly benign symptoms.'
 curl -sS -X POST "https://api.telnyx.com/v2/ai/assistants" \
   -H "Authorization: Bearer ${TELNYX_API_KEY}" \
   -H "Content-Type: application/json" \
-  -d "$(printf '{"name":"Night Nurse Line","model":"meta-llama/Meta-Llama-3.1-70B-Instruct","instructions":%s}' \
+  -d "$(printf '{"name":"Night Nurse Line","model":"meta-llama/Meta-Llama-3.1-70B-Instruct","instructions":%s,"telephony_settings":{"supports_unauthenticated_web_calls":true}}' \
         "$(printf '%s' "${INSTRUCTIONS}" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")" \
   | python3 -c 'import json,sys; d=json.load(sys.stdin).get("data",{}); print("NIGHT_NURSE_ASSISTANT_ID=" + str(d.get("id","")))'

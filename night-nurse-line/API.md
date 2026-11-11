@@ -18,12 +18,13 @@ actor RPC method reachable through `env.NURSES`, `env.ROTAS`, and `env.CLINIC`.
 
 | Method | Path        | Purpose                                                        |
 | ------ | ----------- | -------------------------------------------------------------- |
-| `GET`  | `/`         | Relay chat page (Path B) — browser posts turns to `/chat`      |
-| `GET`  | `/widget`   | Widget page (Path A) — `<telnyx-ai-agent text-only>` embed     |
-| `POST` | `/chat`     | Relay a patient turn to the `NightNurse` actor                 |
-| `POST` | `/sms`      | Telnyx inbound-message webhook (rota changes + SMS chat)       |
-| `GET`  | `/report`   | Clinic-wide morning report for a given PT day                  |
-| `POST` | `/handoff`  | Force the daily handoff SMS + return the clinic report         |
+| `GET`  | `/`            | Relay chat page (Path B) — browser posts turns to `/chat`      |
+| `GET`  | `/widget`      | Widget page (Path A) — `<telnyx-ai-agent text-only>` embed     |
+| `POST` | `/chat`        | Relay a patient turn to the `NightNurse` actor                 |
+| `POST` | `/conversation`| Ingest a widget-path transcript (Path A readback)              |
+| `POST` | `/sms`         | Telnyx inbound-message webhook (rota changes + SMS chat)       |
+| `GET`  | `/report`      | Clinic-wide morning report for a given PT day                  |
+| `POST` | `/handoff`     | Force the daily handoff SMS + return the clinic report         |
 
 ---
 
@@ -57,8 +58,11 @@ curl -s "https://<your-worker-host>/?patient=maya-481"
 
 Serves the pure-widget demo page (Path A). Embeds
 `<telnyx-ai-agent agent-id="..." text-only data-patient-handle="maya-481">` and loads
-`@telnyx/ai-agent-widget` from `esm.sh`. The widget connects to Telnyx directly; the actor
-reads the transcript back via `GET /v2/conversations/{id}/messages`.
+`@telnyx/ai-agent-widget` from `esm.sh`. The widget connects to Telnyx directly; a bridge
+script forwards `agent.connected` (which carries the `conversationId`) and every
+`transcript.item` to `POST /conversation`, so the actor ingests the transcript and runs
+the chart/page logic via `GET /v2/ai/conversations/{id}/messages`. The assistant must have
+`telephony_settings.supports_unauthenticated_web_calls` enabled (the setup script sets it).
 
 **Query parameters** — none.
 
@@ -148,6 +152,58 @@ curl -s -X POST "https://<your-worker-host>/chat" \
 | `200`  | Turn processed; chart updated; page scheduled if verdict requires it.   |
 | `400`  | Validation failure on `patientId` or `text`.                            |
 | `500`  | Upstream assistant failure, missing config, or SQL error (details logged only). |
+
+---
+
+## `POST /conversation`
+
+Ingests a widget-path conversation. The widget page's bridge script calls this on
+`agent.connected` (whose detail carries the `conversationId`) and on every
+`transcript.item`. The actor fetches the transcript via
+`GET /v2/ai/conversations/{id}/messages`, extracts chart facts from each new patient
+turn, and runs the same page-once guard as the relay path. Ingestion is idempotent —
+the actor tracks how many transcript messages it has already processed, so repeat
+bridge calls (and re-connects) never double-count chats or double-page.
+
+**Request body**
+
+| Field             | Type     | Required | Description                                                            |
+| ----------------- | -------- | -------- | ---------------------------------------------------------------------- |
+| `patientId`       | `string` | yes      | Patient handle; must match `^[a-z0-9][a-z0-9-]{1,63}$`.                |
+| `conversationId`  | `string` | yes      | Widget conversation id from the `agent.connected` event detail; must match `^[A-Za-z0-9_-]{1,128}$`. |
+
+**Example**
+
+```bash
+curl -s -X POST "https://<your-worker-host>/conversation" \
+  -H 'content-type: application/json' \
+  -d '{"patientId":"maya-481","conversationId":"conv_01J8Z9K3T4"}'
+```
+
+**Response — `200 OK`**
+
+| Field            | Type                                             | Description                                                                 |
+| ---------------- | ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `patientId`      | `string`                                         | Echo of the resolved handle.                                                 |
+| `conversationId` | `string`                                         | Echo of the ingested conversation id.                                        |
+| `ingested`       | `number`                                         | Number of transcript messages processed in this call (0 when nothing new).   |
+| `triage`         | `"self-care" \| "appointment" \| "page-on-call"` | Verdict parsed from the latest assistant turn (missing suffix → `appointment`). |
+| `pageSent`       | `boolean`                                        | `true` once the on-call page has fired for this patient (durable, page-once). |
+
+**Response — `400 Bad Request`**
+
+| Condition                                  | Body                                                                                             |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `patientId` missing or malformed           | `{"error":"patientId must match ^[a-z0-9][a-z0-9-]{1,63}$"}`                                        |
+| `conversationId` missing or malformed      | `{"error":"conversationId must match ^[A-Za-z0-9_-]{1,128}$"}`                                      |
+
+**Status codes**
+
+| Status | Meaning                                                                                     |
+| ------ | --------------------------------------------------------------------------------------------- |
+| `200`  | Transcript ingested; chart updated; page scheduled if a new `page-on-call` verdict required it. |
+| `400`  | Validation failure on `patientId` or `conversationId`.                                        |
+| `500`  | Conversation readback failure, missing config, or SQL error (details logged only).            |
 
 ---
 
