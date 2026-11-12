@@ -114,6 +114,22 @@ export interface Report extends Record<string, unknown> {
 
 const todayUtc = (): string => new Date().toISOString().slice(0, 10);
 
+/**
+ * Deterministic day-to-day variation for seeded profile rows (±8%), so the
+ * synthetic baseline history looks like a real account: the same (day, service)
+ * always jitters the same way, and a re-seed stays consistent.
+ */
+function dailyJitter(day: string, service: string): number {
+  let h = 2166136261;
+  const key = `${day}|${service}`;
+  for (let i = 0; i < key.length; i += 1) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const f = ((h >>> 0) % 1000) / 1000;
+  return 0.92 + f * 0.16;
+}
+
 function shiftDate(day: string, delta: number): string {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + delta);
@@ -523,7 +539,7 @@ export class AttributionWheel extends Agent<Env, WheelState> {
     let count = 0;
     await this.env.WHEEL_DB.prepare("DELETE FROM spend_dims WHERE date = ? AND dim IN ('tenant','env')").bind(day).run();
     for (const service of SERVICES) {
-      const requests = Math.round(1000 * mix[service]);
+      const requests = Math.round(1000 * mix[service] * dailyJitter(day, service));
       const input = requests * 900;
       const output = requests * 300;
       const spend = Number((input * 0.0000005 + output * 0.0000015).toFixed(4));

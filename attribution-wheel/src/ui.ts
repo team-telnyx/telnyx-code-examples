@@ -76,6 +76,12 @@ function noteBadge(note: string | null): string {
   return `<span class="badge ok">OK</span>`;
 }
 
+function srcBadge(source: string): string {
+  if (source === "gateway") return `<span class="badge live">GATEWAY</span>`;
+  if (source === "synthetic") return `<span class="badge demo">SEEDED</span>`;
+  return `<span class="badge ok">${esc(source)}</span>`;
+}
+
 export function renderDashboard(input: DashboardInput): string {
   const { day, group, demo, error } = input;
   const report = input.report;
@@ -98,12 +104,12 @@ export function renderDashboard(input: DashboardInput): string {
 
   const table = rows.length
     ? `<table>
-  <thead><tr><th>Service</th><th>Requests</th><th>Share</th><th>Baseline</th><th>×Baseline</th><th>Input tok</th><th>Output tok</th><th>Spend</th><th>Reserved</th><th>Unknown</th><th>Status</th></tr></thead>
+  <thead><tr><th>Service</th><th>Requests</th><th>Share</th><th>Baseline</th><th>×Baseline</th><th>Input tok</th><th>Output tok</th><th>Spend</th><th>Reserved</th><th>Unknown</th><th>Source</th><th>Status</th></tr></thead>
   <tbody>${rows
     .map((r) => {
       const share = totalRequests > 0 ? Number(r.requests ?? 0) / totalRequests : 0;
       const baseShare = baselineShares.get(r.service) ?? 0;
-      return `<tr><td><span class="dot" style="background:${serviceColor(r.service)}"></span>${esc(r.service)}</td><td class="num">${int(r.requests)}</td><td class="num">${pct(share)}</td><td class="num">${pct(baseShare)}</td><td class="num ${Number(r.baseline_ratio ?? 0) >= 1.5 ? "hot" : ""}">${Number(r.baseline_ratio ?? 0).toFixed(2)}×</td><td class="num">${int(r.input_tokens)}</td><td class="num">${int(r.output_tokens)}</td><td class="num">${usd(r.spend)}</td><td class="num">${usd(r.reserved_spend)}</td><td class="num">${int(r.unknown_requests)}</td><td>${noteBadge(r.note ?? null)}</td></tr>`;
+      return `<tr><td><span class="dot" style="background:${serviceColor(r.service)}"></span>${esc(r.service)}</td><td class="num">${int(r.requests)}</td><td class="num">${pct(share)}</td><td class="num">${pct(baseShare)}</td><td class="num ${Number(r.baseline_ratio ?? 0) >= 1.5 ? "hot" : ""}">${Number(r.baseline_ratio ?? 0).toFixed(2)}×</td><td class="num">${int(r.input_tokens)}</td><td class="num">${int(r.output_tokens)}</td><td class="num">${usd(r.spend)}</td><td class="num">${usd(r.reserved_spend)}</td><td class="num">${int(r.unknown_requests)}</td><td>${srcBadge(String(r.source ?? ""))}</td><td>${noteBadge(r.note ?? null)}</td></tr>`;
     })
     .join("")}</tbody>
   <tfoot><tr><td>Total</td><td class="num">${int(totalRequests)}</td><td class="num">100.0%</td><td class="num">—</td><td class="num">—</td><td class="num">${int(totals?.input_tokens ?? 0)}</td><td class="num">${int(totals?.output_tokens ?? 0)}</td><td class="num">${usd(totals?.spend ?? 0)}</td><td class="num">${usd(totals?.reserved_spend ?? 0)}</td><td class="num">${int(totals?.unknown_requests ?? 0)}</td><td>—</td></tr></tfoot>
