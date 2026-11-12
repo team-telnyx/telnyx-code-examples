@@ -105,7 +105,7 @@ There is no code to write and nothing to build on camera — every shot is a fil
 | 2 | *"This is the entire agent — two files."* | `cat agent.json instructions.md` |
 | 3 | Run one intake locally | T1: `telnyx-acp dev` · T2: `telnyx-acp chat --local` |
 | 4 | *"Deploy is a revision away."* (already deployed — show the plan, never wait on a build) | `telnyx-acp deploy --dry-run` |
-| 5 | Place the live call from a second phone | dial `+15072291272` |
+| 5 | Place the live call from a second phone | dial `+15072291272` (or run `./demo-call.sh` — the agent's line answers a scripted TTS caller and runs the same intake with no second phone) |
 | 6 | Text the line | `telnyx-acp text "Hi, I need a checkup Thursday morning"` |
 | 7 | *"Here is everything it did."* | `telnyx-acp logs --since 5m` then `telnyx-acp traces <number-printed-by-the-text>` |
 | 8 | *"One agent, calls and texts, with no application code."* | — |
