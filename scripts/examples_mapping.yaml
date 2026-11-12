@@ -3615,10 +3615,22 @@ examples:
     use_case: "auto-generated-from-linear"
     language: typescript
     framework: edge
-    folder: night-nurse-line
     folder: concierge-diary
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: night-nurse-line
+
   - product: voice
     use_case: acp-appointment-intake
     language: acp
     framework: agent-control-plane
     folder: acp-business-line
+
+  - product: voice
+    use_case: phone-identity-voice-agent
+    language: nodejs
+    framework: express
+    folder: phone-identity-voice-agent-nodejs

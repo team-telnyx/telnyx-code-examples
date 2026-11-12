@@ -2,6 +2,10 @@ name = "night-nurse-line"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
 
+[edge_compute]
+func_id   = "<func-uuid>"
+func_name = "night-nurse-line"
+
 # One durable NightNurse actor per patient handle (env.NURSES.idFromName("maya-481")).
 [[actors]]
 binding = "NURSES"
@@ -33,9 +37,22 @@ name = "TELNYX_API_KEY"
 binding = "TELNYX_PUBLIC_KEY"
 name = "TELNYX_PUBLIC_KEY"
 
-[env_vars]
-NIGHT_NURSE_ASSISTANT_ID = "<assistant-id-from-scripts/setup_assistant.sh>"
-ONCALL_E164 = "+1555XXXXXXX"
-DAY_TEAM_E164 = "+1555XXXXXXX"
-FROM_E164 = "+1555XXXXXXX"
-DEMO_MODE = "true"
+[[secrets]]
+binding = "NIGHT_NURSE_ASSISTANT_ID"
+name = "NIGHT_NURSE_ASSISTANT_ID"
+
+[[secrets]]
+binding = "ONCALL_E164"
+name = "ONCALL_E164"
+
+[[secrets]]
+binding = "DAY_TEAM_E164"
+name = "DAY_TEAM_E164"
+
+[[secrets]]
+binding = "FROM_E164"
+name = "FROM_E164"
+
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
