@@ -3,7 +3,7 @@
 Typed contract for the three surfaces this sample exposes or consumes:
 
 1. **Edge HTTP routes** on the deployed worker (`src/index.ts` default export).
-2. **Actor RPC methods** on the `AttributionWheel` agent (public async methods, auto-callable from a stub).
+2. **Actor RPC methods** on the `AttributionWheel` agent (`@rpc()`-decorated public async methods, callable over `POST /rpc/<method>` or directly from a stub).
 3. **Outbound Telnyx API calls** the actor makes (AI Gateway token groups/keys, spend + usage summaries, Messaging).
 
 ---
@@ -14,7 +14,7 @@ Typed contract for the three surfaces this sample exposes or consumes:
 |---|---|
 | Base URL (worker) | `https://<your-actor-host>` (assigned by `telnyx-edge ship`) |
 | Content type | `application/json` |
-| Actor addressing | `?group=<name>` query param on the worker URL; defaults to `main` |
+| Actor addressing | `?group=<name>` query param on the worker URL; defaults to `main`. RPC calls are `POST /rpc/<method>` with a JSON array of positional arguments |
 | Actor identity | `env.WHEELS.idFromName(<group>)` — one durable `AttributionWheel` per token group |
 | Date format | `YYYY-MM-DD` (UTC). All ranges are **half-open**: `start_date` inclusive, `end_date` exclusive |
 | Auth (inbound) | None on the demo worker. Do not expose a live-mode deployment publicly without an edge auth layer |
@@ -36,14 +36,14 @@ Messages are intentionally generic for upstream failures (`AI Gateway GET /spend
 
 ### `GET /health`
 
-Liveness probe. Does not touch the actor, the database, or the Telnyx API.
+Liveness probe. Reads config; does not touch the database or the Telnyx API.
 
 **Request body:** none.
 
 **Response — `200 OK`**
 
 ```json
-{ "ok": true, "actor": "AttributionWheel" }
+{ "ok": true, "actor": "AttributionWheel", "group": "main", "demo_mode": true }
 ```
 
 | Status | Meaning |
@@ -59,44 +59,75 @@ curl -s https://<your-actor-host>/health
 
 ---
 
-### `ANY /` — actor proxy
+### `GET /` and `GET /ui` — attribution dashboard
 
-Every non-`/health` request is forwarded verbatim to the `AttributionWheel` stub selected by `?group=`:
+Server-rendered, Telnyx-branded HTML dashboard for the day. Reads `report(day)` from the actor stub; never mutates state.
 
-```ts
-const name = url.searchParams.get("group") ?? "main";
-const stub = env.WHEELS.get(env.WHEELS.idFromName(name));
-return stub.fetch(request);
-```
-
-The runtime dispatches the request to a public method on the actor. From another actor or a test, call the stub directly (`stub.sweep("2026-11-09")`) — that path skips HTTP entirely and is the canonical way to drive the demo.
-
-**Query parameters**
-
-| Field | Type | Required | Default | Description |
+| Query param | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `group` | string | no | `main` | Actor name passed to `idFromName`. Use one name per token group so the ledger and baseline stay scoped to that group |
+| `day` | `YYYY-MM-DD` | no | today (UTC) | Day to render |
+| `group` | string | no | `main` | Actor instance |
+
+Renders the wheel (today's share vs the 7-day baseline ring), the ledger table with breach/recovery badges, totals, per-tenant and per-env bars, and the gateway `usage/summary` snapshot when available. Refreshes every 30 seconds; shows the live-mode or demo-mode badge in the header.
+
+| Status | Meaning |
+|---|---|
+| `200` | Dashboard rendered (empty state if the ledger has no rows for the day) |
+| `500` | SQL failure reading the ledger |
 
 **Example**
 
 ```bash
-curl -s -X POST "https://<your-actor-host>/?group=main" \
+open "https://<your-actor-host>/?group=main&day=2026-11-09"
+```
+
+---
+
+### `GET /report` — JSON report
+
+Same data as `report(day)`, without a POST round-trip.
+
+| Query param | Type | Required | Description |
+|---|---|---|---|
+| `day` | `YYYY-MM-DD` | no | Defaults to today (UTC) |
+| `group` | string | no | Actor instance (default `main`) |
+
+| Status | Meaning |
+|---|---|
+| `200` | `Report` JSON |
+| `400` | `day` failed the `YYYY-MM-DD` check |
+
+**Example**
+
+```bash
+curl -s "https://<your-actor-host>/report?group=main&day=2026-11-09"
+```
+
+---
+
+### `POST /rpc/<method>` — RPC dispatch
+
+Dispatches a call to the `@rpc()` method named in the URL. The body is a **JSON array of positional arguments** (may be `[]` for no-arg methods). `?group=<name>` selects the actor instance.
+
+```bash
+curl -s -X POST "https://<your-actor-host>/rpc/sweep?group=main" \
   -H "content-type: application/json" \
-  -d '{"method":"bootstrap","params":[]}'
+  -d '["2026-11-09"]'
 ```
 
 | Status | Meaning |
 |---|---|
-| `200` | Method returned |
-| `400` | Method threw a validation error (bad date, unknown profile, demo-only method in live mode) |
-| `404` | No such RPC method on `AttributionWheel` |
+| `200` | Method returned; body is the method's JSON result |
+| `400` | Malformed JSON or non-array body; the method threw a validation error (bad date, unknown profile, demo-only method in live mode) |
+| `404` | Unknown method name (`/rpc/nope`); the error lists the full RPC surface |
+| `405` | Non-POST request to an `/rpc/*` path |
 | `500` | Upstream Telnyx failure, missing `TELNYX_API_KEY`, or SQL error |
 
 ---
 
 ## RPC methods
 
-All five methods below are `public async` on `AttributionWheel` and therefore part of the RPC surface. `nightly()` is the scheduled handler and is dispatched by name from `this.schedule()` — it is not intended to be called directly, but it is reachable through the same proxy.
+All five methods below are `@rpc()`-decorated on `AttributionWheel`. `nightly()` is the scheduled handler and is dispatched by name from `this.schedule()` — it is not `@rpc()`-decorated and is not intended to be called directly.
 
 ---
 
@@ -141,9 +172,9 @@ Idempotent: if `state.tokenGroupId` is already set, it returns immediately with 
 **Example**
 
 ```bash
-curl -s -X POST "https://<your-actor-host>/?group=main" \
+curl -s -X POST "https://<your-actor-host>/rpc/bootstrap?group=main" \
   -H "content-type: application/json" \
-  -d '{"method":"bootstrap","params":[]}'
+  -d '[]'
 ```
 
 ---
@@ -168,6 +199,7 @@ This is the **same code path** the `nightly` schedule invokes — the demo calls
 | `rows` | `SpendRow[]` | Rows written this run, ordered by `service` |
 | `paged` | number | Number of on-call SMS actually dispatched (always `0` in demo mode) |
 | `resumedFrom` | `string \| null` | Service name the run resumed after, or `null` for a fresh sweep |
+| `usage` | `UsageSnapshot \| null` | Gateway `usage/summary` totals + guardrail counts for the day when a token group is bound; `null` when the call fails |
 
 ```json
 {
@@ -203,7 +235,22 @@ This is the **same code path** the `nightly` schedule invokes — the demo calls
     }
   ],
   "paged": 1,
-  "resumedFrom": null
+  "resumedFrom": null,
+  "usage": {
+    "totals": {
+      "requests": 1000,
+      "input_tokens": 900000,
+      "output_tokens": 300000,
+      "unknown_requests": 0,
+      "cache_hits": 0,
+      "succeeded_requests": 1000,
+      "failed_requests": 0,
+      "partial_requests": 0,
+      "spend": 0.9,
+      "reserved_spend": 0
+    },
+    "guardrails": { "blocked_events": 0, "flagged_events": 0 }
+  }
 }
 ```
 
@@ -211,9 +258,10 @@ This is the **same code path** the `nightly` schedule invokes — the demo calls
 
 | Condition | Result |
 |---|---|
-| `share * 100 >= ALERT_SHARE_PCT` (default `40`) | `breach = 1` |
+| `(share - baseline.share) * 100 >= ALERT_SHARE_PCT` (default `40` points over the service's own baseline; measured from zero when no baseline exists) | `breach = 1` |
 | `spend >= baseline.spend * SPIKE_MULTIPLE` (default `2.0`) | `breach = 1` |
 | `breach = 1` and no prior breach row for this service | `note = "anomaly"`, one SMS dispatched |
+| `breach = 1` and the previous row for this service had `breach = 1` | `note = "continued"`, no SMS |
 | `breach = 0` and the previous row for this service had `breach = 1` | `note = "recovery"`, no SMS |
 | otherwise | `note = null` |
 
@@ -230,9 +278,9 @@ This is the **same code path** the `nightly` schedule invokes — the demo calls
 **Example**
 
 ```bash
-curl -s -X POST "https://<your-actor-host>/?group=main" \
+curl -s -X POST "https://<your-actor-host>/rpc/sweep?group=main" \
   -H "content-type: application/json" \
-  -d '{"method":"sweep","params":["2026-11-09"]}'
+  -d '["2026-11-09"]'
 ```
 
 ---
@@ -254,8 +302,9 @@ Returns the full attribution wheel for a day: the per-service ledger plus per-te
 | `day` | string | The reported date |
 | `rows` | `SpendRow[]` | Ledger rows for the day, ordered by `service` |
 | `totals` | object | Sum across `rows` — see below |
-| `byTenant` | `Grouped[]` | `group_by=metadata:tenant` from `spend/summary`; `[]` if the call fails |
-| `byEnv` | `Grouped[]` | `group_by=metadata:env` from `spend/summary`; `[]` if the call fails |
+| `byTenant` | `Grouped[]` | `group_by=metadata:tenant` from `spend/summary`, falling back to the local `spend_dims` ledger |
+| `byEnv` | `Grouped[]` | `group_by=metadata:env` from `spend/summary`, falling back to the local `spend_dims` ledger |
+| `usage` | `UsageSnapshot \| null` | Gateway `usage/summary` snapshot when available |
 
 `totals` object:
 
@@ -289,22 +338,23 @@ Returns the full attribution wheel for a day: the per-service ledger plus per-te
     "unknown_requests": 0
   },
   "byTenant": [{ "value": "acme", "requests": 1000, "spend": 0.9 }],
-  "byEnv": [{ "value": "prod", "requests": 1000, "spend": 0.9 }]
+  "byEnv": [{ "value": "prod", "requests": 1000, "spend": 0.9 }],
+  "usage": null
 }
 ```
 
 | Status | Meaning |
 |---|---|
-| `200` | Report returned. `byTenant`/`byEnv` may be empty if the gateway call failed — the ledger portion is still valid |
+| `200` | Report returned. `byTenant`/`byEnv` fall back to the dims ledger when the gateway has no grouped rows for the day |
 | `400` | `day` failed the `YYYY-MM-DD` check |
 | `500` | SQL failure reading `spend_daily` |
 
 **Example**
 
 ```bash
-curl -s -X POST "https://<your-actor-host>/?group=main" \
+curl -s -X POST "https://<your-actor-host>/rpc/report?group=main" \
   -H "content-type: application/json" \
-  -d '{"method":"report","params":["2026-11-09"]}'
+  -d '["2026-11-09"]'
 ```
 
 ---
@@ -341,9 +391,9 @@ Rows are written with `source = "synthetic"` and `note = "seeded:baseline"` so t
 **Example**
 
 ```bash
-curl -s -X POST "https://<your-actor-host>/?group=main" \
+curl -s -X POST "https://<your-actor-host>/rpc/seed?group=main" \
   -H "content-type: application/json" \
-  -d '{"method":"seed","params":[7]}'
+  -d '[7]'
 ```
 
 ---
@@ -388,9 +438,9 @@ Profile mixes (share of the day's requests):
 **Example**
 
 ```bash
-curl -s -X POST "https://<your-actor-host>/?group=main" \
+curl -s -X POST "https://<your-actor-host>/rpc/simulate?group=main" \
   -H "content-type: application/json" \
-  -d '{"method":"simulate","params":["2026-11-09","spike"]}'
+  -d '["2026-11-09","spike"]'
 ```
 
 ---
@@ -424,7 +474,7 @@ One row of the `spend_daily` ledger. Primary key `(date, service)`.
 | `baseline_ratio` | number | `share / baseline.share`, 2 dp. `0` when no baseline exists |
 | `breach` | `0 \| 1` | SQLite boolean |
 | `source` | string | `"gateway"` (real pull) or `"synthetic"` (demo seed/simulate) |
-| `note` | `string \| null` | `"anomaly"`, `"recovery"`, `"seeded:<profile>"`, or `null` |
+| `note` | `string \| null` | `"anomaly"`, `"continued"`, `"recovery"`, `"seeded:<profile>"`, or `null` |
 
 ### `WheelState`
 
@@ -478,11 +528,19 @@ The attribution source. Called once per sweep with `group_by=metadata:service`, 
 | `end_date` | string | yes | `YYYY-MM-DD`, exclusive. Range must be ≤ 31 days |
 | `group_by` | string | yes | `metadata:<key>` where `<key>` is one of the five tag keys on the request |
 
-Response rows are read from `data.rows[]` or `data[]`; each row is normalized with `group` (or the tag key) as the value and `requests` / `input_tokens` / `output_tokens` / `spend` / `reserved_spend` / `unknown_requests` as numbers. A failed call is logged and degrades to the local ledger (demo) or an empty result (report) rather than failing the sweep.
+Response rows are read from `data[]` (paginated: `page_number`/`page_size`/`has_more`); each row is normalized with `dimension_id` (the tag's text form; `null` when requests carried no such tag) as the value and `requests` / `input_tokens` / `output_tokens` / `spend` / `reserved_spend` / `unknown_requests` as numbers. A failed call is logged and degrades to the local ledger (demo) or the dims ledger (report) rather than failing the sweep.
 
 ### `GET /v2/llm_token_gateway/usage/summary`
 
-Totals, `by_day`, `by_model`, and guardrail counts. Requires the `llm_token_gateway.usage.read` scope on the account API key. Used for cross-checking the spend pull; the ledger remains the source of truth for breach math.
+Totals, `by_day`, `by_model`, and guardrail counts for one token group. Requires the `llm_token_gateway.usage.read` scope on the account API key.
+
+| Query param | Type | Required | Description |
+|---|---|---|---|
+| `token_group_id` | string | yes | From `state.tokenGroupId` |
+| `start_date` | string | yes | `YYYY-MM-DD`, inclusive |
+| `end_date` | string | yes | `YYYY-MM-DD`, exclusive. Range must be ≤ 31 days |
+
+The actor reads `data.totals` (requests, tokens, spend, reserved_spend, unknown_requests, cache/succeeded/failed/partial counts) and `data.guardrails` (blocked_events, flagged_events) into a `UsageSnapshot` surfaced on every `sweep()` and `report()` response. The ledger remains the source of truth for breach math; the usage snapshot is a live cross-check. A failed call degrades to `usage: null` rather than failing the sweep.
 
 ### `POST /v2/messages`
 
@@ -521,7 +579,8 @@ x-ltg-metadata: {"service":"support","env":"prod","tenant":"acme"}
 |---|---|---|
 | `200` | Route or RPC method completed | Method-specific JSON (see above) |
 | `400` | `day` not `YYYY-MM-DD`; unknown `profile`; `seed()`/`simulate()` called with `DEMO_MODE=false`; upstream `invalid_metadata` | `{ "error": "<message>" }` |
-| `404` | No such RPC method on `AttributionWheel`, or unknown worker path forwarded to the stub | `{ "error": "not found" }` |
+| `404` | Unknown `/rpc/<method>` name, unknown worker path | `{ "error": "..." }` |
+| `405` | Non-POST request to an `/rpc/*` route | `{ "error": "Use POST /rpc/<method> ..." }` |
 | `500` | `TELNYX_API_KEY` missing from `SECRETS`; AI Gateway returned non-2xx; SQL failure; live-mode paging with `ONCALL_E164`/`DEMO_TELNYX_NUMBER` unset | `{ "error": "<generic message>" }` |
 
 ---
@@ -531,7 +590,7 @@ x-ltg-metadata: {"service":"support","env":"prod","tenant":"acme"}
 | Variable | Default | Effect on responses |
 |---|---|---|
 | `DEMO_MODE` | `true` | `false` disables `seed()`/`simulate()` (400) and makes `sweep()` send real SMS (`paged` > 0) |
-| `ALERT_SHARE_PCT` | `40` | Share-of-requests threshold that sets `breach = 1` |
+| `ALERT_SHARE_PCT` | `40` | Share jump (percentage points) over the service's own baseline that sets `breach = 1` |
 | `SPIKE_MULTIPLE` | `2.0` | Spend-vs-baseline multiplier that sets `breach = 1` |
 | `ONCALL_E164` | — | SMS recipient; required only when `DEMO_MODE=false` |
 | `DEMO_TELNYX_NUMBER` | — | SMS sender; required only when `DEMO_MODE=false` |

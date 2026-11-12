@@ -51,16 +51,21 @@ TAGS = {
 }
 
 
-def rpc(method: str, params: dict | None = None) -> dict:
-    """Call an @rpc method on the deployed AttributionWheel actor."""
-    body = json.dumps({"method": method, "params": params or {}}).encode()
+def rpc(method: str, params: list | None = None) -> dict:
+    """Call an @rpc method on the deployed AttributionWheel actor.
+
+    The worker's RPC contract is ``POST /rpc/<method>`` with a JSON array of
+    positional arguments as the body — e.g. ``/rpc/sweep`` with
+    ``["2026-11-11"]``.
+    """
+    body = json.dumps(params or []).encode()
     req = urllib.request.Request(
-        f"{ACTOR_URL.rstrip('/')}/rpc",
+        f"{ACTOR_URL.rstrip('/')}/rpc/{method}",
         data=body,
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, timeout=60) as resp:
         return json.loads(resp.read().decode())
 
 
@@ -102,14 +107,14 @@ def main() -> int:
     args = parser.parse_args()
 
     if DEMO_MODE:
-        seeded = rpc("seed", {"days": args.days}) if args.days > 0 else None
+        seeded = rpc("seed", [args.days]) if args.days > 0 else None
         if seeded:
             print(f"seed: {json.dumps(seeded)}")
         if args.profile:
             from datetime import datetime, timedelta, timezone
 
             day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            out = rpc("simulate", {"day": day, "profile": args.profile})
+            out = rpc("simulate", [day, args.profile])
             print(f"simulate: {json.dumps(out)}")
         elif not seeded:
             print("nothing to do (pass --days N and/or --profile NAME)")

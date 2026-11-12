@@ -1,10 +1,10 @@
 /**
- * Attribution Wheel \u2014 who is spending what in the AI Gateway.
+ * Attribution Wheel — who is spending what in the AI Gateway.
  *
  * SELF-REVIEW
- *  - Real primitives only: Agent SDK durable state + this.schedule(), AI Gateway
- *    token groups/keys, spend+usage summary with group_by=metadata:<key>, Telnyx
- *    Messaging for the on-call page, and a SQL ledger via the WHEEL_DB binding.
+ *  - Real primitives only: Agent SDK durable state + this.schedule(), @rpc() surface,
+ *    AI Gateway token groups/keys, spend+usage summary with group_by=metadata:<key>,
+ *    Telnyx Messaging for the on-call page, and a SQL ledger via the WHEEL_DB binding.
  *  - DEMO_MODE defaults to true: no SMS is sent, pages are logged instead.
  *  - No credentials in code; TELNYX_API_KEY comes from the SECRETS binding.
  *
@@ -14,16 +14,28 @@
  *    has history. Live mode pulls the real spend/summary instead.
  *  - this.schedule() takes a delay in seconds, so nightly() re-arms itself for
  *    the next 23:00 UTC run rather than using a cron string.
- *  - Public async methods are the RPC surface: bootstrap/sweep/report/seed/simulate.
+ *  - Remote surface is @rpc()-decorated: bootstrap/sweep/report/seed/simulate.
+ *    nightly() is the scheduled handler and deliberately not @rpc().
  *  - reserved_spend and unknown_requests are displayed but excluded from
  *    breach/baseline math (their cost is not yet known).
  */
-import { Agent } from "@telnyx/edge-runtime";
-import type { ActorNamespace, Secrets, SqlDatabase } from "@telnyx/edge-runtime";
+import {
+  Agent,
+  rpc,
+  type ActorNamespace,
+  type ActorStub,
+  type Env as EdgeEnv,
+  type IdFromNameOptions,
+  type Secrets,
+  type SqlDatabase,
+} from "@telnyx/edge-runtime";
+import { renderDashboard } from "./ui";
 
 const GATEWAY = "https://api.telnyx.com/v2/llm_token_gateway";
 const SERVICES = ["support", "billing", "docs"] as const;
 type Service = (typeof SERVICES)[number];
+export type RPCMethod = "bootstrap" | "sweep" | "report" | "seed" | "simulate";
+const RPC_METHODS: readonly RPCMethod[] = ["bootstrap", "sweep", "report", "seed", "simulate"];
 
 const PROFILES: Record<string, Record<Service, number>> = {
   baseline: { support: 0.2, billing: 0.45, docs: 0.35 },
@@ -31,31 +43,28 @@ const PROFILES: Record<string, Record<Service, number>> = {
   recovery: { support: 0.18, billing: 0.47, docs: 0.35 },
 };
 
+const TENANT = "acme";
+const ENV_TAG = "prod";
+
 interface TelnyxBinding {
   messages: { send(input: { to: string; from: string; text: string }): Promise<unknown> };
 }
 
-export interface Env {
+export interface Env extends EdgeEnv {
   SECRETS: Secrets;
-  WHEELS: ActorNamespace;
+  WHEELS: WheelNamespace;
   WHEEL_DB: SqlDatabase;
   TELNYX: TelnyxBinding;
-  DEMO_MODE?: string;
-  ONCALL_E164?: string;
-  DEMO_TELNYX_NUMBER?: string;
-  ALERT_SHARE_PCT?: string;
-  SPIKE_MULTIPLE?: string;
-  AI_GATEWAY_MODEL?: string;
 }
 
-export interface WheelState {
+export interface WheelState extends Record<string, unknown> {
   tokenGroupId: string | null;
   lastSweepDate: string | null;
   cursor: string | null;
   keyRefs: Record<string, string>;
 }
 
-export interface SpendRow {
+export interface SpendRow extends Record<string, unknown> {
   date: string;
   service: string;
   requests: number;
@@ -70,12 +79,37 @@ export interface SpendRow {
   note: string | null;
 }
 
-export interface Report {
+export interface Grouped {
+  value: string;
+  requests: number;
+  spend: number;
+}
+
+export interface UsageTotals extends Record<string, unknown> {
+  requests: number;
+  input_tokens: number;
+  output_tokens: number;
+  unknown_requests: number;
+  cache_hits: number;
+  succeeded_requests: number;
+  failed_requests: number;
+  partial_requests: number;
+  spend: number;
+  reserved_spend: number;
+}
+
+export interface UsageSnapshot {
+  totals: UsageTotals;
+  guardrails: { blocked_events: number; flagged_events: number };
+}
+
+export interface Report extends Record<string, unknown> {
   day: string;
   rows: SpendRow[];
   totals: Omit<SpendRow, "date" | "service" | "baseline_ratio" | "breach" | "source" | "note">;
-  byTenant: { value: string; requests: number; spend: number }[];
-  byEnv: { value: string; requests: number; spend: number }[];
+  byTenant: Grouped[];
+  byEnv: Grouped[];
+  usage: UsageSnapshot | null;
 }
 
 const todayUtc = (): string => new Date().toISOString().slice(0, 10);
@@ -105,18 +139,60 @@ function num(v: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/**
+ * Normalize one spend/summary row into a SpendRow. The gateway groups by the
+ * tag's text form, so the tag value arrives in `dimension_id` (null when the
+ * requests carried no such tag); `name`/`group`/`service` are accepted as
+ * fallbacks for local ledger rows and forward compatibility.
+ */
+export function normalizeSpendRow(raw: Record<string, unknown>, day: string): SpendRow {
+  const rawService = raw.dimension_id ?? raw.name ?? raw.group ?? raw.service ?? "unknown";
+  return {
+    date: day,
+    service: String(rawService),
+    requests: num(raw.requests),
+    input_tokens: num(raw.input_tokens),
+    output_tokens: num(raw.output_tokens),
+    spend: num(raw.spend),
+    reserved_spend: num(raw.reserved_spend),
+    unknown_requests: num(raw.unknown_requests),
+    baseline_ratio: 0,
+    breach: 0,
+    source: "gateway",
+    note: null,
+  };
+}
+
 const maskPhone = (p: string): string => (p.length > 4 ? `***${p.slice(-4)}` : "***");
+const maskKey = (secret: string): string => (secret.length > 14 ? `${secret.slice(0, 7)}...${secret.slice(-7)}` : "unavailable");
+
+async function readConfig(env: Env, key: string): Promise<string | undefined> {
+  const direct = (env as unknown as Record<string, unknown>)[key];
+  if (typeof direct === "string" && direct.length > 0) return direct;
+  try {
+    const v = await env.SECRETS.get(key);
+    return v || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+type WheelStub = ActorStub & Pick<AttributionWheel, RPCMethod>;
+interface WheelNamespace extends ActorNamespace {
+  idFromName(name: string, options?: IdFromNameOptions): WheelStub;
+}
 
 export class AttributionWheel extends Agent<Env, WheelState> {
   protected initialState(): WheelState {
     return { tokenGroupId: null, lastSweepDate: null, cursor: null, keyRefs: {} };
   }
 
-  private get demo(): boolean {
-    return (this.env.DEMO_MODE ?? "true").toLowerCase() !== "false";
+  private async demoMode(): Promise<boolean> {
+    return ((await readConfig(this.env, "DEMO_MODE")) ?? "true").trim().toLowerCase() !== "false";
   }
 
   /** RPC: create the token group + one token key per service, then arm the nightly run. */
+  @rpc()
   async bootstrap(): Promise<{ tokenGroupId: string; keys: Record<string, string> }> {
     const state = await this.getState();
     if (state.tokenGroupId) return { tokenGroupId: state.tokenGroupId, keys: {} };
@@ -134,10 +210,10 @@ export class AttributionWheel extends Agent<Env, WheelState> {
       const created = (await this.gateway("POST", "/token_keys", {
         body: { token_group_id: tokenGroupId, name: service },
         idempotencyKey: `attribution-wheel:key:${service}`,
-      })) as { token?: string; key?: string };
+      })) as { token?: string; key?: string; id?: string };
       const secret = String(created.token ?? created.key ?? "");
       keys[service] = secret;
-      keyRefs[service] = secret ? `${secret.slice(0, 7)}...${secret.slice(-7)}` : "unavailable";
+      keyRefs[service] = secret ? maskKey(secret) : String(created.id ?? "unavailable");
     }
     await this.setState({ tokenGroupId, keyRefs });
     await this.schedule(this.secondsUntil2300(), "nightly");
@@ -145,7 +221,10 @@ export class AttributionWheel extends Agent<Env, WheelState> {
   }
 
   /** RPC: the same code path the NIGHTLY schedule invokes. Resumable via the ledger cursor. */
-  async sweep(day: string): Promise<{ day: string; rows: SpendRow[]; paged: number; resumedFrom: string | null }> {
+  @rpc()
+  async sweep(
+    day: string,
+  ): Promise<{ day: string; rows: SpendRow[]; paged: number; resumedFrom: string | null; usage: UsageSnapshot | null }> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error("day must be YYYY-MM-DD");
     await this.ensureSchema();
     const state = await this.getState();
@@ -163,10 +242,10 @@ export class AttributionWheel extends Agent<Env, WheelState> {
       const base = baseline.get(row.service);
       const share = totalRequests > 0 ? row.requests / totalRequests : 0;
       const ratio = base && base.share > 0 ? share / base.share : 0;
-      const breach = this.isBreach(share, row.spend, base);
+      const breach = await this.isBreach(share, row.spend, base);
       const existing = await this.existingRow(day, row.service);
       const wasBreaching = await this.previousBreach(day, row.service);
-      const note = breach ? "anomaly" : wasBreaching ? "recovery" : null;
+      const note = breach ? (wasBreaching ? "continued" : "anomaly") : wasBreaching ? "recovery" : null;
       const finalRow: SpendRow = {
         ...row,
         baseline_ratio: Number(ratio.toFixed(2)),
@@ -182,10 +261,12 @@ export class AttributionWheel extends Agent<Env, WheelState> {
       await this.setState({ lastSweepDate: day, cursor: row.service });
     }
     await this.setState({ lastSweepDate: day, cursor: null });
-    return { day, rows: written, paged, resumedFrom };
+    const usage = await this.pullUsage(day);
+    return { day, rows: written, paged, resumedFrom, usage };
   }
 
-  /** RPC: full wheel for a day \u2014 per service ledger plus per tenant / per env attribution. */
+  /** RPC: full wheel for a day — per service ledger plus per tenant / per env attribution. */
+  @rpc()
   async report(day: string): Promise<Report> {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error("day must be YYYY-MM-DD");
     await this.ensureSchema();
@@ -201,12 +282,20 @@ export class AttributionWheel extends Agent<Env, WheelState> {
       }),
       { requests: 0, input_tokens: 0, output_tokens: 0, spend: 0, reserved_spend: 0, unknown_requests: 0 },
     );
-    return { day, rows, totals, byTenant: await this.grouped(day, "tenant"), byEnv: await this.grouped(day, "env") };
+    return {
+      day,
+      rows,
+      totals,
+      byTenant: await this.grouped(day, "tenant"),
+      byEnv: await this.grouped(day, "env"),
+      usage: await this.pullUsage(day),
+    };
   }
 
-  /** RPC: DEMO_MODE only \u2014 seed N days of baseline history so the rolling mean has data. */
+  /** RPC: DEMO_MODE only — seed N days of baseline history so the rolling mean has data. */
+  @rpc()
   async seed(days: number): Promise<{ seeded: number; profile: string }> {
-    if (!this.demo) throw new Error("seed() is only available when DEMO_MODE=true");
+    if (!(await this.demoMode())) throw new Error("seed() is only available when DEMO_MODE=true");
     await this.ensureSchema();
     const n = Math.min(Math.max(Math.trunc(num(days, 0)), 1), 30);
     const today = todayUtc();
@@ -215,16 +304,17 @@ export class AttributionWheel extends Agent<Env, WheelState> {
     return { seeded, profile: "baseline" };
   }
 
-  /** RPC: DEMO_MODE only \u2014 write a named traffic profile for a day (baseline|spike|recovery). */
+  /** RPC: DEMO_MODE only — write a named traffic profile for a day (baseline|spike|recovery). */
+  @rpc()
   async simulate(day: string, profile: string): Promise<{ day: string; profile: string; rows: number }> {
-    if (!this.demo) throw new Error("simulate() is only available when DEMO_MODE=true");
+    if (!(await this.demoMode())) throw new Error("simulate() is only available when DEMO_MODE=true");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error("day must be YYYY-MM-DD");
     if (!PROFILES[profile]) throw new Error(`unknown profile: ${profile}`);
     await this.ensureSchema();
     return { day, profile, rows: await this.writeProfile(day, profile) };
   }
 
-  /** Scheduled task handler \u2014 dispatched by name from this.schedule(). */
+  /** Scheduled task handler — dispatched by name from this.schedule(). */
   async nightly(): Promise<void> {
     try {
       await this.sweep(shiftDate(todayUtc(), -1));
@@ -245,7 +335,18 @@ export class AttributionWheel extends Agent<Env, WheelState> {
     path: string,
     opts: { body?: unknown; params?: Record<string, string>; idempotencyKey?: string } = {},
   ): Promise<unknown> {
-    const apiKey = await this.env.SECRETS.get("TELNYX_API_KEY");
+    const envelope = await this.gatewayEnvelope(method, path, opts);
+    const payload = envelope as { data?: unknown };
+    return payload?.data ?? payload;
+  }
+
+  /** Like gateway() but keeps the response envelope (data + meta) for paginated reports. */
+  private async gatewayEnvelope(
+    method: "GET" | "POST",
+    path: string,
+    opts: { body?: unknown; params?: Record<string, string>; idempotencyKey?: string } = {},
+  ): Promise<unknown> {
+    const apiKey = await readConfig(this.env, "TELNYX_API_KEY");
     if (!apiKey) throw new Error("TELNYX_API_KEY is not configured");
     const url = new URL(`${GATEWAY}${path}`);
     for (const [k, v] of Object.entries(opts.params ?? {})) url.searchParams.set(k, v);
@@ -260,54 +361,87 @@ export class AttributionWheel extends Agent<Env, WheelState> {
       body: opts.body ? JSON.stringify(opts.body) : undefined,
     });
     if (!res.ok) throw new Error(`AI Gateway ${method} ${path} failed with ${res.status}`);
-    const payload = (await res.json()) as { data?: unknown };
-    return payload.data ?? payload;
+    return res.json();
+  }
+
+  /** Paged spend/summary fetch; stops on has_more=false or a safety bound. */
+  private async spendSummary(day: string, groupBy: string): Promise<Record<string, unknown>[]> {
+    const out: Record<string, unknown>[] = [];
+    let pageNumber = 1;
+    for (;;) {
+      const envelope = (await this.gatewayEnvelope("GET", "/spend/summary", {
+        params: {
+          start_date: day,
+          end_date: shiftDate(day, 1),
+          group_by: groupBy,
+          page_size: "100",
+          page_number: String(pageNumber),
+        },
+      })) as { data?: unknown; meta?: { has_more?: boolean } };
+      const rows = pickRows(envelope?.data ?? envelope);
+      out.push(...rows);
+      if (envelope?.meta?.has_more !== true || rows.length === 0) break;
+      pageNumber += 1;
+      if (pageNumber > 10) break;
+    }
+    return out;
   }
 
   private async pullSpend(day: string): Promise<SpendRow[]> {
     let rows: SpendRow[] = [];
     try {
-      const data = await this.gateway("GET", "/spend/summary", {
-        params: { start_date: day, end_date: shiftDate(day, 1), group_by: "metadata:service" },
-      });
-      rows = pickRows(data).map((r) => this.normalize(r, day));
+      rows = (await this.spendSummary(day, "metadata:service")).map((r) => normalizeSpendRow(r, day));
     } catch (err) {
       console.warn(`spend/summary unavailable for ${day}: ${(err as Error).message}`);
     }
-    if (rows.length === 0 && this.demo) rows = await this.ledgerDay(day);
+    if (rows.length === 0 && (await this.demoMode())) rows = await this.ledgerDay(day);
     return rows;
   }
 
-  private normalize(r: Record<string, unknown>, day: string): SpendRow {
-    return {
-      date: day,
-      service: String(r.group ?? r.service ?? "unknown"),
-      requests: num(r.requests),
-      input_tokens: num(r.input_tokens),
-      output_tokens: num(r.output_tokens),
-      spend: num(r.spend),
-      reserved_spend: num(r.reserved_spend),
-      unknown_requests: num(r.unknown_requests),
-      baseline_ratio: 0,
-      breach: 0,
-      source: "gateway",
-      note: null,
-    };
+  /** Gateway usage/summary totals + guardrail counts for the token group (null when unavailable). */
+  private async pullUsage(day: string): Promise<UsageSnapshot | null> {
+    const tokenGroupId = (await this.getState()).tokenGroupId;
+    if (!tokenGroupId) return null;
+    try {
+      const data = (await this.gateway("GET", "/usage/summary", {
+        params: { token_group_id: tokenGroupId, start_date: day, end_date: shiftDate(day, 1) },
+      })) as { totals?: Record<string, unknown>; guardrails?: Record<string, unknown> } | null;
+      if (!data?.totals) return null;
+      const t = data.totals;
+      const g = data.guardrails ?? {};
+      return {
+        totals: {
+          requests: num(t.requests),
+          input_tokens: num(t.input_tokens),
+          output_tokens: num(t.output_tokens),
+          unknown_requests: num(t.unknown_requests),
+          cache_hits: num(t.cache_hits),
+          succeeded_requests: num(t.succeeded_requests),
+          failed_requests: num(t.failed_requests),
+          partial_requests: num(t.partial_requests),
+          spend: num(t.spend),
+          reserved_spend: num(t.reserved_spend),
+        },
+        guardrails: { blocked_events: num(g.blocked_events), flagged_events: num(g.flagged_events) },
+      };
+    } catch {
+      return null;
+    }
   }
 
-  private async grouped(day: string, key: string): Promise<{ value: string; requests: number; spend: number }[]> {
+  private async grouped(day: string, key: string): Promise<Grouped[]> {
     try {
-      const data = await this.gateway("GET", "/spend/summary", {
-        params: { start_date: day, end_date: shiftDate(day, 1), group_by: `metadata:${key}` },
-      });
-      return pickRows(data).map((r) => ({
-        value: String(r.group ?? r[key] ?? "unknown"),
+      const rows = await this.spendSummary(day, `metadata:${key}`);
+      const out = rows.map((r) => ({
+        value: String(r.dimension_id ?? r.name ?? r[key] ?? "unknown"),
         requests: num(r.requests),
         spend: num(r.spend),
       }));
+      if (out.length > 0) return out;
     } catch {
-      return [];
+      // gateway unavailable — fall back to the local dims ledger below
     }
+    return this.dimsFor(day, key);
   }
 
   private async loadBaseline(day: string): Promise<Map<string, { share: number; spend: number }>> {
@@ -336,10 +470,11 @@ export class AttributionWheel extends Agent<Env, WheelState> {
     return out;
   }
 
-  private isBreach(share: number, spend: number, base?: { share: number; spend: number }): boolean {
-    const sharePct = num(this.env.ALERT_SHARE_PCT, 40);
-    const spike = num(this.env.SPIKE_MULTIPLE, 2.0);
-    if (share * 100 >= sharePct) return true;
+  private async isBreach(share: number, spend: number, base?: { share: number; spend: number }): Promise<boolean> {
+    const sharePct = num(await readConfig(this.env, "ALERT_SHARE_PCT"), 40);
+    const spike = num(await readConfig(this.env, "SPIKE_MULTIPLE"), 2.0);
+    const shareJump = (share - (base?.share ?? 0)) * 100;
+    if (shareJump >= sharePct) return true;
     return Boolean(base && base.spend > 0 && spend >= base.spend * spike);
   }
 
@@ -347,12 +482,12 @@ export class AttributionWheel extends Agent<Env, WheelState> {
     const ref = (await this.getState()).keyRefs[row.service] ?? "key-unavailable";
     const basePct = base ? Math.round(base.share * 100) : 0;
     const text = `AI spend: ${row.service} at ${Math.round(share * 100)}% of 24h requests (baseline ${basePct}%). Keys: ${ref}.`;
-    if (this.demo) {
-      console.log(`[DEMO] page suppressed -> ${maskPhone(this.env.ONCALL_E164 ?? "")}: ${text}`);
+    if (await this.demoMode()) {
+      console.log(`[DEMO] page suppressed -> ${maskPhone((await readConfig(this.env, "ONCALL_E164")) ?? "")}: ${text}`);
       return;
     }
-    const to = this.env.ONCALL_E164;
-    const from = this.env.DEMO_TELNYX_NUMBER;
+    const to = await readConfig(this.env, "ONCALL_E164");
+    const from = await readConfig(this.env, "DEMO_TELNYX_NUMBER");
     if (!to || !from) throw new Error("ONCALL_E164 and DEMO_TELNYX_NUMBER are required in live mode");
     await this.env.TELNYX.messages.send({ to, from, text });
   }
@@ -360,17 +495,19 @@ export class AttributionWheel extends Agent<Env, WheelState> {
   private async writeProfile(day: string, profile: string): Promise<number> {
     const mix = PROFILES[profile];
     let count = 0;
+    await this.env.WHEEL_DB.prepare("DELETE FROM spend_dims WHERE date = ? AND dim IN ('tenant','env')").bind(day).run();
     for (const service of SERVICES) {
       const requests = Math.round(1000 * mix[service]);
       const input = requests * 900;
       const output = requests * 300;
+      const spend = Number((input * 0.0000005 + output * 0.0000015).toFixed(4));
       await this.upsert({
         date: day,
         service,
         requests,
         input_tokens: input,
         output_tokens: output,
-        spend: Number((input * 0.0000005 + output * 0.0000015).toFixed(4)),
+        spend,
         reserved_spend: 0,
         unknown_requests: 0,
         baseline_ratio: 0,
@@ -378,6 +515,8 @@ export class AttributionWheel extends Agent<Env, WheelState> {
         source: "synthetic",
         note: `seeded:${profile}`,
       });
+      await this.upsertDim(day, "tenant", TENANT, requests, spend);
+      await this.upsertDim(day, "env", ENV_TAG, requests, spend);
       count += 1;
     }
     return count;
@@ -390,6 +529,15 @@ export class AttributionWheel extends Agent<Env, WheelState> {
       .bind(day)
       .all();
     return toRows<SpendRow>(res);
+  }
+
+  private async dimsFor(day: string, dim: string): Promise<Grouped[]> {
+    const res = await this.env.WHEEL_DB.prepare(
+      "SELECT value, requests, spend FROM spend_dims WHERE date = ? AND dim = ? ORDER BY spend DESC",
+    )
+      .bind(day, dim)
+      .all();
+    return toRows<Grouped>(res);
   }
 
   private async existingRow(day: string, service: string): Promise<SpendRow | null> {
@@ -444,6 +592,18 @@ export class AttributionWheel extends Agent<Env, WheelState> {
       .run();
   }
 
+  private async upsertDim(day: string, dim: string, value: string, requests: number, spend: number): Promise<void> {
+    await this.env.WHEEL_DB.prepare(
+      `INSERT INTO spend_dims (date, dim, value, requests, spend)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(date, dim, value) DO UPDATE SET
+         requests = spend_dims.requests + excluded.requests,
+         spend = spend_dims.spend + excluded.spend`,
+    )
+      .bind(day, dim, value, requests, spend)
+      .run();
+  }
+
   private async ensureSchema(): Promise<void> {
     await this.env.WHEEL_DB.exec(
       `CREATE TABLE IF NOT EXISTS spend_daily (
@@ -462,15 +622,111 @@ export class AttributionWheel extends Agent<Env, WheelState> {
          PRIMARY KEY (date, service)
        )`,
     );
+    await this.env.WHEEL_DB.exec(
+      `CREATE TABLE IF NOT EXISTS spend_dims (
+         date TEXT NOT NULL,
+         dim TEXT NOT NULL,
+         value TEXT NOT NULL,
+         requests INTEGER NOT NULL DEFAULT 0,
+         spend REAL NOT NULL DEFAULT 0,
+         PRIMARY KEY (date, dim, value)
+       )`,
+    );
   }
 }
+
+const json = (v: unknown, status = 200): Response =>
+  new Response(JSON.stringify(v, null, 2), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+
+const httpStatusFor = (err: unknown): number => {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /day must be|DEMO_MODE|unknown profile/.test(msg) ? 400 : 500;
+};
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname === "/health") return Response.json({ ok: true, actor: "AttributionWheel" });
-    const name = url.searchParams.get("group") ?? "main";
-    const stub = env.WHEELS.get(env.WHEELS.idFromName(name));
-    return stub.fetch(request);
+    const path = url.pathname;
+    const group = url.searchParams.get("group") ?? "main";
+
+    if (path === "/health") {
+      const demo = ((await readConfig(env, "DEMO_MODE")) ?? "true").trim().toLowerCase() !== "false";
+      return json({ ok: true, actor: "AttributionWheel", group, demo_mode: demo });
+    }
+
+    const stub = env.WHEELS.idFromName(group);
+
+    const rpcMatch = path.match(/^\/rpc\/([A-Za-z][A-Za-z0-9_]*)$/);
+    if (rpcMatch) {
+      const method = rpcMatch[1];
+      if (request.method !== "POST") {
+        return json({ error: `Use POST /rpc/${method} with a JSON array body of positional arguments.` }, 405);
+      }
+      if (!(RPC_METHODS as readonly string[]).includes(method)) {
+        return json({ error: `Unknown RPC method "${method}". RPC surface: ${RPC_METHODS.join(", ")}.` }, 404);
+      }
+      let args: unknown[] = [];
+      try {
+        const text = request.body ? await request.text() : "";
+        if (text.trim().length > 0) {
+          const parsed: unknown = JSON.parse(text);
+          if (!Array.isArray(parsed)) throw new Error("RPC body must be a JSON array of positional arguments.");
+          args = parsed;
+        }
+      } catch (err) {
+        if (err instanceof Error && /JSON array|JSON.parse/.test(err.message) === false) {
+          return json({ error: err.message }, 400);
+        }
+        return json({ error: "RPC body must be valid JSON (an array of positional arguments)." }, 400);
+      }
+      try {
+        switch (method as RPCMethod) {
+          case "bootstrap":
+            return json(await stub.bootstrap());
+          case "sweep":
+            return json(await stub.sweep(String(args[0] ?? todayUtc())));
+          case "report":
+            return json(await stub.report(String(args[0] ?? todayUtc())));
+          case "seed":
+            return json(await stub.seed(Number(args[0] ?? 7)));
+          case "simulate":
+            return json(await stub.simulate(String(args[0] ?? todayUtc()), String(args[1] ?? "baseline")));
+        }
+      } catch (err) {
+        return json({ error: err instanceof Error ? err.message : "RPC failed" }, httpStatusFor(err));
+      }
+    }
+
+    if (path === "/report") {
+      const day = url.searchParams.get("day") ?? todayUtc();
+      try {
+        return json(await stub.report(day));
+      } catch (err) {
+        return json({ error: err instanceof Error ? err.message : "report failed" }, httpStatusFor(err));
+      }
+    }
+
+    if (path === "/" || path === "/ui") {
+      const day = url.searchParams.get("day") ?? todayUtc();
+      let report: Report | null = null;
+      let error: string | null = null;
+      try {
+        report = await stub.report(day);
+      } catch (err) {
+        error = err instanceof Error ? err.message : "report failed";
+      }
+      const demo = ((await readConfig(env, "DEMO_MODE")) ?? "true").trim().toLowerCase() !== "false";
+      return new Response(renderDashboard({ day, group, demo, report, error }), {
+        headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+      });
+    }
+
+    return json(
+      { error: "Not found. Routes: GET / (dashboard), GET /health, GET /report?day=YYYY-MM-DD, POST /rpc/<method>." },
+      404,
+    );
   },
 };

@@ -2,24 +2,49 @@ name = "attribution-wheel"
 main = "src/index.ts"
 compatibility_date = "2026-07-28"
 
+# ── Stateful actor: one wheel per token group ───────────────────────────────
 [[actors]]
 binding = "WHEELS"
 type = "AttributionWheel"
 
+# ── Telnyx API binding: pre-authenticated SDK client (env.TELNYX) ──────────
+# Used inside the actor for the zero-credential on-call page:
+#   this.env.TELNYX.messages.send({ to, from, text })
 [telnyx]
 binding = "TELNYX"
 
+# ── SQL ledger binding (spend_daily + spend_dims tables) ───────────────────
 [storage.sqldb.WHEEL_DB]
 id = "<sqldb-namespace-uuid>"
 
+# ── Secrets ─────────────────────────────────────────────────────────────────
+# NOTE: the Edge runtime does NOT inject [env_vars] for actor projects, so all
+# config ships as [[secrets]] bindings and is read via SECRETS.get() (with a
+# plain env-var fallback in readConfig()).
 [[secrets]]
 binding = "TELNYX_API_KEY"
 name = "TELNYX_API_KEY"
 
-[env_vars]
-DEMO_MODE = "true"
-ALERT_SHARE_PCT = "40"
-SPIKE_MULTIPLE = "2.0"
-AI_GATEWAY_MODEL = "Kimi-K3"
-ONCALL_E164 = "+1555XXXXXXXX"
-DEMO_TELNYX_NUMBER = "+1555XXXXXXXX"
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
+
+[[secrets]]
+binding = "ALERT_SHARE_PCT"
+name = "ALERT_SHARE_PCT"
+
+[[secrets]]
+binding = "SPIKE_MULTIPLE"
+name = "SPIKE_MULTIPLE"
+
+[[secrets]]
+binding = "ONCALL_E164"
+name = "ONCALL_E164"
+
+[[secrets]]
+binding = "DEMO_TELNYX_NUMBER"
+name = "DEMO_TELNYX_NUMBER"
+
+[[secrets]]
+binding = "AI_GATEWAY_MODEL"
+name = "AI_GATEWAY_MODEL"

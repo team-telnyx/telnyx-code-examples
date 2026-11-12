@@ -71,22 +71,40 @@ compatibility_date = "2026-07-28"
 binding = "WHEELS"
 type    = "AttributionWheel"
 
-[[secrets]]
-binding = "TELNYX_API_KEY"
-name    = "TELNYX_API_KEY"
+[telnyx]
+binding = "TELNYX"
 
 [storage.sqldb.WHEEL_DB]
 id = "<sqldb-namespace-uuid>"
 
-[telnyx]
-binding = "TELNYX"
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
 
-[env_vars]
-DEMO_MODE = "true"
-ALERT_SHARE_PCT = "40"
-SPIKE_MULTIPLE = "2.0"
-AI_GATEWAY_MODEL = "Kimi-K3"
+[[secrets]]
+binding = "DEMO_MODE"
+name    = "DEMO_MODE"
+
+[[secrets]]
+binding = "ALERT_SHARE_PCT"
+name    = "ALERT_SHARE_PCT"
+
+[[secrets]]
+binding = "SPIKE_MULTIPLE"
+name    = "SPIKE_MULTIPLE"
+
+[[secrets]]
+binding = "ONCALL_E164"
+name    = "ONCALL_E164"
+
+[[secrets]]
+binding = "DEMO_TELNYX_NUMBER"
+name    = "DEMO_TELNYX_NUMBER"
 ```
+
+> The Edge runtime does not inject `[env_vars]` into actor projects, so every
+> knob ships as a `[[secrets]]` binding and is read via `SECRETS.get()` with a
+> plain env-var fallback (for local tooling).
 
 After editing `telnyx.toml`, regenerate the typed env declarations:
 
@@ -119,7 +137,7 @@ telnyx-edge secrets add TELNYX_API_KEY "KEY..."
 | `DEMO_MODE` | `true` | When `true`, no SMS is sent and `seed()`/`simulate()` are available. |
 | `ONCALL_E164` | — | On-call recipient (live mode only). |
 | `DEMO_TELNYX_NUMBER` | — | Sender number (live mode only). |
-| `ALERT_SHARE_PCT` | `40` | Share-of-requests threshold that triggers a breach. |
+| `ALERT_SHARE_PCT` | `40` | Share-of-requests jump (percentage points) over the service's own baseline that triggers a breach. |
 | `SPIKE_MULTIPLE` | `2.0` | Spend multiple vs baseline that triggers a breach. |
 | `AI_GATEWAY_MODEL` | `Kimi-K3` | Model used by the demo traffic scripts. |
 
@@ -142,18 +160,27 @@ interface WheelState {
 
 - `tokenGroupId` — the AI Gateway token group created at bootstrap.
 - `lastSweepDate` + `cursor` — the resume point for a mid-sweep crash.
-- `keyRefs` — masked key references (`sk-...-support`) used in the page text so the on-call knows which key to look at without exposing the full secret.
+- `keyRefs` — masked key references (`ltg_sk...`) used in the page text so the on-call knows which key to look at without exposing the full secret.
 
 `initialState()` seeds all of these to `null` / `{}`. State is read with `this.getState()` and patched with `this.setState({ ... })` — merge-patch semantics, so `setState({ cursor })` only touches `cursor`.
 
-Public async methods on the class are the RPC surface: `bootstrap`, `sweep`, `report`, `seed`, and `simulate`. The `fetch` handler at the bottom of `src/index.ts` routes requests to the actor stub:
+The remote surface is marked with the SDK's `@rpc()` decorator: `bootstrap`, `sweep`, `report`, `seed`, and `simulate`. (`nightly` is deliberately *not* decorated — it is the scheduled handler, not an RPC.) The `fetch` handler at the bottom of `src/index.ts` resolves the actor stub and dispatches the call:
 
 ```ts
-const stub = env.WHEELS.get(env.WHEELS.idFromName(name));
-return stub.fetch(request);
+const stub = env.WHEELS.idFromName(group);
+// POST /rpc/sweep with a JSON array body → stub.sweep(...args)
 ```
 
-The actor is born via `env.WHEELS.idFromName(mainTokenGroup)` — one durable entity per token group. `/health` returns a static `{ ok: true }` without touching the actor.
+The worker routes:
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/` or `/ui` | Telnyx-branded dashboard (server-rendered from `report(day)`) |
+| `GET` | `/health` | `{ ok, actor, group, demo_mode }` |
+| `GET` | `/report?day=YYYY-MM-DD` | `report(day)` as JSON |
+| `POST` | `/rpc/<method>?group=<name>` | JSON **array** body of positional args, dispatched to the `@rpc()` method |
+
+The actor is born via `env.WHEELS.idFromName(mainTokenGroup)` — one durable entity per token group, selected with `?group=` (default `main`).
 
 ---
 
@@ -236,13 +263,14 @@ It computes each service's **share of requests per day**, then averages those sh
 ### The breach decision — `isBreach()`
 
 ```ts
-if (share * 100 >= ALERT_SHARE_PCT) return true;
+const shareJump = (share - (base?.share ?? 0)) * 100;
+if (shareJump >= ALERT_SHARE_PCT) return true;
 return base && base.spend > 0 && spend >= base.spend * SPIKE_MULTIPLE;
 ```
 
 Two independent triggers:
 
-1. **Share breach** — the service's share of requests crosses `ALERT_SHARE_PCT` (default 40%).
+1. **Share jump** — the service's share of requests climbed at least `ALERT_SHARE_PCT` (default 40) percentage points **above its own baseline share**. A service jumping from a 20% baseline to 62% is a 42-point jump → breach. With no baseline yet (cold start) the jump is measured from zero, so anything at 40% or above is flagged.
 2. **Spend spike** — the service's spend is at least `SPIKE_MULTIPLE` (default 2.0×) its baseline spend.
 
 Either one is enough. The `baseline_ratio` stored on the row is `share / baseline.share` — so a service at 62% against a 20% baseline records `3.1`.
@@ -253,7 +281,7 @@ For each service row, the sweep:
 
 1. Looks up the existing row for `(day, service)` — `existingRow()`.
 2. Looks up the most recent prior breach — `previousBreach()`.
-3. Sets `note` to `"anomaly"` if breaching, `"recovery"` if it was breaching yesterday and isn't today, otherwise `null`.
+3. Sets `note` to `"anomaly"` on a first breach, `"continued"` while the breach persists across days, `"recovery"` if it was breaching yesterday and isn't today, otherwise `null`.
 4. Upserts the row.
 5. Pages **only** if the row is breaching **and** it wasn't already breaching (no existing breach flag, no prior breach). This is what prevents a repeat page on Day 2.
 
@@ -372,7 +400,7 @@ telnyx-edge ship
 ### 2. Bootstrap the actor
 
 ```bash
-curl -X POST "https://<your-actor-host>/rpc/bootstrap?group=main"
+curl -X POST "https://<your-actor-host>/rpc/bootstrap?group=main" -d '[]'
 ```
 
 This creates the token group and the three keys, and arms the nightly run.
@@ -382,7 +410,7 @@ This creates the token group and the three keys, and arms the nightly run.
 ```bash
 curl -X POST "https://<your-actor-host>/rpc/seed?group=main" \
   -H "Content-Type: application/json" \
-  -d '{"days": 7}'
+  -d '[7]'
 ```
 
 Or via the traffic script:
@@ -396,11 +424,11 @@ python traffic.py --days 7
 ```bash
 curl -X POST "https://<your-actor-host>/rpc/simulate?group=main" \
   -H "Content-Type: application/json" \
-  -d '{"day": "2026-11-10", "profile": "spike"}'
+  -d '["2026-11-10", "spike"]'
 
 curl -X POST "https://<your-actor-host>/rpc/sweep?group=main" \
   -H "Content-Type: application/json" \
-  -d '{"day": "2026-11-10"}'
+  -d '["2026-11-10"]'
 ```
 
 Expect: support at ~62% of requests against a ~20% baseline → one anomaly row (`baseline_ratio` ~3.1) and one page (logged in demo mode).
@@ -410,11 +438,11 @@ Expect: support at ~62% of requests against a ~20% baseline → one anomaly row 
 ```bash
 curl -X POST "https://<your-actor-host>/rpc/simulate?group=main" \
   -H "Content-Type: application/json" \
-  -d '{"day": "2026-11-11", "profile": "recovery"}'
+  -d '["2026-11-11", "recovery"]'
 
 curl -X POST "https://<your-actor-host>/rpc/sweep?group=main" \
   -H "Content-Type: application/json" \
-  -d '{"day": "2026-11-11"}'
+  -d '["2026-11-11"]'
 ```
 
 Expect: support drops to ~18% → one recovery row, **no** repeat page.
@@ -422,10 +450,10 @@ Expect: support drops to ~18% → one recovery row, **no** repeat page.
 ### 6. Read the wheel
 
 ```bash
-curl "https://<your-actor-host>/rpc/report?group=main&day=2026-11-10"
+curl "https://<your-actor-host>/report?group=main&day=2026-11-10"
 ```
 
-Returns the per-service ledger, totals, and the per-tenant / per-env attribution breakdown.
+Returns the per-service ledger, totals, the per-tenant / per-env attribution breakdown, and the gateway `usage/summary` snapshot. The same view is served as the Telnyx-branded dashboard at `GET /?group=main&day=2026-11-10` — open it in a browser to watch the wheel turn.
 
 ### 7. Prove resume
 
@@ -443,7 +471,7 @@ Kill the actor mid-sweep (or call `sweep` for a day with a pre-set cursor), then
 | `seed()` / `simulate()` | Available | Throw |
 | Required env | None beyond defaults | `ONCALL_E164`, `DEMO_TELNYX_NUMBER`, `TELNYX_API_KEY` |
 
-To switch to live mode, set `DEMO_MODE=false` in `telnyx.toml`'s `[env_vars]` (or via the CLI), set the on-call numbers, and redeploy. The sweep, baseline, and report logic are identical — only the page transport and the data source change.
+To switch to live mode, set `DEMO_MODE=false` as a `[[secrets]]` binding in `telnyx.toml` (or via `telnyx-edge secrets add DEMO_MODE "false"`), set the on-call numbers, and redeploy. The sweep, baseline, and report logic are identical — only the page transport and the data source change.
 
 ---
 
@@ -458,7 +486,8 @@ bootstrap()
 nightly()  ──►  sweep(yesterday)  ──►  this.schedule(...)   (re-arm)
 
 sweep(day)
-  ├─ pullSpend(day)      GET /spend/summary?group_by=metadata:service
+  ├─ pullSpend(day)      GET /spend/summary?group_by=metadata:service (paged)
+  ├─ pullUsage(day)      GET /usage/summary?token_group_id=... (totals + guardrails)
   ├─ loadBaseline(day)   SELECT ... FROM spend_daily WHERE date >= day-7
   └─ per service:
        ├─ isBreach(share, spend, base)   ALERT_SHARE_PCT / SPIKE_MULTIPLE
@@ -469,7 +498,10 @@ sweep(day)
 report(day)
   ├─ ledgerDay(day)                    SELECT ... WHERE date = day
   ├─ grouped(day, "tenant")            GET /spend/summary?group_by=metadata:tenant
-  └─ grouped(day, "env")               GET /spend/summary?group_by=metadata:env
+  │                                    (falls back to spend_dims ledger)
+  ├─ grouped(day, "env")               GET /spend/summary?group_by=metadata:env
+  │                                    (falls back to spend_dims ledger)
+  └─ pullUsage(day)                    gateway usage snapshot
 ```
 
 ---
@@ -501,7 +533,7 @@ report(day)
 
 Related samples in this repo:
 
-- **`budgets`** (DEV-1227) — spend budgets on the same gateway.
-- **`failover`** (DEV-1352) — model failover on the same gateway.
+- **`ai-gateway-tenant-meter`** — metering on the same gateway, one level down the attribution stack.
+- **`gateway-fallbacks`** — model failover on the same gateway.
 
-The attribution wheel composes with both: budgets cap spend, failover keeps it flowing, and the wheel tells you *who* is spending it.
+The attribution wheel composes with both: fallbacks keep spend flowing, the tenant meter counts it, and the wheel tells you *who* is spending it and whether that is normal.

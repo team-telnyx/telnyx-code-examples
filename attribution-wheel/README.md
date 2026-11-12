@@ -95,11 +95,13 @@ CREATE TABLE spend_daily (
 
 The `PRIMARY KEY (date, service)` is the idempotency guarantee. `sweep(day)` walks services in sorted order and writes `cursor` after each one; if the pod dies mid-sweep, the next wake sees `lastSweepDate === day` and resumes at the service after the cursor. Every write is an `ON CONFLICT(date, service) DO UPDATE`, so a resumed sweep can never duplicate a row.
 
+A second table, `spend_dims (date, dim, value, requests, spend)`, holds the per-tenant and per-env attribution so the dashboard can render the full wheel even in demo mode when the gateway has no tagged traffic to report. `writeProfile()` resets and rewrites a day's dims on every `seed()`/`simulate()` call, so the attribution view always matches the ledger.
+
 ### The nightly turn
 
 1. `pullSpend(day)` — `GET /spend/summary?start_date=<day>&end_date=<day+1>&group_by=metadata:service`. Dates are half-open and the window is capped at 31 days.
 2. `loadBaseline(day)` — reads the previous 7 days from `spend_daily`, computes each service's mean share-of-requests and mean daily spend.
-3. `isBreach(share, spend, base)` — true when `share * 100 >= ALERT_SHARE_PCT` (default 40) **or** `spend >= base.spend * SPIKE_MULTIPLE` (default 2.0).
+3. `isBreach(share, spend, base)` — true when the service's share **jumps `ALERT_SHARE_PCT` percentage points over its own 7-day baseline share** (62% vs a 20% baseline is a 42-point jump, default threshold 40) **or** `spend >= base.spend * SPIKE_MULTIPLE` (default 2.0). With no baseline yet the share is compared to zero, so a first sweep flags anything at 40% or above.
 4. `page(row, share, base)` — one SMS to `ONCALL_E164` naming the service, its share, the baseline, and the masked key reference. Suppressed and logged when `DEMO_MODE=true`.
 5. Recovery — if a service was breaching yesterday and is not today, the row is written with `note='recovery'` and no page is sent.
 
@@ -176,40 +178,68 @@ compatibility_date = "2026-07-28"
 binding = "WHEELS"
 type    = "AttributionWheel"
 
-[[secrets]]
-binding = "TELNYX_API_KEY"
-name    = "TELNYX_API_KEY"
+[telnyx]
+binding = "TELNYX"
 
 [storage.sqldb.WHEEL_DB]
 id = "<sqldb-namespace-uuid>"
 
-[telnyx]
-binding = "TELNYX"
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "DEMO_MODE"
+name    = "DEMO_MODE"
+
+[[secrets]]
+binding = "ALERT_SHARE_PCT"
+name    = "ALERT_SHARE_PCT"
+
+[[secrets]]
+binding = "SPIKE_MULTIPLE"
+name    = "SPIKE_MULTIPLE"
+
+[[secrets]]
+binding = "ONCALL_E164"
+name    = "ONCALL_E164"
+
+[[secrets]]
+binding = "DEMO_TELNYX_NUMBER"
+name    = "DEMO_TELNYX_NUMBER"
 ```
 
+> The Edge runtime does not inject `[env_vars]` into actor projects, so every
+> knob ships as a `[[secrets]]` binding and is read via `SECRETS.get()` with a
+> plain env-var fallback (for local tooling).
+
 ### Run the demo
+
+Every RPC is `POST /rpc/<method>` with a JSON array of positional arguments as the body:
 
 ```bash
 BASE=https://attribution-wheel.<your-subdomain>.telnyx.app
 
 # 1. Bootstrap — creates the token group + support/billing/docs keys, arms the nightly run
-curl -s -X POST "$BASE/rpc/bootstrap?group=main"
+curl -s -X POST "$BASE/rpc/bootstrap?group=main" -d '[]'
 
 # 2. Seed 7 days of baseline history (DEMO_MODE only — gateway usage cannot be backdated)
-curl -s -X POST "$BASE/rpc/seed?group=main" -d '{"days":7}'
+curl -s -X POST "$BASE/rpc/seed?group=main" -d '[7]'
 
-# 3. Day 1 — support spikes to 62% of requests against a 20% baseline
-curl -s -X POST "$BASE/rpc/simulate?group=main" -d '{"day":"2026-11-10","profile":"spike"}'
-curl -s -X POST "$BASE/rpc/sweep?group=main"    -d '{"day":"2026-11-10"}'
+# 3. Day 1 — support jumps to 62% of requests against a 20% baseline
+curl -s -X POST "$BASE/rpc/simulate?group=main" -d '["2026-11-10","spike"]'
+curl -s -X POST "$BASE/rpc/sweep?group=main"    -d '["2026-11-10"]'
 #    → one anomaly row (baseline_ratio 3.1), one on-call page (logged in DEMO_MODE)
 
-# 4. Day 2 — support recovers to 18%
-curl -s -X POST "$BASE/rpc/simulate?group=main" -d '{"day":"2026-11-11","profile":"recovery"}'
-curl -s -X POST "$BASE/rpc/sweep?group=main"    -d '{"day":"2026-11-11"}'
+# 4. Day 2 — support falls back to 18%
+curl -s -X POST "$BASE/rpc/simulate?group=main" -d '["2026-11-11","recovery"]'
+curl -s -X POST "$BASE/rpc/sweep?group=main"    -d '["2026-11-11"]'
 #    → one recovery row, no repeat page
 
-# 5. The full wheel
-curl -s -X POST "$BASE/rpc/report?group=main" -d '{"day":"2026-11-10"}'
+# 5. The full wheel — JSON
+curl -s -X POST "$BASE/rpc/report?group=main" -d '["2026-11-10"]'
+#    … or open the Telnyx-branded dashboard in a browser:
+open "$BASE/?group=main"
 ```
 
 `traffic.py` drives the same flow from the shell. With `DEMO_MODE=true` (the default) `traffic.py --days 7` calls `@rpc seed(days)` so the rolling baseline has clearly-marked `source='synthetic'` history. With `DEMO_MODE=false` it sends real tagged inference requests to `https://llm.telnyx.com/v1/chat/completions` for today only, and the baseline computes share-of-requests ratios from whatever real history exists (≥1 day).
@@ -225,8 +255,8 @@ Public async methods on `AttributionWheel` are the RPC surface. The default expo
 | RPC | Params | Returns | Description |
 |-----|--------|---------|-------------|
 | `bootstrap()` | — | `{ tokenGroupId, keys }` | Creates the token group and one token key per service with `Idempotency-Key` headers, stores masked key refs in state, and arms the nightly schedule. Idempotent: a second call returns the existing group. |
-| `sweep(day)` | `day: "YYYY-MM-DD"` | `{ day, rows, paged, resumedFrom }` | The same code path the `nightly` schedule invokes. Pulls spend, computes the baseline, writes ledger rows, pages on new breaches, and resumes from the cursor if interrupted. |
-| `report(day)` | `day: "YYYY-MM-DD"` | `Report` | The full wheel: per-service ledger rows, totals, plus `byTenant` and `byEnv` attribution from `group_by=metadata:tenant` / `metadata:env`. |
+| `sweep(day)` | `day: "YYYY-MM-DD"` | `{ day, rows, paged, resumedFrom, usage }` | The same code path the `nightly` schedule invokes. Pulls spend, computes the baseline, writes ledger rows, pages on new breaches, resumes from the cursor if interrupted, and reports the gateway `usage/summary` totals + guardrail counts when a token group is bound. |
+| `report(day)` | `day: "YYYY-MM-DD"` | `Report` | The full wheel: per-service ledger rows, totals, plus `byTenant` and `byEnv` attribution from `group_by=metadata:tenant` / `metadata:env` (falling back to the local dims ledger), and the `usage/summary` snapshot. |
 | `seed(days)` | `days: number` (1–30) | `{ seeded, profile }` | **DEMO_MODE only.** Writes `source='synthetic'` baseline rows so the 7-day rolling mean has history. |
 | `simulate(day, profile)` | `day`, `profile: "baseline" \| "spike" \| "recovery"` | `{ day, profile, rows }` | **DEMO_MODE only.** Writes a named traffic profile for a day. |
 | `nightly()` | — | `void` | Scheduled handler. Sweeps yesterday, then re-arms itself for the next 23:00 UTC run. |
@@ -242,6 +272,7 @@ interface Report {
   totals: { requests; input_tokens; output_tokens; spend; reserved_spend; unknown_requests };
   byTenant: { value: string; requests: number; spend: number }[];
   byEnv:    { value: string; requests: number; spend: number }[];
+  usage:   { totals: UsageTotals; guardrails: { blocked_events; flagged_events } } | null;
 }
 ```
 
@@ -249,10 +280,12 @@ HTTP surface:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Liveness probe — `{ ok: true, actor: "AttributionWheel" }` |
-| `POST` | `/rpc/<method>?group=<name>` | Routes to the named actor's public async method |
+| `GET` | `/` or `/ui` | Telnyx-branded attribution dashboard for `?day=<YYYY-MM-DD>` (default: today) |
+| `GET` | `/health` | Liveness probe — `{ ok: true, actor: "AttributionWheel", demo_mode }` |
+| `GET` | `/report?day=<YYYY-MM-DD>` | The `report(day)` JSON without a POST round-trip |
+| `POST` | `/rpc/<method>?group=<name>` | JSON array body of positional args, routed to the actor's `@rpc()` method |
 
-Status codes: `200` on success, `400` for a malformed `day` or unknown profile, `401` when `TELNYX_API_KEY` is missing or lacks `llm_token_gateway.write`, `500` for upstream gateway failures (the message is generic; details go to the log).
+Status codes: `200` on success, `400` for a malformed `day`, unknown profile, or non-array RPC body, `405` for a `GET` on `/rpc/*`, `401` when `TELNYX_API_KEY` is missing or lacks `llm_token_gateway.write`, `500` for upstream gateway failures (the message is generic; details go to the log).
 
 ## Troubleshooting
 
@@ -276,11 +309,11 @@ Status codes: `200` on success, `400` for a malformed `day` or unknown profile, 
 
 ## Related Examples
 
-- [`ai-gateway-budgets`](../ai-gateway-budgets/) — hard spend caps on the same gateway (DEV-1227)
-- [`ai-gateway-failover`](../ai-gateway-failover/) — model failover and retry policy (DEV-1352)
-- [`inference-chat-completions`](../inference-chat-completions/) — the OpenAI-compatible inference plane this sample tags
-- [`edge-stateful-actor`](../edge-stateful-actor/) — the Agent SDK durable-actor pattern in isolation
-- [`messaging-alerts`](../messaging-alerts/) — Telnyx Messaging for on-call paging
+- [`ai-gateway-tenant-meter`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-gateway-tenant-meter/README.md) — AI Gateway metering per tenant on the same gateway
+- [`gateway-fallbacks`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/gateway-fallbacks/README.md) — model failover and retry policy in front of the gateway
+- [`multi-model-inference-switcher`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-model-inference-switcher/README.md) — switching between models on the OpenAI-compatible inference plane
+- [`edge-cron-scheduler`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-cron-scheduler/README.md) — the Agent SDK `this.schedule()` pattern in isolation
+- [`edge-outage-hotline-typescript`](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/edge-outage-hotline-typescript/README.md) — Telnyx Edge actor that phones and texts humans when things break
 
 ## Resources
 
