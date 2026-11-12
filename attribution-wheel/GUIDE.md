@@ -134,7 +134,7 @@ telnyx-edge secrets add TELNYX_API_KEY "KEY..."
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ATTRIBUTION_ATTRIBUTION_DEMO_MODE` | `true` | When `true`, no SMS is sent and `seed()`/`simulate()` are available. |
+| `ATTRIBUTION_DEMO_MODE` | `true` | When `true`, no SMS is sent and `seed()`/`simulate()` are available. |
 | `ATTRIBUTION_ONCALL_E164` | — | On-call recipient (live mode only). |
 | `ATTRIBUTION_DEMO_NUMBER` | — | Sender number (live mode only). |
 | `ATTRIBUTION_ALERT_SHARE_PCT` | `40` | Share-of-requests jump (percentage points) over the service's own baseline that triggers a breach. |
@@ -348,12 +348,12 @@ Gateway usage cannot be backdated, so a fresh actor has no history for the 7-day
   recovery: { support: 0.18, billing: 0.47, docs: 0.35 }
   ```
 
-Both throw if `ATTRIBUTION_ATTRIBUTION_DEMO_MODE=false`. `writeProfile()` computes requests, tokens, and spend from the mix and upserts each row with `source='synthetic'` and a `note` of `seeded:<profile>`.
+Both throw if `ATTRIBUTION_DEMO_MODE=false`. `writeProfile()` computes requests, tokens, and spend from the mix with a deterministic ±8% per-day/per-service jitter (so the seeded history looks like a real account and stays consistent across re-seeds) and upserts each row with `source='synthetic'` and a `note` of `seeded:<profile>`. A `Source` column on the dashboard labels rows `GATEWAY` (real, billed) vs `SEEDED` (synthetic).
 
 `traffic.py` uses these:
 
-- `ATTRIBUTION_ATTRIBUTION_DEMO_MODE=true` (default): `traffic.py --days 7` calls `@rpc seed(7)`.
-- `ATTRIBUTION_ATTRIBUTION_DEMO_MODE=false`: `traffic.py` sends real tagged inference requests for today only, and the baseline computes share-of-requests ratios from whatever real history exists (≥1 day).
+- `ATTRIBUTION_DEMO_MODE=true` (default): `traffic.py --days 7` calls `@rpc seed(7)`.
+- `ATTRIBUTION_DEMO_MODE=false`: `traffic.py` sends real tagged inference requests for today only, and the baseline computes share-of-requests ratios from whatever real history exists (≥1 day).
 
 ---
 
@@ -465,7 +465,7 @@ Kill the actor mid-sweep (or call `sweep` for a day with a pre-set cursor), then
 
 ## Demo mode vs live mode
 
-| | Demo mode (`ATTRIBUTION_ATTRIBUTION_DEMO_MODE=true`, default) | Live mode (`ATTRIBUTION_ATTRIBUTION_DEMO_MODE=false`) |
+| | Demo mode (`ATTRIBUTION_DEMO_MODE=true`, default) | Live mode (`ATTRIBUTION_DEMO_MODE=false`) |
 |---|---|---|
 | Pages | Logged with masked recipient | Real SMS via `TELNYX.messages.send` |
 | Baseline history | `seed()` writes synthetic rows | Real tagged requests only |
@@ -473,7 +473,7 @@ Kill the actor mid-sweep (or call `sweep` for a day with a pre-set cursor), then
 | `seed()` / `simulate()` | Available | Throw |
 | Required env | None beyond defaults | `ATTRIBUTION_ONCALL_E164`, `ATTRIBUTION_DEMO_NUMBER`, `TELNYX_API_KEY` |
 
-To switch to live mode, set `ATTRIBUTION_ATTRIBUTION_DEMO_MODE=false` as a `[[secrets]]` binding in `telnyx.toml` (or via `telnyx-edge secrets add ATTRIBUTION_DEMO_MODE "false"`), set the on-call numbers, and redeploy. The sweep, baseline, and report logic are identical — only the page transport and the data source change.
+To switch to live mode, set `ATTRIBUTION_DEMO_MODE=false` as a `[[secrets]]` binding in `telnyx.toml` (or via `telnyx-edge secrets add ATTRIBUTION_DEMO_MODE "false"`), set the on-call numbers, and redeploy. The sweep, baseline, and report logic are identical — only the page transport and the data source change.
 
 ---
 
