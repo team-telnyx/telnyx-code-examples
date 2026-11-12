@@ -1,0 +1,21 @@
+{
+  "name": "night-nurse-line",
+  "version": "1.0.0",
+  "private": true,
+  "description": "After-hours nurse triage web chat with a durable per-patient chart on Telnyx Edge",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "npx tsx smoke_test.ts",
+    "smoke": "npx tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

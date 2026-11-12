@@ -54,6 +54,7 @@ LANG_LABELS = {
     "java": "Java",
     "php": "PHP",
     "csharp": "C#",
+    "acp": "Agent Control Plane",
 }
 
 FRAMEWORK_LABELS = {
@@ -71,6 +72,7 @@ FRAMEWORK_LABELS = {
     "laravel": "Laravel",
     "symfony": "Symfony",
     "aspnet": "ASP.NET",
+    "agent-control-plane": "Agent Control Plane",
 }
 
 PRODUCT_LABELS = {

@@ -1,0 +1,7 @@
+[edge_compute]
+func_id = "YOUR_FUNCTION_ID_HERE"
+func_name = "phone-identity-voice-agent"
+
+# No storage bindings — the function uses only the Telnyx REST API
+# (Number Lookup, Call Control, AI Assistants). This means it deploys
+# to every Edge site without region-binding constraints.

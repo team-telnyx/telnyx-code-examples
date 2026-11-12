@@ -25,12 +25,13 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
-<summary><h2>Voice AI</h2> <em>(161 examples)</em></summary>
+<summary><h2>Voice AI</h2> <em>(163 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
 
 | Example | Language | Description |
 |---------|----------|-------------|
+| [acp-business-line](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/acp-business-line/README.md) | Agent Control Plane | Declare a clinic appointment-intake agent in configuration — agent.json plus instructions.md, no application code — and answer calls and texts on one number with the Agent Control Plane. |
 | [ai-assistant-client-side-tools-nextjs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-client-side-tools-nextjs/README.md) | Node.js | Build a browser-based Next.js dashboard where a Telnyx AI Assistant invokes client-side JavaScript tools to navigate the UI, change theme, open a modal, and update React form state. |
 | [ai-assistant-multiparticipant-calling-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-assistant-multiparticipant-calling-nodejs/README.md) | Node.js | Build a Telnyx Voice AI assistant that answers an inbound call, uses a backend tool to dial a second participant, and joins them into the same live AI conversation with ai_assistant_join. |
 | [ai-billing-warm-transfer-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-billing-warm-transfer-python/README.md) | Python | --- |
@@ -111,6 +112,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [make-outbound-phone-call-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-php/README.md) | PHP | Place an outbound phone call with the Telnyx Call Control API using PHP. |
 | [make-outbound-phone-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-python/README.md) | Python | Programmatically place an outbound phone call using Telnyx Call Control and handle the call lifecycle. |
 | [make-outbound-phone-call-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-ruby/README.md) | Ruby | Place an outbound phone call using the Telnyx Call Control API and the Telnyx Ruby SDK, exposed through a Sinatra endpoint. |
+| [phone-identity-voice-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-identity-voice-agent-nodejs/README.md) | Node.js | Inbound call triggers Number Lookup for caller identity, risk scoring, and a live dashboard, then an AI Assistant greets the caller based on trust level. |
 | [media-stream-voice-cloak-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/media-stream-voice-cloak-python/README.md) | Python | Media Stream Voice Cloak - real-time voice modification via media streaming API. Apply pitch shift, echo, or anonymization. |
 | [merge-deal-desk-alerts-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-deal-desk-alerts-python/README.md) | Python | CRM webhook fires when a deal moves to negotiation, triggering Telnyx Voice and AI Inference alerts with Merge CRM. |
 | [merge-employee-hotline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-employee-hotline-python/README.md) | Python | Employees call and authenticate via caller ID using Telnyx Voice and AI Inference with Merge HRIS. |
@@ -399,6 +401,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 
 <details open>
 <summary><h2>AI Assistants</h2> <em>(177 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(176 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -494,6 +497,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [clone-ai-assistant-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/clone-ai-assistant-ruby/README.md) | Ruby | --- |
 | [collaborative-doc-ai-copilot](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/collaborative-doc-ai-copilot/README.md) | Node.js | Real-time multiplayer document editing on Telnyx Edge Compute with an AI copilot that suggests improvements via the zero-credential Telnyx Inference binding. |
 | [compliance-call-recorder-ai-auditor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/compliance-call-recorder-ai-auditor-python/README.md) | Python | Compliance Call Recorder + AI Auditor - auto-record, batch-process with AI, flag violations, create tickets. |
+| [concierge-diary](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/concierge-diary/README.md) | Typescript | A durable per-conversation diary actor that turns an AI Assistant's post-conversation wrap-up turn into a personalized, exactly-once scheduled callback. |
 | [conference-call-with-ai-summary-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/conference-call-with-ai-summary-python/README.md) | Python | Conference Call with AI Summary - multi-party conference with transcription and AI post-call summary. |
 | [create-ai-assistant-csharp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-csharp/README.md) | C# | --- |
 | [create-ai-assistant-go](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/create-ai-assistant-go/README.md) | Go | --- |
@@ -541,6 +545,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [multi-model-inference-switcher](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-model-inference-switcher/README.md) | Node.js | Switch between LLM models at runtime via a KV feature flag — no redeploy. Agent SDK + zero-credential inference + admin UI with live model switching. |
 | [multi-party-ai-training-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/multi-party-ai-training-call-python/README.md) | Python | AI plays customer roles for sales/support practice. Multiple trainees join, AI rotates scenarios and scores each trainee. |
 | [network-incident-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/network-incident-agent/README.md) | Typescript | A durable incident actor that assesses severity, proactively sends SMS, answers calls with incident context, writes an RCA to CloudFS, and checks for recurrence. |
+| [night-nurse-line](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/night-nurse-line/README.md) | Typescript | A durable per-patient nurse-line actor that keeps an overnight web chat alive across visits, pages the on-call once, and hands off a morning report. |
 | [omnichannel-ai-agent-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-agent-python/README.md) | Python | One AI agent that proactively emails, texts, and calls customers using Claude tool-calling, Telnyx Email/SMS/Voice APIs, and SQLite for persistent cross-channel context. |
 | [omnichannel-ai-receptionist-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-ai-receptionist-python/README.md) | Python | One AI brain that handles inbound calls, SMS, and WhatsApp with unified conversation context and intelligent routing via Telnyx AI Inference. |
 | [omnichannel-context-carrying-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omnichannel-context-carrying-python/README.md) | Python | AI agent that carries customer context across email, voice, and SMS so customers never repeat themselves. Demonstrates cross-channel identity resolution with Telnyx Inference, Email, Messaging, and Call Control APIs. |
