@@ -14,8 +14,12 @@ type = "AttributionWheel"
 binding = "TELNYX"
 
 # ── SQL ledger binding (spend_daily + spend_dims tables) ───────────────────
+[edge_compute]
+func_id = "cbf65b7a-650f-4e0d-9a04-fdd5e924f17a"
+func_name = "attribution-wheel"
+
 [storage.sqldb.WHEEL_DB]
-id = "<sqldb-namespace-uuid>"
+id = "ea506bbf-84b3-4528-9eed-ddb30e334ffa"
 
 # ── Secrets ─────────────────────────────────────────────────────────────────
 # NOTE: the Edge runtime does NOT inject [env_vars] for actor projects, so all
@@ -26,24 +30,24 @@ binding = "TELNYX_API_KEY"
 name = "TELNYX_API_KEY"
 
 [[secrets]]
-binding = "DEMO_MODE"
-name = "DEMO_MODE"
+binding = "ATTRIBUTION_DEMO_MODE"
+name = "ATTRIBUTION_DEMO_MODE"
 
 [[secrets]]
-binding = "ALERT_SHARE_PCT"
-name = "ALERT_SHARE_PCT"
+binding = "ATTRIBUTION_ALERT_SHARE_PCT"
+name = "ATTRIBUTION_ALERT_SHARE_PCT"
 
 [[secrets]]
-binding = "SPIKE_MULTIPLE"
-name = "SPIKE_MULTIPLE"
+binding = "ATTRIBUTION_SPIKE_MULTIPLE"
+name = "ATTRIBUTION_SPIKE_MULTIPLE"
 
 [[secrets]]
-binding = "ONCALL_E164"
-name = "ONCALL_E164"
+binding = "ATTRIBUTION_ONCALL_E164"
+name = "ATTRIBUTION_ONCALL_E164"
 
 [[secrets]]
-binding = "DEMO_TELNYX_NUMBER"
-name = "DEMO_TELNYX_NUMBER"
+binding = "ATTRIBUTION_DEMO_NUMBER"
+name = "ATTRIBUTION_DEMO_NUMBER"
 
 [[secrets]]
 binding = "AI_GATEWAY_MODEL"

@@ -58,7 +58,7 @@ Most gateways give you a dashboard. Telnyx gives you a durable entity that can a
    │  @rpc bootstrap()          create token group + 3 keys     │
    │  @rpc sweep(day)           pullSpend → baseline → alert    │
    │  @rpc report(day)          full wheel table                │
-   │  @rpc seed(days)           DEMO_MODE synthetic history     │
+   │  @rpc seed(days)           ATTRIBUTION_DEMO_MODE synthetic history     │
    │  @rpc simulate(day, prof)  baseline | spike | recovery     │
    │  this.schedule(→23:00 UTC, "nightly")  same sweep path     │
    │                                                            │
@@ -69,7 +69,7 @@ Most gateways give you a dashboard. Telnyx gives you a durable entity that can a
    ┌───────────────────────────┐   ┌────────────────────────────┐
    │ WHEEL_DB (SQL)            │   │ TELNYX binding             │
    │ spend_daily               │   │ messages.send → on-call    │
-   │ PK (date, service)        │   │ (suppressed in DEMO_MODE)  │
+   │ PK (date, service)        │   │ (suppressed in ATTRIBUTION_DEMO_MODE)  │
    └───────────────────────────┘   └────────────────────────────┘
 ```
 
@@ -101,8 +101,8 @@ A second table, `spend_dims (date, dim, value, requests, spend)`, holds the per-
 
 1. `pullSpend(day)` — `GET /spend/summary?start_date=<day>&end_date=<day+1>&group_by=metadata:service`. Dates are half-open and the window is capped at 31 days.
 2. `loadBaseline(day)` — reads the previous 7 days from `spend_daily`, computes each service's mean share-of-requests and mean daily spend.
-3. `isBreach(share, spend, base)` — true when the service's share **jumps `ALERT_SHARE_PCT` percentage points over its own 7-day baseline share** (62% vs a 20% baseline is a 42-point jump, default threshold 40) **or** `spend >= base.spend * SPIKE_MULTIPLE` (default 2.0). With no baseline yet the share is compared to zero, so a first sweep flags anything at 40% or above.
-4. `page(row, share, base)` — one SMS to `ONCALL_E164` naming the service, its share, the baseline, and the masked key reference. Suppressed and logged when `DEMO_MODE=true`.
+3. `isBreach(share, spend, base)` — true when the service's share **jumps `ATTRIBUTION_ALERT_SHARE_PCT` percentage points over its own 7-day baseline share** (62% vs a 20% baseline is a 42-point jump, default threshold 40) **or** `spend >= base.spend * ATTRIBUTION_SPIKE_MULTIPLE` (default 2.0). With no baseline yet the share is compared to zero, so a first sweep flags anything at 40% or above.
+4. `page(row, share, base)` — one SMS to `ONCALL_E164` naming the service, its share, the baseline, and the masked key reference. Suppressed and logged when `ATTRIBUTION_DEMO_MODE=true`.
 5. Recovery — if a service was breaching yesterday and is not today, the row is written with `note='recovery'` and no page is sent.
 
 `reserved_spend` and `unknown_requests` are surfaced as their own columns in `report(day)` but are **excluded** from breach and baseline math, because their cost is not yet known.
@@ -128,11 +128,11 @@ The gateway enforces these constraints, and the demo respects them:
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
-| `DEMO_MODE` | `string` | `true` | no | When `true` (default) pages are logged instead of sent and `seed()`/`simulate()` are enabled. Set to `false` for live SMS and real gateway pulls. | — |
-| `ONCALL_E164` | `string` | `+1555XXXXXXX` | no (yes in live mode) | E.164 number that receives the breach page. | Your on-call rotation |
-| `DEMO_TELNYX_NUMBER` | `string` | `+1555XXXXXXX` | no (yes in live mode) | Telnyx sender number for the page SMS. | [portal.telnyx.com](https://portal.telnyx.com) → Numbers |
-| `ALERT_SHARE_PCT` | `string` | `40` | no | Share-of-requests percentage that triggers a breach. Default `40`. | — |
-| `SPIKE_MULTIPLE` | `string` | `2.0` | no | Multiple of the 7-day mean daily spend that triggers a breach. Default `2.0`. | — |
+| `ATTRIBUTION_DEMO_MODE` | `string` | `true` | no | When `true` (default) pages are logged instead of sent and `seed()`/`simulate()` are enabled. Set to `false` for live SMS and real gateway pulls. | — |
+| `ATTRIBUTION_ONCALL_E164` | `string` | `+1555XXXXXXX` | no (yes in live mode) | E.164 number that receives the breach page. | Your on-call rotation |
+| `ATTRIBUTION_DEMO_NUMBER` | `string` | `+1555XXXXXXX` | no (yes in live mode) | Telnyx sender number for the page SMS. | [portal.telnyx.com](https://portal.telnyx.com) → Numbers |
+| `ATTRIBUTION_ALERT_SHARE_PCT` | `string` | `40` | no | Share-of-requests percentage that triggers a breach. Default `40`. | — |
+| `ATTRIBUTION_SPIKE_MULTIPLE` | `string` | `2.0` | no | Multiple of the 7-day mean daily spend that triggers a breach. Default `2.0`. | — |
 | `AI_GATEWAY_MODEL` | `string` | `Kimi-K3` | no | Model used by `traffic.py` for tagged inference requests. | [AI Gateway models](https://developers.telnyx.com/docs/inference/ai-gateway) |
 
 `TELNYX_API_KEY` is declared as a `[[secrets]]` binding and read via `await this.env.SECRETS.get("TELNYX_API_KEY")`. It is never written to the repo, never logged, and never sent to the inference plane — inference authenticates with the `ltg_sk_...` token key instead.
@@ -150,11 +150,11 @@ Fill in `.env` (placeholders only — never commit real credentials):
 
 ```bash
 TELNYX_API_KEY=your_telnyx_api_key_here
-DEMO_MODE=true
-ONCALL_E164=+1555XXXXXXX
-DEMO_TELNYX_NUMBER=+1555XXXXXXX
-ALERT_SHARE_PCT=40
-SPIKE_MULTIPLE=2.0
+ATTRIBUTION_DEMO_MODE=true
+ATTRIBUTION_ONCALL_E164=+1555XXXXXXX
+ATTRIBUTION_DEMO_NUMBER=+1555XXXXXXX
+ATTRIBUTION_ALERT_SHARE_PCT=40
+ATTRIBUTION_SPIKE_MULTIPLE=2.0
 AI_GATEWAY_MODEL=Kimi-K3
 ```
 
@@ -189,24 +189,24 @@ binding = "TELNYX_API_KEY"
 name    = "TELNYX_API_KEY"
 
 [[secrets]]
-binding = "DEMO_MODE"
-name    = "DEMO_MODE"
+binding = "ATTRIBUTION_DEMO_MODE"
+name    = "ATTRIBUTION_DEMO_MODE"
 
 [[secrets]]
-binding = "ALERT_SHARE_PCT"
-name    = "ALERT_SHARE_PCT"
+binding = "ATTRIBUTION_ALERT_SHARE_PCT"
+name    = "ATTRIBUTION_ALERT_SHARE_PCT"
 
 [[secrets]]
-binding = "SPIKE_MULTIPLE"
-name    = "SPIKE_MULTIPLE"
+binding = "ATTRIBUTION_SPIKE_MULTIPLE"
+name    = "ATTRIBUTION_SPIKE_MULTIPLE"
 
 [[secrets]]
-binding = "ONCALL_E164"
-name    = "ONCALL_E164"
+binding = "ATTRIBUTION_ONCALL_E164"
+name    = "ATTRIBUTION_ONCALL_E164"
 
 [[secrets]]
-binding = "DEMO_TELNYX_NUMBER"
-name    = "DEMO_TELNYX_NUMBER"
+binding = "ATTRIBUTION_DEMO_NUMBER"
+name    = "ATTRIBUTION_DEMO_NUMBER"
 ```
 
 > The Edge runtime does not inject `[env_vars]` into actor projects, so every
@@ -223,13 +223,13 @@ BASE=https://attribution-wheel.<your-subdomain>.telnyx.app
 # 1. Bootstrap — creates the token group + support/billing/docs keys, arms the nightly run
 curl -s -X POST "$BASE/rpc/bootstrap?group=main" -d '[]'
 
-# 2. Seed 7 days of baseline history (DEMO_MODE only — gateway usage cannot be backdated)
+# 2. Seed 7 days of baseline history (ATTRIBUTION_DEMO_MODE only — gateway usage cannot be backdated)
 curl -s -X POST "$BASE/rpc/seed?group=main" -d '[7]'
 
 # 3. Day 1 — support jumps to 62% of requests against a 20% baseline
 curl -s -X POST "$BASE/rpc/simulate?group=main" -d '["2026-11-10","spike"]'
 curl -s -X POST "$BASE/rpc/sweep?group=main"    -d '["2026-11-10"]'
-#    → one anomaly row (baseline_ratio 3.1), one on-call page (logged in DEMO_MODE)
+#    → one anomaly row (baseline_ratio 3.1), one on-call page (logged in ATTRIBUTION_DEMO_MODE)
 
 # 4. Day 2 — support falls back to 18%
 curl -s -X POST "$BASE/rpc/simulate?group=main" -d '["2026-11-11","recovery"]'
@@ -242,7 +242,7 @@ curl -s -X POST "$BASE/rpc/report?group=main" -d '["2026-11-10"]'
 open "$BASE/?group=main"
 ```
 
-`traffic.py` drives the same flow from the shell. With `DEMO_MODE=true` (the default) `traffic.py --days 7` calls `@rpc seed(days)` so the rolling baseline has clearly-marked `source='synthetic'` history. With `DEMO_MODE=false` it sends real tagged inference requests to `https://llm.telnyx.com/v1/chat/completions` for today only, and the baseline computes share-of-requests ratios from whatever real history exists (≥1 day).
+`traffic.py` drives the same flow from the shell. With `ATTRIBUTION_DEMO_MODE=true` (the default) `traffic.py --days 7` calls `@rpc seed(days)` so the rolling baseline has clearly-marked `source='synthetic'` history. With `ATTRIBUTION_DEMO_MODE=false` it sends real tagged inference requests to `https://llm.telnyx.com/v1/chat/completions` for today only, and the baseline computes share-of-requests ratios from whatever real history exists (≥1 day).
 
 ### Resume proof
 
@@ -257,8 +257,9 @@ Public async methods on `AttributionWheel` are the RPC surface. The default expo
 | `bootstrap()` | — | `{ tokenGroupId, keys }` | Creates the token group and one token key per service with `Idempotency-Key` headers, stores masked key refs in state, and arms the nightly schedule. Idempotent: a second call returns the existing group. |
 | `sweep(day)` | `day: "YYYY-MM-DD"` | `{ day, rows, paged, resumedFrom, usage }` | The same code path the `nightly` schedule invokes. Pulls spend, computes the baseline, writes ledger rows, pages on new breaches, resumes from the cursor if interrupted, and reports the gateway `usage/summary` totals + guardrail counts when a token group is bound. |
 | `report(day)` | `day: "YYYY-MM-DD"` | `Report` | The full wheel: per-service ledger rows, totals, plus `byTenant` and `byEnv` attribution from `group_by=metadata:tenant` / `metadata:env` (falling back to the local dims ledger), and the `usage/summary` snapshot. |
-| `seed(days)` | `days: number` (1–30) | `{ seeded, profile }` | **DEMO_MODE only.** Writes `source='synthetic'` baseline rows so the 7-day rolling mean has history. |
-| `simulate(day, profile)` | `day`, `profile: "baseline" \| "spike" \| "recovery"` | `{ day, profile, rows }` | **DEMO_MODE only.** Writes a named traffic profile for a day. |
+| `seed(days)` | `days: number` (1–30) | `{ seeded, profile }` | **ATTRIBUTION_DEMO_MODE only.** Writes `source='synthetic'` baseline rows so the 7-day rolling mean has history. |
+| `simulate(day, profile)` | `day`, `profile: "baseline" \| "spike" \| "recovery"` | `{ day, profile, rows }` | **ATTRIBUTION_DEMO_MODE only.** Writes a named traffic profile for a day. |
+| `reset()` | — | `{ cleared }` | **ATTRIBUTION_DEMO_MODE only.** Clears the ledger and cursor so the Day-1/Day-2 demo can be re-run from a blank slate. The token group and keys are untouched. |
 | `nightly()` | — | `void` | Scheduled handler. Sweeps yesterday, then re-arms itself for the next 23:00 UTC run. |
 
 `Report` shape:
@@ -293,10 +294,10 @@ Status codes: `200` on success, `400` for a malformed `day`, unknown profile, or
 |---------|-------|-----|
 | `TELNYX_API_KEY is not configured` | Secret binding not set on the deployed actor | `telnyx-edge secrets add TELNYX_API_KEY "..."` then `telnyx-edge ship` |
 | `AI Gateway POST /token_groups failed with 401` | API key lacks AI Gateway write scope | Use an account key with `llm_token_gateway.write` |
-| `spend/summary unavailable for <day>` warning, zero rows | No tagged traffic landed for that day, or the tag key was never sent | Send at least one request with `x-ltg-metadata: {"service":"..."}`; in DEMO_MODE run `seed(7)` |
-| `baseline_ratio` is `0.00` on every row | No history in the 7 days before the sweep day | `seed(7)` (DEMO_MODE) or wait for real history to accumulate |
-| No SMS arrives in live mode | `ONCALL_E164` or `DEMO_TELNYX_NUMBER` unset, or `DEMO_MODE` still `true` | Set both numbers and `DEMO_MODE=false`; check the actor log for `[DEMO] page suppressed` |
-| `seed() is only available when DEMO_MODE=true` | Called `seed`/`simulate` in live mode | Set `DEMO_MODE=true` for the demo, or use real tagged traffic |
+| `spend/summary unavailable for <day>` warning, zero rows | No tagged traffic landed for that day, or the tag key was never sent | Send at least one request with `x-ltg-metadata: {"service":"..."}`; in ATTRIBUTION_DEMO_MODE run `seed(7)` |
+| `baseline_ratio` is `0.00` on every row | No history in the 7 days before the sweep day | `seed(7)` (ATTRIBUTION_DEMO_MODE) or wait for real history to accumulate |
+| No SMS arrives in live mode | `ONCALL_E164` or `DEMO_TELNYX_NUMBER` unset, or `ATTRIBUTION_DEMO_MODE` still `true` | Set both numbers and `ATTRIBUTION_DEMO_MODE=false`; check the actor log for `[DEMO] page suppressed` |
+| `seed() is only available when DEMO_MODE=true` | Called `seed`/`simulate` in live mode | Set `ATTRIBUTION_DEMO_MODE=true` for the demo, or use real tagged traffic |
 | `day must be YYYY-MM-DD` | Malformed date argument | Pass an ISO date, e.g. `2026-11-10` |
 | `400 invalid_metadata` from the gateway | Tag key violates `[A-Za-z0-9][A-Za-z0-9_.-]*`, value >256 chars, or a reserved prefix (`ltg_`, `telnyx_`, `litellm_`, `cf_`) | Rename the key; the error never echoes the header, so check your client-side payload |
 | Sweep re-pages the same service | `breach` was reset by a manual ledger edit | Let the actor own the ledger — `previousBreach()` reads the last row before the sweep day |

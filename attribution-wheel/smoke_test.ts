@@ -30,7 +30,7 @@ check("AttributionWheel extends the Agent base class", () => {
 });
 check("initialState() is defined", () => typeof (AttributionWheel.prototype as Record<string, unknown>).initialState === "function");
 
-for (const method of ["bootstrap", "sweep", "report", "seed", "simulate", "nightly"]) {
+for (const method of ["bootstrap", "sweep", "report", "seed", "simulate", "reset", "nightly"]) {
   check(`RPC surface exposes ${method}()`, () => typeof (AttributionWheel.prototype as Record<string, unknown>)[method] === "function");
 }
 

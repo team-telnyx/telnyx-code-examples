@@ -258,8 +258,8 @@ This is the **same code path** the `nightly` schedule invokes — the demo calls
 
 | Condition | Result |
 |---|---|
-| `(share - baseline.share) * 100 >= ALERT_SHARE_PCT` (default `40` points over the service's own baseline; measured from zero when no baseline exists) | `breach = 1` |
-| `spend >= baseline.spend * SPIKE_MULTIPLE` (default `2.0`) | `breach = 1` |
+| `(share - baseline.share) * 100 >= ATTRIBUTION_ALERT_SHARE_PCT` (default `40` points over the service's own baseline) | `breach = 1` |
+| `spend >= baseline.spend * ATTRIBUTION_SPIKE_MULTIPLE` (default `2.0`) | `breach = 1` |
 | `breach = 1` and no prior breach row for this service | `note = "anomaly"`, one SMS dispatched |
 | `breach = 1` and the previous row for this service had `breach = 1` | `note = "continued"`, no SMS |
 | `breach = 0` and the previous row for this service had `breach = 1` | `note = "recovery"`, no SMS |
@@ -273,7 +273,7 @@ This is the **same code path** the `nightly` schedule invokes — the demo calls
 |---|---|
 | `200` | Sweep completed (possibly with `paged: 0`) |
 | `400` | `day` failed the `YYYY-MM-DD` check |
-| `500` | SQL failure, or live-mode paging with `ONCALL_E164` / `DEMO_TELNYX_NUMBER` unset |
+| `500` | SQL failure, or live-mode paging with `ATTRIBUTION_ONCALL_E164` / `ATTRIBUTION_DEMO_NUMBER` unset |
 
 **Example**
 
@@ -385,7 +385,7 @@ Rows are written with `source = "synthetic"` and `note = "seeded:baseline"` so t
 | Status | Meaning |
 |---|---|
 | `200` | History seeded |
-| `400` | `DEMO_MODE=false` — `seed() is only available when DEMO_MODE=true` |
+| `400` | `ATTRIBUTION_DEMO_MODE=false` — `seed() is only available when DEMO_MODE=true` |
 | `500` | SQL failure |
 
 **Example**
@@ -432,7 +432,7 @@ Profile mixes (share of the day's requests):
 | Status | Meaning |
 |---|---|
 | `200` | Profile written |
-| `400` | `DEMO_MODE=false`, bad `day` format, or `unknown profile: <name>` |
+| `400` | `ATTRIBUTION_DEMO_MODE=false`, bad `day` format, or `unknown profile: <name>` |
 | `500` | SQL failure |
 
 **Example**
@@ -441,6 +441,25 @@ Profile mixes (share of the day's requests):
 curl -s -X POST "https://<your-actor-host>/rpc/simulate?group=main" \
   -H "content-type: application/json" \
   -d '["2026-11-09","spike"]'
+```
+
+---
+
+### `reset()`
+
+**Demo mode only.** Clears the ledger (`spend_daily`, `spend_dims`) and the sweep cursor (`lastSweepDate`, `cursor`) so the Day-1/Day-2 demo can be re-run from a blank slate. The token group and keys in state are untouched.
+
+| Status | Meaning |
+|---|---|
+| `200` | `{ "cleared": true }` |
+| `400` | `ATTRIBUTION_DEMO_MODE=false` — `reset() is only available when ATTRIBUTION_DEMO_MODE=true` |
+
+**Example**
+
+```bash
+curl -s -X POST "https://<your-actor-host>/rpc/reset?group=main" \
+  -H "content-type: application/json" \
+  -d '[]'
 ```
 
 ---
@@ -548,8 +567,8 @@ The on-call page. Live mode only — demo mode logs the message instead.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `to` | string | yes | `ONCALL_E164` |
-| `from` | string | yes | `DEMO_TELNYX_NUMBER` |
+| `to` | string | yes | `ATTRIBUTION_ONCALL_E164` |
+| `from` | string | yes | `ATTRIBUTION_DEMO_NUMBER` |
 | `text` | string | yes | `AI spend: <service> at <N>% of 24h requests (baseline <M>%). Keys: <masked-ref>.` |
 
 Invoked as `this.env.TELNYX.messages.send({ to, from, text })` — the platform injects auth, so no API key is passed.
@@ -578,10 +597,10 @@ x-ltg-metadata: {"service":"support","env":"prod","tenant":"acme"}
 | Code | When | Body |
 |---|---|---|
 | `200` | Route or RPC method completed | Method-specific JSON (see above) |
-| `400` | `day` not `YYYY-MM-DD`; unknown `profile`; `seed()`/`simulate()` called with `DEMO_MODE=false`; upstream `invalid_metadata` | `{ "error": "<message>" }` |
+| `400` | `day` not `YYYY-MM-DD`; unknown `profile`; `seed()`/`simulate()` called with `ATTRIBUTION_DEMO_MODE=false`; upstream `invalid_metadata` | `{ "error": "<message>" }` |
 | `404` | Unknown `/rpc/<method>` name, unknown worker path | `{ "error": "..." }` |
 | `405` | Non-POST request to an `/rpc/*` route | `{ "error": "Use POST /rpc/<method> ..." }` |
-| `500` | `TELNYX_API_KEY` missing from `SECRETS`; AI Gateway returned non-2xx; SQL failure; live-mode paging with `ONCALL_E164`/`DEMO_TELNYX_NUMBER` unset | `{ "error": "<generic message>" }` |
+| `500` | `TELNYX_API_KEY` missing from `SECRETS`; AI Gateway returned non-2xx; SQL failure; live-mode paging with `ATTRIBUTION_ONCALL_E164`/`ATTRIBUTION_DEMO_NUMBER` unset | `{ "error": "<generic message>" }` |
 
 ---
 
@@ -589,10 +608,10 @@ x-ltg-metadata: {"service":"support","env":"prod","tenant":"acme"}
 
 | Variable | Default | Effect on responses |
 |---|---|---|
-| `DEMO_MODE` | `true` | `false` disables `seed()`/`simulate()` (400) and makes `sweep()` send real SMS (`paged` > 0) |
-| `ALERT_SHARE_PCT` | `40` | Share jump (percentage points) over the service's own baseline that sets `breach = 1` |
-| `SPIKE_MULTIPLE` | `2.0` | Spend-vs-baseline multiplier that sets `breach = 1` |
-| `ONCALL_E164` | — | SMS recipient; required only when `DEMO_MODE=false` |
-| `DEMO_TELNYX_NUMBER` | — | SMS sender; required only when `DEMO_MODE=false` |
+| `ATTRIBUTION_DEMO_MODE` | `true` | `false` disables `seed()`/`simulate()` (400) and makes `sweep()` send real SMS (`paged` > 0) |
+| `ATTRIBUTION_ALERT_SHARE_PCT` | `40` | Share jump (percentage points) over the service's own baseline that sets `breach = 1` |
+| `ATTRIBUTION_SPIKE_MULTIPLE` | `2.0` | Spend-vs-baseline multiplier that sets `breach = 1` |
+| `ATTRIBUTION_ONCALL_E164` | — | SMS recipient; required only when `ATTRIBUTION_DEMO_MODE=false` |
+| `ATTRIBUTION_DEMO_NUMBER` | — | SMS sender; required only when `ATTRIBUTION_DEMO_MODE=false` |
 | `AI_GATEWAY_MODEL` | `Kimi-K3` | Model used by the demo traffic scripts (not read by the actor) |
 | `TELNYX_API_KEY` | — | Secret binding; missing → every gateway call returns `500` |

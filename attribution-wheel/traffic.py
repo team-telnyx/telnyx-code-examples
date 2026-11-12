@@ -3,11 +3,11 @@
 
 Two modes, matching the README/GUIDE contract:
 
-* DEMO_MODE=true (default): asks the actor to seed N days of clearly-marked
+* ATTRIBUTION_DEMO_MODE=true (default): asks the actor to seed N days of clearly-marked
   synthetic baseline history via @rpc seed(days), then (optionally) writes a
   named traffic profile for a day via @rpc simulate(day, profile). The gateway
   cannot be backdated, so history is synthesized locally and never billed.
-* DEMO_MODE=false: sends REAL tagged inference requests for today only —
+* ATTRIBUTION_DEMO_MODE=false: sends REAL tagged inference requests for today only —
   one per service — each carrying the x-ltg-metadata header
   {"service": ..., "env": "prod", "tenant": "acme"}, against
   https://llm.telnyx.com/v1/chat/completions with the per-service token key,
@@ -15,11 +15,11 @@ Two modes, matching the README/GUIDE contract:
   group_by=metadata:service on the next sweep.
 
 Usage:
-  python traffic.py --days 7                 # DEMO_MODE: seed 7 baseline days
-  python traffic.py --profile spike          # DEMO_MODE: write a profile day
-  DEMO_MODE=false python traffic.py          # LIVE: send one tagged request per service
+  python traffic.py --days 7                 # DEMO mode: seed 7 baseline days
+  python traffic.py --profile spike          # DEMO mode: write a profile day
+  ATTRIBUTION_DEMO_MODE=false python traffic.py  # LIVE: one tagged request per service
 
-Env (see .env.example): TELNYX_API_KEY, AI_GATEWAY_MODEL, DEMO_MODE,
+Env (see .env.example): TELNYX_API_KEY, AI_GATEWAY_MODEL, ATTRIBUTION_DEMO_MODE,
 ATTRIBUTION_ACTOR_URL (the deployed actor's /rpc endpoint), plus the actor's
 per-service token keys in live mode (echoed by @rpc bootstrap()).
 """
@@ -34,11 +34,16 @@ import urllib.error
 import urllib.request
 
 ACTOR_URL = os.environ.get("ATTRIBUTION_ACTOR_URL", "http://127.0.0.1:8787")
-DEMO_MODE = os.environ.get("DEMO_MODE", "true").strip().lower() != "false"
+DEMO_MODE = os.environ.get("ATTRIBUTION_DEMO_MODE", "true").strip().lower() != "false"
 MODEL = os.environ.get("AI_GATEWAY_MODEL", "Kimi-K3")
 INFERENCE_URL = os.environ.get("AI_GATEWAY_INFERENCE_URL", "https://llm.telnyx.com/v1/chat/completions")
 
 SERVICES = ("support", "billing", "docs")
+KEY_ENV = {
+    "support": "ATTRIBUTION_SUPPORT_TOKEN_KEY",
+    "billing": "ATTRIBUTION_BILLING_TOKEN_KEY",
+    "docs": "ATTRIBUTION_DOCS_TOKEN_KEY",
+}
 PROMPTS = {
     "support": "Summarize our refund policy in one sentence for a patient portal.",
     "billing": "Classify this dispute: 'charged twice for the same visit'.",
@@ -76,7 +81,6 @@ def send_tagged_request(service: str, token_key: str) -> int:
             "model": MODEL,
             "messages": [{"role": "user", "content": PROMPTS[service]}],
             "max_tokens": 64,
-            "metadata": {"user_id": "attribution-wheel-demo"},
         }
     ).encode()
     req = urllib.request.Request(
@@ -118,16 +122,28 @@ def main() -> int:
             print(f"simulate: {json.dumps(out)}")
         elif not seeded:
             print("nothing to do (pass --days N and/or --profile NAME)")
-        print("DEMO_MODE: no live inference traffic sent; the gateway is not billed.")
+        print("DEMO mode: no live inference traffic sent; the gateway is not billed.")
         return 0
 
-    # LIVE mode: one real tagged request per service, using the per-service keys.
-    boot = rpc("bootstrap")
-    keys: dict[str, str] = boot.get("keys") or {}
-    missing = [s for s in SERVICES if not keys.get(s)]
+    # LIVE mode: one real tagged request per service, using the per-service token
+    # keys from the environment (echoed once by @rpc bootstrap(); the actor only
+    # stores masked refs afterwards).
+    keys: dict[str, str] = {}
+    missing = [s for s in SERVICES if not os.environ.get(KEY_ENV[s])]
     if missing:
-        print(f"missing token key(s) from bootstrap(): {', '.join(missing)}", file=sys.stderr)
-        return 1
+        boot = rpc("bootstrap")
+        keys = boot.get("keys") or {}
+    for service in SERVICES:
+        if not keys.get(service):
+            env_key = os.environ.get(KEY_ENV[service])
+            if not env_key:
+                print(
+                    f"missing token key for '{service}': set {KEY_ENV[service]}=<ltg_sk_...> "
+                    f"(the secret is echoed once by @rpc bootstrap())",
+                    file=sys.stderr,
+                )
+                return 1
+            keys[service] = env_key
     ok = 0
     for service in SERVICES:
         status = send_tagged_request(service, keys[service])
