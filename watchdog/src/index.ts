@@ -441,7 +441,11 @@ export class Watchdog extends Agent<Env, WatchdogState> {
       if (verdict.verdict === "broken") {
         await this.fileIncident(runDate, verdict, drive);
       } else {
-        await this.closeIncident(drive, payload.incident_id);
+        const closed = await this.closeIncident(drive, payload.incident_id);
+        if (!closed && (reason === "manual" || reason === "verify")) {
+          await this.smsReply(state.owner_phone,
+            `HEALTHY ${target} — ${verdict.reason}. No open incidents.`);
+        }
       }
     } catch (err) {
       if (err instanceof PersistentStaleError) {
@@ -787,20 +791,21 @@ export class Watchdog extends Agent<Env, WatchdogState> {
       `Watchdog note: ${state.target_url} kept re-rendering mid-run (stale_ref x2). Incident note ${incidentId}. Check ?render_wave.`);
   }
 
-  private async closeIncident(drive: DriveResult, incidentId?: string): Promise<void> {
+  private async closeIncident(drive: DriveResult, incidentId?: string): Promise<boolean> {
     const open = incidentId
       ? await this.rows<{ id: string; before_artifact_id: string | null }>(
         "SELECT id, before_artifact_id FROM incidents WHERE id = ? AND status = 'open'", incidentId)
       : await this.rows<{ id: string; before_artifact_id: string | null }>(
         "SELECT id, before_artifact_id FROM incidents WHERE status = 'open' AND id NOT LIKE '%#stale' ORDER BY first_broken_at DESC LIMIT 1");
     const inc = open[0];
-    if (!inc) return;
+    if (!inc) return false;
     await this.run(
       "UPDATE incidents SET status = 'closed', after_artifact_id = ?, closed_at = ? WHERE id = ?",
       drive.artifactId, new Date().toISOString(), inc.id);
     const state = await this.getState();
     await this.smsReply(state.owner_phone,
       `FIXED ${state.target_url} — incident ${inc.id} closed. Before: ${inc.before_artifact_id ?? "n/a"} After: ${drive.artifactId ?? "n/a"}`);
+    return true;
   }
 
   async smsReply(to: string, text: string): Promise<void> {

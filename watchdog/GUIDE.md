@@ -348,7 +348,7 @@ const incidentId = `${runDate}#${firstBrokenAt}`;
 
 The upsert key is `run_date` + `first_broken_at`, so a crash-resumed run can never double-file. The incident stores `before_artifact_id` (Wednesday's screenshot) and sends the alert SMS with the download URL.
 
-**`closeIncident()`** finds the most recent open incident, sets `status = 'closed'`, writes `after_artifact_id` (Thursday's screenshot), stamps `closed_at`, and sends the "FIXED" SMS with both artifact ids.
+**`closeIncident()`** finds the most recent open incident, sets `status = 'closed'`, writes `after_artifact_id` (Thursday's screenshot), stamps `closed_at`, and sends the "FIXED" SMS with both artifact ids. A healthy manual/verify run with nothing to close still answers the owner with a `HEALTHY <url> — <reason>. No open incidents.` SMS, so a `recheck` always ends in a reply; scheduled healthy runs stay silent by design.
 
 This is the load-bearing part of the demo: Thursday's run knows *which* Wednesday incident it is closing because the incident lives in the actor's SQL ledger, not in a model's context window.
 

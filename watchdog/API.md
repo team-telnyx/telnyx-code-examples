@@ -177,6 +177,7 @@ Inbound SMS arrives on `POST /webhooks/messaging` as a Telnyx `message.received`
 | --- | --- |
 | Broken verdict, new incident | `BROKEN <url> — <reason>. Incident <incident_id>. Screenshot: <download_url or n/a>` |
 | Broken verdict, incident already open | `BROKEN (again) <url> — <reason>. Existing incident <id>. Screenshot: <download_url or n/a>` |
+| Healthy verdict on a manual/verify run with no open incident | `HEALTHY <url> — <verdict reason>. No open incidents.` |
 | Persistent staleness | `Watchdog note: <url> kept re-rendering mid-run (stale_ref x2). Incident note <id>. Check ?render_wave.` |
 | Healthy verdict with an open incident | `FIXED <url> — incident <id> closed. Before: <artifact_id> After: <artifact_id>` |
 | Run threw (non-quota) | `Watchdog run failed: <message>` |
