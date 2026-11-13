@@ -104,7 +104,7 @@
     var priceOverride = params.get("price");
     var shopTemplate = document.getElementById("shop-tpl");
     if (priceOverride !== null && priceOverride !== "") {
-      shopTemplate.content.querySelector("#price").value = "$" + priceOverride;
+      shopTemplate.content.querySelector("#price").setAttribute("value", "$" + priceOverride);
     }
 
     // ?render_wave=N re-renders the page main N seconds after load. The rebuilt
