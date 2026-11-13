@@ -73,7 +73,7 @@ The librarian is a single durable actor per company. It owns the source map, the
 | Variable | Type | Example | Required | Description | Where to get it |
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | Telnyx API key | Telnyx Portal |
-| `SEED_HANDBOOK_URL` | `string` | `https://acme.example.com/handbook` | no | Seed handbook URL (2–5 pages) | Your own handbook |
+| `SEED_HANDBOOK_URL` | `string` | `https://acme.example.com/handbook` | no | Seed handbook URL (2–5 pages) — **must be a public HTML page**; the crawler skips `text/plain` (e.g., raw gist markdown) | Your own handbook |
 | `BUCKET_NAME` | `string` | `acme-handbook` | no | Pre-created bucket in Telnyx Portal | Telnyx Portal |
 | `AI_MODEL` | `string` | `moonshotai/Kimi-K3` | no | Telnyx-hosted inference model (default `moonshotai/Kimi-K3`; falls back to `zai-org/GLM-5.3-Flash` on error — no BYOK key needed) | [Telnyx Inference models](https://developers.telnyx.com/docs/ai/inference) |
 | `BASE_URL` | `string` | `https://your-worker.telnyxcompute.com` | yes (for `npm run bootstrap`) | Deployed worker URL — printed by `telnyx-edge ship` | `telnyx-edge ship` output |
@@ -95,8 +95,8 @@ The librarian is a single durable actor per company. It owns the source map, the
 >
 > ```bash
 > telnyx auth set-key KEY…                                        # human CLI auth (or TELNYX_API_KEY env var for agents)
-> telnyx storage buckets create acme-handbook                     # create the handbook bucket
-> telnyx-edge new-func --actor -l ts -n policy-recall-line        # register the actor function
+> telnyx storage bucket create acme-handbook                     # create the handbook bucket
+> telnyx-edge new-func --actor -l ts -n policy-recall-line       # register the function (scratch dir), then copy its [edge_compute] block into telnyx.toml
 > telnyx-edge secrets add SEED_HANDBOOK_URL "https://…"           # your 2-5 page handbook
 > telnyx-edge secrets add BUCKET_NAME acme-handbook               # bucket created above
 > telnyx-edge secrets add AI_MODEL moonshotai/Kimi-K3               # Telnyx-hosted inference model (fallback: zai-org/GLM-5.3-Flash)
@@ -136,6 +136,9 @@ The librarian is a single durable actor per company. It owns the source map, the
 6. **Generate types and deploy**
 
    ```bash
+   # First ship only: provision the function identity (in a scratch dir), then
+   # copy the printed [edge_compute] block (func_id, func_name) into telnyx.toml:
+   #   telnyx-edge new-func --actor -l ts -n policy-recall-line
    telnyx-edge types
    telnyx-edge ship
    ```
@@ -238,8 +241,11 @@ curl -X POST https://<your-worker>/company/acme/rpc/reindexNow \
 | `401 Unauthorized` on embed calls | Missing or invalid `TELNYX_API_KEY` | Verify the key in `.env` and re-run `telnyx-edge auth api-key set` |
 | `404 Unknown company` on `/ask` | Source not registered yet | Call `POST /company/{slug}/source` first |
 | `202 Source is still indexing` | Embed task still in progress | Wait for the poll task to complete, then retry |
+| Embed task succeeds but search returns 0 results | `SEED_HANDBOOK_URL` serves `text/plain` (e.g., raw gist markdown) — the crawler only ingests HTML pages | Host the handbook as an **HTML page** (a public object in a Telnyx bucket with `--public` works) |
+| Unrelated questions still return `answered: true` | The gte-large embedding model compresses distances — hits measure ~0.12 and unrelated queries ~0.24, both under the spec'd `SIMILARITY_FLOOR` of 0.9 | Keep 0.9 for spec compliance, or tune `SIMILARITY_FLOOR` down to ~0.45 in `src/index.ts` if you want the no-hit path to fire in live traffic |
+| `__alarm__ error` in actor logs, then `ok` | The SDK's at-least-once delivery retried a transient status-fetch failure | Nothing to do — delivery self-heals (see the SDK retry policy) |
 | Embed task fails repeatedly | Handbook URL unreachable or too large | Verify the URL is public and the handbook is 2–5 pages |
-| `telnyx-edge ship` fails | Missing `telnyx.toml` or invalid bindings | Run `telnyx-edge types` to regenerate types and verify `telnyx.toml` |
+| `telnyx-edge ship` fails with missing `func_id` | Function identity not provisioned | Run `telnyx-edge new-func --actor -l ts -n policy-recall-line` in a scratch dir and copy its `[edge_compute]` block into `telnyx.toml` |
 
 ## Agent Discovery
 
