@@ -1,0 +1,20 @@
+{
+  "name": "dispatch-line",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Dispatch Line \u2014 a Telnyx Edge shift log that writes itself mid-call from live in-call transcription.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "npx tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

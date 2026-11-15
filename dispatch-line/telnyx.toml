@@ -1,0 +1,24 @@
+name = "dispatch-line"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# One durable actor per shift on the dispatch line: env.DISPATCH.idFromName("shift-2026-11-19")
+[[actors]]
+binding = "DISPATCH"
+type = "DispatchLine"
+
+# shift_log lives in the SQL primitive (parameterized queries only).
+[storage.sqldb.SHIFT_DB]
+id = "<sqldb-namespace-uuid>"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+# Base64 Ed25519 public key from the Telnyx portal \u2014 used to verify webhooks.
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[env_vars]
+DEMO_MODE = "true"
