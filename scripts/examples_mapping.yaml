@@ -3635,3 +3635,9 @@ examples:
     language: nodejs
     framework: express
     folder: phone-identity-voice-agent-nodejs
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
+    folder: identity-desk

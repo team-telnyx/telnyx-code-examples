@@ -1,0 +1,20 @@
+name = "identity-desk"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# One durable IdentityDesk actor per phone number (idFromName(digitsOfE164)).
+[[actors]]
+binding = "IDENTITY"
+type = "IdentityDesk"
+
+# Used only when DEMO_MODE=false (live Number Lookup calls).
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+# Agent SQL: append-only identity_snapshot ledger owned by the actor.
+[storage.sqldb.IDENTITY_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+DEMO_MODE = "true"
