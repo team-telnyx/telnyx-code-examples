@@ -72,6 +72,7 @@ Copy `.env.example` to `.env` and fill in the placeholders:
 | `FROM_NUMBER` | Telnyx number the alerts are sent from | `+1555XXXXXXXX` |
 | `DEMO_MODE` | `true` (default) replays recorded fixtures offline; `false` runs live | `true` |
 | `AI_MODEL` | Model name for the verdict turn | `moonshotai/Kimi-K3` |
+| `SMS_MUTED` | `true` logs outbound SMS instead of sending (no texts, commands still work) | `false` |
 
 Bindings live in `telnyx.toml`:
 

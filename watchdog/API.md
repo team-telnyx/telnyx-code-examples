@@ -320,3 +320,4 @@ Issued by the actor with `Authorization: Bearer <TELNYX_API_KEY>` against `https
 | `WATCH_TARGET_URL` | — | Documented default target; used by URL-less `status` / `recheck now` SMS commands and by `POST /watch` without a `url`. |
 | `TELNYX_API_KEY` | — | Secret read from `SECRETS` for outbound Agent Browser REST calls. Missing in live mode → `TELNYX_API_KEY is not configured`. |
 | `TELNYX_PUBLIC_KEY` | — | Secret read from `SECRETS` to verify the Ed25519 webhook signature on `POST /webhooks/messaging`. Missing in live mode → `503` on unsigned deliveries. |
+| `SMS_MUTED` | `false` | `true` silences every outbound SMS (arm acks, queued acks, verdicts, alerts); the text is logged with the number masked. Commands, runs, and the ledger are unaffected. |

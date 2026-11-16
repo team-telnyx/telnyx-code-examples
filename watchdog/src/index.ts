@@ -62,6 +62,7 @@ export interface Env {
   FROM_NUMBER?: string;
   DEMO_MODE?: string;
   AI_MODEL?: string;
+  SMS_MUTED?: string;
 }
 
 export interface Baseline { price_text: string; form_labels: string[] }
@@ -104,7 +105,7 @@ const DEMO_PRICE = "$24.00";
 
 /* ------------------------------ helpers ------------------------------ */
 
-type ConfigKey = "DEMO_MODE" | "WATCH_TARGET_URL" | "WATCH_OWNER_PHONE" | "FROM_NUMBER" | "AI_MODEL";
+type ConfigKey = "DEMO_MODE" | "WATCH_TARGET_URL" | "WATCH_OWNER_PHONE" | "FROM_NUMBER" | "AI_MODEL" | "SMS_MUTED";
 
 /**
  * Edge env_vars do not reach the actor runtime, so config falls back through
@@ -811,6 +812,10 @@ export class Watchdog extends Agent<Env, WatchdogState> {
   async smsReply(to: string, text: string): Promise<void> {
     const target = to || (await this.getState()).owner_phone || (await setting(this.env, "WATCH_OWNER_PHONE")) || "";
     if (!target) return;
+    if ((await setting(this.env, "SMS_MUTED") ?? "").toLowerCase() === "true") {
+      console.log(`[muted] SMS to ${maskPhone(target)}: ${text}`);
+      return;
+    }
     if (await isDemo(this.env)) {
       console.log(`[demo] SMS to ${maskPhone(target)}: ${text}`);
       return;

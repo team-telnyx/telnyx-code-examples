@@ -54,6 +54,11 @@ name    = "FROM_NUMBER"
 binding = "AI_MODEL"
 name    = "AI_MODEL"
 
+# true silences outbound SMS (logged instead) without breaking commands.
+[[secrets]]
+binding = "SMS_MUTED"
+name    = "SMS_MUTED"
+
 # Documented defaults (apply when a knob is unset):
 [env_vars]
 DEMO_MODE = "true"

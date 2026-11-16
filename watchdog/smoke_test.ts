@@ -266,7 +266,7 @@ const TARGET = "https://demo-shop.example.com/pricing";
 const BROKEN_TARGET = "https://demo-shop.example.com/pricing?price=0.00";
 
 /** Build a Watchdog bound to an in-memory environment. Rebuild = crash-resume. */
-function makeHarness(demoMode: boolean): Harness {
+function makeHarness(demoMode: boolean, muted = false): Harness {
   const storage = new MemoryStorage();
   const db = new DatabaseSync(":memory:");
   const kv = new Map<string, string>();
@@ -318,6 +318,7 @@ function makeHarness(demoMode: boolean): Harness {
     WATCH_OWNER_PHONE: OWNER,
     FROM_NUMBER: "+15550009999",
     DEMO_MODE: String(demoMode),
+    SMS_MUTED: muted ? "true" : undefined,
   } as Env;
 
   const ctx = () => ({
@@ -524,6 +525,13 @@ async function run(): Promise<void> {
 
   await check("verifyWebhookSignature rejects garbage", async () => {
     assert(!(await verifyWebhookSignature(new Request("https://x/y"), "body", "not-a-key")), "accepted an invalid key");
+  });
+
+  const mutedH = makeHarness(true, true);
+  await dispatchCmd(mutedH, OWNER, `watch ${TARGET}`);
+  await check("SMS_MUTED silences outbound texts (commands still processed)", () => {
+    assert(mutedH.kv.get("watch/demo-shop.example.com") === normalizePhone(OWNER), "watch was not armed");
+    assert(!mutedH.sms.some((s) => s.text.startsWith("Watching")), "muted harness still sent an ack SMS");
   });
 
   // ── The single stale_ref is recovered, so no stale incident note is filed ──
