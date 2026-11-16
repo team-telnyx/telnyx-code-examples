@@ -1,0 +1,19 @@
+{
+  "name": "fluency-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Fluency Lab \u2014 a durable pronunciation-dictionary actor for a clinic's brand voice.",
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "npx tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}
