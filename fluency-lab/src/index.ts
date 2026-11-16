@@ -43,7 +43,7 @@ export interface DictItem {
 
 interface PendingEdit { eventId: string; item: DictItem; appliedBy: string; }
 
-interface DictState {
+interface DictState extends Record<string, unknown> {
   clinicId: string;
   dictId: string | null;
   version: number;
@@ -88,7 +88,7 @@ function isDemo(env: { DEMO_MODE?: string }): boolean {
   return (env.DEMO_MODE ?? "true").toLowerCase() !== "false";
 }
 
-function silentMp3(frames = 10): Uint8Array {
+function silentMp3(frames = 10): Uint8Array<ArrayBuffer> {
   const frame = new Uint8Array(417);
   frame[0] = 0xff; frame[1] = 0xfb; frame[2] = 0x90; frame[3] = 0x00;
   const out = new Uint8Array(417 * frames);
@@ -96,7 +96,7 @@ function silentMp3(frames = 10): Uint8Array {
   return out;
 }
 
-async function sha256Hex(data: Uint8Array): Promise<string> {
+async function sha256Hex(data: Uint8Array<ArrayBuffer>): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
@@ -117,9 +117,9 @@ function maskPhone(p: string): string {
   return !p || p.length < 4 ? "***" : p.slice(0, 2) + "***" + p.slice(-2);
 }
 
-function b64ToBytes(s: string): Uint8Array {
+function b64ToBytes(s: string): Uint8Array<ArrayBuffer> {
   const bin = atob(s);
-  const out = new Uint8Array(bin.length);
+  const out = new Uint8Array(new ArrayBuffer(bin.length));
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
 }
@@ -179,7 +179,7 @@ class TelnyxApi {
     return { ok: false, status: res.status, error: `patch failed: ${res.status}` };
   }
 
-  async synthesize(text: string, voice: string, dictId: string): Promise<Uint8Array> {
+  async synthesize(text: string, voice: string, dictId: string): Promise<Uint8Array<ArrayBuffer>> {
     const res = await this.req("POST", "/v2/text-to-speech/speech", { text, voice, pronunciation_dict_id: dictId });
     if (!res.ok) throw new Error(`tts failed: ${res.status}`);
     return new Uint8Array(await res.arrayBuffer());
@@ -279,7 +279,7 @@ export class FluencyLab extends Agent<Env, DictState> {
     await this.scheduleNextCanary(state.clinicId);
   }
 
-  async getGreetingAudio(): Promise<Uint8Array> {
+  async getGreetingAudio(): Promise<Uint8Array<ArrayBuffer>> {
     let state = await this.getState();
     if (!state.clinicId) {
       await this.setState({ clinicId: clinicIdFor(this.env.INTAKE_NUMBER, this.env) });
@@ -342,7 +342,7 @@ export class FluencyLab extends Agent<Env, DictState> {
     return (await (await this.api()).listDictionaries()).find((d) => d.name === name) || null;
   }
 
-  private async synthesize(text: string, dictId: string): Promise<Uint8Array> {
+  private async synthesize(text: string, dictId: string): Promise<Uint8Array<ArrayBuffer>> {
     if (this.demo()) return silentMp3();
     return await (await this.api()).synthesize(text, this.env.VOICE_ID, dictId);
   }
