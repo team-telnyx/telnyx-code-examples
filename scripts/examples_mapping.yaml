@@ -3616,6 +3616,11 @@ examples:
     language: typescript
     framework: edge
     folder: attribution-wheel
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
     folder: concierge-diary
 
   - product: ai
@@ -3635,3 +3640,9 @@ examples:
     language: nodejs
     framework: express
     folder: phone-identity-voice-agent-nodejs
+
+  - product: ai
+    use_case: acp-agent-fleet
+    language: acp
+    framework: agent-control-plane
+    folder: agent-fleet

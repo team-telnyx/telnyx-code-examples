@@ -112,7 +112,6 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [make-outbound-phone-call-php](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-php/README.md) | PHP | Place an outbound phone call with the Telnyx Call Control API using PHP. |
 | [make-outbound-phone-call-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-python/README.md) | Python | Programmatically place an outbound phone call using Telnyx Call Control and handle the call lifecycle. |
 | [make-outbound-phone-call-ruby](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/make-outbound-phone-call-ruby/README.md) | Ruby | Place an outbound phone call using the Telnyx Call Control API and the Telnyx Ruby SDK, exposed through a Sinatra endpoint. |
-| [phone-identity-voice-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-identity-voice-agent-nodejs/README.md) | Node.js | Inbound call triggers Number Lookup for caller identity, risk scoring, and a live dashboard, then an AI Assistant greets the caller based on trust level. |
 | [media-stream-voice-cloak-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/media-stream-voice-cloak-python/README.md) | Python | Media Stream Voice Cloak - real-time voice modification via media streaming API. Apply pitch shift, echo, or anonymization. |
 | [merge-deal-desk-alerts-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-deal-desk-alerts-python/README.md) | Python | CRM webhook fires when a deal moves to negotiation, triggering Telnyx Voice and AI Inference alerts with Merge CRM. |
 | [merge-employee-hotline-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/merge-employee-hotline-python/README.md) | Python | Employees call and authenticate via caller ID using Telnyx Voice and AI Inference with Merge HRIS. |
@@ -132,6 +131,7 @@ Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voic
 | [number-warmup-reputation-builder-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/number-warmup-reputation-builder-python/README.md) | Python | Number Warmup & Reputation Builder - gradually ramp SMS volume on new numbers to build carrier reputation and avoid spam flags. |
 | [omni-channel-inbox-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omni-channel-inbox-agent/README.md) | Node.js | Build a Telnyx Edge Compute agent that runs a lab-results intake workflow across fax, voice, email, and SMS — with verified channel identity resolution and shared customer context. |
 | [omni-channel-lab-inbox-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/omni-channel-lab-inbox-agent/README.md) | Node.js | Lab-result fax intake with a human-in-the-loop inbox: fax received, operator reviews and accepts (fax deleted, only reference kept), AI drafts confirmation email, SMS appointment flow, and a voice agent that answers status questions without touching lab content. |
+| [phone-identity-voice-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/phone-identity-voice-agent-nodejs/README.md) | Node.js | Inbound call triggers Number Lookup for caller identity, risk scoring, and a live dashboard, then an AI Assistant greets the caller based on trust level. |
 | [porting-loa-automation-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/porting-loa-automation-python/README.md) | Python | Porting LOA Automation - automate Letter of Authorization generation and porting order submission. |
 | [porting-order-tracker-dashboard-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/porting-order-tracker-dashboard-python/README.md) | Python | Submit, track, and manage number porting orders with SLA monitoring, timeline visualization, and bulk operations. |
 | [real-time-call-intelligence-dashboard-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/real-time-call-intelligence-dashboard-python/README.md) | Python | Real-Time Call Intelligence Dashboard - live transcription, sentiment analysis, and competitor detection. |
@@ -400,14 +400,14 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(177 examples)</em></summary>
-<summary><h2>AI Assistants</h2> <em>(176 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(180 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
 | Example | Language | Description |
 |---------|----------|-------------|
 | [adventure-game-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/adventure-game-python/README.md) | Python | AI Adventure Game — a text-based choose-your-own-adventure game where every scene and choice is generated in real time by Telnyx AI Inference. |
+| [agent-fleet](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-fleet/README.md) | Agent Control Plane | Three config-only Telnyx ACP agents — support on the web page, sales in the email inbox, scheduling on the phone — each just agent.json plus instructions.md, deployed and operated through the same five-verb CLI workflow. |
 | [agent-fleet-shared-workspace](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-fleet-shared-workspace/README.md) | Node.js | --- |
 | [agent-message-replay](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-message-replay/README.md) | Typescript | Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step. |
 | [agent-with-tool-calling](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-with-tool-calling/README.md) | Node.js | Build a Telnyx Edge Compute Agent SDK app where an LLM chooses send_sms, make_call, and check_status tools, dispatches them with toolCallId, and returns a final response. |

@@ -94,6 +94,14 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
             "telnyx.toml" if (folder_path / "telnyx.toml").exists() else "func.toml"
         )
 
+    # Agent Control Plane fleet workspaces hold several config-only projects,
+    # each with its own agent.json (e.g. agent-fleet/acp-support/agent.json);
+    # accept a nested agent.json when the folder root has none.
+    if language == "acp" and not (folder_path / "agent.json").exists():
+        nested = sorted(folder_path.glob("*/agent.json"))
+        if nested:
+            code_file = str(nested[0].relative_to(folder_path))
+
     # --- File existence checks ---
     required_files = [
         "README.md",
@@ -174,19 +182,29 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
                 pass
 
         elif language == "acp":
-            try:
-                spec = json.loads(code_path.read_text())
-            except (ValueError, OSError) as exc:
-                errors.append(f"Invalid JSON in {code_file}: {exc}")
+            # Validate the root agent.json, or every project in a fleet
+            # workspace (agent-fleet/acp-support/agent.json, ...). Each
+            # project's `instructions` path resolves against its own directory.
+            if (folder_path / "agent.json").exists():
+                spec_paths = [code_path]
             else:
+                spec_paths = sorted(folder_path.glob("*/agent.json"))
+            for spec_path in spec_paths:
+                try:
+                    spec = json.loads(spec_path.read_text())
+                except (ValueError, OSError) as exc:
+                    errors.append(f"Invalid JSON in {spec_path}: {exc}")
+                    continue
                 instructions_rel = spec.get("instructions", "")
                 if instructions_rel:
-                    if not (folder_path / instructions_rel).exists():
+                    if not (spec_path.parent / instructions_rel).exists():
                         errors.append(
-                            f"agent.json references missing instructions file: {instructions_rel}"
+                            f"{spec_path} references missing instructions file: {instructions_rel}"
                         )
                 if spec.get("kind") != "configuration":
-                    errors.append("agent.json: expected kind=configuration for acp examples")
+                    errors.append(
+                        f"{spec_path}: expected kind=configuration for acp examples"
+                    )
 
     # --- .env.example checks ---
     env_example_path = folder_path / ".env.example"

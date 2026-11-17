@@ -1,0 +1,23 @@
+{
+  "name": "acp-support",
+  "kind": "configuration",
+  "model": "zai-org/GLM-5.3-Flash",
+  "instructions": "instructions.md",
+  "channels": [],
+  "tools": [],
+  "web": {
+    "title": "Fleet Support",
+    "greeting": "Hi — you've reached the support desk. What can I help you with?",
+    "suggestions": [
+      "Where do I send a return?",
+      "How long does shipping take?",
+      "I need to change my delivery address"
+    ]
+  },
+  "memory": {
+    "type": "agent_memory",
+    "namespace": "default",
+    "profile": "{{conversation}}"
+  },
+  "secrets": ["TELNYX_PUBLIC_KEY"]
+}
