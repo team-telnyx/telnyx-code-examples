@@ -400,14 +400,14 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(179 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(180 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
 | Example | Language | Description |
 |---------|----------|-------------|
 | [adventure-game-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/adventure-game-python/README.md) | Python | AI Adventure Game — a text-based choose-your-own-adventure game where every scene and choice is generated in real time by Telnyx AI Inference. |
-| [agent-fleet](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-fleet/README.md) | Typescript | Three config-only Telnyx ACP agents — support on the web page, sales in the email inbox, scheduling on the phone — deployed and operated through the same five-verb workflow. |
+| [agent-fleet](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-fleet/README.md) | Agent Control Plane | Three config-only Telnyx ACP agents — support on the web page, sales in the email inbox, scheduling on the phone — each just agent.json plus instructions.md, deployed and operated through the same five-verb CLI workflow. |
 | [agent-fleet-shared-workspace](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-fleet-shared-workspace/README.md) | Node.js | --- |
 | [agent-message-replay](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-message-replay/README.md) | Typescript | Replay recorded agent conversations with WebSocket live streaming: messages stream through the durable MessageLog, original state changes re-enact as live state patches, and an optional LLM annotates each step. |
 | [agent-with-tool-calling](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/agent-with-tool-calling/README.md) | Node.js | Build a Telnyx Edge Compute Agent SDK app where an LLM chooses send_sms, make_call, and check_status tools, dispatches them with toolCallId, and returns a final response. |
@@ -468,6 +468,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [ai-voice-survey-sentiment-tracker-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voice-survey-sentiment-tracker-python/README.md) | Python | AI Voice Survey Sentiment Tracker - real-time CSAT scoring from voice tone and word choice. |
 | [ai-voicemail-transcription-forwarding-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voicemail-transcription-forwarding-python/README.md) | Python | AI Voicemail Transcription & Forwarding - voicemail to AI-summarized SMS/email with priority classification. |
 | [ai-voiceover-studio-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/ai-voiceover-studio-python/README.md) | Python | Upload a script, select voice/style/pacing, AI adds professional direction cues (pauses, emphasis, pacing), TTS renders the voice-over, stores output in Cloud Storage. Supports multiple takes and retakes. |
+| [attribution-wheel](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/attribution-wheel/README.md) | Typescript | A durable Telnyx Edge actor that tags every AI Gateway inference request, sweeps nightly spend grouped by tag, and pages on-call when a service breaks its 7-day baseline. |
 | [auto-failover-voice-routing](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/auto-failover-voice-routing/README.md) | Typescript | Telecom-native circuit breaker pattern using Telnyx Call Control, KV state, and SMS alerts for automatic SIP failover. |
 | [build-rag-with-telnyx-inference-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-rag-with-telnyx-inference-python/README.md) | Python | Build a retrieval-augmented generation API with Telnyx embeddings and chat completions. |
 | [build-voice-ai-agent-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/build-voice-ai-agent-nodejs/README.md) | Node.js | Build a complete voice AI agent with Telnyx - answer inbound calls, transcribe speech, generate replies with Telnyx Inference, and speak them back via Call Control. |
