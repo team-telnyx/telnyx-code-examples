@@ -519,7 +519,7 @@ function renderPackingView() {
   const isPacked = currentStage === "packed" || currentStage === "confirmed";
 
   view.innerHTML = items.length ? items.map((item, i) => {
-    const packed = currentStage === "packed" || currentStage === "confirmed";
+    const packed = currentStage === "packed";
     const done = packed || currentStage === "picking";
     const stateLabel = packed ? "Packed" : "Picked";
     return `
