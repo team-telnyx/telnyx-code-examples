@@ -1,0 +1,13 @@
+{
+  "data": {
+    "id": "0ccc7b76-4df5-4c1a-8b0c-6c1e4d9f8a10",
+    "event_type": "message.sent",
+    "payload": {
+      "id": "2b1d7a01-c9a5-4a04-a9db-7b1f5a0c6e10",
+      "from": { "phone_number": "+18005550100" },
+      "to": [{ "phone_number": "+18005550123" }],
+      "text": "SignalDesk [INC-000001] received: \"Checkout API down\" SEV1. You'll get status updates here.",
+      "sent_at": "2026-11-18T16:06:00.000Z"
+    }
+  }
+}
