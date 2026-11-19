@@ -142,7 +142,6 @@ logs as a detail fallback. The normal product/demo path can use
 ### Documentation and checks
 
 - `README.md`: setup and project explanation.
-- `DEMO_SCRIPT.md`: the eight-minute recording plan.
 - `scripts/check-prereqs.sh`: local prerequisite checks.
 - `scripts/verify-demo.sh`: project verification checks.
 - `.gitignore`: excludes credentials, generated ACP files, and local runtime

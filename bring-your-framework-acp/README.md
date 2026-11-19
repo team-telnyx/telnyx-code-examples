@@ -34,7 +34,7 @@ local `.env` file.
 - A local clone of the Pipecat Edge sample in `pipecat-edge/`.
 - `@telnyx/acp`, installed globally for the ACP cut.
 
-The Agent Control Plane and Agent SDK are beta. The ACP CLI is a pre-release, so keep the recorded fallback described in [DEMO_SCRIPT.md](./DEMO_SCRIPT.md).
+The Agent Control Plane and Agent SDK are beta. The ACP CLI is a pre-release, so keep a recorded fallback for the demo.
 
 ## LangGraph ACP cut
 
@@ -111,7 +111,7 @@ Then attach the deployed function to the TeXML application and Telnyx number. Th
 
 ## Demo
 
-Use [DEMO_SCRIPT.md](./DEMO_SCRIPT.md) for the eight-minute recording. Run the non-destructive checks first:
+Run the non-destructive checks before recording:
 
 ```bash
 ./scripts/check-prereqs.sh
