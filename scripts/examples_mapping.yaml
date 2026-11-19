@@ -1757,6 +1757,12 @@ examples:
     folder: whatsapp-restaurant-reservation-nodejs
 
   - product: sms
+    use_case: whatsapp-grocery-delivery
+    language: nodejs
+    framework: express
+    folder: whatsapp-grocery-delivery-nodejs
+
+  - product: sms
     use_case: white-label-appointment-platform
     language: python
     framework: flask
