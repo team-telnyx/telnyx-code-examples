@@ -1,0 +1,30 @@
+name = "fluency-lab"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "FLUENCY"
+type = "FluencyLab"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "AUDIO_ACCESS_TOKEN"
+name = "AUDIO_ACCESS_TOKEN"
+
+[env_vars]
+VOICE_ID = "Telnyx.Ultra.002622d8-19d0-4567-a16a-f99c7397c062"
+GREETING_TEXT = "Thank you for calling Riverbental Clinic. Today's flu clinic is open until 6 PM. We can help with Novocaine and Dr. Ng."
+CANARY_TEXT = "Welcome to Riverbental Clinic \u2014 Novocaine and Dr. Ng."
+VERIFY_AT = "02:00"
+CLINIC_TZ = "UTC"
+INTAKE_NUMBER = "+1555XXXXXXX"
+CLINIC_NUMBERS = "{}"
+OWNER_NUMBER = "+1555XXXXXXX"
+DEMO_MODE = "true"

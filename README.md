@@ -400,7 +400,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
-<summary><h2>AI Assistants</h2> <em>(180 examples)</em></summary>
+<summary><h2>AI Assistants</h2> <em>(181 examples)</em></summary>
 
 Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assistants) - LLM-powered agents for voice and messaging automation.
 
@@ -517,6 +517,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [event-sponsorship-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/event-sponsorship-agent/README.md) | Typescript | A multilingual, multi-channel agent for event sponsorship activations with giveaway entry, product Q&A, demo booking, lead capture, and real-time hot-lead routing. |
 | [extract-structured-json-with-ai-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/extract-structured-json-with-ai-python/README.md) | Python | Extract structured JSON from support tickets, emails, leads, or incident reports with Telnyx AI Inference. |
 | [fax-to-ai-document-processor-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/fax-to-ai-document-processor-python/README.md) | Python | Fax to AI Document Processor - receive fax, AI extracts data, forwards structured summary. |
+| [fluency-lab](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/fluency-lab/README.md) | Typescript | A durable per-clinic actor that owns a Telnyx TTS pronunciation dictionary, applies staff-texted corrections exactly once under 409 races, and re-verifies nightly. |
 | [full-stack-ai-contact-center-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/full-stack-ai-contact-center-python/README.md) | Python | Full-Stack AI Contact Center - complete contact center: IVR + queue + AI agent assist + recording + live analytics. |
 | [gateway-fallbacks](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/gateway-fallbacks/README.md) | Python | Provision an AI Gateway token group with fallbacks and retries, prove failover via x-ltg-served-model / x-ltg-attempts headers, and confirm the same story in the spend ledger. |
 | [get-ai-assistant-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/get-ai-assistant-python/README.md) | Python | --- |
