@@ -7,7 +7,7 @@ Base URL (local / deployed): `http://localhost:8787` · `https://<actor-host>`
 | Surface | Direction | Auth |
 |---|---|---|
 | `POST /webhooks/messaging` | inbound (Telnyx → sample) | Ed25519 webhook signature |
-| `GET /greeting-audio` | inbound (operator → sample) | none (demo surface) |
+| `GET /greeting-audio` | inbound (operator → sample) | optional `Authorization: Bearer <AUDIO_ACCESS_TOKEN>` (required only when the secret is set) |
 | `FluencyLab` actor RPC | internal (route → actor) | platform-internal |
 | `api.telnyx.com/v2/*` | outbound (actor → Telnyx) | `Bearer $TELNYX_API_KEY` |
 
@@ -115,7 +115,7 @@ Synthesizes `GREETING_TEXT` with the clinic's **current** `pronunciation_dict_id
 
 ### Request
 
-No parameters, no body, no auth.
+No parameters, no body. Auth: none by default; when the `AUDIO_ACCESS_TOKEN` secret is set, the request must carry `Authorization: Bearer <AUDIO_ACCESS_TOKEN>` (otherwise `401`).
 
 ```bash
 curl -sS http://localhost:8787/greeting-audio --output greeting.mp3
@@ -183,7 +183,7 @@ Optimistic-lock loop, max **3** attempts:
 1. `GET /v2/pronunciation_dicts/{id}` → snapshot `version` + `items`.
 2. If the term already exists on the fresh snapshot → `finalizeEdit()` (idempotent, no PATCH).
 3. If `items.length >= 100` → reply `Dictionary is full (100 items max).`
-4. `PATCH /v2/pronunciation_dicts/{id}` with the full replacement `items` array plus the snapshotted `version`.
+4. `PATCH /v2/pronunciation_dicts/{id}` with the full replacement `items` array (body: `{ name, items }` — no version field, no If-Match).
 5. On `409` → loop (re-fetch, re-apply). On other non-2xx → reply `Could not update dictionary: <error>`.
 6. Exhausted → reply `Dictionary update failed after 3 attempts.`
 
@@ -193,7 +193,15 @@ Optimistic-lock loop, max **3** attempts:
 canary(): Promise<void>
 ```
 
-Scheduled task, stable id `verify:<clinicId>`. Synthesizes `CANARY_TEXT`, SHA-256s the raw audio bytes, compares against `state.lastCanaryHash`, writes a `dict_log` row (`__canary_match__` / `__canary_drift__`), then re-arms itself via `scheduleNextCanary()`.
+Scheduled task, stable id `verify:<clinicId>`. Synthesizes `CANARY_TEXT`, SHA-256s the raw audio bytes, compares against `state.lastCanaryHash`, writes `dict_log` rows (`__canary_match__` / `__canary_drift__`, plus `__canary_state_confirmed__` / `__canary_state_mismatch__` for the version-from-state resume proof), then re-arms itself via `scheduleNextCanary()` — in a `finally`, so a failed pass can never stop the nightly re-verify.
+
+### `resynthesizeGreeting()`
+
+```ts
+resynthesizeGreeting(version: number): Promise<void>
+```
+
+Called automatically from `finalizeEdit()` after every successful PATCH: synthesizes `GREETING_TEXT` with the new `pronunciation_dict_id`, stores `lastGreetingHash` / `lastGreetingVersion` in state, and logs `__greeting_resynthesized__`. A synthesis failure is logged (`__greeting_resynthesis_failed__`) and never fails the edit confirmation.
 
 ### `getGreetingAudio()`
 
@@ -213,9 +221,11 @@ Backing method for `GET /greeting-audio`.
 | `items` | `DictItem[]` | Mirror of the dictionary items (authoritative in demo mode). |
 | `pending` | `PendingEdit[]` | Queued edits keyed by `eventId`. |
 | `lastCanaryHash` | string \| null | SHA-256 hex of the previous canary audio. |
+| `lastGreetingHash` | string \| null | SHA-256 hex of the last post-PATCH greeting synthesis. |
+| `lastGreetingVersion` | number | Dictionary version active when the greeting was last re-synthesized. |
 | `degraded` | boolean | Set when the dictionary returns `404`. |
 | `lastAppliedVersion` | number | Version of the most recent successful PATCH. |
-| `demoConflictDone` | boolean | One-shot flag that injects the simulated 409 in demo mode. |
+| `demoConflictDone` | boolean | One-shot flag that fires the rival-editor fixture (the simulated 409) in demo mode. |
 
 ---
 
@@ -265,17 +275,16 @@ Used by `ensureDictionary()` in live mode to match an existing dictionary by nam
 |---|---|---|---|
 | `name` | string | no | Dictionary name. |
 | `items` | `DictItem[]` (1–100) | yes | **Full replacement** array — not a delta. The actor sends `[...current.items, newItem]`. |
-| `version` | number | yes | The version read at snapshot time. Sent so the server can reject stale writes. |
 
 Responses:
 
 | Status | Meaning | Actor behavior |
 |---|---|---|
-| `200` | Applied | `finalizeEdit()` → dequeue, `dict_log` insert, confirmation SMS `Added <term> — dictionary v<N>`. |
+| `200` | Applied | `finalizeEdit()` → dequeue, `dict_log` insert, confirmation SMS `Added <term> — dictionary v<N>`, greeting re-synthesis (`__greeting_resynthesized__`). |
 | `409` | Concurrent modification (error code `90200`) | Re-fetch, re-apply, retry (max 3). |
 | other | Failure | Reply `Could not update dictionary: <error>`. |
 
-> There is **no** `If-Match` / `ETag` header on this endpoint. Locking is server-side and keyed on the `version` field; the retry loop is re-fetch + re-apply.
+> There is **no** `If-Match` / `ETag` header and **no** version field in the request body on this endpoint. Locking is server-side: a write whose base was modified concurrently receives `409` with code `90200`; the retry loop is re-fetch + re-apply.
 
 ```bash
 curl -X PATCH https://api.telnyx.com/v2/pronunciation_dicts/<dict_id> \
@@ -283,7 +292,6 @@ curl -X PATCH https://api.telnyx.com/v2/pronunciation_dicts/<dict_id> \
   -H "content-type: application/json" \
   -d '{
     "name": "Fluency Lab — riverbentalclinic",
-    "version": 1,
     "items": [
       { "text": "Dr. Ng", "type": "phoneme", "phoneme": "dɹ.ɛŋ", "alphabet": "ipa" },
       { "text": "Novocaine", "type": "alias", "alias": "NO-voh-kayn" }
@@ -334,7 +342,7 @@ One row per **newly applied** item per successful PATCH — never the full array
 |---|---|
 | `alias` | Staff edit applied as an alias item |
 | `phoneme` | Staff edit applied as an IPA phoneme item |
-| `system` | Canary (`__canary_match__` / `__canary_drift__`) or deletion note (`__dictionary_deleted__`) |
+| `system` | Greeting re-synthesis (`__greeting_resynthesized__` / `__greeting_resynthesis_failed__`), canary (`__canary_match__` / `__canary_drift__`, `__canary_state_confirmed__` / `__canary_state_mismatch__`), or deletion note (`__dictionary_deleted__`) |
 
 ---
 

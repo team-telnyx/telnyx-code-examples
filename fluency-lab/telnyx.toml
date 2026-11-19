@@ -14,6 +14,10 @@ name = "TELNYX_API_KEY"
 binding = "TELNYX_PUBLIC_KEY"
 name = "TELNYX_PUBLIC_KEY"
 
+[[secrets]]
+binding = "AUDIO_ACCESS_TOKEN"
+name = "AUDIO_ACCESS_TOKEN"
+
 [env_vars]
 VOICE_ID = "Telnyx.Ultra.002622d8-19d0-4567-a16a-f99c7397c062"
 GREETING_TEXT = "Thank you for calling Riverbental Clinic. Today's flu clinic is open until 6 PM. We can help with Novocaine and Dr. Ng."

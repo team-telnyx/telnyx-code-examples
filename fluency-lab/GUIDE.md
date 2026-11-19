@@ -150,7 +150,7 @@ That's the only webhook this sample needs. There is no Call Control webhook, and
 | --- | --- | --- |
 | `createDictionary()` | returns `{ id: "demo-Fluency Lab — <clinicId>", version: 1, items }` | `POST /v2/pronunciation_dicts` |
 | `fetchDictionary()` | returns the dictionary reconstructed from actor state | `GET /v2/pronunciation_dicts/{id}` |
-| `patchDictionary()` | mutates state, bumps `version`, and simulates one `409` when more than one edit is queued | `PATCH /v2/pronunciation_dicts/{id}` with `{ name, items, version }` |
+| `patchDictionary()` | runs the one-shot rival-editor fixture (applies `Zyrtec`, bumps `version`, returns `409`/`90200` once), then applies edits normally | `PATCH /v2/pronunciation_dicts/{id}` with `{ name, items }` |
 | `synthesize()` | returns a short silent MP3 (`silentMp3()`) | `POST /v2/text-to-speech/speech` |
 | `reply()` | logs `[DEMO] SMS -> +1***45: <text>` with the phone masked | `POST /v2/messages` |
 
@@ -215,6 +215,8 @@ interface DictState {
   items: DictItem[];
   pending: PendingEdit[];
   lastCanaryHash: string | null;
+  lastGreetingHash: string | null;
+  lastGreetingVersion: number;
   degraded: boolean;
   lastAppliedVersion: number;
   demoConflictDone: boolean;
@@ -289,13 +291,11 @@ reply("Dictionary update failed after 3 attempts.")
 
 Two things make this correct:
 
-**The PATCH sends a full replacement `items` array plus the `version` it read.** Telnyx's optimistic locking is server-side — there is no `If-Match` / `ETag` header. A concurrent PATCH bumps the dictionary version, so a stale write arrives with an old `version` and the server replies `409` with error code `90200` ("Dictionary was modified concurrently, please retry"). The loop's response is to re-fetch with `GET /v2/pronunciation_dicts/{id}`, re-apply the item on the fresh array, and retry.
+**The PATCH sends a full replacement `items` array — `{ name, items }`.** Telnyx's optimistic locking is server-side — there is no `If-Match` / `ETag` header, and no version field in the request body. A concurrent PATCH bumps the dictionary version, so a write whose base was modified arrives stale and the server replies `409` with error code `90200` ("Dictionary was modified concurrently, please retry"). The loop's response is to re-fetch with `GET /v2/pronunciation_dicts/{id}`, re-apply the item on the fresh array, and retry.
 
 **Dedupe by `text` on every attempt.** If the concurrent editor happened to add the same term, the loop's `current.items.some(...)` check short-circuits to `finalizeEdit()` instead of appending a duplicate. The final dictionary contains both items exactly once.
 
-> **Assumption noted in the code:** the PATCH body includes `version` so the server can reject stale writes. If the live API ignores the field, the retry loop still works — it just won't observe a `409`.
-
-In demo mode, `patchDictionary()` simulates the race: when more than one edit is queued and `demoConflictDone` is still `false`, it bumps `state.version` and returns a synthetic `409`. The next attempt re-reads the bumped version, re-applies, and succeeds. The `demoConflictDone` flag makes the simulation one-shot so the demo doesn't loop forever.
+In demo mode, `patchDictionary()` simulates the race with a one-shot **rival editor**: on the first PATCH, before the actor's write lands, the fixture applies `Zyrtec` (alias `ZEER-teck`) on top of the last-synced dictionary, bumps `state.version`, and returns a synthetic `409` / `90200` — exactly what the server would reply to a stale write. The next attempt re-reads the bumped version (now containing Zyrtec), re-applies the staff item, and succeeds. The `demoConflictDone` flag makes the rival editor one-shot so later edits apply straight through.
 
 ### 7. finalizeEdit and the dict_log
 
@@ -370,9 +370,20 @@ The stable id `verify:<clinicId>` means re-arming replaces the existing timer ra
 5. compare against `state.lastCanaryHash`,
 6. store the new hash and the dictionary version in state,
 7. log `__canary_match__` or `__canary_drift__` with the version used,
-8. re-arm.
+8. confirm the version from durable state: `lastAppliedVersion === live version` logs `__canary_state_confirmed__`, a divergence logs `__canary_state_mismatch__`,
+9. re-arm — in a `finally`, so a failed synthesis or a transient error can never stop the nightly re-verify.
 
-**Resume proof.** If the pod is killed right after a PATCH, the alarm fires on the next wake (at-least-once delivery). The handler reads `dictId` and `version` from durable actor state — not from a rebuilt context — synthesizes the canary, and logs the version that's actually live. That's the acceptance criterion: the canary confirms v2 from state, not from memory.
+**Resume proof.** If the pod is killed right after a PATCH, the alarm fires on the next wake (at-least-once delivery). The handler reads `dictId` and `lastAppliedVersion` from durable actor state — not from a rebuilt context — synthesizes the canary, and compares the live version against the one held in state. A match writes `__canary_state_confirmed__`; query it with:
+
+```sql
+SELECT * FROM dict_log WHERE item_text = '__canary_state_confirmed__' ORDER BY rowid DESC LIMIT 1;
+```
+
+That's the acceptance criterion: the canary confirms v3 from state, not from memory. Because the re-arm lives in `finally`, the proof keeps running every night even when individual passes fail.
+
+### Greeting re-synthesis after an edit
+
+`finalizeEdit()` calls `resynthesizeGreeting(version)` right after logging the applied item: it synthesizes `GREETING_TEXT` with the new `pronunciation_dict_id`, stores the audio hash (`lastGreetingHash`) and the dict version (`lastGreetingVersion`) in state, and logs `__greeting_resynthesized__`. The front desk replays `GET /greeting-audio` and hears the fix; in demo mode the "audio" is the bundled silent MP3 fixture (the audible proof needs `DEMO_MODE=false` with a real key). A synthesis failure never fails the edit confirmation — it is logged as `__greeting_resynthesis_failed__` and the nightly canary re-verifies.
 
 ### 10. When the dictionary disappears
 

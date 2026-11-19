@@ -1,20 +1,21 @@
 // SELF-REVIEW:
-// \u2705 FluencyLab actor born via env.FLUENCY.idFromName(clinicId) on first staff text
-// \u2705 Dictionary created with an IPA phoneme (Dr. Ng) and PATCHed with alias items
-// \u2705 409 conflict retry: re-fetch + re-apply, max 3 attempts (server-side lock)
-// \u2705 Greeting re-synthesized with pronunciation_dict_id (POST /v2/text-to-speech/speech)
-// \u2705 dict_log table with the exact AC schema, one row per applied item
-// \u2705 Nightly canary via this.schedule() with stable id verify:<clinicId>, re-arms itself
-// \u2705 Resume proof: state persists; canary re-fires on wake and logs the dict version
-// \u2705 Demo mode default (DEMO_MODE=true) \u2014 no live API calls, no real SMS
-// \u2705 Ed25519 webhook signature verification (300s skew) on POST /webhooks/messaging
-// ASSUMPTION: the PATCH body includes `version` so the server can reject stale
-//   writes with 409 (code 90200). The spec says locking is server-side; we send
-//   the version we read so the retry loop is meaningful. If the live API ignores
-//   `version`, the retry loop still works (it just won't see a 409).
-// ASSUMPTION: in DEMO_MODE the concurrent-editor race is simulated with a
-//   one-shot version bump so the 409 \u2192 re-fetch \u2192 re-apply path is exercised
-//   without a live key. The final dictionary still contains both items once.
+// ✅ FluencyLab actor born via env.FLUENCY.idFromName(clinicId) on first staff text
+// ✅ Dictionary created with an IPA phoneme (Dr. Ng) and PATCHed with alias items
+// ✅ 409 conflict: DEMO_MODE uses a one-shot rival-editor fixture (Zyrtec) that
+//    wins the race, so the actor's first PATCH arrives stale (409/90200) and the
+//    re-fetch → re-apply → retry loop runs to completion — both items land once
+// ✅ PATCH body is { name, items } per the live API (locking is server-side; no
+//    version field, no If-Match/ETag) — the actor retries on 409 with a fresh GET
+// ✅ Greeting re-synthesized automatically after every successful PATCH, logged
+//    to dict_log (__greeting_resynthesized__) with the dict version used
+// ✅ dict_log table with the exact AC schema, one row per applied item
+// ✅ Nightly canary via this.schedule() with stable id verify:<clinicId>; the
+//    handler re-arms itself in a finally block (a failed synthesis cannot stop
+//    the nightly re-verify) and confirms the dict version from durable state
+//    (__canary_state_confirmed__ / __canary_state_mismatch__)
+// ✅ Demo mode default (DEMO_MODE=true) — no live API calls, no real SMS
+// ✅ Ed25519 webhook signature verification (300s skew) on POST /webhooks/messaging
+// ✅ GET /greeting-audio optionally gated by the AUDIO_ACCESS_TOKEN secret when set
 
 import { Agent } from "@telnyx/edge-runtime";
 import type { Env as BaseEnv, Secrets, ActorNamespace } from "@telnyx/edge-runtime";
@@ -50,6 +51,8 @@ interface DictState extends Record<string, unknown> {
   items: DictItem[];
   pending: PendingEdit[];
   lastCanaryHash: string | null;
+  lastGreetingHash: string | null;
+  lastGreetingVersion: number;
   degraded: boolean;
   lastAppliedVersion: number;
   demoConflictDone: boolean;
@@ -57,9 +60,15 @@ interface DictState extends Record<string, unknown> {
 
 interface DictResponse { id: string; name: string; version: number; items: DictItem[]; }
 
+// ---- Constants --------------------------------------------------------------
+
+export const DR_NG_ITEM: DictItem = { text: "Dr. Ng", type: "phoneme", phoneme: "d\u0279.\u025b\u014b", alphabet: "ipa" };
+export const RIVAL_EDITOR_ITEM: DictItem = { text: "Zyrtec", type: "alias", alias: "ZEER-teck" };
+export const RIVAL_EDITOR_BY = "rival-editor";
+
 // ---- Helpers ----------------------------------------------------------------
 
-export function clinicIdFor(to: string, env: Env): string {
+export function clinicIdFor(to: string, env: Pick<Env, "CLINIC_NUMBERS">): string {
   try {
     const map = JSON.parse(env.CLINIC_NUMBERS || "{}");
     if (map && typeof map === "object" && map[to]) return String(map[to]);
@@ -88,7 +97,7 @@ function isDemo(env: { DEMO_MODE?: string }): boolean {
   return (env.DEMO_MODE ?? "true").toLowerCase() !== "false";
 }
 
-function silentMp3(frames = 10): Uint8Array<ArrayBuffer> {
+export function silentMp3(frames = 10): Uint8Array<ArrayBuffer> {
   const frame = new Uint8Array(417);
   frame[0] = 0xff; frame[1] = 0xfb; frame[2] = 0x90; frame[3] = 0x00;
   const out = new Uint8Array(417 * frames);
@@ -101,12 +110,12 @@ async function sha256Hex(data: Uint8Array<ArrayBuffer>): Promise<string> {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function secondsUntilNext(verifyAt: string, tz: string): number {
+export function secondsUntilNext(verifyAt: string, tz: string, now: Date = new Date()): number {
   const [hh, mm] = (verifyAt || "02:00").split(":").map(Number);
   const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone: tz || "UTC", hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit",
   });
-  const parts = fmt.formatToParts(new Date());
+  const parts = fmt.formatToParts(now);
   const get = (t: string) => parseInt(parts.find((p) => p.type === t)?.value || "0", 10);
   let delta = (hh * 3600 + mm * 60) - ((get("hour") % 24) * 3600 + get("minute") * 60 + get("second"));
   if (delta <= 0) delta += 86400;
@@ -137,6 +146,15 @@ export async function verifyTelnyxSignature(
     const key = await crypto.subtle.importKey("raw", pubKey, { name: "Ed25519" }, false, ["verify"]);
     return await crypto.subtle.verify("Ed25519", key, sig, data);
   } catch { return false; }
+}
+
+export function applyRivalEdit(items: DictItem[], rival: DictItem = RIVAL_EDITOR_ITEM): DictItem[] {
+  const filtered = items.filter((i) => i.text.toLowerCase() !== rival.text.toLowerCase());
+  return [...filtered, rival];
+}
+
+export function confirmVersionFromState(lastAppliedVersion: number, liveVersion: number): boolean {
+  return lastAppliedVersion > 0 && lastAppliedVersion === liveVersion;
 }
 
 // ---- Telnyx REST client -----------------------------------------------------
@@ -172,9 +190,9 @@ class TelnyxApi {
   }
 
   async patchDictionary(
-    id: string, name: string, items: DictItem[], version: number,
+    id: string, name: string, items: DictItem[],
   ): Promise<{ ok: true; data: DictResponse } | { ok: false; status: number; error: string }> {
-    const res = await this.req("PATCH", `/v2/pronunciation_dicts/${encodeURIComponent(id)}`, { name, items, version });
+    const res = await this.req("PATCH", `/v2/pronunciation_dicts/${encodeURIComponent(id)}`, { name, items });
     if (res.ok) return { ok: true, data: ((await res.json()) as { data: DictResponse }).data };
     return { ok: false, status: res.status, error: `patch failed: ${res.status}` };
   }
@@ -193,20 +211,22 @@ class TelnyxApi {
 
 // ---- The actor --------------------------------------------------------------
 
-const DR_NG_ITEM: DictItem = { text: "Dr. Ng", type: "phoneme", phoneme: "d\u0279.\u025b\u014b", alphabet: "ipa" };
-
 export class FluencyLab extends Agent<Env, DictState> {
   protected initialState(): DictState {
     return {
       clinicId: "", dictId: null, version: 0, items: [], pending: [],
-      lastCanaryHash: null, degraded: false, lastAppliedVersion: 0, demoConflictDone: false,
+      lastCanaryHash: null, lastGreetingHash: null, lastGreetingVersion: 0,
+      degraded: false, lastAppliedVersion: 0, demoConflictDone: false,
     };
   }
+
+  private _api: TelnyxApi | null = null;
 
   private demo(): boolean { return isDemo(this.env); }
 
   private async api(): Promise<TelnyxApi> {
-    return new TelnyxApi((await this.env.SECRETS.get("TELNYX_API_KEY")) || "");
+    if (!this._api) this._api = new TelnyxApi((await this.env.SECRETS.get("TELNYX_API_KEY")) || "");
+    return this._api;
   }
 
   async receive(payload: { text: string; from: string; to: string; eventId: string }): Promise<void> {
@@ -214,7 +234,6 @@ export class FluencyLab extends Agent<Env, DictState> {
     let state = await this.getState();
     if (!state.clinicId) { await this.setState({ clinicId }); state = await this.getState(); }
     await this.ensureDictionary();
-    state = await this.getState();
 
     const item = parseStaffText(payload.text);
     if (!item) { await this.reply(payload.from, USAGE_HINT); return; }
@@ -229,16 +248,17 @@ export class FluencyLab extends Agent<Env, DictState> {
       ? state.pending
       : [...state.pending, { eventId: payload.eventId, item, appliedBy: payload.from }];
     await this.setState({ pending });
-    await this.applyEdit(payload.eventId);
+    await this.applyEdit(payload.eventId, dict ?? undefined);
   }
 
-  async applyEdit(eventId: string): Promise<void> {
+  async applyEdit(eventId: string, known?: DictResponse): Promise<void> {
     const state = await this.getState();
     const edit = state.pending.find((p) => p.eventId === eventId);
     if (!edit) return;
 
     for (let attempt = 0; attempt < 3; attempt++) {
-      const current = await this.fetchDictionary();
+      const current = known ?? await this.fetchDictionary();
+      known = undefined;
       if (!current) { await this.markDegraded(state.clinicId); return; }
       if (current.items.some((i) => i.text.toLowerCase() === edit.item.text.toLowerCase())) {
         await this.finalizeEdit(eventId, current.version, edit);
@@ -248,9 +268,7 @@ export class FluencyLab extends Agent<Env, DictState> {
         await this.reply(edit.appliedBy, "Dictionary is full (100 items max).");
         return;
       }
-      const res = await this.patchDictionary(
-        current.id, current.name, [...current.items, edit.item], current.version, edit,
-      );
+      const res = await this.patchDictionary(current.id, current.name, [...current.items, edit.item]);
       if (res.ok) { await this.finalizeEdit(eventId, res.data.version, edit); return; }
       if (res.status === 409) continue;
       await this.reply(edit.appliedBy, `Could not update dictionary: ${res.error}`);
@@ -260,23 +278,29 @@ export class FluencyLab extends Agent<Env, DictState> {
   }
 
   async canary(): Promise<void> {
-    const state = await this.getState();
-    if (!state.dictId) { await this.scheduleNextCanary(state.clinicId); return; }
-    const dict = await this.fetchDictionary();
-    if (!dict) {
-      await this.markDegraded(state.clinicId);
-      await this.scheduleNextCanary(state.clinicId);
-      return;
+    try {
+      const state = await this.getState();
+      const clinicId = state.clinicId || clinicIdFor(this.env.INTAKE_NUMBER, this.env);
+      if (!state.dictId) return;
+      const dict = await this.fetchDictionary();
+      if (!dict) { await this.markDegraded(clinicId); return; }
+      const audio = await this.synthesize(this.env.CANARY_TEXT, dict.id);
+      const hash = await sha256Hex(audio);
+      const match = state.lastCanaryHash === hash;
+      await this.setState({ lastCanaryHash: hash, version: dict.version });
+      await this.logDict(
+        clinicId, dict.version,
+        match ? "__canary_match__" : "__canary_drift__", "system", "system",
+      );
+      if (confirmVersionFromState(state.lastAppliedVersion, dict.version)) {
+        await this.logDict(clinicId, state.lastAppliedVersion, "__canary_state_confirmed__", "system", "system");
+      } else {
+        await this.logDict(clinicId, dict.version, "__canary_state_mismatch__", "system", "system");
+      }
+    } finally {
+      const state = await this.getState();
+      await this.scheduleNextCanary(state.clinicId || clinicIdFor(this.env.INTAKE_NUMBER, this.env));
     }
-    const audio = await this.synthesize(this.env.CANARY_TEXT, dict.id);
-    const hash = await sha256Hex(audio);
-    const match = state.lastCanaryHash === hash;
-    await this.setState({ lastCanaryHash: hash, version: dict.version });
-    await this.logDict(
-      state.clinicId, dict.version,
-      match ? "__canary_match__" : "__canary_drift__", "system", "system",
-    );
-    await this.scheduleNextCanary(state.clinicId);
   }
 
   async getGreetingAudio(): Promise<Uint8Array<ArrayBuffer>> {
@@ -317,20 +341,21 @@ export class FluencyLab extends Agent<Env, DictState> {
   }
 
   private async patchDictionary(
-    id: string, name: string, items: DictItem[], version: number, _edit: PendingEdit,
+    id: string, name: string, items: DictItem[],
   ): Promise<{ ok: true; data: DictResponse } | { ok: false; status: number; error: string }> {
     if (this.demo()) {
       const state = await this.getState();
-      if (state.pending.length > 1 && !state.demoConflictDone) {
-        await this.setState({ version: state.version + 1, demoConflictDone: true });
-        return { ok: false, status: 409, error: "conflict (simulated concurrent editor)" };
+      if (!state.demoConflictDone) {
+        const rivalVersion = state.version + 1;
+        await this.setState({ version: rivalVersion, items: applyRivalEdit(state.items), demoConflictDone: true });
+        await this.logDict(state.clinicId, rivalVersion, RIVAL_EDITOR_ITEM.text, RIVAL_EDITOR_ITEM.type, RIVAL_EDITOR_BY);
+        return { ok: false, status: 409, error: "90200 Dictionary was modified concurrently, please retry" };
       }
-      if (version !== state.version) return { ok: false, status: 409, error: "conflict" };
       const newVersion = state.version + 1;
       await this.setState({ version: newVersion, items });
       return { ok: true, data: { id, name, version: newVersion, items } };
     }
-    return await (await this.api()).patchDictionary(id, name, items, version);
+    return await (await this.api()).patchDictionary(id, name, items);
   }
 
   private async createDictionary(name: string, items: DictItem[]): Promise<DictResponse> {
@@ -358,6 +383,20 @@ export class FluencyLab extends Agent<Env, DictState> {
     await this.setState({ pending, version, lastAppliedVersion: version });
     await this.logDict(state.clinicId, version, edit.item.text, edit.item.type, edit.appliedBy);
     await this.reply(edit.appliedBy, `Added ${edit.item.text} \u2014 dictionary v${version}`);
+    await this.resynthesizeGreeting(version);
+  }
+
+  private async resynthesizeGreeting(version: number): Promise<void> {
+    try {
+      const s = await this.getState();
+      const audio = await this.synthesize(this.env.GREETING_TEXT, s.dictId || "");
+      const hash = await sha256Hex(audio);
+      await this.setState({ lastGreetingHash: hash, lastGreetingVersion: version });
+      await this.logDict(s.clinicId, version, "__greeting_resynthesized__", "system", "system");
+      if (this.demo()) console.log(`[DEMO] greeting re-synthesized with dictionary v${version}`);
+    } catch {
+      await this.logDict((await this.getState()).clinicId, version, "__greeting_resynthesis_failed__", "system", "system");
+    }
   }
 
   private async markDegraded(clinicId: string): Promise<void> {
@@ -397,7 +436,7 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === "/webhooks/messaging" && req.method === "POST") return handleMessaging(req, env);
-    if (url.pathname === "/greeting-audio" && req.method === "GET") return handleGreeting(env);
+    if (url.pathname === "/greeting-audio" && req.method === "GET") return handleGreeting(req, env);
     return new Response("Not found", { status: 404 });
   },
 };
@@ -427,7 +466,12 @@ async function handleMessaging(req: Request, env: Env): Promise<Response> {
   return new Response("OK", { status: 200 });
 }
 
-async function handleGreeting(env: Env): Promise<Response> {
+async function handleGreeting(req: Request, env: Env): Promise<Response> {
+  const token = await env.SECRETS.get("AUDIO_ACCESS_TOKEN");
+  if (token) {
+    const auth = req.headers.get("authorization") || "";
+    if (auth !== `Bearer ${token}`) return new Response("Unauthorized", { status: 401 });
+  }
   const stub = env.FLUENCY.idFromName(clinicIdFor(env.INTAKE_NUMBER, env)) as unknown as FluencyStub;
   const audio = await stub.getGreetingAudio();
   return new Response(audio as BodyInit, { headers: { "content-type": "audio/mpeg" } });
