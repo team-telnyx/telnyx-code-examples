@@ -1,0 +1,11 @@
+node_modules/
+.telnyx/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+__pycache__/
+.git-upstream/
+

@@ -1,0 +1,4 @@
+[edge_compute]
+func_name = "pipecat-edge"
+
+# Secrets: telnyx-edge secrets add TELNYX_API_KEY <your-api-key>

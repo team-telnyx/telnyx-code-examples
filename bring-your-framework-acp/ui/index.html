@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bring Your Framework · ACP Demo</title>
+    <style>
+      :root { color-scheme: dark; --bg:#080a0d; --panel:#11151a; --panel2:#171d24; --line:#29323c; --muted:#8d9aa7; --text:#f4f7fa; --accent:#63e6be; --blue:#8cc8ff; --orange:#ffb86b; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:radial-gradient(circle at 75% -10%,#1e3540 0,transparent 35%),var(--bg); color:var(--text); font:16px/1.5 Inter,ui-sans-serif,system-ui,sans-serif; }
+      main { width:min(1180px,calc(100% - 40px)); margin:0 auto; padding:34px 0 60px; }
+      .eyebrow { color:var(--accent); font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+      h1 { max-width:780px; font-size:clamp(38px,5.5vw,68px); line-height:1; letter-spacing:-.06em; margin:12px 0 14px; }
+      .lede { color:var(--muted); max-width:720px; font-size:18px; margin:0; }
+      .topbar { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; }
+      .runtime { border:1px solid var(--line); border-radius:999px; padding:9px 13px; color:var(--muted); white-space:nowrap; font-size:13px; }
+      .runtime b { color:var(--accent); }
+      .runtime em { color:var(--orange); font-style:normal; }
+      .cuts { display:flex; gap:8px; flex-wrap:wrap; margin-top:22px; }
+      .cut { border:1px solid var(--line); border-radius:9px; padding:8px 11px; color:var(--muted); background:#0e1217; font-size:13px; }
+      .cut.active { color:var(--text); border-color:#3d756f; background:#12302f; }
+      .cut strong { color:var(--accent); }
+      .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:30px; }
+      .panel { background:linear-gradient(160deg,#151b21,#0f1318); border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 20px 60px #0005; }
+      .panel h2 { margin:0; font-size:17px; letter-spacing:-.02em; }
+      .panel-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+      .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.1em; }
+      .messages { height:310px; overflow:auto; display:flex; flex-direction:column; gap:10px; padding:4px 2px; }
+      .message { padding:12px 14px; border-radius:12px; max-width:84%; white-space:pre-wrap; border:1px solid transparent; }
+      .message.user { align-self:flex-end; background:#153c46; border-color:#24616d; }
+      .message.assistant { align-self:flex-start; background:#202830; border-color:#303d48; }
+      .empty { color:var(--muted); margin:auto; text-align:center; }
+      form { display:flex; gap:8px; margin-top:14px; }
+      input { flex:1; min-width:0; padding:12px 13px; color:var(--text); background:#0b0e12; border:1px solid var(--line); border-radius:9px; font:inherit; }
+      button { cursor:pointer; border:0; border-radius:10px; padding:0 18px; background:var(--accent); color:#071008; font-weight:800; font:inherit; }
+      button:disabled { cursor:wait; opacity:.5; }
+      .stack { display:flex; flex-direction:column; gap:8px; }
+      .step { display:flex; align-items:center; gap:11px; border:1px solid var(--line); border-radius:10px; padding:11px; background:#0d1115; }
+      .step .dot { width:9px; height:9px; border-radius:50%; background:#4e5964; flex:0 0 auto; }
+      .step.done .dot { background:var(--accent); box-shadow:0 0 14px var(--accent); }
+      .step small { display:block; color:var(--muted); margin-top:1px; font-size:12px; }
+      .trace { margin-top:16px; border-top:1px solid var(--line); padding-top:14px; }
+      .trace-output { white-space:pre-wrap; color:var(--text); font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; margin:8px 0 14px; min-height:38px; }
+      .event { display:flex; justify-content:space-between; gap:12px; color:var(--muted); font:12px ui-monospace,SFMono-Regular,Menlo,monospace; padding:4px 0; }
+      .event b { color:var(--orange); font-weight:600; }
+      .status { color:var(--muted); font-size:14px; margin-top:16px; min-height:22px; }
+      .status.ok { color:var(--accent); }
+      .status.error { color:#ff8f8f; }
+      .meta { display:flex; justify-content:space-between; gap:12px; color:var(--muted); font-size:13px; margin-top:20px; }
+      code { color:var(--blue); }
+      @media (max-width:800px) { main { width:min(100% - 24px,600px); padding-top:28px; } .topbar { align-items:flex-start; flex-direction:column; } .grid { grid-template-columns:1fr; } form { flex-direction:column; } button { padding:13px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="topbar"><div><div class="eyebrow">Telnyx · Agent Control Plane</div><h1>You already have a loop. Keep it.</h1><p class="lede">A recording-ready control room for the LangGraph cut. Send a real request to the deployed agent and make the framework boundary visible.</p></div><div class="runtime"><em>LOCAL VIEW</em> · <b>LIVE AGENT</b> · Telnyx Edge via ACP</div></div>
+
+      <div class="cuts"><div class="cut"><strong>01</strong> Pipecat · Telnyx Edge · voice</div><div class="cut active"><strong>02</strong> LangGraph · ACP · text</div><div class="cut">same order scenario · ORD-10042</div></div>
+
+      <div class="grid">
+        <section class="panel">
+          <div class="panel-head"><h2>Live conversation</h2><span class="label">LangGraph / ACP</span></div>
+          <div id="messages" class="messages"><div class="empty">Ask about the demo order to start the loop.</div></div>
+          <form id="form">
+            <input id="prompt" value="Where is my order ORD-10042?" aria-label="Message" />
+            <button id="send" type="submit">Send to ACP</button>
+          </form>
+          <div id="status" class="status">Ready · deployed ACP endpoint</div>
+        </section>
+
+        <aside class="panel">
+          <div class="panel-head"><h2>What just ran</h2><span class="label">Same loop, new runtime</span></div>
+          <div class="stack">
+            <div class="step" data-step="invocation"><span class="dot"></span><div><b>ACP invocation</b><small>durable conversation + run ID</small></div></div>
+            <div class="step" data-step="model_request"><span class="dot"></span><div><b>LangGraph ReAct</b><small>existing framework loop calls the model</small></div></div>
+            <div class="step" data-step="tool_call"><span class="dot"></span><div><b>lookup_order</b><small>visible framework tool</small></div></div>
+            <div class="step" data-step="tool_result"><span class="dot"></span><div><b>Tool result</b><small>deterministic order data</small></div></div>
+            <div class="step" data-step="assistant_response"><span class="dot"></span><div><b>Assistant reply</b><small>persisted in ACP messages</small></div></div>
+          </div>
+          <div class="trace"><div class="label">ACP trace</div><pre id="acp-trace" class="trace-output">Run the prompt to populate the native trace.</pre><div class="label">Framework event fallback</div><div id="events"><div class="status">Run the prompt to populate the event trail.</div></div></div>
+          <div class="meta"><span>Trace note</span><span>native steps first · logs as fallback</span></div>
+        </aside>
+      </div>
+    </main>
+    <script>
+      const form = document.querySelector('#form');
+      const input = document.querySelector('#prompt');
+      const send = document.querySelector('#send');
+      const messages = document.querySelector('#messages');
+      const status = document.querySelector('#status');
+      const events = document.querySelector('#events');
+      const acpTrace = document.querySelector('#acp-trace');
+      const steps = [...document.querySelectorAll('[data-step]')];
+      function add(role, text) {
+        messages.querySelector('.empty')?.remove();
+        const el = document.createElement('div');
+        el.className = `message ${role}`;
+        el.textContent = text;
+        messages.appendChild(el);
+        messages.scrollTop = messages.scrollHeight;
+      }
+      function showEvents(items = [], trace = '') {
+        steps.forEach((step) => step.classList.remove('done'));
+        const names = new Set(items.map((item) => item.framework_event));
+        if (items.length) document.querySelector('[data-step="invocation"]').classList.add('done');
+        items.forEach((item) => document.querySelector(`[data-step="${item.framework_event}"]`)?.classList.add('done'));
+        events.innerHTML = items.length ? items.map((item) => `<div class="event"><b>${item.framework_event}</b><span>${item.tool || item.model || item.reply || ''}</span></div>`).join('') : '<div class="status">No framework events returned.</div>';
+        acpTrace.textContent = trace || 'No native ACP trace returned yet. Deploy a trace-enabled revision and run the prompt again.';
+      }
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        add('user', text); input.value = ''; send.disabled = true;
+        status.className = 'status'; status.textContent = 'Sending through ACP…';
+        try {
+          const response = await fetch('/api/invoke', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({ text }) });
+          const raw = await response.text();
+          let data;
+          try { data = raw ? JSON.parse(raw) : {}; } catch { throw new Error(raw || `The local proxy returned an invalid response (${response.status}).`); }
+          if (!response.ok) throw new Error(data.error || 'Request failed');
+          add('assistant', data.reply);
+          showEvents(data.events, data.trace);
+          status.className = 'status ok'; status.textContent = `Completed · ${data.runId}`;
+        } catch (error) {
+          status.className = 'status error'; status.textContent = error.message;
+          add('assistant', 'The local UI could not complete the ACP request. Check the terminal running the server.');
+        } finally { send.disabled = false; }
+      });
+    </script>
+  </body>
+</html>
