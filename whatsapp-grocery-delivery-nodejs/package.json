@@ -1,0 +1,25 @@
+{
+  "name": "whatsapp-grocery-delivery-nodejs",
+  "version": "1.0.0",
+  "description": "AI-powered grocery delivery via WhatsApp — Node.js/Express for Telnyx Edge Compute",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "keywords": [
+    "telnyx",
+    "whatsapp",
+    "grocery",
+    "delivery",
+    "ai",
+    "edge-compute"
+  ],
+  "license": "MIT"
+}
