@@ -9,7 +9,7 @@ type = "DispatchLine"
 
 # shift_log lives in the SQL primitive (parameterized queries only).
 [storage.sqldb.SHIFT_DB]
-id = "<sqldb-namespace-uuid>"
+id = "7b9d0f80-394b-4279-90eb-0fc31297d79a"
 
 [[secrets]]
 binding = "TELNYX_API_KEY"
@@ -20,5 +20,9 @@ name = "TELNYX_API_KEY"
 binding = "TELNYX_PUBLIC_KEY"
 name = "TELNYX_PUBLIC_KEY"
 
+[edge_compute]
+func_id = "ca71cdee-6e84-400d-a444-08d12c797869"
+func_name = "dispatch-line"
+
 [env_vars]
-DEMO_MODE = "true"
+DEMO_MODE = "false"

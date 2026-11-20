@@ -197,7 +197,21 @@ function base64ToBytes(value: string) {
  * webhook is rejected so a captured one cannot be replayed later.
  */
 async function verifySignature(raw: string, headers: Headers, env: Env): Promise<boolean> {
-  const publicKey = await env.SECRETS.get("TELNYX_PUBLIC_KEY");
+  let publicKey: string | undefined;
+  try {
+    publicKey = await env.SECRETS.get("TELNYX_PUBLIC_KEY");
+  } catch (error) {
+    // Declared but not provisioned (or a secrets backend hiccup): treat
+    // exactly like an unset key — demo mode skips verification with a
+    // warning, live mode rejects so an unprovisioned deployment can never
+    // accept unsigned webhooks.
+    if (!demoMode(env)) {
+      console.error("[dispatch-line] TELNYX_PUBLIC_KEY secret unavailable — rejecting in live mode");
+      return false;
+    }
+    console.warn("[dispatch-line] TELNYX_PUBLIC_KEY secret unavailable — skipping verification:",
+      error instanceof Error ? error.message : "unknown");
+  }
   if (!publicKey) {
     if (demoMode(env)) {
       console.warn("[dispatch-line][demo] TELNYX_PUBLIC_KEY unset — skipping signature verification");
@@ -510,8 +524,16 @@ async function handleWebhook(request: Request, env: Env): Promise<Response> {
   const type = event.data?.event_type ?? "";
 
   if (type === "call.initiated") {
-    const answer = await telnyxPost(env, `/calls/${encodeURIComponent(callId)}/actions/answer`, {});
+    // Inbound legs need the `answer` command; outbound legs are answered by
+    // the callee (Telnyx fires `call.answered` for those).
+    const answer =
+      payload.direction === "outgoing" ? "skipped" : await telnyxPost(env, `/calls/${encodeURIComponent(callId)}/actions/answer`, {});
     return json({ ok: true, answer, ...(await line.onCallStart(callId, shiftId)) });
+  }
+  if (type === "call.answered") {
+    // Outbound legs reach the actor here; also re-arms transcription for
+    // inbound legs whose first transcription_start raced the answer.
+    return json({ ok: true, ...(await line.onCallStart(callId, shiftId)) });
   }
   if (type === "call.transcription") {
     const segment = toSegment(payload, event.data?.id ?? "", shiftId);

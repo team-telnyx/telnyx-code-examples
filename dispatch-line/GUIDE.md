@@ -62,7 +62,7 @@ Everything that runs lives in `src/index.ts`. It has three layers:
 
 1. **Pure helpers** — job parsing, confirmation phrasing, keyword extraction, sequence derivation. No I/O, trivially testable.
 2. **`DispatchLine` actor** — the durable shift log. Owns state, SQL, and the Telnyx calls.
-3. **Fetch handler** — verifies webhooks, routes `call.initiated` / `call.transcription` / `call.hangup` into the actor, and exposes `GET /tally`.
+3. **Fetch handler** — verifies webhooks, routes `call.initiated` / `call.answered` / `call.transcription` / `call.hangup` into the actor, and exposes `GET /tally`.
 
 ---
 

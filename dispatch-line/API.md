@@ -38,7 +38,7 @@ signature, derives the shift id from `data.occurred_at`, resolves the
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `data.id` | string | no | Event id; hashed (FNV-1a) into the segment `seq` when no explicit sequence is present |
-| `data.event_type` | string | yes | `call.initiated`, `call.transcription`, `call.hangup`, or any other type (ignored) |
+| `data.event_type` | string | yes | `call.initiated`, `call.answered`, `call.transcription`, `call.hangup`, or any other type (ignored) |
 | `data.occurred_at` | string (ISO-8601) | no | Used to derive `shift-YYYY-MM-DD`; defaults to now |
 | `data.payload.call_control_id` | string | yes | The call leg id. Missing → `400 missing_call_control_id` |
 | `data.payload.transcript` | string | no | Transcript text (transcription events) |
@@ -113,10 +113,23 @@ job; the response then carries `"closed": true` alongside `"linked": true`.
 `stopped` is `"ok"`, `"demo"`, `"error:<status>"`, or `"skipped"` when the leg
 was already gone.
 
+**`call.answered` → 200**
+
+```json
+{
+  "ok": true,
+  "shiftId": "shift-2026-11-19",
+  "transcription": "ok"
+}
+```
+
+Re-arms `transcription_start` on the answered leg (outbound calls arrive here;
+inbound legs may too if the first start raced the answer).
+
 **Unhandled event type → 200**
 
 ```json
-{ "ok": true, "shiftId": "shift-2026-11-19", "ignored": "call.answered" }
+{ "ok": true, "shiftId": "shift-2026-11-19", "ignored": "call.price" }
 ```
 
 ### Status codes

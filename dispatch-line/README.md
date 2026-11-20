@@ -27,9 +27,9 @@ Because the log has to be written *while the truck is still rolling*, the sample
 | `POST` | `/v2/calls/{call_control_id}/actions/transcription_start` | Start live in-call transcription (`transcription_engine` + `transcription_engine_config`) |
 | `POST` | `/v2/calls/{call_control_id}/actions/transcription_stop` | End the transcript window early / on hangup |
 | `POST` | `/v2/calls/{call_control_id}/actions/speak` | Speak the confirmation line on the active leg |
-| `POST` (inbound) | `/webhooks/telnyx` | Telnyx webhook receiver — `call.initiated`, `call.transcription`, `call.hangup` |
+| `POST` (inbound) | `/webhooks/telnyx` | Telnyx webhook receiver — `call.initiated`, `call.answered`, `call.transcription`, `call.hangup` |
 
-Webhook event types consumed: `call.initiated`, `call.transcription`, `call.hangup`.
+Webhook event types consumed: `call.initiated`, `call.answered`, `call.transcription`, `call.hangup`.
 
 ## Architecture
 
@@ -154,7 +154,8 @@ Telnyx webhook receiver. Verifies the Ed25519 signature over `${telnyx-timestamp
 
 | Event type | Behavior |
 |------------|----------|
-| `call.initiated` | Answers the leg, calls `onCallStart(callId, shiftId)` → `transcription_start` |
+| `call.initiated` | Answers the leg (inbound only; outbound legs are answered by the callee), calls `onCallStart(callId, shiftId)` → `transcription_start` |
+| `call.answered` | Re-arms `transcription_start` on the answered leg (covers outbound calls and inbound races) |
 | `call.transcription` | Normalizes the segment, calls `onTranscription(segment)` → parse / file / link / speak |
 | `call.hangup` | Calls `onCallHangup(callId)` → `transcription_stop` (or `skipped`) + tally |
 
