@@ -3,6 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
+  "generated_at": "2026-11-20T06:16:58Z",
+  "example_count": 593,
   "generated_at": "2026-11-19T21:35:45Z",
   "example_count": 596,
   "examples": [
@@ -5353,6 +5355,13 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/phone-identity-voice-agent-nodejs"
     },
     {
+      "folder": "dispatch-line",
+      "title": "The Dispatch Line — a shift log that writes itself mid-call",
+      "description": "A durable per-shift actor that rides Telnyx in-call transcription, files job rows from live speech, and reads the confirmation back over the same leg before the call ends.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/dispatch-line"
       "folder": "fluency-lab",
       "title": "Fluency Lab — The Pronunciation Desk",
       "description": "A durable per-clinic actor that owns a Telnyx TTS pronunciation dictionary, applies staff-texted corrections exactly once under 409 races, and re-verifies nightly.",

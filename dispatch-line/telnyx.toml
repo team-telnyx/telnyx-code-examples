@@ -1,0 +1,31 @@
+name = "dispatch-line"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# One durable actor per shift on the dispatch line: env.DISPATCH.idFromName("shift-2026-11-19")
+[[actors]]
+binding = "DISPATCH"
+type = "DispatchLine"
+
+# shift_log lives in the SQL primitive (parameterized queries only).
+[storage.sqldb.SHIFT_DB]
+id = "7b9d0f80-394b-4279-90eb-0fc31297d79a"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+# Base64 Ed25519 public key from the Telnyx portal \u2014 used to verify webhooks.
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[edge_compute]
+func_id = "ca71cdee-6e84-400d-a444-08d12c797869"
+func_name = "dispatch-line"
+
+# NOTE: the Edge runtime does NOT inject [env_vars] for actor projects —
+# config must ship as [[secrets]] bindings (see GUIDE.md §Configuration).
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
