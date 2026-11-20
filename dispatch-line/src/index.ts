@@ -203,6 +203,19 @@ async function telnyxPost(env: Env, path: string, body: unknown): Promise<string
 }
 
 /**
+ * Speak a line over the leg; Telnyx queues consecutive speak commands for
+ * sequential playback.
+ */
+async function speakLine(env: Env, callId: string, payload: string): Promise<string> {
+  return telnyxPost(env, `/calls/${encodeURIComponent(callId)}/actions/speak`, {
+    payload,
+    payload_type: "text",
+    voice: DISPATCH_VOICE,
+    language: "en-US",
+  });
+}
+
+/**
  * One Telnyx AI Inference chat call; returns the assistant's message content or
  * null. In demo mode it returns null so the heuristic parser drives (no cost).
  */
@@ -249,9 +262,10 @@ async function extractJobWithLLM(env: Env, text: string): Promise<ParsedJob | nu
   const model = (await readConfig(env, "JOB_MODEL")) ?? DEFAULT_JOB_MODEL;
   const system =
     "You are a dispatcher's transcription classifier. Decide if the user's spoken words are a work order. " +
-    'If yes, reply with STRICT JSON only: {"job": "<concise job phrase>", "site": "<location or empty>"} — ' +
-    'e.g. {"job": "actuator swap", "site": "north yard door 3"}. If it is not a work order (greetings, ' +
-    'chit-chat, references to earlier jobs, completion cues), reply {"job": null}. No markdown, no prose.';
+    'If yes, reply with STRICT JSON only: {"job": "<the task in the user\'s words>", "site": "<the location the user said>"} — ' +
+    "never invent a site the user did not say; leave site empty (\"\") when none was mentioned. " +
+    'If it is not a work order (greetings, chit-chat, references to earlier jobs, completion cues like "done"), ' +
+    'reply {"job": null}. No markdown, no prose.';
   const raw = await telnyxAIChat(env, model, system, text.trim());
   if (!raw) return null;
   try {
@@ -355,12 +369,7 @@ export class DispatchLine extends Agent<Env, ShiftState> {
     });
     console.log(`[dispatch-line] leg ${callId} transcription armed${greet ? " (greeting queued)" : ""}`);
     if (greet) {
-      await telnyxPost(this.env, `/calls/${encodeURIComponent(callId)}/actions/speak`, {
-        payload: "Dispatch line. Go ahead with your job.",
-        payload_type: "text",
-        voice: DISPATCH_VOICE,
-        language: "en-US",
-      });
+      await speakLine(this.env, callId, "Dispatch line. Go ahead with your job.");
     }
     return { shiftId, transcription };
   }
@@ -416,12 +425,7 @@ export class DispatchLine extends Agent<Env, ShiftState> {
   @rpc({ description: "Read the logged job back over the same leg." })
   async confirmOverCall(callId: string, job: ParsedJob): Promise<{ line: string; status: string }> {
     const line = confirmationLine(job);
-    const status = await telnyxPost(this.env, `/calls/${encodeURIComponent(callId)}/actions/speak`, {
-      payload: line,
-      payload_type: "text",
-      voice: DISPATCH_VOICE,
-      language: "en-US",
-    });
+    const status = await speakLine(this.env, callId, line);
     return { line, status };
   }
 
@@ -468,6 +472,16 @@ export class DispatchLine extends Agent<Env, ShiftState> {
     };
     // Insert first: a replayed note must not re-close (or re-count) anything.
     if (!(await this.insertRow(row))) return null;
+    // Always acknowledge the note over the leg — the caller needs to hear
+    // that their words landed somewhere, not just see the tally change.
+    const site = match.site || "the site";
+    await speakLine(
+      this.env,
+      callId,
+      closes
+        ? `Marking the ${match.job_text} at ${site} done.`
+        : `Noted — that's linked to your open ${match.job_text} at ${site}.`,
+    );
     if (closes) {
       await this.env.SHIFT_DB.prepare(
         `UPDATE shift_log SET status = 'closed' WHERE shift_id = ? AND seq = ?`,
