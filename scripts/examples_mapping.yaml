@@ -1757,6 +1757,12 @@ examples:
     folder: whatsapp-restaurant-reservation-nodejs
 
   - product: sms
+    use_case: whatsapp-grocery-delivery
+    language: nodejs
+    framework: express
+    folder: whatsapp-grocery-delivery-nodejs
+
+  - product: sms
     use_case: white-label-appointment-platform
     language: python
     framework: flask
@@ -3616,6 +3622,11 @@ examples:
     language: typescript
     framework: edge
     folder: attribution-wheel
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
     folder: concierge-diary
 
   - product: ai
@@ -3641,3 +3652,10 @@ examples:
     language: typescript
     framework: edge
     folder: dispatch-line
+    folder: fluency-lab
+
+  - product: ai
+    use_case: acp-agent-fleet
+    language: acp
+    framework: agent-control-plane
+    folder: agent-fleet

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FreshCart — Live order with Mia</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B6E4F'/%3E%3Cpath d='M8 23c0-8 5-13 14-14-1 9-6 14-14 14Z' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M8 23l7-7' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-inner">
+    <a class="logo" href="/">
+      <span class="logo-icon">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14Z"/><path d="M5 19l7-7"/></svg>
+      </span>
+      <span class="logo-text">freshcart</span>
+    </a>
+    <nav class="nav-store" aria-label="Store">
+      <a href="#" data-cat="fruits_vegetables">Fruit &amp; veg</a>
+      <a href="#" data-cat="bakery">Bakery</a>
+      <a href="#" data-cat="dairy_eggs">Dairy &amp; eggs</a>
+      <a href="#" data-cat="pantry">Pantry</a>
+    </nav>
+    <div class="header-right">
+      <span class="live-badge" id="liveBadge">
+        <span class="live-dot" id="statusDot"></span>Live order with Mia
+      </span>
+      <span class="user-badge" id="userBadge" style="display:none">
+        <span class="user-avatar" id="userInitial">S</span>
+        <span id="userName">Sarah</span>
+      </span>
+    </div>
+  </div>
+</header>
+
+<!-- Main Shell -->
+<div class="shell">
+
+  <!-- Phone Column -->
+  <section class="phone-col" aria-label="WhatsApp chat">
+    <div class="phone-frame">
+      <div class="phone-inner">
+        <div class="wa-header">
+          <span class="wa-avatar">
+            <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14Z"/><path d="M5 19l7-7"/></svg>
+          </span>
+          <div class="wa-contact">
+            <span class="wa-contact-name">FreshCart</span>
+            <span class="wa-contact-status" id="phoneStatus">online</span>
+          </div>
+          <div class="wa-header-right">
+            <button class="new-chat-btn" onclick="newChat()" title="New Chat">New chat</button>
+          </div>
+        </div>
+        <div class="chat-area scroll" id="chatArea">
+          <span class="chat-system">Chat with Mia, FreshCart's shopping assistant.</span>
+          <div class="chat-empty" id="chatEmpty">
+            Send a WhatsApp message to<br>start shopping
+          </div>
+        </div>
+        <div class="chat-typing" id="chatTyping">
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="wa-input-bar">
+          <label class="wa-input-wrap">
+            <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Message FreshCart</span>
+            <input type="text" class="wa-input" id="chatInput" placeholder="Message" autocomplete="off">
+          </label>
+          <button class="wa-send" id="sendBtn" aria-label="Send">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24"><path d="M3 20.5 21 12 3 3.5l.01 6.6L15 12 3.01 13.9Z" fill="#fff"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo Controls -->
+    <div class="demo-controls">
+      <span class="label">Demo controls</span>
+      <button class="demo-btn" id="advanceBtn" onclick="advanceActiveOrder()" style="display:none">Advance</button>
+      <button class="demo-btn" onclick="resetDemo()">Reset</button>
+    </div>
+  </section>
+
+  <!-- Order Experience -->
+  <section class="order-experience" aria-label="Order progress">
+
+    <!-- 6-step progress -->
+    <ol class="progress-steps" id="progressSteps" aria-label="Order progress">
+      <li class="progress-step"><span class="bar"></span><span class="step-label">Greeted</span></li>
+      <li class="progress-step"><span class="bar"></span><span class="step-label">Shopping</span></li>
+      <li class="progress-step"><span class="bar"></span><span class="step-label">Checkout</span></li>
+      <li class="progress-step"><span class="bar"></span><span class="step-label">Packing</span></li>
+      <li class="progress-step"><span class="bar"></span><span class="step-label">On the way</span></li>
+      <li class="progress-step"><span class="bar"></span><span class="step-label">Delivered</span></li>
+    </ol>
+
+    <!-- Stage heading -->
+    <div class="stage-head" id="stageHead">
+      <div>
+        <h1 id="stageTitle">Getting started</h1>
+        <p id="stageSub">Send a message to start your order</p>
+      </div>
+      <span class="meta" id="stageMeta"></span>
+    </div>
+
+    <!-- Split: canvas + sidebar -->
+    <div class="split">
+      <div class="stage-canvas" id="stageCanvas">
+        <!-- Idle view (default) -->
+        <div id="viewIdle">
+          <div style="display:flex;flex-direction:column;gap:26px;padding:8px 4px">
+            <div class="idle-icons">
+              <span class="idle-icon" style="background:#E4F1D6"><svg aria-hidden="true" width="58" height="58" viewBox="0 0 64 64"><ellipse cx="32" cy="34" rx="18" ry="24" fill="#4E7D2E"/><ellipse cx="32" cy="35" rx="13" ry="18" fill="#C8E28A"/><circle cx="32" cy="40" r="7" fill="#8B5A2B"/></svg></span>
+              <span class="idle-icon" style="background:#F8E7CF"><svg aria-hidden="true" width="62" height="62" viewBox="0 0 64 64"><path d="M8 40c0-12 11-20 24-20s24 8 24 20c0 4-3 6-6 6H14c-3 0-6-2-6-6z" fill="#D9A35F"/><path d="M22 26l-4 8M32 24l-3 9M42 26l-3 8" stroke="#B97E3E" stroke-width="3" stroke-linecap="round"/></svg></span>
+              <span class="idle-icon" style="background:#FDE2DC"><svg aria-hidden="true" width="58" height="58" viewBox="0 0 64 64"><circle cx="24" cy="38" r="13" fill="#E5483A"/><circle cx="42" cy="34" r="12" fill="#EF6A55"/><path d="M24 25l-4-4M24 25l4-5M42 22l-3-4M42 22l4-3" stroke="#3E8E3A" stroke-width="3" stroke-linecap="round"/></svg></span>
+              <span class="idle-icon" style="background:#FFF3D6"><svg aria-hidden="true" width="58" height="58" viewBox="0 0 64 64"><rect x="8" y="34" width="48" height="14" rx="4" fill="#D9C7A4"/><ellipse cx="20" cy="32" rx="7" ry="9" fill="#FFF8EC" stroke="#E7D7B8" stroke-width="2"/><ellipse cx="32" cy="30" rx="7" ry="9" fill="#FFF8EC" stroke="#E7D7B8" stroke-width="2"/><ellipse cx="44" cy="32" rx="7" ry="9" fill="#FFF8EC" stroke="#E7D7B8" stroke-width="2"/></svg></span>
+            </div>
+            <div class="idle-steps">
+              <div class="idle-step">
+                <span class="num">1</span>
+                <span class="step-title">Message FreshCart</span>
+                <span class="step-desc" id="idlePhone">Say hi on WhatsApp</span>
+              </div>
+              <div class="idle-step">
+                <span class="num">2</span>
+                <span class="step-title">Send your list</span>
+                <span class="step-desc">Mia fills your basket and handles swaps</span>
+              </div>
+              <div class="idle-step">
+                <span class="num">3</span>
+                <span class="step-title">Pick a time and pay</span>
+                <span class="step-desc">Then follow your delivery right here</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Other views rendered dynamically by JS -->
+        <div id="viewGreeted" style="display:none"></div>
+        <div id="viewBasket" style="display:none"></div>
+        <div id="viewPacking" style="display:none"></div>
+        <div id="viewDelivery" style="display:none"></div>
+        <div id="viewDelivered" style="display:none"></div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-card">
+          <div class="card-header">
+            <h2 id="summaryTitle">Your basket</h2>
+            <span class="count" id="itemCount"></span>
+          </div>
+          <div id="summaryEmpty" class="summary-empty">Items appear here as Mia adds them.</div>
+          <div id="summaryItems"></div>
+          <div id="summaryTotals" style="display:none"></div>
+          <div id="summaryDetails" style="display:none"></div>
+        </div>
+
+        <div class="sidebar-card">
+          <h2>What's happening</h2>
+          <div id="feedEmpty" class="summary-empty">Waiting for first message.</div>
+          <ol class="feed-list scroll" id="feedList"></ol>
+        </div>
+      </aside>
+    </div>
+
+    <p class="site-footer">FreshCart and Mia are a demo. Product prices and delivery data are illustrative. Powered by <a href="https://telnyx.com" target="_blank" rel="noopener">Telnyx</a> WhatsApp messaging and AI Communications Infrastructure.</p>
+  </section>
+
+</div>
+
+<!-- Welcome Overlay -->
+<div class="welcome-overlay" id="welcomeOverlay">
+  <div class="welcome-modal">
+    <div class="welcome-logo">
+      <span class="logo-icon">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14Z"/><path d="M5 19l7-7"/></svg>
+      </span>
+      <span class="logo-text">freshcart</span>
+    </div>
+    <p class="welcome-tagline">Enter your details to start shopping</p>
+    <form id="welcomeForm" onsubmit="return submitWelcome(event)">
+      <input id="welcomeName" type="text" placeholder="Your name" required>
+      <input id="welcomeAddress" type="text" placeholder="Delivery address" required>
+      <input id="welcomePhone" type="tel" placeholder="Phone with country code (e.g. +1...)" required>
+      <button type="submit">Start Shopping</button>
+    </form>
+  </div>
+</div>
+
+<script src="/dashboard.js"></script>
+</body>
+</html>

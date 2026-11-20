@@ -5,6 +5,8 @@
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
   "generated_at": "2026-11-20T06:16:58Z",
   "example_count": 593,
+  "generated_at": "2026-11-19T21:35:45Z",
+  "example_count": 596,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -2588,6 +2590,15 @@
       "language": "nodejs",
       "framework": "express",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-restaurant-reservation-nodejs"
+    },
+    {
+      "folder": "whatsapp-grocery-delivery-nodejs",
+      "title": "WhatsApp AI Grocery Delivery Assistant",
+      "description": "AI-powered grocery delivery assistant on WhatsApp — 12 tools, voice ordering, real-time dashboard",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/whatsapp-grocery-delivery-nodejs"
     },
     {
       "folder": "white-label-appointment-platform-python",
@@ -5299,6 +5310,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/watchdog"
     },
     {
+      "folder": "attribution-wheel",
+      "title": "Attribution Wheel — Who Is Spending What in the AI Gateway",
+      "description": "A durable Telnyx Edge actor that tags every AI Gateway inference request, sweeps nightly spend grouped by tag, and pages on-call when a service breaks its 7-day baseline.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/attribution-wheel"
+    },
+    {
       "folder": "concierge-diary",
       "title": "Concierge Diary — Follow-Up Calls the Assistant Books Itself",
       "description": "A durable per-conversation diary actor that turns an AI Assistant's post-conversation wrap-up turn into a personalized, exactly-once scheduled callback.",
@@ -5342,6 +5362,22 @@
       "language": "typescript",
       "framework": "edge",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/dispatch-line"
+      "folder": "fluency-lab",
+      "title": "Fluency Lab — The Pronunciation Desk",
+      "description": "A durable per-clinic actor that owns a Telnyx TTS pronunciation dictionary, applies staff-texted corrections exactly once under 409 races, and re-verifies nightly.",
+      "product": "ai",
+      "language": "typescript",
+      "framework": "edge",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/fluency-lab"
+    },
+    {
+      "folder": "agent-fleet",
+      "title": "The Agent Fleet — three agents, operated from one CLI",
+      "description": "Three config-only Telnyx ACP agents — support on the web page, sales in the email inbox, scheduling on the phone — each just agent.json plus instructions.md, deployed and operated through the same five-verb CLI workflow.",
+      "product": "ai",
+      "language": "acp",
+      "framework": "agent-control-plane",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/agent-fleet"
     }
   ]
 }

@@ -1,0 +1,12 @@
+# Local session files
+.env
+.env.local
+.env.*.local
+
+# Deploy artifacts written by `telnyx-acp deploy`
+.telnyx/
+
+# Node / OS noise
+node_modules/
+*.log
+.DS_Store
