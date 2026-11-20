@@ -24,5 +24,8 @@ name = "TELNYX_PUBLIC_KEY"
 func_id = "ca71cdee-6e84-400d-a444-08d12c797869"
 func_name = "dispatch-line"
 
-[env_vars]
-DEMO_MODE = "false"
+# NOTE: the Edge runtime does NOT inject [env_vars] for actor projects —
+# config must ship as [[secrets]] bindings (see GUIDE.md §Configuration).
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"

@@ -116,8 +116,11 @@ name    = "TELNYX_API_KEY"
 binding = "TELNYX_PUBLIC_KEY"
 name    = "TELNYX_PUBLIC_KEY"
 
-[env_vars]
-DEMO_MODE = "true"
+# Actor projects do not get [env_vars] injected — ship config as secrets:
+[[secrets]]
+binding = "DEMO_MODE"
+name    = "DEMO_MODE"
+# ... then set the value once: telnyx-edge secrets add DEMO_MODE true
 ```
 
 After editing bindings, regenerate the ambient types so `interface Env` lines up with reality:
@@ -145,7 +148,11 @@ function demoMode(env: Env): boolean {
 
 Every outbound Telnyx request funnels through `telnyxPost()`, which short-circuits in demo mode. That means you can replay the entire demo flow — answer, transcription_start, speak, transcription_stop — with `curl` and see exactly which API calls *would* fire, without spending a cent.
 
-To go live: set `DEMO_MODE=false` in `telnyx.toml` `[env_vars]`, add both secrets, and `telnyx-edge ship`.
+To go live: register the config as a **secret** (the Edge runtime does not inject `[env_vars]` for actor projects), add both secrets, and `telnyx-edge ship`:
+
+```bash
+telnyx-edge secrets add DEMO_MODE false
+```
 
 ---
 
@@ -456,7 +463,7 @@ Because the helpers are pure, the test runs in milliseconds and gates the PR bef
 | Duplicate rows | `seq` differs between deliveries | Confirm `transcription_data.sequence` is present; otherwise the FNV-1a hash of the event id must be stable |
 | `transcription_stop` returns `skipped` | Leg was never in `activeCalls` (e.g. hangup arrived before `call.initiated` was processed) | Expected — the guard prevents calling a dead leg |
 | Tally always zero | Querying a different `shift` than the events' `occurred_at` date | Pass `?shift=shift-YYYY-MM-DD` matching the event date |
-| `TELNYX_API_KEY is not configured` | Live mode without the secret | `telnyx-edge secrets add TELNYX_API_KEY "..."` or set `DEMO_MODE=true` |
+| `TELNYX_API_KEY is not configured` | Live mode without the secret | `telnyx-edge secrets add TELNYX_API_KEY "..."` or set the `DEMO_MODE` secret to `true` |
 
 ---
 

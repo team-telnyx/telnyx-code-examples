@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS shift_log (
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
 | `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_public_key_here` | **yes** | TELNYX_PUBLIC_KEY | — |
 
-`DEMO_MODE` is an optional non-secret env var (default `"true"`). When `true`, every outbound Telnyx REST call is logged instead of sent, and signature verification is skipped with a warning if `TELNYX_PUBLIC_KEY` is unset. Set `DEMO_MODE=false` for live calls.
+`DEMO_MODE` is an optional non-secret config value (default `"true"`). When `true`, every outbound Telnyx REST call is logged instead of sent, and signature verification is skipped with a warning if `TELNYX_PUBLIC_KEY` is unset. Set it to `false` for live calls — for actor projects it must ship as a `[[secrets]]` binding (`telnyx-edge secrets add DEMO_MODE false`), since the Edge runtime does not inject `[env_vars]` into actor environments.
 
 ## Setup
 
