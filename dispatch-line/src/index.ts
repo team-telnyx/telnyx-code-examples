@@ -1,23 +1,31 @@
 /**
- * The Dispatch Line \u2014 a shift log that writes itself mid-call.
+ * The Dispatch Line — a shift log that writes itself mid-call.
  *
  * One durable actor per shift (`shift-YYYY-MM-DD`) rides Telnyx in-call
  * transcription: every job spoken on the line is filed into the shift_log
  * table and read back over the same leg before the call ends.
  *
- * ASSUMPTIONS (documented, not hidden):
- * 1. @telnyx/edge-runtime v0.15.1 exposes SQL through an env binding
+ * Assumptions (documented, not hidden):
+ * 1. @telnyx/edge-runtime exposes SQL through an env binding
  *    (`[storage.sqldb.SHIFT_DB]`), not agent-local SQL. shift_log lives there.
- * 2. `call.transcription` segment text is read from `payload.transcript` and
- *    `payload.transcription_data.transcript` (both shapes appear in the docs);
- *    `transcription_data.is_final` gates the write.
- * 3. `seq` uses `transcription_data.sequence` when Telnyx sends one, otherwise a
- *    stable FNV-1a hash of the webhook event id \u2014 so a redelivered webhook maps
- *    to the same seq and the insert is a true no-op (idempotent on seq).
- * 4. Only job-bearing final segments append a shift_log row; every segment is
- *    still written to the actor's durable message history.
+ * 2. `call.transcription` segments (verified against the current docs):
+ *    transcript text is `payload.transcription_data.transcript` (with
+ *    `payload.transcript` tolerated); `transcription_data.is_final` gates the
+ *    write; there is NO sequence field on the Voice API callback, so `seq` is
+ *    a stable FNV-1a hash of the webhook event id — a redelivered webhook
+ *    maps to the same seq and the insert is a true no-op (idempotent on seq).
+ * 3. `transcription_start` body (verified against the current docs):
+ *    `transcription_engine` + `transcription_engine_config` — NOT the legacy
+ *    `transcriptions[]` array shown in older examples.
+ * 4. Job-bearing final segments append a shift_log row; every final segment
+ *    (job or not) is also appended to the actor's durable message history, so
+ *    each transcription webhook yields exactly one durable entry, idempotent
+ *    on `seq` — the shift_log stays a job log, and the tally counts jobs.
+ * 5. A later note that references an open job by keyword is linked to it
+ *    (status `linked`); if the note carries a completion cue ("done",
+ *    "finished", …) the linked job is closed (status `closed`).
  */
-import { Agent, rpcSurface } from "@telnyx/edge-runtime";
+import { Agent, rpc, rpcSurface } from "@telnyx/edge-runtime";
 import type { ActorNamespace, Secrets, SqlDatabase } from "@telnyx/edge-runtime";
 
 export interface Env {
@@ -27,7 +35,7 @@ export interface Env {
   DEMO_MODE?: string;
 }
 
-export interface ShiftState {
+export interface ShiftState extends Record<string, unknown> {
   shiftId: string;
   openJobs: number;
   closedJobs: number;
@@ -69,11 +77,16 @@ export interface Tally {
 const JOB_VERB = /\b(swap|replace|install|repair|fix|service|inspect|deliver|adjust|rebuild|order)\b/i;
 const SITE_WORD = /\b(north|south|east|west|main|rear|front)\s+(yard|gate|dock|warehouse|lot|depot|bay)\b/i;
 const DOOR_WORD = /\bdoor\s+([0-9]{1,3}|[a-z])\b/i;
-const REFERENCE_CUE = /\b(that|same|earlier|this morning|before|yesterday|the one)\b/i;
+const REFERENCE_CUE =
+  /\b(that|same|earlier|this morning|before|yesterday|the one|done|finished|complete|completed|all set|wrapped|closed)\b/i;
+const DONE_CUE = /\b(done|finished|complete|completed|all set|wrapped|closed)\b/i;
 const STOPWORDS = new Set([
   "that", "this", "from", "with", "the", "and", "for", "came", "order", "morning",
   "earlier", "before", "yesterday", "same", "about", "have", "been", "just", "said", "one",
 ]);
+
+/** Ed25519 signatures older than this are rejected as replays (seconds). */
+const SIGNATURE_MAX_AGE_SECONDS = 300;
 
 /** Extract a job line ("swap the actuator on north yard door 3") or null. */
 export function parseJob(text: string): ParsedJob | null {
@@ -93,11 +106,11 @@ function objectAfterVerb(text: string, from: number): string {
   return (match?.[1] ?? "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-/** "north yard door 3" + "actuator swap" -> "North yard, door 3, actuator swap \u2014 logged." */
+/** "north yard door 3" + "actuator swap" -> "North yard, door 3, actuator swap — logged." */
 export function confirmationLine(job: ParsedJob): string {
   const site = job.site.replace(/\s+door\s+/i, ", door ");
   const spoken = site ? `${site.charAt(0).toUpperCase()}${site.slice(1)}` : "Shift log";
-  return `${spoken}, ${job.jobText} \u2014 logged.`;
+  return `${spoken}, ${job.jobText} — logged.`;
 }
 
 export function keywordsOf(text: string): string[] {
@@ -108,7 +121,7 @@ export function keywordsOf(text: string): string[] {
     .filter((word) => word.length > 3 && !STOPWORDS.has(word));
 }
 
-/** Deterministic segment sequence \u2014 redelivered webhooks resolve to the same seq. */
+/** Deterministic segment sequence — redelivered webhooks resolve to the same seq. */
 export function segmentSeq(payload: Record<string, unknown>, eventId: string): number {
   const data = (payload.transcription_data ?? {}) as Record<string, unknown>;
   const explicit = data.sequence ?? payload.sequence;
@@ -169,19 +182,25 @@ async function telnyxPost(env: Env, path: string, body: unknown): Promise<string
 
 const ED25519_SPKI_PREFIX = new Uint8Array([0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00]);
 
-function base64ToBytes(value: string): Uint8Array {
+/** Backed by a dedicated ArrayBuffer, so the result is assignable to BufferSource. */
+function base64ToBytes(value: string) {
   const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
+  const bytes = new Uint8Array(new ArrayBuffer(binary.length));
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
 }
 
-/** Telnyx Ed25519 webhook verification: signature over `${timestamp}|${rawBody}`. */
+/**
+ * Telnyx Ed25519 webhook verification: signature over `${timestamp}|${rawBody}`.
+ * When the public key is configured, both the signature and a ±5-minute
+ * freshness window on `telnyx-timestamp` are enforced; a stale or unsigned
+ * webhook is rejected so a captured one cannot be replayed later.
+ */
 async function verifySignature(raw: string, headers: Headers, env: Env): Promise<boolean> {
   const publicKey = await env.SECRETS.get("TELNYX_PUBLIC_KEY");
   if (!publicKey) {
     if (demoMode(env)) {
-      console.warn("[dispatch-line][demo] TELNYX_PUBLIC_KEY unset \u2014 skipping signature verification");
+      console.warn("[dispatch-line][demo] TELNYX_PUBLIC_KEY unset — skipping signature verification");
       return true;
     }
     return false;
@@ -189,6 +208,11 @@ async function verifySignature(raw: string, headers: Headers, env: Env): Promise
   const signature = headers.get("telnyx-signature-ed25519");
   const timestamp = headers.get("telnyx-timestamp");
   if (!signature || !timestamp) return false;
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts) || Math.abs(Math.floor(Date.now() / 1000) - ts) > SIGNATURE_MAX_AGE_SECONDS) {
+    console.warn("[dispatch-line] webhook timestamp outside the replay window — rejecting");
+    return false;
+  }
   try {
     const rawKey = base64ToBytes(publicKey);
     const spki = new Uint8Array(ED25519_SPKI_PREFIX.length + rawKey.length);
@@ -204,37 +228,58 @@ async function verifySignature(raw: string, headers: Headers, env: Env): Promise
 }
 
 export class DispatchLine extends Agent<Env, ShiftState> {
-  protected initialState(): ShiftState {
+  protected override initialState(): ShiftState {
     return { shiftId: "", openJobs: 0, closedJobs: 0, linkedJobs: 0, lastSeq: 0, activeCalls: [] };
   }
 
   /** Answer the leg, start in-call transcription, birth the day's actor. */
+  @rpc({ description: "Answer the leg, start in-call transcription, register the active call." })
   async onCallStart(callId: string, shiftId: string): Promise<{ shiftId: string; transcription: string }> {
     await this.ensureSchema();
     const state = await this.getState();
     const activeCalls = state.activeCalls.includes(callId) ? state.activeCalls : [...state.activeCalls, callId];
     await this.setState({ shiftId, activeCalls });
     const transcription = await telnyxPost(this.env, `/calls/${encodeURIComponent(callId)}/actions/transcription_start`, {
-      transcriptions: [{ language: "en", engine_config: { engine: "telnyx" } }],
+      transcription_engine: "Telnyx",
+      transcription_engine_config: {
+        transcription_engine: "Telnyx",
+        language: "en",
+        transcription_model: "openai/whisper-large-v3-turbo",
+      },
     });
     return { shiftId, transcription };
   }
 
-  /** call.transcription -> parse the job phrase -> one shift_log row -> speak the read-back. */
-  async onTranscription(segment: TranscriptionSegment): Promise<{ filed: boolean; linked: boolean; seq: number }> {
+  /**
+   * call.transcription → one durable entry per segment (idempotent on seq):
+   * a job-bearing segment files one shift_log row and speaks the read-back;
+   * a reference note links to (and may close) an open job; anything else is
+   * recorded in the actor's durable message history only.
+   */
+  @rpc({ description: "File one shift_log entry per final segment; parse jobs, link references." })
+  async onTranscription(segment: TranscriptionSegment): Promise<{ filed: boolean; linked: boolean; closed?: boolean; seq: number }> {
     await this.ensureSchema();
-    const state = await this.getState();
+    let state = await this.getState();
     const shiftId = segment.shiftId || state.shiftId;
-    if (shiftId !== state.shiftId) await this.setState({ shiftId });
+    if (shiftId !== state.shiftId) {
+      await this.setState({ shiftId });
+      state = await this.getState();
+    }
 
     const text = segment.transcript.trim();
     if (!text || !segment.isFinal) return { filed: false, linked: false, seq: segment.seq };
 
+    // Durable message history for EVERY final segment — keyed by seq, so a
+    // redelivered webhook overwrites in place instead of duplicating.
     await this.ctx.storage.put(`transcript:${segment.seq}`, {
       text,
       callId: segment.callId,
       at: new Date().toISOString(),
     });
+
+    // Reference notes link (and may close) an open job before a new job files.
+    const note = await this.onJobReference(text, segment.callId, segment.seq);
+    if (note) return { filed: false, linked: true, closed: note.closed === true, seq: segment.seq };
 
     const job = parseJob(text);
     if (job) {
@@ -247,11 +292,11 @@ export class DispatchLine extends Agent<Env, ShiftState> {
       return { filed: true, linked: false, seq: segment.seq };
     }
 
-    const linked = await this.onJobReference(text, segment.callId, segment.seq);
-    return { filed: false, linked: linked !== null, seq: segment.seq };
+    return { filed: false, linked: false, seq: segment.seq };
   }
 
   /** Speak the confirmation line on the active leg. */
+  @rpc({ description: "Read the logged job back over the same leg." })
   async confirmOverCall(callId: string, job: ParsedJob): Promise<{ line: string; status: string }> {
     const line = confirmationLine(job);
     const status = await telnyxPost(this.env, `/calls/${encodeURIComponent(callId)}/actions/speak`, {
@@ -264,6 +309,7 @@ export class DispatchLine extends Agent<Env, ShiftState> {
   }
 
   /** call.hangup -> transcription_stop (skipped if the leg is already gone) -> tally. */
+  @rpc({ description: "Stop transcription on hangup (skipped if the leg is gone); return the tally." })
   async onCallHangup(callId: string): Promise<{ stopped: string; tally: Tally }> {
     await this.ensureSchema();
     const state = await this.getState();
@@ -275,8 +321,14 @@ export class DispatchLine extends Agent<Env, ShiftState> {
     return { stopped, tally: await this.tally() };
   }
 
-  /** Cross-call memory: link a later note to the morning's open job by keyword. */
-  async onJobReference(text: string, callId: string, seq: number): Promise<JobRow | null> {
+  /**
+   * Cross-call memory: link a later note to the morning's open job by keyword
+   * (matched against the job text and its site). A note with a completion cue
+   * ("done", "finished", …) closes the linked job; the note itself is filed as
+   * a `linked` row so the link is visible in the tally.
+   */
+  @rpc({ description: "Link a later note to an open job by keyword; a completion cue closes it." })
+  async onJobReference(text: string, callId: string, seq: number): Promise<(JobRow & { closed?: boolean }) | null> {
     if (!REFERENCE_CUE.test(text)) return null;
     await this.ensureSchema();
     const state = await this.getState();
@@ -285,34 +337,61 @@ export class DispatchLine extends Agent<Env, ShiftState> {
     ).bind(state.shiftId).all();
     const keywords = keywordsOf(text);
     const rows = (open.results ?? []) as Array<{ seq: number; job_text: string; site: string | null }>;
-    const match = rows.find((row) => keywords.some((word) => row.job_text.toLowerCase().includes(word)));
+    const match = rows.find((row) =>
+      keywords.some(
+        (word) =>
+          row.job_text.toLowerCase().includes(word) ||
+          (row.site ?? "").toLowerCase().includes(word),
+      ));
     if (!match) return null;
+
+    const closes = DONE_CUE.test(text);
     const row: JobRow = {
       shiftId: state.shiftId, seq, jobText: text, site: match.site ?? "", status: "linked", sourceCallId: callId,
     };
+    // Insert first: a replayed note must not re-close (or re-count) anything.
     if (!(await this.insertRow(row))) return null;
+    if (closes) {
+      await this.env.SHIFT_DB.prepare(
+        `UPDATE shift_log SET status = 'closed' WHERE shift_id = ? AND seq = ?`,
+      ).bind(state.shiftId, match.seq).run();
+      await this.setState({
+        closedJobs: state.closedJobs + 1,
+        openJobs: Math.max(0, state.openJobs - 1),
+        linkedJobs: state.linkedJobs + 1,
+      });
+      return { ...row, closed: true };
+    }
     await this.setState({ linkedJobs: state.linkedJobs + 1 });
     return row;
   }
 
-  /** Dispatcher surface \u2014 counts straight from SQL, not from a transcript archive. */
-  async tally(): Promise<Tally> {
+  /** Dispatcher surface — counts straight from SQL, not from a transcript archive. */
+  @rpc({ description: "Open/closed/linked counts for the shift, straight from SQL." })
+  async tally(shiftId?: string): Promise<Tally> {
     await this.ensureSchema();
     const state = await this.getState();
+    const id = shiftId ?? state.shiftId;
     const result = await this.env.SHIFT_DB.prepare(
       `SELECT status, COUNT(*) AS count FROM shift_log WHERE shift_id = ? GROUP BY status`,
-    ).bind(state.shiftId).all();
+    ).bind(id).all();
     const counts: Record<string, number> = { open: 0, closed: 0, linked: 0 };
     for (const row of (result.results ?? []) as Array<{ status: string; count: number }>) {
       counts[row.status] = Number(row.count) || 0;
     }
     return {
-      shiftId: state.shiftId,
+      shiftId: id,
       open: counts.open,
       closed: counts.closed,
       linked: counts.linked,
       total: counts.open + counts.closed + counts.linked,
     };
+  }
+
+  /** Actor counters, read back with the SQL tally — proof the durable state is intact. */
+  @rpc({ description: "Durable actor state (counters, active calls) — resume proof surface." })
+  async shiftState(): Promise<ShiftState> {
+    return this.getState();
   }
 
   private async ensureSchema(): Promise<void> {
@@ -332,31 +411,75 @@ export class DispatchLine extends Agent<Env, ShiftState> {
 
   /** Idempotent on (shift_id, seq): a replayed webhook never duplicates a job row. */
   private async insertRow(row: JobRow): Promise<boolean> {
-    const existing = await this.env.SHIFT_DB.prepare(
-      `SELECT seq FROM shift_log WHERE shift_id = ? AND seq = ?`,
-    ).bind(row.shiftId, row.seq).all();
-    if ((existing.results ?? []).length > 0) return false;
-    await this.env.SHIFT_DB.prepare(
-      `INSERT INTO shift_log (shift_id, seq, job_text, site, status, created_at, source_call_id)
+    const result = await this.env.SHIFT_DB.prepare(
+      `INSERT OR IGNORE INTO shift_log (shift_id, seq, job_text, site, status, created_at, source_call_id)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).bind(row.shiftId, row.seq, row.jobText, row.site, row.status, new Date().toISOString(), row.sourceCallId).run();
-    return true;
+    return (result.meta?.changes ?? 0) > 0;
   }
 }
 
-export function dispatchLine(env: Env, shiftId: string): DispatchLine {
-  const id = env.DISPATCH.idFromName(shiftId);
-  return env.DISPATCH.get(id) as unknown as DispatchLine;
+/**
+ * The stub the runtime hands back for `idFromName` — its methods ARE the RPC
+ * surface. `telnyx-edge types` narrows `env.DISPATCH` to
+ * `ActorNamespace<DispatchLine>`; the hand-rolled `Env` here keeps the bare
+ * namespace and narrows at the call site.
+ */
+export type DispatchLineStub = ReturnType<ActorNamespace<DispatchLine>["idFromName"]>;
+
+export function dispatchLine(env: Env, shiftId: string): DispatchLineStub {
+  return (env.DISPATCH as ActorNamespace<DispatchLine>).idFromName(shiftId);
 }
 
-function describeSurface(line: DispatchLine): string[] {
+/**
+ * The actor's callable RPC names, from the runtime's own `rpcSurface()`.
+ * `rpcSurface()` inspects a constructed instance — the `@rpc()` decorator's
+ * per-instance initializer registers the names at construction — so a
+ * throwaway probe actor with a stub context is built when no live instance is
+ * in hand. Falls back to the static surface list if the runtime refuses the
+ * probe.
+ */
+export function rpcSurfaceNames(): string[] {
+  const staticSurface = [
+    "tally",
+    "onCallStart",
+    "onTranscription",
+    "confirmOverCall",
+    "onCallHangup",
+    "onJobReference",
+    "shiftState",
+  ];
   try {
-    const surface = (rpcSurface as unknown as (actor: unknown) => unknown)(line);
-    if (Array.isArray(surface)) return surface.map(String);
-  } catch {
-    // fall through to the static surface
+    const noopKV = {
+      get: async () => undefined,
+      put: async () => undefined,
+      delete: async () => undefined,
+    };
+    const probeStorage = {
+      list: async () => [],
+      ...noopKV,
+      deleteAll: async () => undefined,
+      transaction: async (fn: (t: unknown) => unknown) => fn(noopKV),
+      transactionSync: (fn: (t: unknown) => unknown) => fn(noopKV),
+      setAlarm: async () => undefined,
+      getAlarm: async () => undefined,
+      deleteAlarm: async () => undefined,
+      sync: async () => undefined,
+      flush: async () => undefined,
+    };
+    const probeCtx = { storage: probeStorage, blockConcurrencyWhile: async (fn: () => unknown) => fn() };
+    const probeEnv: Env = {
+      SECRETS: { get: async () => "" },
+      DISPATCH: undefined as never,
+      SHIFT_DB: undefined as never,
+      DEMO_MODE: "true",
+    };
+    const names = [...rpcSurface(new DispatchLine(probeCtx as never, probeEnv)).keys()];
+    return names.length > 0 ? names : staticSurface;
+  } catch (error) {
+    console.warn("[dispatch-line] rpcSurface probe failed:", error instanceof Error ? error.message : "unknown");
+    return staticSurface;
   }
-  return ["tally", "onCallStart", "onTranscription", "onCallHangup", "onJobReference"];
 }
 
 function json(body: unknown, status = 200): Response {
@@ -404,7 +527,11 @@ async function handleTally(url: URL, env: Env): Promise<Response> {
   const shiftId = url.searchParams.get("shift") ?? shiftIdFor();
   if (!/^shift-\d{4}-\d{2}-\d{2}$/.test(shiftId)) return json({ error: "invalid_shift_id" }, 400);
   const line = dispatchLine(env, shiftId);
-  return json({ ok: true, shiftId, tally: await line.tally(), rpcSurface: describeSurface(line) });
+  const tally = await line.tally(shiftId);
+  const surface = rpcSurfaceNames();
+  console.log(`[dispatch-line] stub.tally(${shiftId}) via env.DISPATCH.idFromName ->`, tally);
+  console.log(`[dispatch-line] rpcSurface ->`, surface);
+  return json({ ok: true, shiftId, tally, rpcSurface: surface });
 }
 
 export default {

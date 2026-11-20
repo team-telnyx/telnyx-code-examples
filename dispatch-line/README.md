@@ -24,7 +24,7 @@ Because the log has to be written *while the truck is still rolling*, the sample
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | `POST` | `/v2/calls/{call_control_id}/actions/answer` | Answer the inbound leg on `call.initiated` |
-| `POST` | `/v2/calls/{call_control_id}/actions/transcription_start` | Start live in-call transcription (`transcriptions: [{language, engine_config}]`) |
+| `POST` | `/v2/calls/{call_control_id}/actions/transcription_start` | Start live in-call transcription (`transcription_engine` + `transcription_engine_config`) |
 | `POST` | `/v2/calls/{call_control_id}/actions/transcription_stop` | End the transcript window early / on hangup |
 | `POST` | `/v2/calls/{call_control_id}/actions/speak` | Speak the confirmation line on the active leg |
 | `POST` (inbound) | `/webhooks/telnyx` | Telnyx webhook receiver — `call.initiated`, `call.transcription`, `call.hangup` |
@@ -57,7 +57,7 @@ Webhook event types consumed: `call.initiated`, `call.transcription`, `call.hang
         ┌─────────────────────────────────┐       │
         │  DispatchLine extends Agent     │       │
         │  state: { shiftId, openJobs,    │       │
-        │           closedJobs, linked,   │       │
+        │           closedJobs, linkedJobs,│      │
         │           lastSeq, activeCalls} │       │
         │                                 │       │
         │  onCallStart()                  │───────┘  answer + transcription_start
@@ -79,7 +79,7 @@ Data flow, step by step:
 1. `call.initiated` → `answer` the leg → `onCallStart()` → `transcription_start` on the leg → actor born at `shift-YYYY-MM-DD`.
 2. `call.transcription` → `toSegment()` normalizes the payload → `onTranscription()` → `parseJob()` → one `shift_log` row (idempotent on `(shift_id, seq)`).
 3. Job filed → `confirmOverCall()` → `speak` on the same leg: *"North yard, door 3, actuator swap — logged."*
-4. Non-job segment with a reference cue ("that actuator from this morning") → `onJobReference()` → keyword match against open rows → `linked` row.
+4. Non-job segment with a reference cue ("that actuator from this morning") → `onJobReference()` → keyword match against open rows → `linked` row; if the note carries a completion cue ("done", "finished", …) the linked job is closed.
 5. `call.hangup` → `transcription_stop` (skipped if the leg is already gone) → tally recomputed from SQL.
 6. `GET /tally?shift=shift-2026-11-19` → `@rpc tally()` → counts straight from `shift_log`.
 
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS shift_log (
 );
 ```
 
-`seq` comes from `transcription_data.sequence` when Telnyx sends one, otherwise from a stable FNV-1a hash of the webhook event id — so a redelivered webhook resolves to the same `seq` and the insert is a true no-op.
+`seq` is a stable FNV-1a hash of the webhook event id (the Voice API `call.transcription` callback carries no sequence field; if a deployment does include `transcription_data.sequence` or a top-level `sequence`, that numeric value is used directly) — so a redelivered webhook resolves to the same `seq` and the insert is a true no-op.
 
 ## Environment Variables
 
@@ -184,25 +184,56 @@ Returns the shift tally straight from SQL plus the actor's RPC surface.
 | `confirmOverCall` | `(callId: string, job: ParsedJob) => Promise<{line, status}>` | `speak` the confirmation line on the active leg |
 | `onJobReference` | `(text: string, callId: string, seq: number) => Promise<JobRow \| null>` | Keyword-matches a later note to an open job row |
 | `onCallHangup` | `(callId: string) => Promise<{stopped, tally}>` | `transcription_stop` (or `skipped`), returns the tally |
-| `tally` | `() => Promise<Tally>` | `@rpc` — open/closed/linked counts from `shift_log` |
+| `tally` | `(shiftId?: string) => Promise<Tally>` | `@rpc` — open/closed/linked counts from `shift_log`; defaults to the actor's shift |
+| `shiftState` | `() => Promise<ShiftState>` | `@rpc` — durable actor state (counters, active calls); resume proof surface |
 
 ### Transcription settings
 
+`transcription_start` is issued with the current Call Control body — a top-level
+`transcription_engine` plus a `transcription_engine_config` object (Telnyx engine,
+English, whisper-large-v3-turbo):
+
 ```json
 {
-  "transcriptions": [
-    { "language": "en", "engine_config": { "engine": "telnyx" } }
-  ]
+  "transcription_engine": "Telnyx",
+  "transcription_engine_config": {
+    "transcription_engine": "Telnyx",
+    "language": "en",
+    "transcription_model": "openai/whisper-large-v3-turbo"
+  }
 }
 ```
 
-Segments arrive on the `call.transcription` webhook. The sample reads transcript text from `payload.transcript` and falls back to `payload.transcription_data.transcript`; `transcription_data.is_final` gates the write, and `transcription_data.sequence` (when present) supplies `seq`.
+### The `call.transcription` webhook payload
+
+Segments arrive on the `call.transcription` webhook with the transcript under
+`data.payload.transcription_data.transcript` (`data.payload.transcript` is
+accepted as a fallback). `transcription_data.is_final` gates the write, so
+interim results never file rows; `data.id` (the webhook event id) is hashed to
+the idempotent `seq`. A segment looks like:
+
+```json
+{
+  "data": {
+    "id": "0ccc0101-8f2f-4f31-8f2f-3b9d5f5f5f5f",
+    "event_type": "call.transcription",
+    "occurred_at": "2026-11-19T07:02:11.250Z",
+    "payload": {
+      "call_control_id": "v3:xyz...",
+      "transcription_data": {
+        "transcript": "swap the actuator on north yard door 3",
+        "is_final": true
+      }
+    }
+  }
+}
+```
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `401 invalid_signature` on every webhook | `TELNYX_PUBLIC_KEY` missing or wrong, or a proxy rewrote the body | Set the public key from the Telnyx portal; verify the raw body is unmodified |
+| `401 invalid_signature` on every webhook | `TELNYX_PUBLIC_KEY` missing or wrong, a proxy rewrote the body, or the server clock is more than ±5 minutes off | Set the public key from the Telnyx portal; verify the raw body is unmodified; keep clocks synced — signatures outside the 5-minute replay window are rejected |
 | No `call.transcription` events arrive | Transcription never started, or the Call Control app has no webhook URL | Check the `transcription_start` response in the logs; confirm the app's webhook URL points at `/webhooks/telnyx` |
 | Jobs are filed twice | `seq` is not stable across redeliveries | Confirm `transcription_data.sequence` is present; otherwise the FNV-1a hash of the event id keeps `seq` deterministic |
 | `speak` returns `error:422` | The leg already hung up | Expected — the confirmation is best-effort; the row is already durable |

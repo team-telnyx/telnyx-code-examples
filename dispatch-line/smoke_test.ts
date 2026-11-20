@@ -11,6 +11,7 @@ import worker, {
   confirmationLine,
   keywordsOf,
   parseJob,
+  rpcSurfaceNames,
   segmentSeq,
   shiftIdFor,
   toSegment,
@@ -27,7 +28,7 @@ test("worker exposes a fetch handler", () => {
 
 test("DispatchLine exposes the shift-log surface", () => {
   for (const method of ["onCallStart", "onTranscription", "confirmOverCall", "onCallHangup", "onJobReference", "tally"]) {
-    assert.equal(typeof (DispatchLine.prototype as Record<string, unknown>)[method], "function", `missing ${method}`);
+    assert.equal(typeof (DispatchLine.prototype as unknown as Record<string, unknown>)[method], "function", `missing ${method}`);
   }
 });
 
@@ -73,6 +74,13 @@ test("toSegment normalizes the call.transcription payload", () => {
   assert.equal(segment.shiftId, "shift-2026-11-19");
   assert.equal(segment.isFinal, true);
   assert.ok(segment.transcript.includes("actuator"));
+});
+
+test("rpcSurface reports the actor's remotely-callable methods", () => {
+  const names = rpcSurfaceNames();
+  for (const method of ["tally", "onCallStart", "onTranscription", "confirmOverCall", "onCallHangup", "onJobReference"]) {
+    assert.ok(names.includes(method), `rpcSurface missing ${method}`);
+  }
 });
 
 console.log("\nAll dispatch-line smoke checks passed.");

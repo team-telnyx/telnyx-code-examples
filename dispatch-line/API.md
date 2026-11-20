@@ -31,13 +31,13 @@ signature, derives the shift id from `data.occurred_at`, resolves the
 |---|---|---|---|
 | `content-type` | string | yes | `application/json` |
 | `telnyx-signature-ed25519` | string (base64) | yes (live) | Ed25519 signature over `${timestamp}\|${rawBody}` |
-| `telnyx-timestamp` | string | yes (live) | Unix timestamp used in the signed payload |
+| `telnyx-timestamp` | string | yes (live) | Unix timestamp used in the signed payload. Signatures more than ±5 minutes from the server clock are rejected as replays |
 
 ### Request body — Telnyx event envelope
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `data.id` | string | no | Event id; used as the fallback seed for the segment `seq` hash |
+| `data.id` | string | no | Event id; hashed (FNV-1a) into the segment `seq` when no explicit sequence is present |
 | `data.event_type` | string | yes | `call.initiated`, `call.transcription`, `call.hangup`, or any other type (ignored) |
 | `data.occurred_at` | string (ISO-8601) | no | Used to derive `shift-YYYY-MM-DD`; defaults to now |
 | `data.payload.call_control_id` | string | yes | The call leg id. Missing → `400 missing_call_control_id` |
@@ -95,7 +95,9 @@ curl -X POST "https://dispatch-line.<account>.telnyx.app/webhooks/telnyx" \
 ```
 
 `filed` is `true` when a new `shift_log` row was appended; `linked` is `true`
-when the segment matched an existing open job (cross-call reference).
+when the segment matched an existing open job (cross-call reference). A linked
+note carrying a completion cue ("done", "finished", …) also closes the matched
+job; the response then carries `"closed": true` alongside `"linked": true`.
 
 **`call.hangup` → 200**
 
@@ -189,11 +191,13 @@ are listed by `rpcSurface()` in the `/tally` response.
 
 | Method | Signature | Returns |
 |---|---|---|
-| `tally` | `() => Promise<Tally>` | `{ shiftId, open, closed, linked, total }` from SQL |
+| `tally` | `(shiftId?: string) => Promise<Tally>` | `{ shiftId, open, closed, linked, total }` from SQL; defaults to the actor's shift |
 | `onCallStart` | `(callId: string, shiftId: string)` | `{ shiftId, transcription }` — answers leg, starts transcription |
 | `onTranscription` | `(segment: TranscriptionSegment)` | `{ filed, linked, seq }` — files a job row, speaks confirmation |
+| `confirmOverCall` | `(callId: string, job: ParsedJob)` | `{ line, status }` — speaks the read-back on the leg |
 | `onCallHangup` | `(callId: string)` | `{ stopped, tally }` — stops transcription, returns tally |
-| `onJobReference` | `(text: string, callId: string, seq: number)` | `JobRow \| null` — links a note to an open job |
+| `onJobReference` | `(text: string, callId: string, seq: number)` | `JobRow \| null` — links a note to an open job; a completion cue also closes it (`closed: true` on the row) |
+| `shiftState` | `() => Promise<ShiftState>` | the actor's durable state (counters, active calls) — resume/proof surface |
 
 ### `Tally`
 

@@ -260,8 +260,8 @@ That exact string is what goes out over `POST /v2/calls/{id}/actions/speak`.
 
 Telnyx may redeliver a webhook. The shift log must not grow a duplicate row when it does. The sample solves this by deriving a **stable** `seq` per segment:
 
-1. If `transcription_data.sequence` (or a top-level `sequence`) is a finite number, use it.
-2. Otherwise, FNV-1a hash the webhook event id — or, if that's missing, `call_control_id|transcript`.
+1. If `transcription_data.sequence` (or a top-level `sequence`) carries a finite number, use it.
+2. Otherwise, FNV-1a hash the webhook event id — the Voice API `call.transcription` callback carries no sequence field, so this is the usual path — falling back to `call_control_id|transcript` if the id is missing.
 
 Either way, the same webhook delivered twice resolves to the same `seq`, and `insertRow()` is a no-op the second time.
 
@@ -275,6 +275,10 @@ Telnyx signs webhooks with Ed25519 over the string `` `${timestamp}|${rawBody}` 
 2. Rebuilds a DER/SPKI key by prefixing the raw base64 key with `ED25519_SPKI_PREFIX` (`30 2a 30 05 06 03 2b 65 70 03 21 00`).
 3. Imports it with `crypto.subtle.importKey("spki", ..., { name: "Ed25519" }, ...)`.
 4. Verifies against `telnyx-signature-ed25519` over `timestamp|raw`.
+
+The handler also enforces a **freshness window**: a `telnyx-timestamp` more than
+±5 minutes from the server clock is rejected as a replay, so a captured webhook
+cannot be re-posted hours later with its signature intact.
 
 If the public key is missing, demo mode logs a warning and continues; live mode returns `401`. Any verification exception is logged and treated as a failure — never as a pass.
 
@@ -297,15 +301,22 @@ Failures log a truncated response body (200 chars) and return a status string ra
 export class DispatchLine extends Agent<Env, ShiftState> { ... }
 ```
 
-`Agent` gives the class `getState()` / `setState()` (merge-patch), durable `this.ctx.storage`, and automatic RPC exposure of public async methods.
+`Agent` gives the class `getState()` / `setState()` (merge-patch) and durable `this.ctx.storage`. Methods are dispatchable over the agent socket only when decorated with `@rpc()` — every public surface on `DispatchLine` (`tally`, `onCallStart`, `onTranscription`, `confirmOverCall`, `onCallHangup`, `onJobReference`, `shiftState`) carries the decorator; the private `ensureSchema()` / `insertRow()` helpers deliberately do not. `rpcSurface()` (used by the `/tally` route) introspects exactly that decorated set.
 
 **`initialState()`** — zeroed counters, empty `activeCalls`.
 
-**`onCallStart(callId, shiftId)`** — the birth of the day's actor. Ensures the schema, adds the leg to `activeCalls`, then fires:
+**`onCallStart(callId, shiftId)`** — the birth of the day's actor. Ensures the schema, adds the leg to `activeCalls`, then fires the current Call Control transcription body:
 
 ```
 POST /v2/calls/{call_control_id}/actions/transcription_start
-{ "transcriptions": [{ "language": "en", "engine_config": { "engine": "telnyx" } }] }
+{
+  "transcription_engine": "Telnyx",
+  "transcription_engine_config": {
+    "transcription_engine": "Telnyx",
+    "language": "en",
+    "transcription_model": "openai/whisper-large-v3-turbo"
+  }
+}
 ```
 
 This is the in-call transcription primitive: no media download, no post-call batch — segments start arriving on `call.transcription` as the conversation happens.
@@ -314,10 +325,10 @@ This is the in-call transcription primitive: no media download, no post-call bat
 
 1. `ensureSchema()` (idempotent `CREATE TABLE IF NOT EXISTS`).
 2. Drop non-final or empty segments.
-3. Persist the raw segment to durable storage under `transcript:<seq>` — the actor keeps the conversation, but the *log* is what it acts on.
-4. `parseJob(text)` → if it's a job, build a `JobRow` with `status: "open"` and `insertRow()` it.
-5. On a successful insert, bump `openJobs` and `lastSeq`, then `confirmOverCall()`.
-6. If it isn't a job, try `onJobReference()` — maybe it's a callback to an earlier job.
+3. Persist the raw segment to durable storage under `transcript:<seq>` — every final segment lands in the actor's history exactly once, so each transcription webhook yields one durable entry — but the *log* is what it acts on.
+4. Try `onJobReference()` first: a reference note ("that actuator from this morning — the order came in") attaches to an earlier job before it can be mis-parsed as a new one.
+5. `parseJob(text)` → if it's a job, build a `JobRow` with `status: "open"` and `insertRow()` it.
+6. On a successful insert, bump `openJobs` and `lastSeq`, then `confirmOverCall()`.
 
 **`confirmOverCall(callId, job)`** — speaks the read-back on the live leg:
 
@@ -329,7 +340,7 @@ POST /v2/calls/{call_control_id}/actions/speak
 
 **`onCallHangup(callId)`** — if the leg is in `activeCalls`, fire `transcription_stop` and remove it; otherwise return `"skipped"`. Then return the current tally. No orphaned transcript sessions.
 
-**`onJobReference(text, callId, seq)`** — cross-call memory. Requires a reference cue (`that`, `same`, `earlier`, `this morning`, `before`, `yesterday`, `the one`), then queries open rows for the shift and matches on keywords (`keywordsOf()` strips stopwords and short tokens). A hit inserts a new row with `status: "linked"` and increments `linkedJobs`. That's how "that actuator from this morning — the order came in" attaches to the 07:02 job without re-parsing it as a new one.
+**`onJobReference(text, callId, seq)`** — cross-call memory. Requires a reference cue (`that`, `same`, `earlier`, `this morning`, `before`, `yesterday`, `the one`, plus completion cues like `done`), then queries open rows for the shift and matches on keywords (`keywordsOf()` strips stopwords and short tokens). A hit inserts a new row with `status: "linked"` and increments `linkedJobs`. That's how "that actuator from this morning — the order came in" attaches to the 07:02 job without re-parsing it as a new one. If the note carries a **completion cue** (`done`, `finished`, `complete`, `all set`, `wrapped`, `closed`), the linked job is updated to `status: 'closed'` — `openJobs` decrements, `closedJobs` increments — so the dispatcher's tally closes itself from the second call, no follow-up needed. The insert happens *before* the update, so a replayed note can never re-close an already-closed job.
 
 **`tally()`** — the dispatcher surface. One `GROUP BY status` query:
 
@@ -390,9 +401,9 @@ export function dispatchLine(env: Env, shiftId: string): DispatchLine {
 | `call.hangup` | `line.onCallHangup(callId)` |
 | anything else | `{ ok: true, ignored: <type> }` |
 
-`handleTally()` serves `GET /tally?shift=shift-YYYY-MM-DD`, validates the shift id against `/^shift-\d{4}-\d{2}-\d{2}$/`, calls `line.tally()`, and includes `rpcSurface: describeSurface(line)` in the response.
+`handleTally()` serves `GET /tally?shift=shift-YYYY-MM-DD`, validates the shift id against `/^shift-\d{4}-\d{2}-\d{2}$/`, calls `line.tally()`, and includes `rpcSurface: rpcSurfaceNames()` in the response.
 
-`describeSurface()` uses `rpcSurface()` from the runtime to enumerate the actor's callable methods, falling back to a static list if the helper isn't available in your runtime version. That's how the demo proves `tally()` is a real RPC surface and not a REST shim.
+`rpcSurfaceNames()` uses `rpcSurface()` from the runtime to enumerate the actor's callable methods, falling back to a static list if the helper isn't available in your runtime version. That's how the demo proves `tally()` is a real RPC surface and not a REST shim.
 
 ---
 
