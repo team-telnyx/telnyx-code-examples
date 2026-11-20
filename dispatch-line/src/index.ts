@@ -88,6 +88,12 @@ const STOPWORDS = new Set([
 /** Ed25519 signatures older than this are rejected as replays (seconds). */
 const SIGNATURE_MAX_AGE_SECONDS = 300;
 
+/** TTS voice for the dispatch line: Telnyx Ultra ("Morgan - Executive Expert", en-US). */
+const DISPATCH_VOICE = "Telnyx.Ultra.0ee8beaa-db49-4024-940d-c7ea09b590b3";
+
+/** LLM used for job extraction when the heuristic parser misses. Telnyx-hosted. */
+const DEFAULT_JOB_MODEL = "moonshotai/Kimi-K3";
+
 /** Extract a job line ("swap the actuator on north yard door 3") or null. */
 export function parseJob(text: string): ParsedJob | null {
   const verb = JOB_VERB.exec(text);
@@ -196,6 +202,72 @@ async function telnyxPost(env: Env, path: string, body: unknown): Promise<string
   return "ok";
 }
 
+/**
+ * One Telnyx AI Inference chat call; returns the assistant's message content or
+ * null. In demo mode it returns null so the heuristic parser drives (no cost).
+ */
+async function telnyxAIChat(env: Env, model: string, system: string, user: string): Promise<string | null> {
+  if (await demoMode(env)) return null;
+  const apiKey = await env.SECRETS.get("TELNYX_API_KEY");
+  if (!apiKey) {
+    console.error("[dispatch-line] TELNYX_API_KEY not configured — skipping LLM extraction");
+    return null;
+  }
+  try {
+    const res = await fetch("https://api.telnyx.com/v2/ai/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        temperature: 0,
+        max_tokens: 800,
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      console.error(`[dispatch-line] AI chat failed ${res.status}: ${detail.slice(0, 200)}`);
+      return null;
+    }
+    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    return data.choices?.[0]?.message?.content ?? null;
+  } catch (error) {
+    console.error("[dispatch-line] AI chat request failed:", error instanceof Error ? error.message : "unknown");
+    return null;
+  }
+}
+
+/**
+ * Kimi-K3 job extraction fallback: returns a ParsedJob when the transcript is a
+ * job the heuristic parser missed, null otherwise (including any error — the
+ * caller then treats the segment as chit-chat).
+ */
+async function extractJobWithLLM(env: Env, text: string): Promise<ParsedJob | null> {
+  const model = (await readConfig(env, "JOB_MODEL")) ?? DEFAULT_JOB_MODEL;
+  const system =
+    "You are a dispatcher's transcription classifier. Decide if the user's spoken words are a work order. " +
+    'If yes, reply with STRICT JSON only: {"job": "<concise job phrase>", "site": "<location or empty>"} — ' +
+    'e.g. {"job": "actuator swap", "site": "north yard door 3"}. If it is not a work order (greetings, ' +
+    'chit-chat, references to earlier jobs, completion cues), reply {"job": null}. No markdown, no prose.';
+  const raw = await telnyxAIChat(env, model, system, text.trim());
+  if (!raw) return null;
+  try {
+    const stripped = raw.replace(/```(?:json)?/gi, "").trim();
+    const parsed = JSON.parse(stripped) as { job?: unknown; site?: unknown };
+    if (typeof parsed.job !== "string" || !parsed.job.trim()) return null;
+    return {
+      jobText: parsed.job.trim().toLowerCase(),
+      site: typeof parsed.site === "string" ? parsed.site.trim().toLowerCase() : "",
+    };
+  } catch {
+    console.error("[dispatch-line] LLM extraction returned non-JSON:", raw.slice(0, 120));
+    return null;
+  }
+}
+
 const ED25519_SPKI_PREFIX = new Uint8Array([0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00]);
 
 /** Backed by a dedicated ArrayBuffer, so the result is assignable to BufferSource. */
@@ -274,11 +346,11 @@ export class DispatchLine extends Agent<Env, ShiftState> {
     const activeCalls = state.activeCalls.includes(callId) ? state.activeCalls : [...state.activeCalls, callId];
     await this.setState({ shiftId, activeCalls });
     const transcription = await telnyxPost(this.env, `/calls/${encodeURIComponent(callId)}/actions/transcription_start`, {
-      transcription_engine: "Telnyx",
+      transcription_engine: "Deepgram",
       transcription_engine_config: {
-        transcription_engine: "Telnyx",
+        transcription_engine: "Deepgram",
         language: "en",
-        transcription_model: "openai/whisper-large-v3-turbo",
+        transcription_model: "deepgram/nova-3",
       },
     });
     console.log(`[dispatch-line] leg ${callId} transcription armed${greet ? " (greeting queued)" : ""}`);
@@ -286,7 +358,7 @@ export class DispatchLine extends Agent<Env, ShiftState> {
       await telnyxPost(this.env, `/calls/${encodeURIComponent(callId)}/actions/speak`, {
         payload: "Dispatch line. Go ahead with your job.",
         payload_type: "text",
-        voice: "female",
+        voice: DISPATCH_VOICE,
         language: "en-US",
       });
     }
@@ -325,7 +397,8 @@ export class DispatchLine extends Agent<Env, ShiftState> {
     const note = await this.onJobReference(text, segment.callId, segment.seq);
     if (note) return { filed: false, linked: true, closed: note.closed === true, seq: segment.seq };
 
-    const job = parseJob(text);
+    // Heuristic parse first (zero latency); Kimi-K3 only when it misses.
+    const job = parseJob(text) ?? (await extractJobWithLLM(this.env, text));
     if (job) {
       const row: JobRow = {
         shiftId, seq: segment.seq, jobText: job.jobText, site: job.site, status: "open", sourceCallId: segment.callId,
@@ -346,7 +419,7 @@ export class DispatchLine extends Agent<Env, ShiftState> {
     const status = await telnyxPost(this.env, `/calls/${encodeURIComponent(callId)}/actions/speak`, {
       payload: line,
       payload_type: "text",
-      voice: "female",
+      voice: DISPATCH_VOICE,
       language: "en-US",
     });
     return { line, status };

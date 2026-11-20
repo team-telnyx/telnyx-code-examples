@@ -24,9 +24,10 @@ Because the log has to be written *while the truck is still rolling*, the sample
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | `POST` | `/v2/calls/{call_control_id}/actions/answer` | Answer the inbound leg on `call.initiated` |
-| `POST` | `/v2/calls/{call_control_id}/actions/transcription_start` | Start live in-call transcription (`transcription_engine` + `transcription_engine_config`) |
+| `POST` | `/v2/calls/{call_control_id}/actions/transcription_start` | Start live in-call transcription (Deepgram `deepgram/nova-3`) |
 | `POST` | `/v2/calls/{call_control_id}/actions/transcription_stop` | End the transcript window early / on hangup |
-| `POST` | `/v2/calls/{call_control_id}/actions/speak` | Speak the confirmation line on the active leg |
+| `POST` | `/v2/calls/{call_control_id}/actions/speak` | Speak the confirmation line on the active leg (Telnyx Ultra voice) |
+| `POST` | `/v2/ai/chat/completions` | Kimi-K3 job-extraction fallback when the heuristic parser misses |
 | `POST` (inbound) | `/webhooks/telnyx` | Telnyx webhook receiver — `call.initiated`, `call.answered`, `call.transcription`, `call.hangup` |
 
 Webhook event types consumed: `call.initiated`, `call.answered`, `call.transcription`, `call.hangup`.
@@ -106,6 +107,7 @@ CREATE TABLE IF NOT EXISTS shift_log (
 |----------|------|---------|----------|-------------|-----------------|
 | `TELNYX_API_KEY` | `string` | `your_telnyx_api_key_here` | **yes** | TELNYX_API_KEY | — |
 | `TELNYX_PUBLIC_KEY` | `string` | `your_telnyx_public_key_here` | **yes** | TELNYX_PUBLIC_KEY | — |
+| `JOB_MODEL` | `string` | `moonshotai/Kimi-K3` | no | LLM used for job extraction when the heuristic parser misses. Defaults to `moonshotai/Kimi-K3`. | Telnyx-hosted model id from `GET /v2/ai/openai/models` |
 
 `DEMO_MODE` is an optional non-secret config value (default `"true"`). When `true`, every outbound Telnyx REST call is logged instead of sent, and signature verification is skipped with a warning if `TELNYX_PUBLIC_KEY` is unset. Set it to `false` for live calls — for actor projects it must ship as a `[[secrets]]` binding (`telnyx-edge secrets add DEMO_MODE false`), since the Edge runtime does not inject `[env_vars]` into actor environments.
 
@@ -191,8 +193,8 @@ Returns the shift tally straight from SQL plus the actor's RPC surface.
 ### Transcription settings
 
 `transcription_start` is issued with the current Call Control body — a top-level
-`transcription_engine` plus a `transcription_engine_config` object (Telnyx engine,
-English, whisper-large-v3-turbo):
+`transcription_engine` plus a `transcription_engine_config` object (Deepgram engine,
+English, deepgram/nova-3):
 
 ```json
 {
@@ -200,7 +202,7 @@ English, whisper-large-v3-turbo):
   "transcription_engine_config": {
     "transcription_engine": "Telnyx",
     "language": "en",
-    "transcription_model": "openai/whisper-large-v3-turbo"
+    "transcription_model": "deepgram/nova-3"
   }
 }
 ```

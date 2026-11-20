@@ -142,7 +142,7 @@ The switch is a single function in `src/index.ts`:
 
 ```ts
 function demoMode(env: Env): boolean {
-  return (env.DEMO_MODE ?? "true").toLowerCase() !== "false";
+  return (await readConfig(env, "DEMO_MODE")) !== "false";
 }
 ```
 
@@ -205,7 +205,7 @@ curl 'https://<your-edge-deployment>/tally?shift=shift-2026-11-19'
 In demo mode the second request logs:
 
 ```
-[dispatch-line][demo] POST /v2/calls/v3%3Aabc/actions/speak {"payload":"North yard, door 3, actuator swap — logged.","payload_type":"text","voice":"female","language":"en-US"}
+[dispatch-line][demo] POST /v2/calls/v3%3Aabc/actions/speak {"payload":"North yard, door 3, actuator swap — logged.","payload_type":"text","voice":"Telnyx.Ultra.0ee8beaa-db49-4024-940d-c7ea09b590b3","language":"en-US"}
 ```
 
 and the tally route answers:
@@ -317,11 +317,11 @@ export class DispatchLine extends Agent<Env, ShiftState> { ... }
 ```
 POST /v2/calls/{call_control_id}/actions/transcription_start
 {
-  "transcription_engine": "Telnyx",
+  "transcription_engine": "Deepgram",
   "transcription_engine_config": {
-    "transcription_engine": "Telnyx",
+    "transcription_engine": "Deepgram",
     "language": "en",
-    "transcription_model": "openai/whisper-large-v3-turbo"
+    "transcription_model": "deepgram/nova-3"
   }
 }
 ```
@@ -336,7 +336,7 @@ When `greet` is true — set only on `call.answered`, which fires exactly once p
 2. Drop non-final or empty segments.
 3. Persist the raw segment to durable storage under `transcript:<seq>` — every final segment lands in the actor's history exactly once, so each transcription webhook yields one durable entry — but the *log* is what it acts on.
 4. Try `onJobReference()` first: a reference note ("that actuator from this morning — the order came in") attaches to an earlier job before it can be mis-parsed as a new one.
-5. `parseJob(text)` → if it's a job, build a `JobRow` with `status: "open"` and `insertRow()` it.
+5. `parseJob(text)` → if it's a job, build a `JobRow` with `status: "open"` and `insertRow()` it. If the heuristic parser misses, `extractJobWithLLM()` asks Telnyx-hosted `moonshotai/Kimi-K3` (configurable via the `JOB_MODEL` secret) to classify the segment as strict JSON — `{"job": "...", "site": "..."}` or `{"job": null}` — so phrasings like "the forklift's acting up again in bay 2" still file. The LLM runs only on the miss path, so the common case keeps its zero-inference latency, and any LLM failure degrades to chit-chat rather than an error.
 6. On a successful insert, bump `openJobs` and `lastSeq`, then `confirmOverCall()`.
 
 **`confirmOverCall(callId, job)`** — speaks the read-back on the live leg:
@@ -344,7 +344,7 @@ When `greet` is true — set only on `call.answered`, which fires exactly once p
 ```
 POST /v2/calls/{call_control_id}/actions/speak
 { "payload": "North yard, door 3, actuator swap — logged.",
-  "payload_type": "text", "voice": "female", "language": "en-US" }
+  "payload_type": "text", "voice": "Telnyx.Ultra.0ee8beaa-db49-4024-940d-c7ea09b590b3", "language": "en-US" }
 ```
 
 **`onCallHangup(callId)`** — if the leg is in `activeCalls`, fire `transcription_stop` and remove it; otherwise return `"skipped"`. Then return the current tally. No orphaned transcript sessions.
