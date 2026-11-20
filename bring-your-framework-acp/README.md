@@ -13,6 +13,35 @@ It demonstrates the same order-status interaction in two cuts:
 
 The existing examples in this repository are references only. This project does not modify them.
 
+## Architecture
+
+The two cuts are independent: Pipecat handles the phone call, while ACP provides
+the persistent LangGraph agent for messaging and runtime traces.
+
+```mermaid
+flowchart LR
+  Caller[Phone caller] --> Number[Telnyx number]
+  Number --> TeXML[TeXML application]
+  TeXML --> Edge[Telnyx Edge]
+  Edge --> Pipecat[Existing Pipecat loop\nSTT → model → TTS]
+  Pipecat --> Caller
+
+  User[SMS user] --> Profile[Telnyx messaging profile]
+  Profile --> ACP[Agent Control Plane]
+  ACP --> Actor[Persistent Conversation actor]
+  Actor --> LangGraph[Existing LangGraph ReAct loop]
+  LangGraph --> Model[Telnyx model endpoint]
+  Model --> Tool[lookup_order]
+  Tool --> Model
+  Model --> LangGraph
+  LangGraph --> Actor
+  Actor --> Profile
+  Actor -.-> Traces[ACP runtime trace\nrun · model · tool · delivery]
+```
+
+See the full request sequence and deployment details in
+[`ARCHITECTURE.md`](./ARCHITECTURE.md).
+
 ## Why use this example?
 
 This is for a team that already has a working agent loop and wants to put it on
