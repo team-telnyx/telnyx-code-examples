@@ -305,7 +305,7 @@ export class DispatchLine extends Agent<Env, ShiftState> { ... }
 
 **`initialState()`** — zeroed counters, empty `activeCalls`.
 
-**`onCallStart(callId, shiftId)`** — the birth of the day's actor. Ensures the schema, adds the leg to `activeCalls`, then fires the current Call Control transcription body:
+**`onCallStart(callId, shiftId, greet?)`** — the birth of the day's actor. Ensures the schema, adds the leg to `activeCalls`, then fires the current Call Control transcription body:
 
 ```
 POST /v2/calls/{call_control_id}/actions/transcription_start
@@ -320,6 +320,8 @@ POST /v2/calls/{call_control_id}/actions/transcription_start
 ```
 
 This is the in-call transcription primitive: no media download, no post-call batch — segments start arriving on `call.transcription` as the conversation happens.
+
+When `greet` is true — set only on `call.answered`, which fires exactly once per leg in either direction — the actor also speaks the one-shot prompt *"Dispatch line. Go ahead with your job."* so the foreman knows when to talk. Transcription is armed *before* the prompt so nothing said in response is missed.
 
 **`onTranscription(segment)`** — the heart of the sample:
 
@@ -396,7 +398,8 @@ export function dispatchLine(env: Env, shiftId: string): DispatchLine {
 
 | Event | Action |
 |---|---|
-| `call.initiated` | `POST /v2/calls/{id}/actions/answer`, then `line.onCallStart(callId, shiftId)` |
+| `call.initiated` | Inbound: `POST /v2/calls/{id}/actions/answer`; outbound: skip answer (callee answers) — then `line.onCallStart(callId, shiftId)` |
+| `call.answered` | `line.onCallStart(callId, shiftId, greet: true)` — re-arms transcription and speaks the one-shot prompt |
 | `call.transcription` | `toSegment(...)` → `line.onTranscription(segment)` |
 | `call.hangup` | `line.onCallHangup(callId)` |
 | anything else | `{ ok: true, ignored: <type> }` |

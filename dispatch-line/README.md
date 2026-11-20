@@ -76,7 +76,7 @@ Webhook event types consumed: `call.initiated`, `call.answered`, `call.transcrip
 
 Data flow, step by step:
 
-1. `call.initiated` → `answer` the leg → `onCallStart()` → `transcription_start` on the leg → actor born at `shift-YYYY-MM-DD`.
+1. `call.initiated` → `answer` the leg → `onCallStart()` → `transcription_start` on the leg → actor born at `shift-YYYY-MM-DD`. `call.answered` (fires once per leg in either direction) re-arms transcription and speaks the one-shot prompt: *"Dispatch line. Go ahead with your job."*
 2. `call.transcription` → `toSegment()` normalizes the payload → `onTranscription()` → `parseJob()` → one `shift_log` row (idempotent on `(shift_id, seq)`).
 3. Job filed → `confirmOverCall()` → `speak` on the same leg: *"North yard, door 3, actuator swap — logged."*
 4. Non-job segment with a reference cue ("that actuator from this morning") → `onJobReference()` → keyword match against open rows → `linked` row; if the note carries a completion cue ("done", "finished", …) the linked job is closed.
@@ -155,7 +155,7 @@ Telnyx webhook receiver. Verifies the Ed25519 signature over `${telnyx-timestamp
 | Event type | Behavior |
 |------------|----------|
 | `call.initiated` | Answers the leg (inbound only; outbound legs are answered by the callee), calls `onCallStart(callId, shiftId)` → `transcription_start` |
-| `call.answered` | Re-arms `transcription_start` on the answered leg (covers outbound calls and inbound races) |
+| `call.answered` | Re-arms `transcription_start` on the answered leg (covers outbound calls and inbound races) and speaks the one-shot prompt so the foreman knows when to talk |
 | `call.transcription` | Normalizes the segment, calls `onTranscription(segment)` → parse / file / link / speak |
 | `call.hangup` | Calls `onCallHangup(callId)` → `transcription_stop` (or `skipped`) + tally |
 
@@ -180,7 +180,7 @@ Returns the shift tally straight from SQL plus the actor's RPC surface.
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `onCallStart` | `(callId: string, shiftId: string) => Promise<{shiftId, transcription}>` | Registers the active call, starts in-call transcription |
+| `onCallStart` | `(callId: string, shiftId: string, greet?: boolean) => Promise<{shiftId, transcription}>` | Registers the active call, starts in-call transcription, speaks the one-shot prompt when `greet` is set |
 | `onTranscription` | `(segment: TranscriptionSegment) => Promise<{filed, linked, seq}>` | Persists the segment, files or links a job row, speaks the read-back |
 | `confirmOverCall` | `(callId: string, job: ParsedJob) => Promise<{line, status}>` | `speak` the confirmation line on the active leg |
 | `onJobReference` | `(text: string, callId: string, seq: number) => Promise<JobRow \| null>` | Keyword-matches a later note to an open job row |

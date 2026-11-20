@@ -246,9 +246,13 @@ export class DispatchLine extends Agent<Env, ShiftState> {
     return { shiftId: "", openJobs: 0, closedJobs: 0, linkedJobs: 0, lastSeq: 0, activeCalls: [] };
   }
 
-  /** Answer the leg, start in-call transcription, birth the day's actor. */
+  /**
+   * Answer the leg, start in-call transcription, birth the day's actor.
+   * `greet` is set only on `call.answered` (once per leg in either direction)
+   * so the caller hears one prompt telling them the line is live.
+   */
   @rpc({ description: "Answer the leg, start in-call transcription, register the active call." })
-  async onCallStart(callId: string, shiftId: string): Promise<{ shiftId: string; transcription: string }> {
+  async onCallStart(callId: string, shiftId: string, greet = false): Promise<{ shiftId: string; transcription: string }> {
     await this.ensureSchema();
     const state = await this.getState();
     const activeCalls = state.activeCalls.includes(callId) ? state.activeCalls : [...state.activeCalls, callId];
@@ -261,6 +265,15 @@ export class DispatchLine extends Agent<Env, ShiftState> {
         transcription_model: "openai/whisper-large-v3-turbo",
       },
     });
+    console.log(`[dispatch-line] leg ${callId} transcription armed${greet ? " (greeting queued)" : ""}`);
+    if (greet) {
+      await telnyxPost(this.env, `/calls/${encodeURIComponent(callId)}/actions/speak`, {
+        payload: "Dispatch line. Go ahead with your job.",
+        payload_type: "text",
+        voice: "female",
+        language: "en-US",
+      });
+    }
     return { shiftId, transcription };
   }
 
@@ -282,6 +295,7 @@ export class DispatchLine extends Agent<Env, ShiftState> {
 
     const text = segment.transcript.trim();
     if (!text || !segment.isFinal) return { filed: false, linked: false, seq: segment.seq };
+    console.log(`[dispatch-line] transcript[${segment.seq}]: ${text.slice(0, 120)}`);
 
     // Durable message history for EVERY final segment — keyed by seq, so a
     // redelivered webhook overwrites in place instead of duplicating.
@@ -533,7 +547,8 @@ async function handleWebhook(request: Request, env: Env): Promise<Response> {
   if (type === "call.answered") {
     // Outbound legs reach the actor here; also re-arms transcription for
     // inbound legs whose first transcription_start raced the answer.
-    return json({ ok: true, ...(await line.onCallStart(callId, shiftId)) });
+    // This is the one-per-leg moment to greet the caller.
+    return json({ ok: true, ...(await line.onCallStart(callId, shiftId, true)) });
   }
   if (type === "call.transcription") {
     const segment = toSegment(payload, event.data?.id ?? "", shiftId);
