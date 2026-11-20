@@ -155,13 +155,29 @@ export function toSegment(payload: Record<string, unknown>, eventId: string, shi
   };
 }
 
-function demoMode(env: Env): boolean {
-  return (env.DEMO_MODE ?? "true").toLowerCase() !== "false";
+/**
+ * Config values ship as [[secrets]] bindings; the Edge runtime does not
+ * inject plain env properties for them in actor contexts, so read via the
+ * SECRETS interface first and fall back to a direct env property if set.
+ */
+async function readConfig(env: Env, key: string): Promise<string | undefined> {
+  const direct = (env as unknown as Record<string, unknown>)[key];
+  if (typeof direct === "string" && direct !== "") return direct;
+  try {
+    const value = await env.SECRETS.get(key);
+    return value || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function demoMode(env: Env): Promise<boolean> {
+  return (await readConfig(env, "DEMO_MODE")) !== "false";
 }
 
 /** Single Telnyx REST surface used by both the fetch handler and the actor. */
 async function telnyxPost(env: Env, path: string, body: unknown): Promise<string> {
-  if (demoMode(env)) {
+  if (await demoMode(env)) {
     console.log(`[dispatch-line][demo] POST /v2${path} ${JSON.stringify(body)}`);
     return "demo";
   }
@@ -205,7 +221,7 @@ async function verifySignature(raw: string, headers: Headers, env: Env): Promise
     // exactly like an unset key — demo mode skips verification with a
     // warning, live mode rejects so an unprovisioned deployment can never
     // accept unsigned webhooks.
-    if (!demoMode(env)) {
+    if (!(await demoMode(env))) {
       console.error("[dispatch-line] TELNYX_PUBLIC_KEY secret unavailable — rejecting in live mode");
       return false;
     }
@@ -213,7 +229,7 @@ async function verifySignature(raw: string, headers: Headers, env: Env): Promise
       error instanceof Error ? error.message : "unknown");
   }
   if (!publicKey) {
-    if (demoMode(env)) {
+    if (await demoMode(env)) {
       console.warn("[dispatch-line][demo] TELNYX_PUBLIC_KEY unset — skipping signature verification");
       return true;
     }
