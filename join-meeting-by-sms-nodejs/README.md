@@ -55,9 +55,11 @@ Telnyx is an **AI Communications Infrastructure** platform - voice, messaging, S
 1. You text a meeting link to your Telnyx number.
 2. The server verifies the webhook signature and checks the text came from `OWNER_PHONE_NUMBER`.
 3. It creates a meeting session. The inbound message ID is the idempotency key, so a webhook retry cannot add a second bot.
-4. The bot joins as `BOT_NAME` and posts `CHAT_ON_ENTER` in the meeting chat.
+4. The bot joins as `BOT_NAME` and posts `CHAT_ON_ENTER` in the meeting chat (Google Meet, Zoom, and Teams; Webex has no meeting chat, so the announcement is skipped).
 5. The server texts you when the bot reaches the waiting room and when it is in.
-6. When the session ends, it fetches the summary artifact and texts you the TL;DR.
+6. When the session ends, it checks `joined_at`. If the bot was admitted, it fetches the summary artifact and texts you the TL;DR. If not, it texts you that the bot was never admitted.
+
+> **Beta and billing:** [Telnyx Meeting is in beta](https://developers.telnyx.com/docs/meeting). Bot presence and transcription are billed per minute, starting when the bot begins joining and including time in the waiting room. `summarize_on_end` is a separate billed request. Sessions are also recorded automatically, and recordings are kept free for 7 days. See [Meeting pricing](https://developers.telnyx.com/docs/meeting/pricing).
 
 ## Environment Variables
 
@@ -70,7 +72,7 @@ Copy `.env.example` to `.env` and fill in:
 | `TELNYX_PHONE_NUMBER` | `string` | `+15555550100` | **yes** | SMS-enabled Telnyx number that receives your texts and sends replies | [Portal](https://portal.telnyx.com/numbers/my-numbers) · [CLI: `telnyx number-orders create`](https://developers.telnyx.com/development/cli) |
 | `OWNER_PHONE_NUMBER` | `string` | `+15555550123` | **yes** | Your mobile number. Only texts from this number can send the bot into a meeting | Your phone |
 | `BOT_NAME` | `string` | `Your Bot` | no | Name on the bot's tile (default `Meeting Bot`) | - |
-| `CHAT_ON_ENTER` | `string` | `Hi all - I am a bot attending on behalf of a teammate...` | no | Message the bot posts in meeting chat when it joins | - |
+| `CHAT_ON_ENTER` | `string` | `Hi all - I am a bot attending on behalf of a teammate...` | no | Message the bot posts in meeting chat when it joins. Skipped on Webex, which has no meeting chat | - |
 | `ASSISTANT_ID` | `string` | `assistant-...` | no | Telnyx AI Assistant that lets the bot speak and answer questions | [Portal](https://portal.telnyx.com/ai-assistants) |
 | `CAMERA_IMAGE_URL` | `string` | `https://example.com/bot.jpg` | no | Public HTTPS JPEG shown as the bot's camera tile | - |
 | `PORT` | `number` | `3000` | no | Port the Express server listens on (default `3000`) | - |
@@ -170,8 +172,10 @@ curl http://localhost:3000/health
 | Server exits with `Missing required environment variable` | `.env` is incomplete | Fill in `TELNYX_API_KEY`, `TELNYX_PUBLIC_KEY`, `TELNYX_PHONE_NUMBER`, `OWNER_PHONE_NUMBER` |
 | Every webhook returns `401` | Wrong public key, or the body was parsed before verification | Copy the Public Key from Keys & Credentials. Do not add a global `express.json()` ahead of the webhook route |
 | Texts arrive but nothing happens | Sender is not `OWNER_PHONE_NUMBER` (logged as `[skip]`) | Use E.164 format on both sides and text from the owner number |
-| "I could not send the bot to that meeting" | Session create failed (bad link, unsupported platform, or `chat_on_enter` rejected) | Check the server log for the API error. Chat is not supported on every platform; clear `CHAT_ON_ENTER` to test |
-| Bot sits at the waiting room | The host has not admitted it | Admit "BOT_NAME" from the participant list. You get a text when it is admitted |
+| "I could not send the bot to that meeting" | Session create failed (bad link or a meeting URL the service does not recognize) | Check the server log for the API error. Supported links: Google Meet, Zoom, Teams, Webex |
+| Bot joined a Webex meeting but did not announce itself | Webex has no meeting chat, so `chat_on_enter` is not sent | Tell the host yourself, or speak through an attached Assistant (`ASSISTANT_ID`) |
+| Bot sits at the waiting room | The host has not admitted it | Admit the bot (its `BOT_NAME`) from the participant list. You get a text when it is admitted. Waiting-room time is billed |
+| "your bot was never admitted" text | The session timed out or was cancelled without admission. These end as `ended` with `joined_at: null` | Resend the link and have the host admit the bot |
 | No TL;DR text | Meeting ended before a transcript existed, or the summary failed | The server texts a fallback message. Fetch artifacts with `GET /v2/meeting_sessions/{id}/artifacts` |
 | Bot joins but you get no replies | Sender number not registered for US SMS | Complete 10DLC or toll-free verification for `TELNYX_PHONE_NUMBER` |
 | Status texts stop after a restart | Watched sessions are held in memory | Persist session IDs in a database and resume watching on boot |
@@ -197,6 +201,8 @@ This example is part of the [Telnyx Code Examples](https://github.com/team-telny
 
 ## Resources
 
+- [Telnyx Meeting Overview (beta)](https://developers.telnyx.com/docs/meeting)
+- [Meeting Pricing](https://developers.telnyx.com/docs/meeting/pricing)
 - [Receive a Message Guide](https://developers.telnyx.com/docs/messaging/messages/receive-message)
 - [Messaging API Reference](https://developers.telnyx.com/api-reference/messages/send-a-message)
 - [Node.js SDK](https://developers.telnyx.com/development/sdk/node)
