@@ -1,0 +1,14 @@
+{
+  "name": "bring-your-framework-langgraph",
+  "kind": "code",
+  "model": "zai-org/GLM-5.3-Flash",
+  "entry": "src/index.ts",
+  "tools": [],
+  "web": true,
+  "secrets": [
+    "TELNYX_API_KEY",
+    "TELNYX_PUBLIC_KEY",
+    "DEMO_CUSTOMER_PHONE",
+    "DEMO_CUSTOMER_NAME"
+  ]
+}

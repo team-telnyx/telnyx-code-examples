@@ -1,0 +1,20 @@
+{
+  "name": "concierge-diary",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Telnyx Edge sample: a durable concierge diary actor that books its own follow-up calls from AI Assistant post-conversation webhooks.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "smoke": "npx tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

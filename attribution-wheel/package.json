@@ -1,0 +1,20 @@
+{
+  "name": "attribution-wheel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Durable AI Gateway spend attribution actor \u2014 per-service, per-tenant, per-env token spend with a 7-day rolling baseline, breach paging, and recovery.",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "deploy": "telnyx-edge ship",
+    "types": "telnyx-edge types",
+    "test": "npx tsx smoke_test.ts"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.15.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

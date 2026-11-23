@@ -1,0 +1,69 @@
+name = "patient-access-hospital-demo"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[edge_compute]
+func_name = "patient-access-hospital-demo"
+
+# The demo's durable state (patient, appointments, calls, SMS, escalations,
+# settings) lives in this one stateful actor. In mock mode nothing external
+# is touched; live mode uses the TELNYX binding + secrets for calls and SMS.
+[[actors]]
+binding = "DEMO"
+type = "DemoAgent"
+
+# The auth gate: synthetic staff accounts (hashed) + active sessions.
+[[actors]]
+binding = "ACCOUNTS"
+type = "AccountsActor"
+
+[telnyx]
+binding = "TELNYX"
+
+# ── Rebranding (easy logo swap per DEV-1358) ──────────────────────────────
+# Change these values + the logo SVG block in src/ui.ts to rebrand the demo
+# for a customer. No other files need editing.
+#
+# ── Live mode (strictly opt-in) ───────────────────────────────────────────
+# DEMO_MODE=live additionally requires every value below to be filled AND the
+# TELNYX_API_KEY / TELNYX_PUBLIC_KEY secrets registered on the account:
+#   telnyx-edge secrets add TELNYX_API_KEY "<key>"
+# Missing values fail closed (live features refused with a clear message).
+[env_vars]
+BRAND_NAME = "Winderval Medical"
+BRAND_ACCENT = "#0d9488"
+DEMO_MODE = "mock"
+TELNYX_CONNECTION_ID = ""
+TELNYX_ASSISTANT_ID = ""
+FROM_NUMBER = ""
+DEMO_TARGET_PHONE = ""
+STAFF_PHONE = ""
+PUBLIC_BASE_URL = ""
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "TELNYX_PUBLIC_KEY"
+name = "TELNYX_PUBLIC_KEY"
+
+[[secrets]]
+binding = "STAFF_PHONE"
+name = "STAFF_PHONE"
+
+[[secrets]]
+binding = "DEMO_MODE"
+name = "DEMO_MODE"
+
+[[secrets]]
+binding = "TELNYX_CONNECTION_ID"
+name = "TELNYX_CONNECTION_ID"
+
+[[secrets]]
+binding = "TELNYX_ASSISTANT_ID"
+name = "TELNYX_ASSISTANT_ID"
+
+[[secrets]]
+binding = "FROM_NUMBER"
+name = "FROM_NUMBER"

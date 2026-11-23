@@ -1,0 +1,15 @@
+{
+  "name": "acp-sales",
+  "kind": "configuration",
+  "model": "zai-org/GLM-5.3-Flash",
+  "instructions": "instructions.md",
+  "channels": [],
+  "tools": [],
+  "email": true,
+  "memory": {
+    "type": "agent_memory",
+    "namespace": "default",
+    "profile": "{{conversation}}"
+  },
+  "secrets": ["TELNYX_PUBLIC_KEY"]
+}

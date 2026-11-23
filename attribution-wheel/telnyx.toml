@@ -1,0 +1,54 @@
+name = "attribution-wheel"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+# ── Stateful actor: one wheel per token group ───────────────────────────────
+[[actors]]
+binding = "WHEELS"
+type = "AttributionWheel"
+
+# ── Telnyx API binding: pre-authenticated SDK client (env.TELNYX) ──────────
+# Used inside the actor for the zero-credential on-call page:
+#   this.env.TELNYX.messages.send({ to, from, text })
+[telnyx]
+binding = "TELNYX"
+
+# ── SQL ledger binding (spend_daily + spend_dims tables) ───────────────────
+[edge_compute]
+func_id = "cbf65b7a-650f-4e0d-9a04-fdd5e924f17a"
+func_name = "attribution-wheel"
+
+[storage.sqldb.WHEEL_DB]
+id = "ea506bbf-84b3-4528-9eed-ddb30e334ffa"
+
+# ── Secrets ─────────────────────────────────────────────────────────────────
+# NOTE: the Edge runtime does NOT inject [env_vars] for actor projects, so all
+# config ships as [[secrets]] bindings and is read via SECRETS.get() (with a
+# plain env-var fallback in readConfig()).
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name = "TELNYX_API_KEY"
+
+[[secrets]]
+binding = "ATTRIBUTION_DEMO_MODE"
+name = "ATTRIBUTION_DEMO_MODE"
+
+[[secrets]]
+binding = "ATTRIBUTION_ALERT_SHARE_PCT"
+name = "ATTRIBUTION_ALERT_SHARE_PCT"
+
+[[secrets]]
+binding = "ATTRIBUTION_SPIKE_MULTIPLE"
+name = "ATTRIBUTION_SPIKE_MULTIPLE"
+
+[[secrets]]
+binding = "ATTRIBUTION_ONCALL_E164"
+name = "ATTRIBUTION_ONCALL_E164"
+
+[[secrets]]
+binding = "ATTRIBUTION_DEMO_NUMBER"
+name = "ATTRIBUTION_DEMO_NUMBER"
+
+[[secrets]]
+binding = "AI_GATEWAY_MODEL"
+name = "AI_GATEWAY_MODEL"

@@ -1,0 +1,61 @@
+name = "concierge-diary"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[edge_compute]
+func_id   = "<func-uuid>"
+func_name = "concierge-diary"
+
+# One durable diary entry per conversation.
+[[actors]]
+binding = "DIARY"
+type    = "DiaryActor"
+
+# Used only in live mode (DEMO_MODE=false) for the scheduled-events REST calls.
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+# Shared secret the assistant's diary webhook tool sends as
+# `Authorization: Bearer <secret>` (or `X-Diary-Token`). Required in live mode.
+[[secrets]]
+binding = "DIARY_WEBHOOK_SECRET"
+name    = "DIARY_WEBHOOK_SECRET"
+
+# Config knobs are declared as secrets because env_vars may not reach the actor
+# runtime on current edge runtimes; setting() reads secrets first and falls
+# back to env properties for local development.
+[[secrets]]
+binding = "TELNYX_ASSISTANT_ID"
+name    = "TELNYX_ASSISTANT_ID"
+
+[[secrets]]
+binding = "TELNYX_FROM_NUMBER"
+name    = "TELNYX_FROM_NUMBER"
+
+[[secrets]]
+binding = "CLINIC_NAME"
+name    = "CLINIC_NAME"
+
+[[secrets]]
+binding = "DEMO_MODE"
+name    = "DEMO_MODE"
+
+[[secrets]]
+binding = "DIARY_SWEEP_SECONDS"
+name    = "DIARY_SWEEP_SECONDS"
+
+# Zero-credential Telnyx API binding, used for the "your callback is booked" SMS.
+[telnyx]
+binding = "TELNYX"
+
+# Diary table: (conversation_id, patient, callback_at, status, event_id).
+[storage.sqldb.DIARY_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+TELNYX_ASSISTANT_ID = "<your_assistant_id>"
+TELNYX_FROM_NUMBER  = "+1555XXXXXXXX"
+CLINIC_NAME         = "Northside Imaging"
+DEMO_MODE           = "true"
+DIARY_SWEEP_SECONDS = "120"
