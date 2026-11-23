@@ -1,0 +1,27 @@
+{
+  "name": "patient-access-hospital-demo",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Synthetic patient-access demo for hospital sales, running as a Telnyx Edge Compute function: an AI voice agent reschedules a missed appointment and warm-transfers a medical question to staff. Mock mode by default.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "telnyx-edge dev",
+    "demo": "telnyx-edge dev",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "ship": "telnyx-edge ship"
+  },
+  "dependencies": {
+    "@telnyx/edge-runtime": "^0.16.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~5.9.2",
+    "vitest": "^3.2.7"
+  }
+}

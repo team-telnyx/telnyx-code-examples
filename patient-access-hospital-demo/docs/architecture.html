@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Patient Access Demo — Architecture</title>
+<style>
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 32px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+  .diagram { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; max-width: 1200px; box-shadow: 0 1px 2px rgba(15,23,42,.05); }
+</style>
+</head>
+<body>
+<h1>Patient Access Demo — Architecture</h1>
+<p class="sub">Telnyx Edge Compute function · two stateful actors (DemoAgent demo + AccountsActor auth) · mock mode by default, live mode opt-in · Winderval Medical is a fictional brand</p>
+<div class="diagram">
+<div class="mermaid">
+flowchart LR
+  subgraph hospital["Hospital staff & patient (synthetic)"]
+    PAT("Patient phone<br/>+1 (555) 555-0123<br/>Jordan Rivera")
+    STAFF("Nurse line<br/>+1 (555) 555-0188<br/>Nurse Priya")
+  end
+
+  subgraph edge["Telnyx Edge Compute — patient-access-hospital-demo"]
+    FN("Edge function — src/index.ts<br/>fetch handler<br/>Serves the UI (one HTML file)<br/>/api/auth/* → accounts actor<br/>/api/state · /api/demo/* · /api/settings<br/>/api/webhooks/telnyx (live only)")
+    AGENT("Stateful actor — DemoAgent<br/>durable state: patient, appointments,<br/>slots, calls+events, SMS, escalations,<br/>settings, phase<br/>rpc: snapshot · startDemo · stopDemo<br/>reset · updateSettings · applyCallEvent")
+    DOMAIN("Domain logic (framework-free)<br/>slots · clinic store · escalation policy<br/>transfer payload · SMS · settings")
+    DRIVERS("CallDriver seam<br/>MockCallDriver (default)<br/>TelnyxCallDriver (live)")
+    AGENT --- DOMAIN
+    AGENT --- DRIVERS
+
+    ACCOUNTS("Stateful actor — AccountsActor<br/>synthetic staff accounts (hashed)<br/>+ active sessions (8h TTL)<br/>rpc: signUp · signIn<br/>· checkToken · signOut")
+  end
+
+  FN --- ACCOUNTS
+  FN --- AGENT
+
+  subgraph telnyx["Telnyx products (live mode only)"]
+    VA("Voice AI / AI Assistants<br/>assistant id + per-call instructions<br/>+ dynamic variables + transfer tool")
+    CC("Call Control<br/>POST /v2/calls (voice AI connection)<br/>webhooks: call.initiated, call.answered,<br/>conversation events, hangup")
+    MSG("Messaging API<br/>POST /v2/messages (SMS confirm)")
+  end
+
+  DRIVERS -->|"live: places real calls"| VA
+  VA --- CC
+  CC -->|"webhooks (Ed25519 verified)"| FN
+  AGENT -->|"live: sends real SMS"| MSG
+  CC -->|"outbound call"| PAT
+  CC -->|"warm transfer (single direct bridge)"| STAFF
+  MSG -->|"confirmation SMS"| PAT
+
+  UI("Browser — Winderval Medical portal<br/>scheduling · patient record · settings<br/>polls /api/state every 1s")
+  FN -->|"HTML"| UI
+  UI -->|"fetch /api/state + actions"| FN
+
+  style PAT fill:#f0fdfa,stroke:#0d9488
+  style STAFF fill:#f0fdfa,stroke:#0d9488
+  style VA fill:#fefce8,stroke:#a16207
+  style CC fill:#fefce8,stroke:#a16207
+  style MSG fill:#fefce8,stroke:#a16207
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "default", themeVariables: { primaryColor: "#f0fdfa", primaryBorderColor: "#0d9488", lineColor: "#475569" }, flowchart: { htmlLabels: true } });
+</script>
+</body>
+</html>
