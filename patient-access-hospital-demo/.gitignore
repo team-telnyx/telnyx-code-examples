@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+
+# telnyx edge dev stack (local actor state, docker compose files)
+.telnyx/
+
+# env files with secrets (placeholders-only .env.example IS committed)
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+*.tsbuildinfo
