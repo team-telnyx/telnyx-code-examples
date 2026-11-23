@@ -143,8 +143,8 @@ docs/                 API contract, architecture + diagram, demo script,
 
 ## API
 
-See `docs/API.md`. Demo-day operations: `RUNBOOK.md`. The 4-minute recording
-script: `DEMO_SCRIPT.md`.
+See `docs/API.md` and `RUNBOOK.md` for the API contract and demo-day
+operations.
 
 ## Why Telnyx
 
