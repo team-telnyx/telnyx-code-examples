@@ -3,8 +3,8 @@
   "description": "Production-ready code examples for Telnyx AI Communications Infrastructure.",
   "homepage": "https://developers.telnyx.com",
   "repository": "https://github.com/team-telnyx/telnyx-code-examples",
-  "generated_at": "2026-11-10T03:25:28Z",
-  "example_count": 589,
+  "generated_at": "2026-11-23T21:15:33Z",
+  "example_count": 590,
   "examples": [
     {
       "folder": "route-phone-calls-to-ai-agent-python",
@@ -2606,6 +2606,15 @@
       "language": "python",
       "framework": "flask",
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/x402-usdc-account-funder-python"
+    },
+    {
+      "folder": "signaldesk",
+      "title": "SignalDesk — AI Incident Response over SMS",
+      "description": "A Next.js operations desk: incident reports arrive over Telnyx SMS, an AI Gateway model classifies them, operators triage in a dashboard, and subscribers get status updates by text.",
+      "product": "sms",
+      "language": "nodejs",
+      "framework": "nextjs",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/signaldesk"
     },
     {
       "folder": "branded-caller-id-manager-python",

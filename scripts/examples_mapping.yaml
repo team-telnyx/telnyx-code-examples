@@ -1768,6 +1768,12 @@ examples:
     framework: flask
     folder: x402-usdc-account-funder-python
 
+  - product: sms
+    use_case: incident-response-desk
+    language: nodejs
+    framework: nextjs
+    folder: signaldesk
+
   - product: voice
     use_case: branded-caller-id-manager
     language: python
