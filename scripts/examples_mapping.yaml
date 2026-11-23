@@ -3652,7 +3652,18 @@ examples:
     language: typescript
     framework: edge
     folder: dispatch-line
+
+  - product: ai
+    use_case: "auto-generated-from-linear"
+    language: typescript
+    framework: edge
     folder: fluency-lab
+
+  - product: ai
+    use_case: patient-access-hospital-demo
+    language: typescript
+    framework: edge
+    folder: patient-access-hospital-demo
 
   - product: ai
     use_case: acp-agent-fleet

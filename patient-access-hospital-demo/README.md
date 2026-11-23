@@ -10,6 +10,9 @@ live at every step.
 
 **Product message: Telnyx builds it, then the hospital runs it.**
 
+This example demonstrates **AI Communications Infrastructure** for a patient
+access workflow.
+
 > All patients, phone numbers, and data are fictional. Architecture and
 > diagram: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (rendered:
 > `docs/architecture.html`).
@@ -142,3 +145,39 @@ docs/                 API contract, architecture + diagram, demo script,
 
 See `docs/API.md`. Demo-day operations: `RUNBOOK.md`. The 4-minute recording
 script: `DEMO_SCRIPT.md`.
+
+## Why Telnyx
+
+Telnyx provides the phone number, Voice AI assistant, call control, Edge
+Compute webhook, and SMS confirmation path in one communications platform.
+This example keeps the patient workflow in a single TypeScript application so
+the scheduling write-back and confirmation message can be tested together.
+
+## Agent discovery
+
+The live assistant uses a single `reschedule_clinic_appointment` tool after
+identity verification and explicit confirmation. The tool endpoint validates
+the patient and matches the requested time against the currently available
+runtime slots. A stale or fabricated `slot_id` is ignored when the spoken ISO
+time still identifies a valid offered slot.
+
+## Troubleshooting
+
+- If a live call reaches the assistant but does not update the appointment,
+  inspect the tool call arguments and confirm that `new_time` is one of the
+  slots currently shown by the app. The webhook returns a clear 422 response
+  for unavailable times.
+- If the tool URL returns `not found`, verify that the assistant points to the
+  deployed function URL, not an old tunnel URL, and that the path is exactly
+  `/api/voice/reschedule`.
+- If SMS is not delivered, verify the sender number, destination formatting,
+  and messaging registration requirements in `RUNBOOK.md`.
+
+## Related examples
+
+- [`patient-agent`](../patient-agent/README.md) — a smaller Edge Compute
+  patient workflow with an AI assistant.
+- [`ai-appointment-booking-sms-flow-python`](../ai-appointment-booking-sms-flow-python/README.md)
+  — appointment booking with SMS notifications.
+- [`edge-voice-agent-holds-call`](../edge-voice-agent-holds-call/README.md)
+  — a voice agent that coordinates a live call while work is completed.

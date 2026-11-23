@@ -45,7 +45,13 @@ export function buildRescheduleToolConfig(url: string): RescheduleToolConfig {
 }
 
 export function slotMatchesToolInput(input: { slotId?: string; newTime?: string }, slots: Slot[], find: (text: string, candidates: Slot[]) => Slot | null): Slot | null {
-  if (input.slotId) return slots.find((slot) => slot.id === input.slotId) ?? null;
+  if (input.slotId) {
+    const byId = slots.find((slot) => slot.id === input.slotId);
+    if (byId) return byId;
+  }
   const newTime = (input.newTime ?? "").trim();
-  return newTime ? find(newTime, slots) : null;
+  if (!newTime) return null;
+  const normalized = newTime.replace(" ", "T").slice(0, 16);
+  const byIso = slots.find((slot) => slot.startsAtIso.slice(0, 16) === normalized);
+  return byIso ?? find(newTime, slots);
 }
