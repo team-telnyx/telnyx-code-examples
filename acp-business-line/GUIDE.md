@@ -105,11 +105,13 @@ There is no code to write and nothing to build on camera — every shot is a fil
 | 2 | *"This is the entire agent — two files."* | `cat agent.json instructions.md` |
 | 3 | Run one intake locally | T1: `telnyx-acp dev` · T2: `telnyx-acp chat --local` |
 | 4 | *"Deploy is a revision away."* (already deployed — show the plan, never wait on a build) | `telnyx-acp deploy --dry-run` |
+| 5 | Place the live call from a second phone | dial `+15072291272` (or run `./demo-call.sh` — the agent's line answers a scripted TTS caller and runs the same intake with no second phone) |
 | 5 | Place the live call from a second phone | dial `+15072291272` |
 | 6 | Text the line | `telnyx-acp text "Hi, I need a checkup Thursday morning"` |
 | 7 | *"Here is everything it did."* | `telnyx-acp logs --since 5m` then `telnyx-acp traces <number-printed-by-the-text>` |
 | 8 | *"One agent, calls and texts, with no application code."* | — |
 
+Notes: the deploy happened before recording (revision `8e2c57f2bf3f` is live; a revision build takes about four minutes, so show the command and cut the wait in the edit); `logs --tail` shows only the function's request lines live, so follow the call with `logs --tail`, then read the per-turn detail after with `logs --since 5m | grep voiceTurn`. Record call audio on a second device, review for credentials or personal information, and check product claims against the [current docs](https://developers.telnyx.com/docs/agents) before publishing.
 Notes: the deploy happened before recording (revision `87e7c065a907` is live); if you want deploy visible in the cut, record a real `telnyx-acp deploy` separately and speed it up in the edit. Record call audio on a second device, review for credentials or personal information, and check product claims against the [current docs](https://developers.telnyx.com/docs/agents) before publishing.
 
 ## Beta guardrails

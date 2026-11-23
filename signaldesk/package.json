@@ -1,0 +1,48 @@
+{
+  "name": "signaldesk",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:up": "docker run -d --name signaldesk-db -p 54329:5432 -e POSTGRES_PASSWORD=signaldesk -e POSTGRES_DB=signaldesk -v signaldesk-db:/var/lib/postgresql/data postgres:16-alpine",
+    "db:down": "docker rm -f signaldesk-db",
+    "seed": "npx tsx scripts/seed.ts",
+    "hash-password": "npx tsx scripts/hash-password.ts"
+  },
+  "dependencies": {
+    "@vercel/connect": "^2.9.4",
+    "ai": "^7.0.177",
+    "dotenv": "^18.0.10",
+    "drizzle-orm": "^0.45.4",
+    "next": "16.4.6",
+    "next-auth": "^5.0.0-beta.32",
+    "postgres": "^4.1.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "telnyx": "^7.31.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "4.3.3",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
+    "tailwindcss": "4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.1.1"
+  }
+}

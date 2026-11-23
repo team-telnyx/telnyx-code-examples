@@ -25,6 +25,7 @@ Each example's README has a Quick Start with the exact install/run commands for 
 ---
 
 <details open>
+<summary><h2>Voice AI</h2> <em>(162 examples)</em></summary>
 <summary><h2>Voice AI</h2> <em>(163 examples)</em></summary>
 
 Build voice applications with [Telnyx Voice AI](https://telnyx.com/products/voice-ai-agents) - IVR menus, call recording, conferencing, WebRTC, and AI-powered call routing.
@@ -401,6 +402,7 @@ Send, track, and automate email workflows with the [Telnyx Email API](https://te
 </details>
 
 <details open>
+<summary><h2>AI Assistants</h2> <em>(176 examples)</em></summary>
 <summary><h2>AI Assistants</h2> <em>(179 examples)</em></summary>
 <summary><h2>AI Assistants</h2> <em>(181 examples)</em></summary>
 
@@ -571,6 +573,7 @@ Create, manage, and chat with [Telnyx AI Assistants](https://telnyx.com/ai-assis
 | [semantic-search-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/semantic-search-python/README.md) | Python | Semantic Search — index support tickets via Telnyx embeddings API and find similar issues by meaning, not keywords. Includes a bundled sample ticket dataset. |
 | [shipment-agent](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/shipment-agent/README.md) | Python | A durable AI shipment agent that proactively communicates with customers across carriers and status changes via SMS and Voice. |
 | [show-wrap-desk](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/show-wrap-desk/README.md) | Typescript | A durable AI agent that transcribes, chapterizes, writes show notes, and cuts a trailer for podcast episodes — surviving crashes between every stage. |
+| [signaldesk](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/signaldesk/README.md) | TypeScript | AI incident-response desk: incident reports arrive over Telnyx SMS, Vercel AI Gateway classifies them via Telnyx-hosted `zai/glm-5.3-flash`, operators triage in a Next.js dashboard, and subscribers get status updates by text. |
 | [sql-natural-language-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sql-natural-language-python/README.md) | Python | AI SQL Natural Language — turn plain-English questions into validated SQL with schema context via Telnyx AI Inference. Includes a sample dataset for live execution. |
 | [storage-voicemail-archive-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/storage-voicemail-archive-python/README.md) | Python | Storage Voicemail Archive - record voicemails to Telnyx Cloud Storage with search. |
 | [sub-agent-orchestrator-actor](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/sub-agent-orchestrator-actor/README.md) | Typescript | A persistent parent actor that spawns child actors for parallel transcription jobs, tracks their lifecycle, resumes interrupted runs without redoing finished work, persists a per-file scorecard to KV, and self-cleans on completion — built on @telnyx/edge-runtime 0.15.2. |

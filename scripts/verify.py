@@ -128,9 +128,19 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
     # --- Check for committed .env files ---
     env_file = folder_path / ".env"
     if env_file.exists():
-        errors.append(
-            "SECURITY: .env file found (only .env.example should be committed)"
-        )
+        # A local .env on disk is normal dev workflow when it is git-ignored;
+        # only flag .env files that are actually tracked by git (committed).
+        rel_env = str(env_file.relative_to(REPO_ROOT))
+        tracked = subprocess.run(
+            ["git", "ls-files", "--", rel_env],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        if tracked:
+            errors.append(
+                "SECURITY: .env file is committed (only .env.example should be committed)"
+            )
 
     # --- README checks ---
     readme_path = folder_path / "README.md"
@@ -182,6 +192,19 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
                 pass
 
         elif language == "acp":
+            try:
+                spec = json.loads(code_path.read_text())
+            except (ValueError, OSError) as exc:
+                errors.append(f"Invalid JSON in {code_file}: {exc}")
+            else:
+                instructions_rel = spec.get("instructions", "")
+                if instructions_rel:
+                    if not (folder_path / instructions_rel).exists():
+                        errors.append(
+                            f"agent.json references missing instructions file: {instructions_rel}"
+                        )
+                if spec.get("kind") != "configuration":
+                    errors.append("agent.json: expected kind=configuration for acp examples")
             # Validate the root agent.json, or every project in a fleet
             # workspace (agent-fleet/acp-support/agent.json, ...). Each
             # project's `instructions` path resolves against its own directory.

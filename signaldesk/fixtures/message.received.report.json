@@ -1,0 +1,20 @@
+{
+  "data": {
+    "id": "0ccc7b76-4df5-4c1a-8b0c-6c1e4d9f8a01",
+    "event_type": "message.received",
+    "timestamp": "2026-11-18T16:05:00.000Z",
+    "payload": {
+      "id": "2b1d7a01-c9a5-4a04-a9db-7b1f5a0c6e01",
+      "from": {
+        "phone_number": "+18005550123",
+        "carrier": "Telnyx"
+      },
+      "to": [
+        { "phone_number": "+18005550100" }
+      ],
+      "text": "Severe: the checkout API is completely down for all customers, every order is failing with 500 errors since 14:05 UTC.",
+      "received_at": "2026-11-18T16:05:00.123Z",
+      "profile_id": "00000000-0000-4000-8000-000000000000"
+    }
+  }
+}

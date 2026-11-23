@@ -56,3 +56,7 @@ scripts/bot/
 
 # Claude Code session state
 .omo/
+.vercel
+.env
+.env.*
+!.env.example
