@@ -120,9 +120,19 @@ def verify_folder(folder_path: Path, entry: dict, verbose: bool = False) -> list
     # --- Check for committed .env files ---
     env_file = folder_path / ".env"
     if env_file.exists():
-        errors.append(
-            "SECURITY: .env file found (only .env.example should be committed)"
-        )
+        # A local .env on disk is normal dev workflow when it is git-ignored;
+        # only flag .env files that are actually tracked by git (committed).
+        rel_env = str(env_file.relative_to(REPO_ROOT))
+        tracked = subprocess.run(
+            ["git", "ls-files", "--", rel_env],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        if tracked:
+            errors.append(
+                "SECURITY: .env file is committed (only .env.example should be committed)"
+            )
 
     # --- README checks ---
     readme_path = folder_path / "README.md"
