@@ -17,21 +17,35 @@ access workflow.
 > diagram: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (rendered:
 > `docs/architecture.html`).
 
-## Quickstart (mock mode — no Telnyx credentials needed)
+> **Build-your-own notice:** this repository is a standalone example. It does
+> not depend on, connect to, or grant access to any shared hosted demo. To use
+> it, clone the repository and create your own local or Telnyx deployment with
+> your own credentials, phone number, assistant, and webhook URL.
 
-Requires Node ≥ 20 and Docker running (on this Mac: `colima start`).
+## Run your own local copy (mock mode)
+
+This mode is for building and testing the application locally. It does not
+place calls or send SMS, and it does not use anyone else's deployment.
+
+Requires Node ≥ 20 and Docker running.
 
 ```bash
+git clone https://github.com/team-telnyx/telnyx-code-examples.git
+cd telnyx-code-examples/patient-access-hospital-demo
 npm install
-npm run demo        # boots the real Telnyx Edge dev stack in Docker
+npm run demo
 ```
 
-When you see `✓ Ready on http://127.0.0.1:8787`, open
-**http://127.0.0.1:8787** and:
+When you see `✓ Ready on http://127.0.0.1:8787`, open that address in your
+browser. This is your own local instance. The mock-mode staff credentials are
+only fixture data for the local example; change them before adapting the app
+for a real environment.
 
-1. **Sign in** — the demo staff account is `staff@windervalmedical.health` /
-   `winderval-demo` (documented here and nowhere on the login page). Account
-   creation is disabled for the shared demo.
+Then:
+
+1. **Sign in** — the local fixture account is
+   `staff@windervalmedical.health` / `winderval-demo`. Account creation is
+   disabled in this sample.
 2. **Book the appointment first** — the Scheduling tab opens on the intake
    card: type the patient's full name + phone (E.164 — **saved on file with
    the booking**) and tap one of today's slots, then click **Book
@@ -57,6 +71,13 @@ When you see `✓ Ready on http://127.0.0.1:8787`, open
 Mock mode never places calls and never sends SMS: the dialogue, the auto-call,
 the booking write-back, the SMS delivery states, and the warm transfer are all
 simulated in-process by the Edge function.
+
+## Deploy your own live copy
+
+Live mode is opt-in and uses resources in your Telnyx account. You must create
+or use your own Voice AI-enabled Call Control application, assistant, phone
+number, secrets, and deployed Edge Compute function. Do not copy a webhook URL,
+assistant ID, API key, or phone number from another demo.
 
 ## What you'll see
 
@@ -101,8 +122,9 @@ in the repo. It is fully runnable offline.
 2. Register the two secrets on the account (values never live in the repo):
    `telnyx-edge secrets add TELNYX_API_KEY "<key>"` and
    `telnyx-edge secrets add TELNYX_PUBLIC_KEY "<base64-key>"`.
-3. Deploy with `npm run ship` and point the Call Control application's webhook
-   URL at `https://<your-function-url>/api/webhooks/telnyx`.
+3. Deploy with `npm run ship`. Use the URL returned for your deployment as
+   `PUBLIC_BASE_URL`, then point your Call Control application's webhook URL
+   at `https://<your-function-url>/api/webhooks/telnyx`.
 4. Trigger live calls manually from the UI: the book-first flow marks the
    visit missed and the AI agent **dials the on-file number for real**. Live
    SMS from a US toll-free number requires Toll-Free Verification first
@@ -137,14 +159,13 @@ src/call/             CallDriver interface + mock transport + Telnyx live driver
 src/server/           Env parsing (mock/live fail-closed), auth session cookie
 src/ui.ts             The entire UI: one inline HTML/CSS/JS template
 tests/                Vitest suites — 15 files, 74 tests
-docs/                 API contract, architecture + diagram, demo script,
-                      runbook
+docs/                 API contract, architecture + diagram, runbook
 ```
 
 ## API
 
-See `docs/API.md`. Demo-day operations: `RUNBOOK.md`. The 4-minute recording
-script: `DEMO_SCRIPT.md`.
+See `docs/API.md` and `RUNBOOK.md` for the API contract and demo-day
+operations.
 
 ## Why Telnyx
 

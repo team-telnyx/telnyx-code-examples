@@ -1,14 +1,18 @@
-# RUNBOOK — Demo-day operations
+# RUNBOOK — Build-your-own operations
 
-This runbook covers mock-mode demo runs (the default and the safe path — the
-one to film) and the opt-in live mode. Read the safety section before enabling
-live mode.
+This runbook is for a copy you clone and configure yourself. It does not point
+to or use a shared hosted demo. `http://127.0.0.1:8787` is only the address of
+your own computer when you intentionally run the local mock stack. For a
+hosted demo, use the public URL returned by your own deployment.
 
-## Pre-flight (do this before filming or presenting)
+It covers mock-mode demo runs and opt-in live mode. Read the safety section
+before enabling live mode.
+
+## Local mock-mode setup (your machine)
 
 1. Node ≥ 20: `node --version`
-2. Docker running — on this Mac Docker is backed by colima:
-   `colima start` (wait for "done"), verify with
+2. Docker running. Start Docker Desktop or, on macOS with Colima, run
+   `colima start` (wait for "done"). Verify with
    `docker info --format '{{.ServerVersion}}'`.
 3. `npm install` (first time only)
 4. Boot the stack: `npm run demo` — starts the real Telnyx Edge dev stack
@@ -18,10 +22,10 @@ live mode.
    NOTE: manifest changes ([env_vars], e.g. `BRAND_NAME`) apply on the
    NEXT boot of the watcher — restart `npm run demo` after editing
    `telnyx.toml`.
-5. Open **http://127.0.0.1:8787** — the portal shows the sign-in page. Sign in
-   with the seeded staff account (mock demo credentials:
-   staff@windervalmedical.health / winderval-demo — documented in the repository
-   README only, never on the login page), or use **Create account**.
+5. Open **http://127.0.0.1:8787** — this is your local copy, not a shared
+   hosted app. The portal shows the sign-in page. Sign in with the seeded local
+   fixture account (`staff@windervalmedical.health` /
+   `winderval-demo`) or create your own local account if enabled by the copy.
 6. Optional pacing: default is 9000 ms per beat (≈ 2:10 of the AI call).
    For a slower take,
    `curl -X POST localhost:8787/api/demo/missed-call -H 'content-type: application/json' -d '{"paceMs":12000}'`.
@@ -90,8 +94,9 @@ operator enters at intake (your own mobile)**.
    (`https://patient-access-hospital-demo-<id>.telnyxcompute.com`).
 4. Point the Call Control app's webhook URL at
    `https://<function-url>/api/webhooks/telnyx`.
-5. Open the deployed URL, sign in, book the patient (= your mobile), click
-   **Mark missed & auto-call now** — the AI assistant dials your phone for
+5. Open the public URL printed by **your** deployment, not localhost. Sign in,
+   book the patient (= your mobile), and click **Mark missed & auto-call now**
+   — the AI assistant dials your phone for
    real; the call transcript streams from webhooks; the transfer tool bridges
    to `STAFF_PHONE` live.
 6. Messaging prerequisite (US): a toll-free `FROM_NUMBER` must complete
