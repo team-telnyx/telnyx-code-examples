@@ -11,7 +11,14 @@ export type AccountRecord = {
   createdAtIso: string;
 };
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function looksLikeEmail(value: string): boolean {
+  if (value.length === 0 || value.length > 254 || /\s/.test(value)) return false;
+  const at = value.indexOf("@");
+  if (at <= 0 || at !== value.lastIndexOf("@")) return false;
+  const domain = value.slice(at + 1);
+  const dot = domain.indexOf(".");
+  return dot > 0 && dot < domain.length - 1;
+}
 
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -21,7 +28,7 @@ export type SignupCheck = { ok: true; email: string } | { ok: false; error: stri
 
 export function validateSignup(input: { email: string; password: string; confirm?: string }): SignupCheck {
   const email = normalizeEmail(input.email ?? "");
-  if (typeof input.email !== "string" || !EMAIL_RE.test(email)) {
+  if (typeof input.email !== "string" || !looksLikeEmail(email)) {
     return { ok: false, error: "Enter a valid email address." };
   }
   if (typeof input.password !== "string" || input.password.length < 8) {
