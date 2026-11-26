@@ -179,7 +179,7 @@
   /* ───────────────────────── Controls ───────────────────────── */
   .controls {
     display: grid; gap: 14px; padding: 18px;
-    grid-template-columns: 150px 1fr auto;
+    grid-template-columns: 150px 170px 1fr auto;
     align-items: end;
   }
   .field { display: grid; gap: 6px; min-width: 0; }
@@ -533,6 +533,14 @@
           <input class="input input-count" id="count" name="count" type="number" inputmode="numeric" min="1" max="1000" step="1" value="10" required aria-describedby="countHint">
           <span class="hint" id="countHint">Between 1 and 1,000</span>
         </div>
+        <div class="field field-scenario">
+          <label for="scenario">Scenario</label>
+          <select class="input" id="scenario" name="scenario">
+            <option value="success">All delivered</option>
+            <option value="failure">Bounce test</option>
+          </select>
+          <span class="hint" aria-hidden="true">&nbsp;</span>
+        </div>
         <div class="field field-subject">
           <label for="subject">Subject</label>
           <input class="input" id="subject" name="subject" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Your weekly product update" required aria-describedby="subjectHint">
@@ -669,7 +677,7 @@
   const el = {
     cfgFrom: $("cfgFrom"), cfgTo: $("cfgTo"),
     conn: $("conn"), connLabel: $("connLabel"),
-    form: $("sendForm"), count: $("count"), subject: $("subject"),
+    form: $("sendForm"), count: $("count"), subject: $("subject"), scenario: $("scenario"),
     sendBtn: $("sendBtn"), sendLabel: $("sendLabel"), batchResult: $("batchResult"),
     track: $("track"), fill: $("fill"), progLabel: $("progLabel"),
     statusBadge: $("statusBadge"), statusText: $("statusText"),
@@ -716,7 +724,7 @@
   const api = DEMO ? createDemoApi() : {
     config: () => http("GET", "/api/config"),
     report: () => http("GET", "/api/report"),
-    sendBatch: (count, subject) => http("POST", "/api/send-batch", { count, subject }),
+    sendBatch: (count, subject, scenario) => http("POST", "/api/send-batch", { count, subject, scenario }),
     stream: () => new EventSource("/stream"),
   };
 
@@ -1078,7 +1086,7 @@
     el.sendBtn.disabled = on;
     el.sendBtn.setAttribute("aria-busy", String(on));
     el.sendLabel.textContent = on ? (label || "Sending…") : "Send batch";
-    el.count.disabled = on; el.subject.disabled = on;
+    el.count.disabled = on; el.subject.disabled = on; el.scenario.disabled = on;
     document.querySelectorAll(".preset").forEach((b) => (b.disabled = on));
   }
 
@@ -1087,6 +1095,7 @@
     if (state.sending) return;
     const count = clampCount();
     const subject = el.subject.value.trim();
+    const scenario = el.scenario.value;
     if (!count) { el.count.focus(); toast("Invalid count", "Enter a number between 1 and 1,000.", "error"); return; }
     if (!subject) { el.subject.setAttribute("aria-invalid", "true"); el.subject.focus(); toast("Subject required", "Add a subject line before sending.", "error"); return; }
 
@@ -1100,7 +1109,7 @@
     el.batchResult.classList.remove("show");
 
     try {
-      const r = (await api.sendBatch(count, subject)) || {};
+      const r = (await api.sendBatch(count, subject, scenario)) || {};
       const succeeded = Number(r.succeeded ?? r.count ?? count) || 0;
       const failed = Number(r.failed) || 0;
       setSending(false);

@@ -154,16 +154,20 @@ app.get("/api/config", (_req, res) => {
 app.post("/api/send-batch", async (req, res) => {
   const count = Math.max(1, Math.min(1000, Number(req.body?.count) || 10));
   const subject = req.body?.subject || "Telnyx Batch Email Demo";
+  const scenario = req.body?.scenario || "success";
   const batchId = crypto.randomUUID();
   const now = new Date().toISOString();
 
   // Build messages array — all messages go to TO_EMAIL (account's verified email).
   // The shared domain (onboarding@msgtelnyx.com) can only send to verified addresses.
+  // In "failure" scenario, the first message goes to an invalid address to trigger a bounce.
+  const BOUNCE_ADDR = "bounce-test@invalid.example";
   const messages = [];
   for (let i = 1; i <= count; i++) {
+    const recipient = (scenario === "failure" && i === 1) ? BOUNCE_ADDR : TO_EMAIL;
     messages.push({
       from: { email: FROM_EMAIL, name: "Telnyx Email Batch Demo" },
-      to: [{ email: TO_EMAIL }],
+      to: [{ email: recipient }],
       subject: `${subject} (#${i} of ${count})`,
       html_body: `<h2>${subject}</h2>
 <p>Message <strong>#${i}</strong> of <strong>${count}</strong>, sent at ${now}.</p>
@@ -189,6 +193,7 @@ app.post("/api/send-batch", async (req, res) => {
     let body;
     try { body = JSON.parse(rawText); } catch { body = { raw: rawText }; }
 
+    console.log(`[batch] scenario=${scenario}, first_recipient=${messages[0].to[0].email}`);
     console.log(`[batch] API response ${response.status}:`, JSON.stringify(body).slice(0, 500));
 
     // Non-207 means a batch-level failure
@@ -214,8 +219,27 @@ app.post("/api/send-batch", async (req, res) => {
     for (const msg of succeeded) {
       const id = msg.id || msg.message_id;
       if (id) {
-        insertMsg.run(id, batchId, TO_EMAIL, "queued", now);
+        const recipient = msg.to?.[0]?.email || TO_EMAIL;
+        insertMsg.run(id, batchId, recipient, "queued", now);
       }
+    }
+
+    // Record API-rejected messages as failed events so they appear in the dashboard
+    for (const err of errors) {
+      const fakeId = `rejected-${batchId}-${err.index ?? crypto.randomUUID()}`;
+      const rejectedRecipient = messages[err.index]?.to?.[0]?.email || "unknown";
+      insertMsg.run(fakeId, batchId, rejectedRecipient, "failed", now);
+      db.prepare(
+        "INSERT INTO events (message_id, batch_id, event_type, recipient, occurred_at) VALUES (?, ?, ?, ?, ?)"
+      ).run(fakeId, batchId, "failed", rejectedRecipient, now);
+      ssePublish("event.received", {
+        event_type: "failed",
+        message_id: fakeId,
+        batch_id: batchId,
+        recipient: rejectedRecipient,
+        occurred_at: now,
+        progress: null,
+      });
     }
 
     ssePublish("batch.started", {
@@ -385,9 +409,7 @@ app.post("/webhooks/email", (req, res) => {
   if (!eventType) return res.json({ status: "ignored" });
 
   const messageId = p.message_id || p.id || data.id || "";
-  const rawTo = p.to || p.recipient || "";
-  const recipient =
-    Array.isArray(rawTo) ? (rawTo[0]?.email || rawTo[0] || "") : String(rawTo);
+  const recipient = p.to?.email || p.cc?.email || p.bcc?.email || "";
   const occurredAt = p.occurred_at || data.occurred_at || new Date().toISOString();
 
   console.log(`[webhook] ${eventType} — msg=${messageId.slice(0, 12)}…`);
@@ -400,55 +422,58 @@ app.post("/webhooks/email", (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Event poller — polls message statuses from GET /v2/email_messages/:id
+// Event poller — polls message events from GET /v2/email_messages/:id/events
 // Works without webhook configuration — the Telnyx API tracks all events.
 // ---------------------------------------------------------------------------
 async function pollMessageStatuses() {
-  // Find messages that haven't reached a terminal state
-  const pending = db.prepare(
-    "SELECT id, status FROM messages WHERE status NOT IN ('delivered','bounced','failed','complained') LIMIT 50"
-  ).all();
+  try {
+    // Find messages that haven't reached a terminal state
+    const pending = db.prepare(
+      "SELECT id, status FROM messages WHERE status NOT IN ('delivered','bounced','failed','complained') LIMIT 50"
+    ).all();
 
-  if (pending.length === 0) return;
+    if (pending.length === 0) return;
 
-  let newEvents = 0;
-  for (const msg of pending) {
-    try {
-      const resp = await fetch(`${API}/email_messages/${msg.id}`, {
-        headers: { Authorization: `Bearer ${TELNYX_API_KEY}` },
-      });
-      if (!resp.ok) {
-        if (resp.status === 429) return; // rate limited — back off
-        continue;
+    let newEvents = 0;
+    for (const msg of pending) {
+      try {
+        const resp = await fetch(`${API}/email_messages/${msg.id}/events`, {
+          headers: { Authorization: `Bearer ${TELNYX_API_KEY}` },
+        });
+        if (!resp.ok) {
+          if (resp.status === 429) return; // rate limited — back off
+          continue;
+        }
+
+        const body = await resp.json();
+        const events = body.data || [];
+
+        for (const evt of events) {
+          const eventType = (evt.type || "").replace(/^email\./, "");
+          if (!eventType || eventType === "queued" || eventType === "sending") continue;
+
+          // Skip if we already recorded this event
+          const existing = db.prepare(
+            "SELECT 1 FROM events WHERE message_id = ? AND event_type = ?"
+          ).get(msg.id, eventType);
+          if (existing) continue;
+
+          const recipient = evt.payload?.to?.email || TO_EMAIL;
+          const occurredAt = evt.occurred_at || new Date().toISOString();
+
+          console.log(`[poller] ${eventType} — msg=${msg.id.slice(0, 12)}…`);
+          processEvent(eventType, msg.id, recipient, occurredAt);
+          newEvents++;
+        }
+      } catch (err) {
+        console.error(`[poller] Error checking ${msg.id.slice(0, 12)}:`, err.message);
       }
-
-      const body = await resp.json();
-      const data = body.data || {};
-      const events = data.events || [];
-
-      for (const evt of events) {
-        const eventType = (evt.type || "").replace(/^email\./, "");
-        if (!eventType || eventType === "queued" || eventType === "sending") continue;
-
-        // Skip if we already recorded this event
-        const existing = db.prepare(
-          "SELECT 1 FROM events WHERE message_id = ? AND event_type = ?"
-        ).get(msg.id, eventType);
-        if (existing) continue;
-
-        const recipient = evt.payload?.recipient || evt.payload?.to || TO_EMAIL;
-        const occurredAt = evt.occurred_at || new Date().toISOString();
-
-        console.log(`[poller] ${eventType} — msg=${msg.id.slice(0, 12)}…`);
-        processEvent(eventType, msg.id, recipient, occurredAt);
-        newEvents++;
-      }
-    } catch (err) {
-      console.error(`[poller] Error checking ${msg.id.slice(0, 12)}:`, err.message);
     }
-  }
 
-  if (newEvents > 0) console.log(`[poller] Processed ${newEvents} new events`);
+    if (newEvents > 0) console.log(`[poller] Processed ${newEvents} new events`);
+  } catch (err) {
+    console.error("[poller] Top-level error:", err.message);
+  }
 }
 
 // Poll every 5 seconds
@@ -460,14 +485,14 @@ setInterval(pollMessageStatuses, 5_000);
 // ---------------------------------------------------------------------------
 app.post("/api/sync", async (_req, res) => {
   console.log("[sync] Starting event sync from Telnyx API…");
-  let cursor = null;
+  let pageNum = 1;
   let imported = 0;
   let pages = 0;
 
   try {
     while (pages < 20) {
       const url = new URL(`${API}/email_events`);
-      if (cursor) url.searchParams.set("page[after]", cursor);
+      url.searchParams.set("page[number]", String(pageNum));
 
       const resp = await fetch(url, {
         headers: { Authorization: `Bearer ${TELNYX_API_KEY}` },
@@ -482,6 +507,7 @@ app.post("/api/sync", async (_req, res) => {
 
       const body = await resp.json();
       const events = body.data || [];
+      const totalPages = body.meta?.total_pages || 1;
       pages++;
 
       for (const evt of events) {
@@ -492,14 +518,13 @@ app.post("/api/sync", async (_req, res) => {
         const messageId = p.id || "";
         if (!messageId) continue;
 
-        const recipient = p.to?.email || p.to || p.recipient || TO_EMAIL;
+        const recipient = p.to?.email || TO_EMAIL;
         const occurredAt = evt.occurred_at || new Date().toISOString();
         const subject = p.subject || "";
 
         // Auto-create batch + message records if we don't have them
         if (!db.prepare("SELECT 1 FROM messages WHERE id = ?").get(messageId)) {
           // Find or create a synthetic batch for this message's subject group
-          const batchTag = `sync-${subject.replace(/\s*\(#\d+ of \d+\)$/, "").trim().slice(0, 40)}`;
           let batch = db.prepare("SELECT * FROM batches WHERE subject = ? LIMIT 1").get(
             subject.replace(/\s*\(#\d+ of \d+\)$/, "").trim() || "Synced"
           );
@@ -525,8 +550,8 @@ app.post("/api/sync", async (_req, res) => {
         imported++;
       }
 
-      cursor = body.meta?.page_cursor || null;
-      if (events.length < 25) break;
+      if (pageNum >= totalPages) break;
+      pageNum++;
     }
 
     console.log(`[sync] Done — imported ${imported} events across ${pages} pages`);
