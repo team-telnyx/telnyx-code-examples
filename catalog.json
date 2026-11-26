@@ -4932,6 +4932,15 @@
       "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/setup-email-api-nodejs"
     },
     {
+      "folder": "email-batch-send-nodejs",
+      "title": "Send Batch Emails with the Telnyx Email API",
+      "description": "Send up to 1,000 emails in a single API call and track delivery events in a real-time dashboard",
+      "product": "email",
+      "language": "nodejs",
+      "framework": "express",
+      "url": "https://github.com/team-telnyx/telnyx-code-examples/tree/main/email-batch-send-nodejs"
+    },
+    {
       "folder": "audio-transcribe-summarize-sms",
       "title": "Audio Transcribe → Summarize → SMS",
       "description": "Upload a voicemail audio file → transcribe via STT → summarize with LLM → text the summary via SMS. Agent SDK pipeline on Telnyx Edge Compute with zero-credential inference and messaging.",

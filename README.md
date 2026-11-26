@@ -389,12 +389,13 @@ Send and receive text messages with the [Telnyx SMS API](https://telnyx.com/prod
 </details>
 
 <details open>
-<summary><h2>Email</h2> <em>(3 examples)</em></summary>
+<summary><h2>Email</h2> <em>(4 examples)</em></summary>
 
 Send, track, and automate email workflows with the [Telnyx Email API](https://telnyx.com/products/email-api) - transactional messages, templates, tracking, and event-driven dashboards.
 
 | Example | Language | Description |
 |---------|----------|-------------|
+| [email-batch-send-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-batch-send-nodejs/README.md) | Node.js | Send up to 1,000 emails in a single API call and track delivery events in a real-time dashboard. |
 | [email-whatsapp-support-python](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/README.md) | Python | --- |
 | [provision-and-route-email-dedicated-ips](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-and-route-email-dedicated-ips/README.md) | Python | Provision a dedicated sending IP, start its warm-up, create a default IP pool, route the IP through the pool, and verify delivery with a test email. |
 | [setup-email-api-nodejs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md) | Node.js | Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events. |

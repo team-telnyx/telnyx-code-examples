@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Batch Send · Telnyx Email API</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2300c08b'/%3E%3Cpath d='M8 11h16v10H8z' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3Cpath d='M8.5 11.5 16 17l7.5-5.5' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  /* ───────────────────────── Tokens ───────────────────────── */
+  :root {
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --accent: #00c08b;
+    --accent-hover: #00a878;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(0, 192, 139, 0.10);
+    --accent-ring: rgba(0, 192, 139, 0.35);
+
+    --bg: #f7f8f9;
+    --surface: #ffffff;
+    --surface-2: #f2f4f5;
+    --border: #e4e7ea;
+    --border-strong: #d3d8dc;
+    --text: #0f1419;
+    --text-2: #4b5560;
+    --text-3: #87909a;
+    --shadow: 0 1px 2px rgba(15, 20, 25, 0.04), 0 1px 1px rgba(15, 20, 25, 0.03);
+    --shadow-lg: 0 10px 30px -10px rgba(15, 20, 25, 0.18);
+
+    /* Event semantic colours: fg / bg */
+    --green: #0a8f68;   --green-bg: rgba(0, 192, 139, 0.12);
+    --blue: #2563eb;    --blue-bg: rgba(37, 99, 235, 0.10);
+    --purple: #7c3aed;  --purple-bg: rgba(124, 58, 237, 0.10);
+    --red: #dc2626;     --red-bg: rgba(220, 38, 38, 0.10);
+    --amber: #b45309;   --amber-bg: rgba(245, 158, 11, 0.14);
+    --gray: #5b6570;    --gray-bg: rgba(91, 101, 112, 0.10);
+
+    --radius: 12px;
+    --radius-sm: 8px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent-hover: #1fd6a2;
+      --accent-ink: #04140f;
+      --accent-soft: rgba(0, 192, 139, 0.14);
+      --accent-ring: rgba(0, 192, 139, 0.45);
+
+      --bg: #0a0b0d;
+      --surface: #111316;
+      --surface-2: #171a1e;
+      --border: #22262b;
+      --border-strong: #2e343a;
+      --text: #eef1f3;
+      --text-2: #a4adb6;
+      --text-3: #6c757e;
+      --shadow: 0 1px 0 rgba(255, 255, 255, 0.02) inset;
+      --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.6);
+
+      --green: #34d8a5;   --green-bg: rgba(0, 192, 139, 0.16);
+      --blue: #6ea2ff;    --blue-bg: rgba(59, 130, 246, 0.16);
+      --purple: #b08cff;  --purple-bg: rgba(139, 92, 246, 0.18);
+      --red: #ff6b6b;     --red-bg: rgba(239, 68, 68, 0.16);
+      --amber: #fbbf24;   --amber-bg: rgba(245, 158, 11, 0.16);
+      --gray: #9aa4ae;    --gray-bg: rgba(154, 164, 174, 0.12);
+    }
+  }
+
+  /* ───────────────────────── Base ───────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01";
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--mono); font-size: 12.5px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  .shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px 48px;
+  }
+
+  /* ───────────────────────── Header ───────────────────────── */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: saturate(180%) blur(12px);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 1200px; margin: 0 auto; padding: 14px 20px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .logo {
+    width: 32px; height: 32px; flex: none; border-radius: 9px;
+    background: var(--accent);
+    display: grid; place-items: center;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.04), 0 4px 12px -4px var(--accent-ring);
+  }
+  .logo svg { width: 18px; height: 18px; color: #fff; }
+  .brand h1 {
+    margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  .brand .sub { color: var(--text-3); font-size: 12.5px; }
+  .crumb-sep { color: var(--border-strong); margin: 0 2px; }
+
+  .config {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-left: auto; color: var(--text-2); font-size: 12.5px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 9px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .chip .k { color: var(--text-3); }
+  .chip .v { font-family: var(--mono); font-size: 12px; color: var(--text); }
+  .arrow { color: var(--text-3); }
+
+  .conn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 3px 10px 3px 8px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 12px; font-weight: 500; color: var(--text-2);
+    white-space: nowrap;
+  }
+  .conn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-3); position: relative; }
+  .conn[data-state="live"] .dot { background: var(--accent); }
+  .conn[data-state="live"] .dot::after {
+    content: ""; position: absolute; inset: -3px; border-radius: 50%;
+    border: 1.5px solid var(--accent); opacity: 0;
+    animation: ping 2s var(--ease) infinite;
+  }
+  .conn[data-state="polling"] .dot { background: var(--amber); }
+  .conn[data-state="connecting"] .dot { background: var(--amber); animation: blink 1s ease-in-out infinite; }
+  .conn[data-state="offline"] .dot { background: var(--red); }
+  @keyframes ping { 0% { transform: scale(0.6); opacity: 0.9; } 100% { transform: scale(1.8); opacity: 0; } }
+  @keyframes blink { 50% { opacity: 0.3; } }
+
+  /* ───────────────────────── Layout ───────────────────────── */
+  main { display: grid; gap: 16px; padding-top: 24px; }
+  .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .page-head h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .page-head p { margin: 4px 0 0; color: var(--text-2); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+  }
+  .card-title { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: -0.005em; }
+  .card-meta { color: var(--text-3); font-size: 12px; }
+
+  /* ───────────────────────── Controls ───────────────────────── */
+  .controls {
+    display: grid; gap: 14px; padding: 18px;
+    grid-template-columns: 150px 170px 1fr auto;
+    align-items: end;
+  }
+  .field { display: grid; gap: 6px; min-width: 0; }
+  .field label { font-size: 12px; font-weight: 500; color: var(--text-2); }
+  .field .hint { font-size: 11.5px; color: var(--text-3); }
+  .input {
+    width: 100%; height: 38px; padding: 0 12px;
+    font: inherit; color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .input::placeholder { color: var(--text-3); }
+  .input:hover { border-color: var(--border-strong); }
+  .input:focus { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+  .input[aria-invalid="true"] { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-bg); }
+  .input:disabled { opacity: .6; cursor: not-allowed; }
+  .input-count { font-variant-numeric: tabular-nums; }
+
+  .presets { display: flex; gap: 4px; }
+  .preset {
+    font: inherit; font-size: 11.5px; font-weight: 500;
+    padding: 1px 7px; border-radius: 6px; cursor: pointer;
+    color: var(--text-2); background: transparent; border: 1px solid var(--border);
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .preset:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
+  .preset:disabled { opacity: .5; cursor: not-allowed; }
+
+  .btn {
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 38px; padding: 0 16px; min-width: 132px;
+    font: inherit; font-weight: 600; font-size: 13.5px; letter-spacing: -0.005em;
+    border-radius: var(--radius-sm); border: 1px solid transparent;
+    cursor: pointer; white-space: nowrap;
+    transition: background .15s, transform .08s, box-shadow .15s, opacity .15s;
+  }
+  .btn-primary {
+    color: var(--accent-ink); background: var(--accent);
+    box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 1px 2px rgba(0,0,0,.08);
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-primary:active:not(:disabled) { transform: translateY(1px); }
+  .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+  .btn:disabled { cursor: not-allowed; opacity: .85; }
+  .btn .kbd {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    padding: 0 5px; border-radius: 4px; background: rgba(0,0,0,.12); opacity: .85;
+  }
+  .btn .spinner {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid currentColor; border-right-color: transparent;
+    animation: spin .7s linear infinite; display: none;
+  }
+  .btn[aria-busy="true"] .spinner { display: inline-block; }
+  .btn[aria-busy="true"] .kbd, .btn[aria-busy="true"] .icon { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn-ghost {
+    height: 28px; min-width: 0; padding: 0 10px; font-size: 12px; font-weight: 500;
+    color: var(--text-2); background: transparent; border-color: var(--border);
+  }
+  .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+
+  .batch-result {
+    display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 18px; border-top: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-2); font-size: 12.5px;
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+  .batch-result.show { display: flex; animation: fadeIn .3s var(--ease); }
+  .batch-result .sep { width: 1px; height: 12px; background: var(--border-strong); }
+  .batch-result b { color: var(--text); font-weight: 600; }
+  .batch-result .ok { color: var(--green); }
+  .batch-result .bad { color: var(--red); }
+  .batch-result details { width: 100%; }
+  .batch-result summary { cursor: pointer; color: var(--red); font-weight: 500; }
+  .batch-result pre {
+    margin: 8px 0 2px; padding: 10px; max-height: 160px; overflow: auto;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--text-2); white-space: pre-wrap;
+  }
+
+  /* ───────────────────────── KPIs ───────────────────────── */
+  .kpis {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .kpi {
+    position: relative; overflow: hidden;
+    padding: 14px 16px 14px;
+    display: grid; gap: 6px; align-content: start;
+  }
+  .kpi-label {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; font-weight: 500; color: var(--text-2);
+  }
+  .kpi-label .sw { width: 8px; height: 8px; border-radius: 2px; background: var(--c, var(--text-3)); }
+  .kpi-value {
+    font-size: 28px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 18px; }
+  .kpi-rate {
+    font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums;
+    color: var(--c, var(--text-2));
+  }
+  .kpi-rate .muted { color: var(--text-3); font-weight: 400; }
+  .meter { height: 3px; border-radius: 2px; background: var(--surface-2); overflow: hidden; margin-top: 2px; }
+  .meter > i {
+    display: block; height: 100%; width: 0; border-radius: inherit;
+    background: var(--c, var(--accent));
+    transition: width .7s var(--ease);
+  }
+  .kpi.bump .kpi-value { animation: bump .5s var(--ease); }
+  @keyframes bump { 0% { color: var(--c, var(--text)); } 100% { color: var(--text); } }
+
+  .kpi[data-k="sent"]       { --c: var(--text-2); }
+  .kpi[data-k="delivered"]  { --c: var(--green); }
+  .kpi[data-k="opened"]     { --c: var(--blue); }
+  .kpi[data-k="clicked"]    { --c: var(--purple); }
+  .kpi[data-k="bounced"]    { --c: var(--red); }
+  .kpi[data-k="failed"]     { --c: var(--red); }
+
+  /* ───────────────────────── Progress ───────────────────────── */
+  .progress-card { padding: 16px 18px 18px; display: grid; gap: 12px; }
+  .progress-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .progress-title { display: flex; align-items: center; gap: 10px; }
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: var(--gray-bg); color: var(--gray);
+  }
+  .status-badge[data-s="sending"],
+  .status-badge[data-s="delivering"] { background: var(--accent-soft); color: var(--green); }
+  .status-badge[data-s="complete"] { background: var(--green-bg); color: var(--green); }
+  .status-badge[data-s="error"] { background: var(--red-bg); color: var(--red); }
+  .status-badge .pulse { width: 6px; height: 6px; border-radius: 50%; background: currentColor; display: none; }
+  .status-badge[data-s="sending"] .pulse,
+  .status-badge[data-s="delivering"] .pulse { display: inline-block; animation: blink 1s ease-in-out infinite; }
+
+  .progress-label { color: var(--text-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .progress-label b { color: var(--text); font-weight: 600; }
+  .batch-id { color: var(--text-3); font-size: 12px; }
+
+  .track {
+    position: relative; height: 10px; border-radius: 999px; overflow: hidden;
+    background: var(--surface-2); border: 1px solid var(--border);
+  }
+  .fill {
+    position: absolute; inset: 0 auto 0 0; width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 75%, #fff 0%), var(--accent));
+    transition: width .6s var(--ease);
+  }
+  .track.active .fill::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+    transform: translateX(-100%);
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+  .track.indeterminate .fill { width: 30% !important; animation: indet 1.2s ease-in-out infinite; }
+  @keyframes shimmer { to { transform: translateX(100%); } }
+  @keyframes indet { 0% { left: -30%; } 100% { left: 100%; } }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-3); font-size: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .legend i { width: 8px; height: 8px; border-radius: 2px; }
+
+  /* ───────────────────────── Timeline ───────────────────────── */
+  .filters { display: flex; gap: 4px; flex-wrap: wrap; }
+  .filter {
+    font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+    padding: 3px 9px; border-radius: 6px;
+    color: var(--text-2); background: transparent; border: 1px solid transparent;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .filter:hover { background: var(--surface-2); color: var(--text); }
+  .filter[aria-pressed="true"] { background: var(--surface-2); border-color: var(--border); color: var(--text); }
+  .filter .n { color: var(--text-3); margin-left: 4px; font-variant-numeric: tabular-nums; }
+
+  .table-wrap { max-height: 460px; overflow: auto; border-radius: 0 0 var(--radius) var(--radius); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    position: sticky; top: 0; z-index: 1;
+    text-align: left; font-size: 11.5px; font-weight: 500; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 9px 18px; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  thead th:nth-child(1) { width: 130px; }
+  thead th:nth-child(2) { width: 150px; }
+  @media (max-width: 760px) { thead th:nth-child(1) { width: 96px; } thead th:nth-child(2) { width: 120px; } }
+  @media (max-width: 520px) { thead th:nth-child(1) { width: 76px; } }
+  tbody td {
+    padding: 9px 18px; border-bottom: 1px solid var(--border);
+    vertical-align: middle; white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr { transition: background .15s; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr.enter { animation: rowIn .45s var(--ease); }
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateY(-4px); background: var(--accent-soft); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  td.time { color: var(--text-2); width: 130px; }
+  td.time .ms { color: var(--text-3); }
+  td.type { width: 150px; }
+  td.msg { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; max-width: 0; width: 100%; }
+  td.msg button {
+    all: unset; cursor: pointer; font-family: var(--mono); font-size: 12px;
+    border-radius: 4px; padding: 1px 4px; margin: -1px -4px;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: bottom;
+  }
+  td.msg button:hover { background: var(--surface-2); color: var(--text); }
+  td.msg button:focus-visible { box-shadow: 0 0 0 2px var(--accent-ring); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 2px 9px 2px 7px; border-radius: 999px;
+    font-size: 12px; font-weight: 500; line-height: 18px;
+    color: var(--pc, var(--gray)); background: var(--pb, var(--gray-bg));
+  }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.delivered, .pill.sent { --pc: var(--green); --pb: var(--green-bg); }
+  .pill.opened     { --pc: var(--blue);   --pb: var(--blue-bg); }
+  .pill.clicked    { --pc: var(--purple); --pb: var(--purple-bg); }
+  .pill.bounced, .pill.failed { --pc: var(--red); --pb: var(--red-bg); }
+  .pill.complained { --pc: var(--amber);  --pb: var(--amber-bg); }
+
+  .empty td { padding: 48px 18px; text-align: center; color: var(--text-3); white-space: normal; }
+  .empty .ic {
+    width: 40px; height: 40px; margin: 0 auto 10px; border-radius: 10px;
+    display: grid; place-items: center; background: var(--surface-2); border: 1px solid var(--border);
+  }
+  .empty .ic svg { width: 18px; height: 18px; color: var(--text-3); }
+  .empty strong { display: block; color: var(--text-2); font-weight: 500; margin-bottom: 2px; }
+
+  .table-foot {
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 9px 18px; border-top: 1px solid var(--border);
+    color: var(--text-3); font-size: 12px;
+  }
+
+  /* ───────────────────────── Toasts ───────────────────────── */
+  .toasts {
+    position: fixed; right: 16px; bottom: 16px; z-index: 50;
+    display: grid; gap: 8px; width: min(360px, calc(100vw - 32px));
+  }
+  .toast {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 11px 14px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg); font-size: 13px;
+    animation: toastIn .3s var(--ease);
+  }
+  .toast.out { animation: toastOut .25s ease forwards; }
+  .toast .ti { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; background: var(--accent); }
+  .toast.error .ti { background: var(--red); }
+  .toast.warn .ti { background: var(--amber); }
+  .toast b { display: block; font-weight: 600; }
+  .toast span { color: var(--text-2); }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(8px); } }
+
+  .footer { color: var(--text-3); font-size: 12px; text-align: center; padding-top: 8px; }
+  .footer code { font-family: var(--mono); font-size: 11.5px; }
+
+  /* ───────────────────────── Responsive ───────────────────────── */
+  @media (max-width: 1080px) {
+    .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 760px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+    .controls .field-subject { grid-column: 1 / -1; order: -1; }
+    .controls .btn-primary { width: 100%; }
+    .config { margin-left: 0; width: 100%; }
+    td.time { width: 96px; }
+    td.type { width: 120px; }
+    thead th, tbody td { padding-left: 14px; padding-right: 14px; }
+  }
+  @media (max-width: 520px) {
+    .shell, .topbar-inner { padding-left: 14px; padding-right: 14px; }
+    .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .kpi-value { font-size: 24px; }
+    .controls { grid-template-columns: 1fr; }
+    .brand .sub-wrap { display: none; }
+    td.time .ms { display: none; }
+    td.time { width: 76px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Email Batch Send</h1>
+        <div class="sub sub-wrap">Telnyx Email API <span class="crumb-sep">/</span> Demo</div>
+      </div>
+    </div>
+
+    <div class="config" aria-label="Sender configuration">
+      <span class="chip"><span class="k">From</span><span class="v" id="cfgFrom">—</span></span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="chip"><span class="k">To</span><span class="v" id="cfgTo">—</span></span>
+      <span class="conn" id="conn" data-state="connecting" role="status" aria-live="polite">
+        <span class="dot"></span><span id="connLabel">Connecting</span>
+      </span>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <main>
+    <div class="page-head">
+      <div>
+        <h2>Batch send</h2>
+        <p>Send up to 1,000 emails in a single <span class="mono">POST /v2/email_messages/batch</span> call and watch webhooks stream in.</p>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <section class="card" aria-labelledby="ctlTitle">
+      <h3 id="ctlTitle" class="sr-only">Send controls</h3>
+      <form class="controls" id="sendForm" novalidate>
+        <div class="field">
+          <label for="count" style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+            <span>Emails</span>
+            <span class="presets" role="group" aria-label="Count presets">
+              <button type="button" class="preset" data-n="10">10</button>
+              <button type="button" class="preset" data-n="100">100</button>
+              <button type="button" class="preset" data-n="1000">1k</button>
+            </span>
+          </label>
+          <input class="input input-count" id="count" name="count" type="number" inputmode="numeric" min="1" max="1000" step="1" value="10" required aria-describedby="countHint">
+          <span class="hint" id="countHint">Between 1 and 1,000</span>
+        </div>
+        <div class="field field-scenario">
+          <label for="scenario">Scenario</label>
+          <select class="input" id="scenario" name="scenario">
+            <option value="success">All delivered</option>
+            <option value="failure">Bounce test</option>
+          </select>
+          <span class="hint" aria-hidden="true">&nbsp;</span>
+        </div>
+        <div class="field field-subject">
+          <label for="subject">Subject</label>
+          <input class="input" id="subject" name="subject" type="text" maxlength="200" autocomplete="off" placeholder="e.g. Your weekly product update" required aria-describedby="subjectHint">
+          <span class="hint" id="subjectHint">Each message is numbered automatically by the server</span>
+        </div>
+        <div class="field">
+          <span class="hint" aria-hidden="true">&nbsp;</span>
+          <button class="btn btn-primary" id="sendBtn" type="submit" aria-busy="false">
+            <span class="spinner" aria-hidden="true"></span>
+            <svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+            <span id="sendLabel">Send batch</span>
+            <span class="kbd" aria-hidden="true">↵</span>
+          </button>
+          <span class="hint" aria-hidden="true">&nbsp;</span>
+        </div>
+      </form>
+      <div class="batch-result" id="batchResult" role="status" aria-live="polite"></div>
+    </section>
+
+    <!-- KPIs -->
+    <section class="kpis" aria-label="Performance report">
+      <article class="card kpi" data-k="sent">
+        <div class="kpi-label"><span class="sw"></span>Total sent</div>
+        <div class="kpi-value" id="kSent">0</div>
+        <div class="kpi-foot"><span class="kpi-rate"><span class="muted">Accepted by API</span></span></div>
+        <div class="meter"><i id="mSent" style="width:0"></i></div>
+      </article>
+      <article class="card kpi" data-k="delivered">
+        <div class="kpi-label"><span class="sw"></span>Delivered</div>
+        <div class="kpi-value" id="kDelivered">0</div>
+        <div class="kpi-foot"><span class="kpi-rate" id="rDelivered">0.0% <span class="muted">delivery rate</span></span></div>
+        <div class="meter"><i id="mDelivered"></i></div>
+      </article>
+      <article class="card kpi" data-k="opened">
+        <div class="kpi-label"><span class="sw"></span>Opened</div>
+        <div class="kpi-value" id="kOpened">0</div>
+        <div class="kpi-foot"><span class="kpi-rate" id="rOpened">0.0% <span class="muted">open rate</span></span></div>
+        <div class="meter"><i id="mOpened"></i></div>
+      </article>
+      <article class="card kpi" data-k="clicked">
+        <div class="kpi-label"><span class="sw"></span>Clicked</div>
+        <div class="kpi-value" id="kClicked">0</div>
+        <div class="kpi-foot"><span class="kpi-rate" id="rClicked">0.0% <span class="muted">click rate</span></span></div>
+        <div class="meter"><i id="mClicked"></i></div>
+      </article>
+      <article class="card kpi" data-k="bounced">
+        <div class="kpi-label"><span class="sw"></span>Bounced</div>
+        <div class="kpi-value" id="kBounced">0</div>
+        <div class="kpi-foot"><span class="kpi-rate" id="rBounced">0.0% <span class="muted">bounce rate</span></span></div>
+        <div class="meter"><i id="mBounced"></i></div>
+      </article>
+      <article class="card kpi" data-k="failed">
+        <div class="kpi-label"><span class="sw"></span>Failed</div>
+        <div class="kpi-value" id="kFailed">0</div>
+        <div class="kpi-foot"><span class="kpi-rate" id="rFailed"><span class="muted">+ <span id="kComplained" class="tnum">0</span> complaints</span></span></div>
+        <div class="meter"><i id="mFailed"></i></div>
+      </article>
+    </section>
+
+    <!-- Progress -->
+    <section class="card progress-card" aria-labelledby="progTitle">
+      <div class="progress-top">
+        <div class="progress-title">
+          <h3 class="card-title" id="progTitle">Delivery progress</h3>
+          <span class="status-badge" id="statusBadge" data-s="idle"><span class="pulse"></span><span id="statusText">Idle</span></span>
+        </div>
+        <div class="progress-label" id="progLabel" aria-live="polite"><b>0</b> / 0 delivered (0%)</div>
+      </div>
+      <div class="track" id="track" role="progressbar" aria-labelledby="progTitle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="fill" id="fill"></div>
+      </div>
+      <div class="legend">
+        <span class="batch-id">Batch <span class="mono" id="batchId">—</span></span>
+        <span><i style="background:var(--blue)"></i><span id="lgOpened">0</span> opened</span>
+        <span><i style="background:var(--purple)"></i><span id="lgClicked">0</span> clicked</span>
+        <span><i style="background:var(--red)"></i><span id="lgIssues">0</span> bounced / failed</span>
+        <span id="lgElapsed"></span>
+      </div>
+    </section>
+
+    <!-- Timeline -->
+    <section class="card" aria-labelledby="tlTitle">
+      <div class="card-head">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <h3 class="card-title" id="tlTitle">Event timeline</h3>
+          <div class="filters" role="group" aria-label="Filter events" id="filters">
+            <button type="button" class="filter" data-f="all" aria-pressed="true">All<span class="n" data-n="all">0</span></button>
+            <button type="button" class="filter" data-f="delivered" aria-pressed="false">Delivered<span class="n" data-n="delivered">0</span></button>
+            <button type="button" class="filter" data-f="opened" aria-pressed="false">Opened<span class="n" data-n="opened">0</span></button>
+            <button type="button" class="filter" data-f="clicked" aria-pressed="false">Clicked<span class="n" data-n="clicked">0</span></button>
+            <button type="button" class="filter" data-f="issues" aria-pressed="false">Issues<span class="n" data-n="issues">0</span></button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-ghost" id="clearBtn">Clear</button>
+      </div>
+      <div class="table-wrap" id="tableWrap">
+        <table>
+          <thead>
+            <tr><th scope="col">Time</th><th scope="col">Event</th><th scope="col">Message ID</th></tr>
+          </thead>
+          <tbody id="tbody">
+            <tr class="empty" id="emptyRow"><td colspan="3">
+              <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+              <strong>Waiting for webhook events</strong>
+              Send a batch and delivery events will appear here in real time.
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-foot">
+        <span id="tlCount">0 events</span>
+        <span>Newest first · last 200 shown</span>
+      </div>
+    </section>
+
+    <p class="footer">Live updates via <code>/stream</code> (Server-Sent Events) with automatic polling fallback.</p>
+  </main>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ───────────────────────── Config ───────────────────────── */
+  const MAX_ROWS = 200;
+  const POLL_MS = 3000;
+  const REPORT_THROTTLE_MS = 400;
+  const DEMO = new URLSearchParams(location.search).has("demo");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    cfgFrom: $("cfgFrom"), cfgTo: $("cfgTo"),
+    conn: $("conn"), connLabel: $("connLabel"),
+    form: $("sendForm"), count: $("count"), subject: $("subject"), scenario: $("scenario"),
+    sendBtn: $("sendBtn"), sendLabel: $("sendLabel"), batchResult: $("batchResult"),
+    track: $("track"), fill: $("fill"), progLabel: $("progLabel"),
+    statusBadge: $("statusBadge"), statusText: $("statusText"),
+    batchId: $("batchId"), lgOpened: $("lgOpened"), lgClicked: $("lgClicked"),
+    lgIssues: $("lgIssues"), lgElapsed: $("lgElapsed"),
+    tbody: $("tbody"), emptyRow: $("emptyRow"), tlCount: $("tlCount"),
+    filters: $("filters"), clearBtn: $("clearBtn"), tableWrap: $("tableWrap"),
+    toasts: $("toasts"),
+  };
+
+  const nf = new Intl.NumberFormat();
+  const pct = (v) => (Number.isFinite(v) ? v : 0);
+
+  /* ───────────────────────── State ───────────────────────── */
+  const state = {
+    sending: false,
+    batch: { id: null, size: 0, delivered: 0, startedAt: 0, completedAt: 0 },
+    report: null,
+    filter: "all",
+    eventCounts: { all: 0, delivered: 0, opened: 0, clicked: 0, issues: 0 },
+    seen: new Set(),
+  };
+
+  /* ───────────────────────── API layer ───────────────────────── */
+  async function http(method, url, body) {
+    const res = await fetch(url, {
+      method,
+      headers: body ? { "Content-Type": "application/json", Accept: "application/json" } : { Accept: "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store",
+    });
+    let data = null;
+    const text = await res.text();
+    try { data = text ? JSON.parse(text) : null; } catch { data = { message: text }; }
+    if (!res.ok) {
+      const msg = (data && (data.error || data.message || (data.errors && data.errors[0] && (data.errors[0].detail || data.errors[0].title)))) || `HTTP ${res.status}`;
+      const err = new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+      err.status = res.status; err.data = data;
+      throw err;
+    }
+    return data;
+  }
+
+  const api = DEMO ? createDemoApi() : {
+    config: () => http("GET", "/api/config"),
+    report: () => http("GET", "/api/report"),
+    sendBatch: (count, subject, scenario) => http("POST", "/api/send-batch", { count, subject, scenario }),
+    stream: () => new EventSource("/stream"),
+  };
+
+  /* ───────────────────────── Animated numbers ───────────────────────── */
+  const tweens = new WeakMap();
+  function animateNumber(node, to, { duration = 650, format = (v) => nf.format(Math.round(v)) } = {}) {
+    const from = Number(node.dataset.value || 0);
+    to = Number(to) || 0;
+    if (from === to) { node.textContent = format(to); return; }
+    node.dataset.value = String(to);
+    const prev = tweens.get(node); if (prev) cancelAnimationFrame(prev);
+    if (reduceMotion || document.hidden) { node.textContent = format(to); return; }
+    const card = node.closest(".kpi");
+    if (card && to > from) { card.classList.remove("bump"); void card.offsetWidth; card.classList.add("bump"); }
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const e = 1 - Math.pow(1 - t, 3);
+      node.textContent = format(from + (to - from) * e);
+      if (t < 1) tweens.set(node, requestAnimationFrame(step));
+    };
+    tweens.set(node, requestAnimationFrame(step));
+  }
+
+  /* ───────────────────────── Report / KPIs ───────────────────────── */
+  function renderReport(r) {
+    if (!r) return;
+    state.report = r;
+    const c = r.counts || {};
+    const rates = r.rates || {};
+    const sent = Number(r.total_sent) || 0;
+
+    animateNumber($("kSent"), sent);
+    animateNumber($("kDelivered"), c.delivered || 0);
+    animateNumber($("kOpened"), c.opened || 0);
+    animateNumber($("kClicked"), c.clicked || 0);
+    animateNumber($("kBounced"), c.bounced || 0);
+    animateNumber($("kFailed"), c.failed || 0);
+    animateNumber($("kComplained"), c.complained || 0);
+
+    const norm = (v, num, den) => {
+      const computed = den ? (num / den) * 100 : null;
+      let n = Number(v);
+      if (v == null || !Number.isFinite(n)) n = computed ?? 0;
+      else if (n <= 1) n = computed != null && Math.abs(n - computed) < Math.abs(n * 100 - computed) ? n : n * 100;
+      return Math.max(0, Math.min(100, n));
+    };
+    const del = c.delivered || 0;
+    const rate = {
+      delivered: norm(rates.delivery, del, sent),
+      opened: norm(rates.open, c.opened || 0, del),
+      clicked: norm(rates.click, c.clicked || 0, del),
+      bounced: norm(rates.bounce, c.bounced || 0, sent),
+      failed: sent ? ((c.failed || 0) / sent) * 100 : 0,
+    };
+    setRate("Delivered", rate.delivered, "delivery rate");
+    setRate("Opened", rate.opened, "open rate");
+    setRate("Clicked", rate.clicked, "click rate");
+    setRate("Bounced", rate.bounced, "bounce rate");
+    $("mSent").style.width = sent ? "100%" : "0";
+    $("mFailed").style.width = rate.failed.toFixed(2) + "%";
+
+    el.lgOpened.textContent = nf.format(c.opened || 0);
+    el.lgClicked.textContent = nf.format(c.clicked || 0);
+    el.lgIssues.textContent = nf.format((c.bounced || 0) + (c.failed || 0));
+
+    if (stream.mode !== "live" && state.batch.size > 0) {
+      setProgress(Math.min(state.batch.size, Math.max(state.batch.delivered, del)), state.batch.size);
+    }
+  }
+  function setRate(key, value, label) {
+    const node = $("r" + key);
+    node.innerHTML = `${pct(value).toFixed(1)}% <span class="muted">${label}</span>`;
+    $("m" + key).style.width = pct(value).toFixed(2) + "%";
+  }
+
+  let reportTimer = null, reportInflight = false, reportQueued = false;
+  function scheduleReport(immediate = false) {
+    if (immediate) { clearTimeout(reportTimer); reportTimer = null; return loadReport(); }
+    if (reportTimer) return;
+    reportTimer = setTimeout(() => { reportTimer = null; loadReport(); }, REPORT_THROTTLE_MS);
+  }
+  async function loadReport() {
+    if (reportInflight) { reportQueued = true; return; }
+    reportInflight = true;
+    try { renderReport(await api.report()); }
+    catch (e) { console.warn("[report]", e); }
+    finally {
+      reportInflight = false;
+      if (reportQueued) { reportQueued = false; scheduleReport(); }
+    }
+  }
+
+  /* ───────────────────────── Progress ───────────────────────── */
+  function setStatus(s, text) {
+    el.statusBadge.dataset.s = s;
+    el.statusText.textContent = text;
+  }
+  function setProgress(delivered, size) {
+    state.batch.delivered = delivered;
+    state.batch.size = size;
+    const p = size > 0 ? Math.min(100, (delivered / size) * 100) : 0;
+    el.track.classList.remove("indeterminate");
+    el.fill.style.width = p.toFixed(2) + "%";
+    el.track.setAttribute("aria-valuenow", String(Math.round(p)));
+    el.progLabel.innerHTML = `<b>${nf.format(delivered)}</b> / ${nf.format(size)} delivered (${Math.round(p)}%)`;
+
+    const done = size > 0 && delivered >= size;
+    el.track.classList.toggle("active", !done && size > 0 && !state.sending);
+    if (state.sending) return;
+    if (done) {
+      if (!state.batch.completedAt) state.batch.completedAt = Date.now();
+      setStatus("complete", "Complete");
+    } else if (size > 0) {
+      setStatus("delivering", "Delivering");
+    }
+    renderElapsed();
+  }
+  function renderElapsed() {
+    const b = state.batch;
+    if (!b.startedAt) { el.lgElapsed.textContent = ""; return; }
+    const end = b.completedAt || Date.now();
+    const s = Math.max(0, (end - b.startedAt) / 1000);
+    el.lgElapsed.textContent = (b.completedAt ? "Finished in " : "Elapsed ") + (s < 60 ? s.toFixed(1) + "s" : Math.floor(s / 60) + "m " + Math.round(s % 60) + "s");
+  }
+  setInterval(() => { if (state.batch.startedAt && !state.batch.completedAt) renderElapsed(); }, 500);
+
+  function startBatch(id, size) {
+    const sameBatch = id && state.batch.id === id;
+    if (!sameBatch) {
+      state.batch = { id: id || null, size: size || 0, delivered: 0, startedAt: Date.now(), completedAt: 0 };
+    } else if (size) {
+      state.batch.size = size;
+    }
+    el.batchId.textContent = id ? shortId(id) : "—";
+    el.batchId.title = id || "";
+    setProgress(state.batch.delivered, state.batch.size);
+  }
+
+  /* ───────────────────────── Timeline ───────────────────────── */
+  const ISSUE = new Set(["bounced", "failed", "complained"]);
+  function normType(t) {
+    if (!t) return "unknown";
+    let s = String(t).toLowerCase();
+    s = s.split(/[.:/]/).pop();
+    s = s.replace(/^message_/, "");
+    if (s === "delivery") s = "delivered";
+    if (s === "bounce") s = "bounced";
+    if (s === "open") s = "opened";
+    if (s === "click") s = "clicked";
+    if (s === "complaint" || s === "spam_complaint") s = "complained";
+    return s;
+  }
+  function matchesFilter(type, f) {
+    if (f === "all") return true;
+    if (f === "issues") return ISSUE.has(type);
+    return type === f || (f === "delivered" && type === "sent");
+  }
+  function shortId(id) {
+    id = String(id);
+    return id.length > 22 ? id.slice(0, 10) + "…" + id.slice(-8) : id;
+  }
+  function fmtTime(d) {
+    const pad = (n, w = 2) => String(n).padStart(w, "0");
+    return [`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`, `.${pad(d.getMilliseconds(), 3)}`];
+  }
+
+  function addEventRow(evt) {
+    const type = normType(evt.event_type);
+    const ts = evt.occurred_at || evt.timestamp || evt.received_at;
+    const d = ts ? new Date(ts) : new Date();
+    const date = isNaN(d) ? new Date() : d;
+
+    if (el.emptyRow.isConnected) el.emptyRow.remove();
+
+    const tr = document.createElement("tr");
+    tr.dataset.type = type;
+    if (!reduceMotion) tr.className = "enter";
+    if (!matchesFilter(type, state.filter)) tr.hidden = true;
+
+    const [hms, ms] = fmtTime(date);
+    const tdTime = document.createElement("td");
+    tdTime.className = "time mono";
+    tdTime.title = date.toISOString();
+    tdTime.append(hms);
+    const msSpan = document.createElement("span"); msSpan.className = "ms"; msSpan.textContent = ms;
+    tdTime.append(msSpan);
+
+    const tdType = document.createElement("td");
+    tdType.className = "type";
+    const pill = document.createElement("span");
+    pill.className = "pill " + type;
+    pill.textContent = type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, " ");
+    tdType.append(pill);
+
+    const tdMsg = document.createElement("td");
+    tdMsg.className = "msg";
+    const id = evt.message_id || "—";
+    if (evt.message_id) {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = id; b.title = "Copy message ID";
+      b.dataset.copy = id;
+      tdMsg.append(b);
+    } else {
+      tdMsg.textContent = id;
+    }
+
+    tr.append(tdTime, tdType, tdMsg);
+
+    const wrap = el.tableWrap;
+    const pinned = wrap.scrollTop < 8;
+    const prevH = wrap.scrollHeight;
+    el.tbody.prepend(tr);
+    while (el.tbody.rows.length > MAX_ROWS) el.tbody.lastElementChild.remove();
+    if (!pinned) wrap.scrollTop += wrap.scrollHeight - prevH;
+
+    state.eventCounts.all++;
+    if (type === "delivered" || type === "sent") state.eventCounts.delivered++;
+    if (type === "opened") state.eventCounts.opened++;
+    if (type === "clicked") state.eventCounts.clicked++;
+    if (ISSUE.has(type)) state.eventCounts.issues++;
+    renderCounts();
+  }
+  function renderCounts() {
+    for (const [k, v] of Object.entries(state.eventCounts)) {
+      const n = el.filters.querySelector(`[data-n="${k}"]`);
+      if (n) n.textContent = v > 999 ? (v / 1000).toFixed(1).replace(/\.0$/, "") + "k" : String(v);
+    }
+    const shown = el.tbody.querySelectorAll("tr:not(.empty)").length;
+    const total = state.eventCounts.all;
+    el.tlCount.textContent = `${nf.format(total)} event${total === 1 ? "" : "s"}` + (total > shown ? ` · ${nf.format(shown)} shown` : "");
+  }
+  function clearTimeline() {
+    el.tbody.replaceChildren(el.emptyRow);
+    state.eventCounts = { all: 0, delivered: 0, opened: 0, clicked: 0, issues: 0 };
+    state.seen.clear();
+    renderCounts();
+  }
+
+  el.filters.addEventListener("click", (e) => {
+    const btn = e.target.closest(".filter"); if (!btn) return;
+    state.filter = btn.dataset.f;
+    el.filters.querySelectorAll(".filter").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+    for (const tr of el.tbody.rows) {
+      if (tr === el.emptyRow) continue;
+      tr.hidden = !matchesFilter(tr.dataset.type, state.filter);
+    }
+  });
+  el.clearBtn.addEventListener("click", clearTimeline);
+  el.tbody.addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-copy]"); if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.copy); toast("Copied message ID", shortId(b.dataset.copy)); }
+    catch { /* clipboard unavailable */ }
+  });
+
+  /* ───────────────────────── Incoming events ───────────────────────── */
+  function onEventReceived(data) {
+    if (!data) return;
+    const type = normType(data.event_type);
+    const key = (data.message_id || "") + "|" + type + "|" + (data.id || data.event_id || "");
+    if (data.message_id && state.seen.has(key)) return;
+    if (data.message_id) {
+      state.seen.add(key);
+      if (state.seen.size > 5000) state.seen.clear();
+    }
+
+    addEventRow(data);
+
+    const p = data.progress;
+    if (p && Number(p.batch_size) > 0) {
+      if (data.batch_id && data.batch_id !== state.batch.id && !state.sending) startBatch(data.batch_id, Number(p.batch_size));
+      if (!state.batch.startedAt) state.batch.startedAt = Date.now();
+      setProgress(Math.max(state.batch.delivered, Number(p.delivered) || 0), Number(p.batch_size));
+    }
+    scheduleReport();
+  }
+  function onBatchStarted(data) {
+    if (!data) return;
+    const size = Number(data.batch_size ?? data.count ?? data.size ?? data.progress?.batch_size) || 0;
+    startBatch(data.batch_id || data.id, size);
+    scheduleReport();
+  }
+
+  /* ───────────────────────── SSE + polling fallback ───────────────────────── */
+  const stream = {
+    es: null, mode: "connecting", pollTimer: null, retry: 0, retryTimer: null,
+
+    connect() {
+      if (!("EventSource" in window) && !DEMO) { this.startPolling(); return; }
+      this.setMode(this.retry ? "connecting" : "connecting");
+      let es;
+      try { es = api.stream(); } catch (e) { console.warn("[sse]", e); this.startPolling(); this.scheduleRetry(); return; }
+      this.es = es;
+
+      es.addEventListener("open", () => {
+        this.retry = 0;
+        this.stopPolling();
+        this.setMode("live");
+        scheduleReport(true);
+      });
+      const parse = (e) => { try { return JSON.parse(e.data); } catch { return null; } };
+      es.addEventListener("event.received", (e) => onEventReceived(parse(e)));
+      es.addEventListener("batch.started", (e) => onBatchStarted(parse(e)));
+      es.addEventListener("message", (e) => {
+        const d = parse(e); if (!d) return;
+        const t = d.type || d.event;
+        if (t === "batch.started") onBatchStarted(d.data || d);
+        else if (t === "event.received" || d.event_type) onEventReceived(d.data || d);
+      });
+      es.addEventListener("error", () => {
+        this.startPolling();
+        if (es.readyState === 2) { this.es = null; this.scheduleRetry(); }
+        else this.setMode("polling");
+      });
+    },
+    scheduleRetry() {
+      clearTimeout(this.retryTimer);
+      const delay = Math.min(30000, 1000 * Math.pow(2, this.retry++));
+      this.retryTimer = setTimeout(() => this.connect(), delay);
+    },
+    startPolling() {
+      if (this.pollTimer) return;
+      this.setMode("polling");
+      loadReport();
+      this.pollTimer = setInterval(() => { if (!document.hidden) loadReport(); }, POLL_MS);
+    },
+    stopPolling() { clearInterval(this.pollTimer); this.pollTimer = null; },
+    setMode(m) {
+      this.mode = m;
+      el.conn.dataset.state = m;
+      el.connLabel.textContent = { live: "Live", polling: "Polling", connecting: "Connecting", offline: "Offline" }[m] || m;
+      el.conn.title = m === "live" ? "Receiving events over SSE" : m === "polling" ? `SSE unavailable — polling /api/report every ${POLL_MS / 1000}s` : "";
+    },
+  };
+  window.addEventListener("online", () => { if (!stream.es) stream.connect(); });
+  window.addEventListener("offline", () => stream.setMode("offline"));
+
+  /* ───────────────────────── Send ───────────────────────── */
+  function clampCount() {
+    const raw = el.count.value.trim();
+    const n = Math.floor(Number(raw));
+    const ok = raw !== "" && Number.isFinite(n) && n >= 1 && n <= 1000;
+    el.count.setAttribute("aria-invalid", String(!ok));
+    return ok ? n : null;
+  }
+  el.count.addEventListener("input", clampCount);
+  el.count.addEventListener("blur", () => {
+    const n = Math.floor(Number(el.count.value));
+    if (Number.isFinite(n) && el.count.value !== "") el.count.value = String(Math.min(1000, Math.max(1, n)));
+    clampCount();
+  });
+  el.subject.addEventListener("input", () => el.subject.removeAttribute("aria-invalid"));
+  document.querySelectorAll(".preset").forEach((b) => b.addEventListener("click", () => {
+    el.count.value = b.dataset.n; clampCount(); el.subject.focus();
+  }));
+
+  function setSending(on, label) {
+    state.sending = on;
+    el.sendBtn.disabled = on;
+    el.sendBtn.setAttribute("aria-busy", String(on));
+    el.sendLabel.textContent = on ? (label || "Sending…") : "Send batch";
+    el.count.disabled = on; el.subject.disabled = on; el.scenario.disabled = on;
+    document.querySelectorAll(".preset").forEach((b) => (b.disabled = on));
+  }
+
+  el.form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (state.sending) return;
+    const count = clampCount();
+    const subject = el.subject.value.trim();
+    const scenario = el.scenario.value;
+    if (!count) { el.count.focus(); toast("Invalid count", "Enter a number between 1 and 1,000.", "error"); return; }
+    if (!subject) { el.subject.setAttribute("aria-invalid", "true"); el.subject.focus(); toast("Subject required", "Add a subject line before sending.", "error"); return; }
+
+    setSending(true, `Sending ${nf.format(count)}…`);
+    setStatus("sending", "Sending");
+    state.batch = { id: null, size: count, delivered: 0, startedAt: Date.now(), completedAt: 0 };
+    el.batchId.textContent = "—";
+    el.fill.style.width = "0";
+    el.track.classList.add("indeterminate");
+    el.progLabel.innerHTML = `Submitting <b>${nf.format(count)}</b> messages…`;
+    el.batchResult.classList.remove("show");
+
+    try {
+      const r = (await api.sendBatch(count, subject, scenario)) || {};
+      const succeeded = Number(r.succeeded ?? r.count ?? count) || 0;
+      const failed = Number(r.failed) || 0;
+      setSending(false);
+      startBatch(r.batch_id, succeeded);
+      if (succeeded === 0) { setStatus("error", "Rejected"); el.track.classList.remove("active"); }
+      renderBatchResult(r, succeeded, failed);
+      if (failed > 0) toast("Batch partially accepted", `${nf.format(succeeded)} accepted, ${nf.format(failed)} rejected.`, "warn");
+      else toast("Batch accepted", `${nf.format(succeeded)} emails queued for delivery.`);
+      scheduleReport(true);
+    } catch (err) {
+      setSending(false);
+      el.track.classList.remove("indeterminate", "active");
+      el.fill.style.width = "0";
+      setStatus("error", "Failed");
+      el.progLabel.innerHTML = `<b>0</b> / ${nf.format(count)} delivered (0%)`;
+      renderBatchError(err);
+      toast("Send failed", err.message || "The server rejected the request.", "error");
+    }
+  });
+
+  function renderBatchResult(r, succeeded, failed) {
+    const box = el.batchResult;
+    box.replaceChildren();
+    const add = (html) => { const s = document.createElement("span"); s.innerHTML = html; box.append(s); };
+    const sep = () => { const s = document.createElement("span"); s.className = "sep"; box.append(s); };
+    add(`Batch <span class="mono">${escapeHtml(r.batch_id ? shortId(r.batch_id) : "—")}</span>`); sep();
+    add(`<b class="tnum">${nf.format(Number(r.count ?? succeeded + failed))}</b> requested`); sep();
+    add(`<b class="tnum ok">${nf.format(succeeded)}</b> accepted`);
+    if (failed) { sep(); add(`<b class="tnum bad">${nf.format(failed)}</b> rejected`); }
+    const errs = Array.isArray(r.errors) ? r.errors : (r.errors ? [r.errors] : []);
+    if (errs.length) {
+      const d = document.createElement("details");
+      const s = document.createElement("summary"); s.textContent = `${errs.length} error${errs.length === 1 ? "" : "s"}`;
+      const pre = document.createElement("pre"); pre.textContent = errs.slice(0, 50).map((x) => typeof x === "string" ? x : JSON.stringify(x)).join("\n");
+      d.append(s, pre); box.append(d);
+    }
+    box.classList.add("show");
+  }
+  function renderBatchError(err) {
+    const box = el.batchResult;
+    box.replaceChildren();
+    const s = document.createElement("span");
+    s.innerHTML = `<b class="bad">Request failed</b>${err.status ? ` · HTTP ${err.status}` : ""} — `;
+    s.append(document.createTextNode(err.message || "Unknown error"));
+    box.append(s);
+    if (err.data && typeof err.data === "object") {
+      const d = document.createElement("details");
+      const sm = document.createElement("summary"); sm.textContent = "Response body";
+      const pre = document.createElement("pre"); pre.textContent = JSON.stringify(err.data, null, 2);
+      d.append(sm, pre); box.append(d);
+    }
+    box.classList.add("show");
+  }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+  /* ───────────────────────── Toasts ───────────────────────── */
+  function toast(title, body, kind = "ok", ms = 3800) {
+    const t = document.createElement("div");
+    t.className = "toast " + kind;
+    t.setAttribute("role", kind === "error" ? "alert" : "status");
+    const dot = document.createElement("span"); dot.className = "ti";
+    const wrap = document.createElement("div");
+    const b = document.createElement("b"); b.textContent = title;
+    wrap.append(b);
+    if (body) { const s = document.createElement("span"); s.textContent = body; wrap.append(s); }
+    t.append(dot, wrap);
+    el.toasts.append(t);
+    while (el.toasts.children.length > 3) el.toasts.firstElementChild.remove();
+    setTimeout(() => { t.classList.add("out"); t.addEventListener("animationend", () => t.remove(), { once: true }); setTimeout(() => t.remove(), 400); }, ms);
+  }
+
+  /* ───────────────────────── Boot ───────────────────────── */
+  async function boot() {
+    try {
+      const cfg = await api.config();
+      el.cfgFrom.textContent = cfg?.from || "—";
+      el.cfgTo.textContent = cfg?.to || "—";
+    } catch (e) {
+      el.cfgFrom.textContent = "unavailable"; el.cfgTo.textContent = "unavailable";
+      console.warn("[config]", e);
+    }
+    await loadReport();
+    stream.connect();
+    if (!el.subject.value) el.subject.value = "Telnyx Email API batch test";
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleReport(true); });
+  boot();
+
+  /* ───────────────────────── Demo mode (?demo) ───────────────────────── */
+  function createDemoApi() {
+    const counts = { delivered: 0, opened: 0, clicked: 0, bounced: 0, failed: 0, complained: 0 };
+    let totalSent = 0;
+    const listeners = {};
+    const fake = {
+      readyState: 1,
+      addEventListener(name, fn) { (listeners[name] ||= []).push(fn); },
+      close() {},
+    };
+    const emit = (name, data) => (listeners[name] || []).forEach((fn) => fn({ data: JSON.stringify(data) }));
+    const rid = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join("");
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const rate = (n, d) => (d ? n / d : 0);
+
+    return {
+      async config() { await wait(120); return { from: "o***@m***.com", to: "y***@e***.com" }; },
+      async report() {
+        return {
+          total_sent: totalSent, counts: { ...counts },
+          rates: { delivery: rate(counts.delivered, totalSent), open: rate(counts.opened, counts.delivered), click: rate(counts.clicked, counts.delivered), bounce: rate(counts.bounced, totalSent) },
+        };
+      },
+      async sendBatch(count) {
+        await wait(700 + Math.min(count, 1000));
+        const batch_id = "batch_" + rid().slice(0, 16);
+        const failed = count > 20 && Math.random() < 0.3 ? Math.ceil(count * 0.01) : 0;
+        const ok = count - failed;
+        totalSent += ok;
+        emit("batch.started", { batch_id, batch_size: ok });
+        let delivered = 0;
+        const ids = Array.from({ length: ok }, () => rid() + "-" + rid().slice(0, 8));
+        const span = Math.min(9000, 1500 + ok * 12);
+        ids.forEach((id, i) => {
+          const t = (i / ok) * span + Math.random() * 600;
+          setTimeout(() => {
+            const roll = Math.random();
+            const type = roll < 0.03 ? "bounced" : roll < 0.04 ? "failed" : "delivered";
+            counts[type]++;
+            if (type === "delivered") delivered++;
+            emit("event.received", { event_type: "email." + type, message_id: id, batch_id, progress: { delivered, batch_size: ok, pct: Math.round((delivered / ok) * 100) } });
+            if (type !== "delivered") return;
+            if (Math.random() < 0.45) setTimeout(() => {
+              counts.opened++;
+              emit("event.received", { event_type: "email.opened", message_id: id, batch_id, progress: { delivered, batch_size: ok } });
+              if (Math.random() < 0.35) setTimeout(() => { counts.clicked++; emit("event.received", { event_type: "email.clicked", message_id: id, batch_id }); }, 600 + Math.random() * 2500);
+              else if (Math.random() < 0.01) setTimeout(() => { counts.complained++; emit("event.received", { event_type: "email.complained", message_id: id, batch_id }); }, 1500);
+            }, 800 + Math.random() * 4000);
+          }, t);
+        });
+        return { batch_id, count, succeeded: ok, failed, errors: failed ? [{ index: 3, code: "invalid_recipient", detail: "Recipient address rejected" }] : [] };
+      },
+      stream() { setTimeout(() => emit("open", {}), 300); return fake; },
+    };
+  }
+})();
+</script>
+</body>
+</html>
