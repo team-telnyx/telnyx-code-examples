@@ -3361,6 +3361,12 @@ examples:
     framework: node
     folder: setup-email-api-nodejs
 
+  - product: email
+    use_case: batch-send
+    language: nodejs
+    framework: express
+    folder: email-batch-send-nodejs
+
   - product: sms
     use_case: audio-transcribe-summarize-sms
     language: nodejs

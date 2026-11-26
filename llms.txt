@@ -354,6 +354,7 @@
 
 ## Email
 
+- [Send Batch Emails with the Telnyx Email API](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-batch-send-nodejs/README.md): Send up to 1,000 emails in a single API call and track delivery events in a real-time dashboard
 - [Customer Support Across Email & WhatsApp](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/email-whatsapp-support-python/README.md)
 - [Provision and Route Email Dedicated IPs](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/provision-and-route-email-dedicated-ips/README.md): Provision a dedicated sending IP, start its warm-up, create a default IP pool, route the IP through the pool, and verify delivery with a test email.
 - [Set Up the Telnyx Email API](https://raw.githubusercontent.com/team-telnyx/telnyx-code-examples/main/setup-email-api-nodejs/README.md): Send a Telnyx Email API message from a local Node.js dashboard, enable per-send open and click tracking, and poll delivery and engagement events.
