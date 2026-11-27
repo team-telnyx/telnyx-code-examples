@@ -1,0 +1,19 @@
+name = "dial-odometer"
+main = "src/index.ts"
+compatibility_date = "2026-07-28"
+
+[[actors]]
+binding = "ODOMETER"
+type    = "DialOdometer"
+
+[[secrets]]
+binding = "TELNYX_API_KEY"
+name    = "TELNYX_API_KEY"
+
+[storage.sqldb.ODOMETER_DB]
+id = "<sqldb-namespace-uuid>"
+
+[env_vars]
+POLL_EVERY = "60"
+WARN_PCT   = "80"
+DEMO_MODE  = "true"
